@@ -6,7 +6,7 @@ import typing
 
 import pytest
 
-from typic.ensure import coerce, isbuiltintype, ensure, BUILTIN_TYPES
+from typic.ensure import coerce, isbuiltintype, ensure, BUILTIN_TYPES, resolve_annotations, resolve_supertype
 
 
 @pytest.mark.parametrize(
@@ -147,6 +147,7 @@ def test_coerce_collections_subscripted(annotation, value):
     argnames=('annotation', 'value'),
     argvalues=[
         (typing.Mapping[int, str], '{"1": 0}'),
+        (typing.Mapping[int, bool], '{"1": false}'),
         (typing.Mapping[str, int], {1: '0'}),
         (typing.Mapping[str, bool], {1: '0'}),
         (typing.Mapping[datetime.datetime, datetime.datetime], {0: '1970'}),
@@ -163,7 +164,7 @@ def test_coerce_collections_subscripted(annotation, value):
     ]
 )
 def test_coerce_mapping_subscripted(annotation, value):
-    annotation = coerce.resolve_supertype(annotation)
+    annotation = resolve_supertype(annotation)
     key_arg, value_arg = annotation.__args__
     coerced = coerce(value, annotation)
     assert isinstance(coerced, annotation.__origin__)

@@ -17,7 +17,7 @@ def _get_loader():
     except ImportError:  # nocover
         import json
 
-        return json.load, json.JSONDecodeError
+        return json.loads, json.JSONDecodeError
 
 
 load, LoaderError = _get_loader()

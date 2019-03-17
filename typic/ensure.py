@@ -42,8 +42,16 @@ BUILTIN_TYPES = frozenset((
 ))
 
 
+def resolve_supertype(annotation: Any) -> Any:
+    """Resolve NewTypes, recursively."""
+    if hasattr(annotation, '__supertype__'):
+        return resolve_supertype(annotation.__supertype__)
+    return annotation
+
+
 def isbuiltintype(obj: Any) -> bool:
-    return getattr(obj, '__supertype__', obj) in BUILTIN_TYPES
+    """Check whether the provided object is a builtin-type"""
+    return resolve_supertype(obj) in BUILTIN_TYPES or resolve_supertype(type(obj)) in BUILTIN_TYPES
 
 
 def _should_resolve(param: inspect.Parameter) -> bool:
@@ -62,20 +70,19 @@ def resolve_annotations(cls_or_callable: Union[Type[object], Callable], sig: ins
 
     Returns
     -------
-    A new signature with all annotations resolved.
-
-    Raises
-    ------
-    NameError
-        If there is an un-resolvable type-hint.
+    A new signature with all annotations resolved, unless a NameError is raised.
     """
-    parameters = dict(sig.parameters)
-    to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
-    if to_resolve:
-        hints = get_type_hints(cls_or_callable)
-        resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
-        parameters.update(resolved)
-        return sig.replace(parameters=parameters.values())
+    try:
+        parameters = dict(sig.parameters)
+        to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
+        if to_resolve:
+            hints = get_type_hints(cls_or_callable)
+            resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
+            parameters.update(resolved)
+            return sig.replace(parameters=parameters.values())
+    # If there's an irresolvable annotation, just return the original signature.
+    except NameError:
+        pass
     return sig
 
 
@@ -100,7 +107,7 @@ class Coercer:
     @classmethod
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
-        actual = cls.resolve_supertype(annotation)
+        actual = resolve_supertype(annotation)
         actual = getattr(actual, '__origin__', actual)
 
         # provide defaults for generics
@@ -108,13 +115,6 @@ class Coercer:
             actual = cls._check_generics(actual)
 
         return actual
-
-    @classmethod
-    def resolve_supertype(cls, annotation: Any) -> Any:
-        """Resolve NewTypes, recursively."""
-        if hasattr(annotation, '__supertype__'):
-            return cls.resolve_supertype(annotation.__supertype__)
-        return annotation
 
     @classmethod
     def _coerce_builtin(cls, value: Any, annotation: Type) -> Any:
@@ -236,7 +236,7 @@ class Coercer:
         annotation :
             The provided annotation for determining the coercion
         """
-        annotation = cls.resolve_supertype(annotation)
+        annotation = resolve_supertype(annotation)
         origin = cls.get_origin(annotation)
         coerced = value
         if annotation in {datetime.datetime, datetime.date}:
@@ -327,7 +327,7 @@ class Coercer:
         """
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            sig = inspect.signature(func)
+            sig = resolve_annotations(func, inspect.signature(func))
             bound = cls.coerce_parameters(sig.bind(*args, **kwargs))
             return func(*bound.args, **bound.kwargs)
 
