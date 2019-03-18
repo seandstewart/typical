@@ -72,17 +72,13 @@ def resolve_annotations(cls_or_callable: Union[Type[object], Callable], sig: ins
     -------
     A new signature with all annotations resolved, unless a NameError is raised.
     """
-    try:
-        parameters = dict(sig.parameters)
-        to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
-        if to_resolve:
-            hints = get_type_hints(cls_or_callable)
-            resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
-            parameters.update(resolved)
-            return sig.replace(parameters=parameters.values())
-    # If there's an irresolvable annotation, just return the original signature.
-    except NameError:
-        pass
+    parameters = dict(sig.parameters)
+    to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
+    if to_resolve:
+        hints = get_type_hints(cls_or_callable)
+        resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
+        parameters.update(resolved)
+        return sig.replace(parameters=parameters.values())
     return sig
 
 

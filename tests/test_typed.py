@@ -59,6 +59,11 @@ class FooNum(str, enum.Enum):
     bar = 'bar'
 
 
+@dataclasses.dataclass
+class Forward:
+    foo: 'Ref'
+
+
 @pytest.mark.parametrize(
     argnames=('annotation', 'value'),
     argvalues=[
@@ -246,6 +251,11 @@ def test_ensure_enum():
         bar: FooNum
 
     assert isinstance(Foo('bar').bar, FooNum)
+
+
+def test_forward_ref():
+    with pytest.raises(NameError):
+        ensure(Forward)('ref')
 
 
 @pytest.mark.parametrize(
