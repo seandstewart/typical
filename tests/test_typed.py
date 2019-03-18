@@ -6,7 +6,8 @@ import typing
 
 import pytest
 
-from typic.ensure import coerce, isbuiltintype, ensure, BUILTIN_TYPES, resolve_annotations, resolve_supertype
+from typic.ensure import coerce, isbuiltintype, ensure, BUILTIN_TYPES, resolve_supertype
+from typic.eval import safe_eval
 
 
 @pytest.mark.parametrize(
@@ -270,3 +271,9 @@ def test_forward_ref():
 def test_get_origin_returns_origin(annotation, origin):
     detected = coerce.get_origin(annotation)
     assert detected is origin
+
+
+def test_eval_invalid():
+    processed, result = safe_eval('{')
+    assert not processed
+    assert result == '{'

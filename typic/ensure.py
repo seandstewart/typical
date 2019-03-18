@@ -16,7 +16,7 @@ from typic.eval import safe_eval
 
 __all__ = (
     'BUILTIN_TYPES', 'isbuiltintype', 'resolve_annotations', 'coerce', 'coerce_parameters', 'ensure', 'ensure_class',
-    'ensure_callable'
+    'ensure_callable', 'resolve_supertype'
 )
 
 # Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
