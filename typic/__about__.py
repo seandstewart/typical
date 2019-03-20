@@ -1,6 +1,7 @@
-__title__ = 'typic'
-__description__ = "Typic: The Missing Piece of Python's typing library."
-__url__ = 'https://github.com/seandstewart/typic'
+__title__ = 'typical'
+__package__ = 'typic'
+__description__ = "Typical: Take Typing Further."
+__url__ = 'https://github.com/seandstewart/typical'
 __version__ = '1.0.0'
 __author__ = 'Sean Stewart'
 __author_email__ = 'sean_stewart@me.com'

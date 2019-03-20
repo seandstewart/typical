@@ -14,6 +14,7 @@ from setuptools import setup, Command
 @dataclasses.dataclass
 class About:
     title: str = None
+    package: str = None
     description: str = None
     url: str = None
     version: str = None
@@ -86,7 +87,7 @@ class UploadCommand(Command):
 setup(
     name=ABOUT.title,
     version=ABOUT.version,
-    packages=[ABOUT.title],
+    packages=[ABOUT.package],
     url=ABOUT.url,
     license=ABOUT.license,
     author=ABOUT.author,
