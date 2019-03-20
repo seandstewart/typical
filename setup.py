@@ -107,7 +107,7 @@ setup(
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Utilities',
-        'Topic :: Typing'
+        'Typing :: Typed'
     ],
     python_requires='>=3.6',
     cmdclass={
