@@ -1,12 +1,13 @@
 import dataclasses
 import datetime
-import enum
 import inspect
 import typing
 
 import pytest
 
-from typic.ensure import coerce, isbuiltintype, ensure, BUILTIN_TYPES, resolve_supertype
+from tests.objects import FromDict, Data, Nested, NestedSeq, NestedFromDict, DefaultNone, Forward, FooNum, UserID, \
+    DateDict
+from typic.typed import coerce, isbuiltintype, typed, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
 
 
@@ -16,53 +17,6 @@ from typic.eval import safe_eval
 )
 def test_isbuiltintype(obj: typing.Any):
     assert isbuiltintype(obj)
-
-
-@dataclasses.dataclass
-class FromDict:
-    foo: str = None
-
-    @classmethod
-    def from_dict(cls, dikt: typing.Mapping):
-        return cls(**dikt)
-
-
-@dataclasses.dataclass
-class Data:
-    foo: str
-
-
-@dataclasses.dataclass
-class Nested:
-    data: Data
-
-
-@dataclasses.dataclass
-class NestedSeq:
-    datum: typing.List[Data]
-
-
-@dataclasses.dataclass
-class NestedFromDict:
-    data: Data
-
-    @classmethod
-    def from_dict(cls, dikt: typing.Mapping):
-        return cls(**dikt)
-
-
-@dataclasses.dataclass
-class DefaultNone:
-    none: str = None
-
-
-class FooNum(str, enum.Enum):
-    bar = 'bar'
-
-
-@dataclasses.dataclass
-class Forward:
-    foo: 'Ref'
 
 
 @pytest.mark.parametrize(
@@ -96,10 +50,6 @@ class Forward:
 def test_coerce_simple(annotation, value):
     coerced = coerce(value, annotation)
     assert isinstance(coerced, annotation)
-
-
-UserID = typing.NewType('UserID', int)
-DateDict = typing.NewType('DateDict', typing.Dict[datetime.datetime, str])
 
 
 @pytest.mark.parametrize(
@@ -217,7 +167,7 @@ def test_wrap_dataclass():
 
 def test_ensure_callable():
 
-    @ensure
+    @typed
     def foo(bar: str):
         return bar
 
@@ -227,7 +177,7 @@ def test_ensure_callable():
 
 def test_ensure_class():
 
-    @ensure
+    @typed
     @dataclasses.dataclass
     class Foo:
         bar: str
@@ -237,16 +187,16 @@ def test_ensure_class():
 
 
 def test_ensure_default_none():
-    assert ensure(DefaultNone)().none is None
+    assert typed(DefaultNone)().none is None
 
 
 def test_ensure_invalid():
     with pytest.raises(TypeError):
-        ensure(1)
+        typed(1)
 
 
 def test_ensure_enum():
-    @ensure
+    @typed
     @dataclasses.dataclass
     class Foo:
         bar: FooNum
@@ -256,7 +206,17 @@ def test_ensure_enum():
 
 def test_forward_ref():
     with pytest.raises(NameError):
-        ensure(Forward)('ref')
+        typed(Forward)('ref')
+
+
+def test_varargs():
+    @typed
+    def foo(*args: Data, **kwargs: Data):
+        return args + tuple(kwargs.values())
+
+    datum = foo({'foo': 'bar'}, bar={'foo': 'blah'})
+
+    assert all(isinstance(x, Data) for x in datum)
 
 
 @pytest.mark.parametrize(

@@ -5,7 +5,7 @@ import functools
 from typing import Tuple, Any
 
 
-def _get_loader():
+def _get_loader():  # nocover
     try:
         import yaml
         import re
@@ -14,7 +14,7 @@ def _get_loader():
         )
         return yaml.load, yaml.error.YAMLError
 
-    except ImportError:  # nocover
+    except ImportError:
         import json
 
         return json.loads, json.JSONDecodeError

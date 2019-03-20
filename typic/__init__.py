@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from .ensure import *
+from .typed import *
 
-ly = ensure
+al = typed

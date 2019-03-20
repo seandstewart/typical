@@ -15,8 +15,8 @@ from typic.eval import safe_eval
 
 
 __all__ = (
-    'BUILTIN_TYPES', 'isbuiltintype', 'resolve_annotations', 'coerce', 'coerce_parameters', 'ensure', 'ensure_class',
-    'ensure_callable', 'resolve_supertype'
+    'BUILTIN_TYPES', 'isbuiltintype', 'resolve_annotations', 'coerce', 'coerce_parameters', 'typed', 'typed_class',
+    'typed_callable', 'resolve_supertype'
 )
 
 # Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
@@ -74,7 +74,7 @@ def resolve_annotations(cls_or_callable: Union[Type[object], Callable], sig: ins
     """
     parameters = dict(sig.parameters)
     to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
-    if to_resolve:
+    if to_resolve:  # nocover
         hints = get_type_hints(cls_or_callable)
         resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
         parameters.update(resolved)
@@ -301,8 +301,13 @@ class Coercer:
         # return a new copy to prevent any unforeseen side-effects
         coerced = copy.copy(bound)
         for name, value in to_coerce.items():
-            param = bound.signature.parameters[name]
-            coerced_value = cls.coerce_value(value, param.annotation)
+            param: inspect.Parameter = bound.signature.parameters[name]
+            if param.kind == param.VAR_POSITIONAL:
+                coerced_value = tuple(cls.coerce_value(x, param.annotation) for x in value)
+            elif param.kind == param.VAR_KEYWORD:
+                coerced_value = {x: cls.coerce_value(y, param.annotation) for x, y in value.items()}
+            else:
+                coerced_value = cls.coerce_value(value, param.annotation)
             coerced.arguments[name] = coerced_value
 
         return coerced
@@ -354,11 +359,11 @@ class Coercer:
 
 coerce = Coercer()
 coerce_parameters = coerce.coerce_parameters
-ensure_callable = coerce.wrap
-ensure_class = coerce.wrap_cls
+typed_callable = coerce.wrap
+typed_class = coerce.wrap_cls
 
 
-def ensure(cls_or_callable: Union[Callable, Type[object]]) -> \
+def typed(cls_or_callable: Union[Callable, Type[object]]) -> \
         Union[Callable, Type[object]]:
     """A convenience function which automatically selects the correct wrapper.
 
@@ -372,9 +377,9 @@ def ensure(cls_or_callable: Union[Callable, Type[object]]) -> \
     The target object, appropriately wrapped.
     """
     if inspect.isclass(cls_or_callable):
-        return ensure_class(cls_or_callable)
+        return typed_class(cls_or_callable)
     elif isinstance(cls_or_callable, Callable):
-        return ensure_callable(cls_or_callable)
+        return typed_callable(cls_or_callable)
     else:
         raise TypeError(
             f"{__name__} requires a callable or class. Provided: {type(cls_or_callable)}: {cls_or_callable}"
