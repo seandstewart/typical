@@ -32,9 +32,10 @@ library was completely re-written for performance and ease-of-use. Type
 annotations are here to stay and I couldn't be happier about it. 
 
 However, there is one place where annotations fall down. There is no
-provided method for ensuring the type-safety of your methods and
-functions. This means if you're receiving data from an external source,
-(such as with a web service) you still need to do this work yourself.
+provided path for ensuring the type-safety of your methods, functions,
+and classes. This means if you're receiving data from an external
+source, (such as with a web service) you still need to do this work
+yourself.
 
 Until now.
 
@@ -67,7 +68,7 @@ Take it further...
 ...     WHT = 'white'
 ... 
 >>> @typic.al
-... @dataclass.dataclass
+... @dataclasses.dataclass
 ... class Duck:
 ...     type: DuckType
 ...     name: str
@@ -191,4 +192,3 @@ Happy Typing :duck:
     works as expected.
 4.  Send a pull request and bug the maintainer until it gets merged and
     published. :)
-
