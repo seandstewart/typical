@@ -44,12 +44,12 @@ class DefaultNone:
 
 @dataclasses.dataclass
 class Forward:
-    foo: 'FooNum'
+    foo: "FooNum"
 
 
 class FooNum(str, enum.Enum):
-    bar = 'bar'
+    bar = "bar"
 
 
-UserID = typing.NewType('UserID', int)
-DateDict = typing.NewType('DateDict', typing.Dict[datetime.datetime, str])
+UserID = typing.NewType("UserID", int)
+DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])

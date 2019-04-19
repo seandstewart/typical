@@ -9,8 +9,9 @@ def _get_loader():  # nocover
     try:
         import yaml
         import re
+
         yaml.reader.Reader.NON_PRINTABLE = re.compile(
-            r'[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]'
+            r"[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]"
         )
         return yaml.load, yaml.error.YAMLError
 

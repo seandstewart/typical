@@ -6,6 +6,7 @@ Typical: Take Typing Further. :duck:
 [![image](https://img.shields.io/github/languages/code-size/seandstewart/typical.svg?style=flat)](https://github.com/seandstewart/typical)
 [![image](https://img.shields.io/travis/seandstewart/typical.svg)](https://travis-ci.org/seandstewart/typical)
 [![codecov](https://codecov.io/gh/seandstewart/typical/branch/master/graph/badge.svg)](https://codecov.io/gh/seandstewart/typical)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 Take Typing Further with Typical. Make your annotations work for you.
 

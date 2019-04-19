@@ -6,8 +6,22 @@ import enum
 import functools
 import inspect
 import collections.abc
-from typing import ForwardRef, Mapping, Sequence, Any, Union, Callable, Type, TypeVar, Dict, Collection, \
-    get_type_hints, Hashable, Optional, ClassVar
+from typing import (
+    ForwardRef,
+    Mapping,
+    Sequence,
+    Any,
+    Union,
+    Callable,
+    Type,
+    TypeVar,
+    Dict,
+    Collection,
+    get_type_hints,
+    Hashable,
+    Optional,
+    ClassVar,
+)
 
 import dateutil.parser
 
@@ -15,17 +29,17 @@ from typic.eval import safe_eval
 
 
 __all__ = (
-    'BUILTIN_TYPES',
-    'isbuiltintype',
-    'isclassvar',
-    'isoptional',
-    'resolve_annotations',
-    'coerce',
-    'coerce_parameters',
-    'typed',
-    'typed_class',
-    'typed_callable',
-    'resolve_supertype'
+    "BUILTIN_TYPES",
+    "isbuiltintype",
+    "isclassvar",
+    "isoptional",
+    "resolve_annotations",
+    "coerce",
+    "coerce_parameters",
+    "typed",
+    "typed_class",
+    "typed_callable",
+    "resolve_supertype",
 )
 
 # Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
@@ -36,24 +50,14 @@ __all__ = (
 #
 # All this to say, here we are with a manually-defined set of builtin-types. This probably won't break anytime soon,
 # but we shall see...
-BUILTIN_TYPES = frozenset((
-    int,
-    bool,
-    float,
-    str,
-    bytes,
-    bytearray,
-    list,
-    set,
-    frozenset,
-    tuple,
-    dict
-))
+BUILTIN_TYPES = frozenset(
+    (int, bool, float, str, bytes, bytearray, list, set, frozenset, tuple, dict)
+)
 
 
 def resolve_supertype(annotation: Any) -> Any:
     """Resolve NewTypes, recursively."""
-    if hasattr(annotation, '__supertype__'):
+    if hasattr(annotation, "__supertype__"):
         return resolve_supertype(annotation.__supertype__)
     return annotation
 
@@ -61,28 +65,40 @@ def resolve_supertype(annotation: Any) -> Any:
 @functools.lru_cache(typed=True)
 def isbuiltintype(obj: Any) -> bool:
     """Check whether the provided object is a builtin-type"""
-    return resolve_supertype(obj) in BUILTIN_TYPES or resolve_supertype(type(obj)) in BUILTIN_TYPES
+    return (
+        resolve_supertype(obj) in BUILTIN_TYPES
+        or resolve_supertype(type(obj)) in BUILTIN_TYPES
+    )
 
 
 @functools.lru_cache(typed=True)
 def isoptional(obj: Any) -> bool:
     """Test whether an annotation is Optional"""
-    args = getattr(obj, '__args__', ())
-    return len(args) == 2 and args[-1] is type(None) and getattr(obj, '__origin__', obj) in {Optional, Union}
+    args = getattr(obj, "__args__", ())
+    return (
+        len(args) == 2
+        and args[-1]
+        is type(None)  # noqa: E721 - we don't know what args[-1] is, so this is safer
+        and getattr(obj, "__origin__", obj) in {Optional, Union}
+    )
 
 
 @functools.lru_cache(typed=True)
 def isclassvar(obj: Any) -> bool:
     """Test whether an annotation is a ClassVar annotation."""
-    return getattr(obj, '__origin__', obj) is ClassVar
+    return getattr(obj, "__origin__", obj) is ClassVar
 
 
 @functools.lru_cache(typed=True)
 def _should_resolve(param: inspect.Parameter) -> bool:
-    return param.annotation is not param.empty and isinstance(param.annotation, (str, ForwardRef))
+    return param.annotation is not param.empty and isinstance(
+        param.annotation, (str, ForwardRef)
+    )
 
 
-def resolve_annotations(cls_or_callable: Union[Type[object], Callable], sig: inspect.Signature):
+def resolve_annotations(
+    cls_or_callable: Union[Type[object], Callable], sig: inspect.Signature
+):
     """Resolve all type-hints in the signature for the class or callable.
 
     Parameters
@@ -108,6 +124,7 @@ def resolve_annotations(cls_or_callable: Union[Type[object], Callable], sig: ins
 
 class Coercer:
     """A callable class for coercing values."""
+
     GENERIC_TYPE_MAP = {
         collections.abc.Sequence: list,
         Sequence: list,
@@ -116,9 +133,9 @@ class Coercer:
         Mapping: dict,
         collections.abc.Mapping: dict,
         Hashable: str,
-        collections.abc.Hashable: str
+        collections.abc.Hashable: str,
     }
-    DEFAULT_BYTE_ENCODING = 'utf-8'
+    DEFAULT_BYTE_ENCODING = "utf-8"
     UNRESOLVABLE = frozenset((Any, Union))
 
     @classmethod
@@ -129,7 +146,7 @@ class Coercer:
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
         actual = resolve_supertype(annotation)
-        actual = getattr(actual, '__origin__', actual)
+        actual = getattr(actual, "__origin__", actual)
         if isoptional(annotation) or isclassvar(annotation):
             return cls.get_origin(annotation.__args__[0])
 
@@ -144,9 +161,13 @@ class Coercer:
         """If the declared type is a builtin, we should just try casting it. Allow errors to bubble up."""
         # Special case: truthy value that was previously coerced to str ('0', ...)
         # Special case: JSON/YAML for a dict or list field
-        if annotation in (bool, dict, list, tuple, set, frozenset) and isinstance(value, (str, bytes)):
+        if annotation in (bool, dict, list, tuple, set, frozenset) and isinstance(
+            value, (str, bytes)
+        ):
             processed, value = safe_eval(value)
-        if annotation in (bytearray, bytes) and not isinstance(value, (bytes, bytearray)):
+        if annotation in (bytearray, bytes) and not isinstance(
+            value, (bytes, bytearray)
+        ):
             value = str(value).encode(cls.DEFAULT_BYTE_ENCODING)
 
         coerced = annotation(value)
@@ -154,7 +175,7 @@ class Coercer:
 
     @staticmethod
     def _coerce_datetime(
-            value: Any, annotation: Type[Union[datetime.date, datetime.datetime]]
+        value: Any, annotation: Type[Union[datetime.date, datetime.datetime]]
     ) -> Union[datetime.datetime, datetime.date]:
         """Coerce date, datetime, and date-string objects.
 
@@ -178,7 +199,7 @@ class Coercer:
 
     @classmethod
     def _coerce_collection(
-            cls, value: Any, origin: Type, annotation: Type[Collection[Any]]
+        cls, value: Any, origin: Type, annotation: Type[Collection[Any]]
     ) -> Collection:
         """Coerce a Sequence or related sub-type.
 
@@ -196,13 +217,14 @@ class Coercer:
         arg = annotation.__args__[0] if annotation.__args__ else None
         if arg and not isinstance(arg, TypeVar):
             return cls._coerce_builtin(
-                [cls.coerce_value(x, arg) for x in cls._coerce_builtin(value, origin)], origin
+                [cls.coerce_value(x, arg) for x in cls._coerce_builtin(value, origin)],
+                origin,
             )
         return cls._coerce_builtin(value, origin)
 
     @classmethod
     def _coerce_mapping(
-            cls, value: Any, origin: Type, annotation: Mapping[Any, Any]
+        cls, value: Any, origin: Type, annotation: Mapping[Any, Any]
     ) -> Mapping:
         """Coerce a Mapping type (i.e. dict or similar).
 
@@ -221,13 +243,18 @@ class Coercer:
         annotation :
             The original annotation.
         """
-        args = tuple(cls.get_origin(x) for x in annotation.__args__ if not isinstance(x, TypeVar))
+        args = tuple(
+            cls.get_origin(x) for x in annotation.__args__ if not isinstance(x, TypeVar)
+        )
         if args:
             key_type, value_type = args
-            value = cls._coerce_builtin({
-                cls.coerce_value(x, key_type): cls.coerce_value(y, value_type) for
-                x, y in cls._coerce_builtin(value, origin).items()
-            }, origin)
+            value = cls._coerce_builtin(
+                {
+                    cls.coerce_value(x, key_type): cls.coerce_value(y, value_type)
+                    for x, y in cls._coerce_builtin(value, origin).items()
+                },
+                origin,
+            )
             return value
 
         return cls._coerce_builtin(value, origin)
@@ -272,7 +299,7 @@ class Coercer:
         elif isbuiltintype(annotation):
             coerced = cls._coerce_builtin(value, origin)
         elif inspect.isclass(origin):
-            if hasattr(origin, 'from_dict'):
+            if hasattr(origin, "from_dict"):
                 coerced = cls._coerce_from_dict(origin, value)
             elif issubclass(origin, enum.Enum):
                 coerced = origin(value)
@@ -306,13 +333,22 @@ class Coercer:
             The value to check for coercion.
         """
         origin = cls.get_origin(parameter.annotation)
-        is_default = parameter.default is not parameter.empty and value == parameter.default
+        is_default = (
+            parameter.default is not parameter.empty and value == parameter.default
+        )
         has_annotation = parameter.annotation is not parameter.empty
         special = (
-            isinstance(origin, (str, ForwardRef)) or origin in cls.UNRESOLVABLE or type(origin) in cls.UNRESOLVABLE
+            isinstance(origin, (str, ForwardRef))
+            or origin in cls.UNRESOLVABLE
+            or type(origin) in cls.UNRESOLVABLE
         )
-        args = getattr(parameter.annotation, '__args__', None)
-        return not is_default and has_annotation and not special and (not isinstance(value, origin) or args)
+        args = getattr(parameter.annotation, "__args__", None)
+        return (
+            not is_default
+            and has_annotation
+            and not special
+            and (not isinstance(value, origin) or args)
+        )
 
     @classmethod
     def coerce_parameters(cls, bound: inspect.BoundArguments) -> inspect.BoundArguments:
@@ -330,18 +366,22 @@ class Coercer:
         The bound arguments, with their values coerced.
         """
         to_coerce = {
-            x: y for x, y in bound.arguments.items() if cls.should_coerce(
-                bound.signature.parameters[x], y
-            )
+            x: y
+            for x, y in bound.arguments.items()
+            if cls.should_coerce(bound.signature.parameters[x], y)
         }
         # return a new copy to prevent any unforeseen side-effects
         coerced = copy.copy(bound)
         for name, value in to_coerce.items():
             param: inspect.Parameter = bound.signature.parameters[name]
             if param.kind == param.VAR_POSITIONAL:
-                coerced_value = tuple(cls.coerce_value(x, param.annotation) for x in value)
+                coerced_value = tuple(
+                    cls.coerce_value(x, param.annotation) for x in value
+                )
             elif param.kind == param.VAR_KEYWORD:
-                coerced_value = {x: cls.coerce_value(y, param.annotation) for x, y in value.items()}
+                coerced_value = {
+                    x: cls.coerce_value(y, param.annotation) for x, y in value.items()
+                }
             else:
                 coerced_value = cls.coerce_value(value, param.annotation)
             coerced.arguments[name] = coerced_value
@@ -362,6 +402,7 @@ class Coercer:
         :py:func:`inspect.signature`
         :py:method:`inspect.Signature.bind`
         """
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             sig = resolve_annotations(func, inspect.signature(func))
@@ -386,6 +427,7 @@ class Coercer:
         klass :
             The class you wish to patch with coercion.
         """
+
         def wrapper(cls_):
             cls_.__init__ = cls.wrap(cls_.__init__)
             return cls_
@@ -399,8 +441,9 @@ typed_callable = coerce.wrap
 typed_class = coerce.wrap_cls
 
 
-def typed(cls_or_callable: Union[Callable, Type[object]]) -> \
-        Union[Callable, Type[object]]:
+def typed(
+    cls_or_callable: Union[Callable, Type[object]]
+) -> Union[Callable, Type[object]]:
     """A convenience function which automatically selects the correct wrapper.
 
     Parameters
