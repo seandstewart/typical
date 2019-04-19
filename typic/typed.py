@@ -6,8 +6,8 @@ import enum
 import functools
 import inspect
 import collections.abc
-from typing import ForwardRef, Mapping, Sequence, Any, Union, Callable, _SpecialForm, Type, TypeVar, Dict, Collection, \
-    get_type_hints, Hashable
+from typing import ForwardRef, Mapping, Sequence, Any, Union, Callable, Type, TypeVar, Dict, Collection, \
+    get_type_hints, Hashable, Optional, ClassVar
 
 import dateutil.parser
 
@@ -15,8 +15,17 @@ from typic.eval import safe_eval
 
 
 __all__ = (
-    'BUILTIN_TYPES', 'isbuiltintype', 'resolve_annotations', 'coerce', 'coerce_parameters', 'typed', 'typed_class',
-    'typed_callable', 'resolve_supertype'
+    'BUILTIN_TYPES',
+    'isbuiltintype',
+    'isclassvar',
+    'isoptional',
+    'resolve_annotations',
+    'coerce',
+    'coerce_parameters',
+    'typed',
+    'typed_class',
+    'typed_callable',
+    'resolve_supertype'
 )
 
 # Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
@@ -49,11 +58,26 @@ def resolve_supertype(annotation: Any) -> Any:
     return annotation
 
 
+@functools.lru_cache(typed=True)
 def isbuiltintype(obj: Any) -> bool:
     """Check whether the provided object is a builtin-type"""
     return resolve_supertype(obj) in BUILTIN_TYPES or resolve_supertype(type(obj)) in BUILTIN_TYPES
 
 
+@functools.lru_cache(typed=True)
+def isoptional(obj: Any) -> bool:
+    """Test whether an annotation is Optional"""
+    args = getattr(obj, '__args__', ())
+    return len(args) == 2 and args[-1] is type(None) and getattr(obj, '__origin__', obj) in {Optional, Union}
+
+
+@functools.lru_cache(typed=True)
+def isclassvar(obj: Any) -> bool:
+    """Test whether an annotation is a ClassVar annotation."""
+    return getattr(obj, '__origin__', obj) is ClassVar
+
+
+@functools.lru_cache(typed=True)
 def _should_resolve(param: inspect.Parameter) -> bool:
     return param.annotation is not param.empty and isinstance(param.annotation, (str, ForwardRef))
 
@@ -95,6 +119,7 @@ class Coercer:
         collections.abc.Hashable: str
     }
     DEFAULT_BYTE_ENCODING = 'utf-8'
+    UNRESOLVABLE = frozenset((Any, Union))
 
     @classmethod
     def _check_generics(cls, hint: Any):
@@ -105,6 +130,8 @@ class Coercer:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
         actual = resolve_supertype(annotation)
         actual = getattr(actual, '__origin__', actual)
+        if isoptional(annotation) or isclassvar(annotation):
+            return cls.get_origin(annotation.__args__[0])
 
         # provide defaults for generics
         if not isbuiltintype(actual):
@@ -176,7 +203,7 @@ class Coercer:
     @classmethod
     def _coerce_mapping(
             cls, value: Any, origin: Type, annotation: Mapping[Any, Any]
-    )-> Mapping:
+    ) -> Mapping:
         """Coerce a Mapping type (i.e. dict or similar).
 
         Default to a dict if ``Mapping`` is declared.
@@ -235,6 +262,11 @@ class Coercer:
         annotation = resolve_supertype(annotation)
         origin = cls.get_origin(annotation)
         coerced = value
+        if isoptional(annotation) and value is None:
+            return
+        elif isoptional(annotation) or isclassvar(annotation):
+            return cls.coerce_value(value, origin)
+
         if annotation in {datetime.datetime, datetime.date}:
             coerced = cls._coerce_datetime(value, origin)
         elif isbuiltintype(annotation):
@@ -251,6 +283,8 @@ class Coercer:
             elif isinstance(value, (Mapping, dict)):
                 bound = cls.coerce_parameters(inspect.signature(origin).bind(**value))
                 coerced = origin(**bound.arguments)
+            else:
+                coerced = origin(value)
 
         return coerced
 
@@ -274,7 +308,9 @@ class Coercer:
         origin = cls.get_origin(parameter.annotation)
         is_default = parameter.default is not parameter.empty and value == parameter.default
         has_annotation = parameter.annotation is not parameter.empty
-        special = isinstance(origin, (str, ForwardRef)) or issubclass(origin, _SpecialForm)
+        special = (
+            isinstance(origin, (str, ForwardRef)) or origin in cls.UNRESOLVABLE or type(origin) in cls.UNRESOLVABLE
+        )
         args = getattr(parameter.annotation, '__args__', None)
         return not is_default and has_annotation and not special and (not isinstance(value, origin) or args)
 

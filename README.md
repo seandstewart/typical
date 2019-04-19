@@ -43,7 +43,7 @@ Until now.
 
 Behold, the power of *Typical*:
 
-```pydocstring
+```python
 >>> import typic
 >>>
 >>> @typic.al
@@ -56,7 +56,7 @@ Behold, the power of *Typical*:
 
 Take it further...
 
-```pydocstring
+```python
 >>> import dataclasses
 >>> import enum
 >>> import typic
@@ -79,7 +79,7 @@ Take it further...
 
 This is all fine and dandy, but can we go... further? :thinking: 
 
-```pydocstring
+```python
 >>> class DuckRegistry:
 ...     """A Registry for all the ducks"""
 ...     
@@ -102,7 +102,7 @@ This is all fine and dandy, but can we go... further? :thinking:
 ... 
 >>> registry = DuckRegistry({'type': 'black', 'name': 'Daffy'})
 >>> registry.find('Daffy')
-Duck(type=<DuckType.WHT: 'black'>, name='Daffy')
+Duck(type=<DuckType.BLK: 'black'>, name='Daffy')
 >>> registry.add({'type': 'white', 'name': 'Donald'})
 >>> registry.find('Donald')
 Duck(type=<DuckType.WHT: 'white'>, name='Donald')
@@ -158,15 +158,20 @@ type-coercion, make sure the annotated type is in the namespace of the
 object you're wrapping and avoid Forward References if at all possible.
 
 #### Special Forms
-A "special form" is a type annotation which does not have a singular
-resolution. Some common cases from the `typing` module are:
+There is a subset of type annotations which are 'suscriptable' - meaning
+you can specify what other types this annotation may resolve to. In a
+few of those cases, the intended type for the incoming data is too
+ambiguous to resolve. The following annotations are special forms which
+cannot be supported:
 * Union
-* Optional (which is an alias for `Union[<mytype>, None]`)
 * Any
 
 Because these signal an unclear resolution, Typical will ignore this
 flavor of annotation, leaving it to the developer to determine the
 appropriate action.
+
+_New in version 1.1.0:_ `typing.Optional` and `typing.ClassVar` are now
+supported.
 
 
 ## Documentation
@@ -179,8 +184,9 @@ Happy Typing :duck:
 ## How to Contribute
 1.  Check for open issues or open a fresh issue to start a discussion
     around a feature idea or a bug. 
-2.  Create a branch on Github for your issue or fork [the repository](https://github.com/seandstewart/que) 
-    on GitHub to start making your changes to the **master** branch.
+2.  Create a branch on Github for your issue or fork
+    [the repository](https://github.com/seandstewart/que) on GitHub to
+    start making your changes to the **master** branch.
 3.  Write a test which shows that the bug was fixed or that the feature
     works as expected.
 4.  Send a pull request and bug the maintainer until it gets merged and

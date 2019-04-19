@@ -69,6 +69,18 @@ def test_default_none():
 
 
 @pytest.mark.parametrize(
+    argnames=('annotation', 'value', 'expected'),
+    argvalues=[
+        (typing.Optional[str], 1, "1"),
+        (typing.Optional[str], None, None),
+        (typing.ClassVar[str], 1, "1"),
+    ]
+)
+def test_coerce_supscripted(annotation, value, expected):
+    assert coerce(value, annotation) == expected
+
+
+@pytest.mark.parametrize(
     argnames=('annotation', 'value'),
     argvalues=[
         (typing.List[int], '["1"]'),
@@ -237,3 +249,15 @@ def test_eval_invalid():
     processed, result = safe_eval('{')
     assert not processed
     assert result == '{'
+
+
+@pytest.mark.parametrize(
+    argnames=('annotation',),
+    argvalues=[
+        (typing.Any,),
+        (typing.Union,),
+    ]
+)
+def test_special_form(annotation):
+    param = inspect.Parameter('foo', inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=annotation)
+    assert coerce.should_coerce(param, 'foo') is False
