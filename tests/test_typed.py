@@ -17,8 +17,8 @@ from tests.objects import (
     UserID,
     DateDict,
 )
-from typic.typed import coerce, isbuiltintype, typed, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
+from typic.typed import coerce, isbuiltintype, typed, BUILTIN_TYPES, resolve_supertype
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -258,3 +258,10 @@ def test_special_form(annotation):
         "foo", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=annotation
     )
     assert coerce.should_coerce(param, "foo") is False
+
+
+def test_setattr():
+    data = typed(Data)("bar")
+    assert isinstance(data.foo, str)
+    data.foo = 1
+    assert isinstance(data.foo, str)

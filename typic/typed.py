@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import collections.abc
 import copy
 import datetime
 import enum
 import functools
 import inspect
-import collections.abc
 from typing import (
     ForwardRef,
     Mapping,
@@ -26,7 +26,6 @@ from typing import (
 import dateutil.parser
 
 from typic.eval import safe_eval
-
 
 __all__ = (
     "BUILTIN_TYPES",
@@ -94,6 +93,16 @@ def _should_resolve(param: inspect.Parameter) -> bool:
     return param.annotation is not param.empty and isinstance(
         param.annotation, (str, ForwardRef)
     )
+
+
+@functools.lru_cache(typed=True)
+def cached_signature(obj: Callable) -> inspect.Signature:
+    return inspect.signature(obj)
+
+
+@functools.lru_cache(typed=True)
+def cached_type_hints(obj: Callable) -> dict:
+    return get_type_hints(obj)
 
 
 def resolve_annotations(
@@ -307,11 +316,17 @@ class Coercer:
                 coerced = cls._coerce_mapping(value, origin, annotation)
             elif issubclass(origin, (Collection, list)):
                 coerced = cls._coerce_collection(value, origin, annotation)
-            elif isinstance(value, (Mapping, dict)):
-                bound = cls.coerce_parameters(inspect.signature(origin).bind(**value))
-                coerced = origin(**bound.arguments)
             else:
-                coerced = origin(value)
+                processed, value = (
+                    safe_eval(value) if isinstance(value, str) else (False, value)
+                )
+                if isinstance(value, (Mapping, dict)):
+                    bound = cls.coerce_parameters(
+                        inspect.signature(origin).bind(**value)
+                    )
+                    coerced = origin(*bound.args, **bound.kwargs)
+                else:
+                    coerced = origin(value)
 
         return coerced
 
@@ -351,6 +366,19 @@ class Coercer:
         )
 
     @classmethod
+    def coerce_parameter(cls, param: inspect.Parameter, value: Any) -> Any:
+        """Coerce the value of a parameter to its appropriate type."""
+        if param.kind == param.VAR_POSITIONAL:
+            coerced_value = tuple(cls.coerce_value(x, param.annotation) for x in value)
+        elif param.kind == param.VAR_KEYWORD:
+            coerced_value = {
+                x: cls.coerce_value(y, param.annotation) for x, y in value.items()
+            }
+        else:
+            coerced_value = cls.coerce_value(value, param.annotation)
+        return coerced_value
+
+    @classmethod
     def coerce_parameters(cls, bound: inspect.BoundArguments) -> inspect.BoundArguments:
         """Coerce the paramertes in the bound arguments to their annotated types.
 
@@ -374,19 +402,18 @@ class Coercer:
         coerced = copy.copy(bound)
         for name, value in to_coerce.items():
             param: inspect.Parameter = bound.signature.parameters[name]
-            if param.kind == param.VAR_POSITIONAL:
-                coerced_value = tuple(
-                    cls.coerce_value(x, param.annotation) for x in value
-                )
-            elif param.kind == param.VAR_KEYWORD:
-                coerced_value = {
-                    x: cls.coerce_value(y, param.annotation) for x, y in value.items()
-                }
-            else:
-                coerced_value = cls.coerce_value(value, param.annotation)
+            coerced_value = cls.coerce_parameter(param, value)
             coerced.arguments[name] = coerced_value
 
         return coerced
+
+    @classmethod
+    def bind_wrapper(cls, wrapper: Callable, func: Callable):
+        wrapper.__defaults__ = (wrapper.__defaults__ or ()) + (func.__defaults__ or ())
+        wrapper.__kwdefaults__ = wrapper.__kwdefaults__ or {}.update(
+            func.__kwdefaults__ or {}
+        )
+        wrapper.__signature__ = cached_signature(func)
 
     @classmethod
     def wrap(cls, func: Callable) -> Callable:
@@ -409,10 +436,12 @@ class Coercer:
             bound = cls.coerce_parameters(sig.bind(*args, **kwargs))
             return func(*bound.args, **bound.kwargs)
 
+        cls.bind_wrapper(wrapper, func)
+
         return wrapper
 
     @classmethod
-    def wrap_cls(cls, klass: Type[object] = None):
+    def wrap_cls(cls, klass: Type[object]):
         """Wrap a class to automatically enforce type-coercion on init.
 
         Notes
@@ -424,15 +453,38 @@ class Coercer:
 
         Parameters
         ----------
-        klass :
+        klass
             The class you wish to patch with coercion.
         """
 
         def wrapper(cls_):
             cls_.__init__ = cls.wrap(cls_.__init__)
+            cls_.__setattr__ = __setattr_coerced__
             return cls_
 
-        return wrapper if klass is None else wrapper(klass)
+        wrapped = wrapper(klass)
+        wrapped.__signature__ = cached_signature(klass)
+        return wrapped
+
+
+def __setattr_coerced__(self, name, value):
+    # we use caching here because we're making the relatively safe bet
+    # that the annotation won't change after the class is initialized.
+    sig = cached_signature(type(self))
+    hints = cached_type_hints(type(self))
+    # We do this to support when a parametrized attribute can default to None,
+    # but isn't marked as Optional.
+    if name in sig.parameters:
+        param = sig.parameters[name]
+        value = (
+            coerce.coerce_parameter(param, value)
+            if coerce.should_coerce(param, value)
+            else value
+        )
+    # Otherwise use the type-hint at face-value.
+    elif name in hints:
+        value = coerce(value, hints[name])
+    super(type(self), self).__setattr__(name, value)
 
 
 coerce = Coercer()
@@ -441,9 +493,7 @@ typed_callable = coerce.wrap
 typed_class = coerce.wrap_cls
 
 
-def typed(
-    cls_or_callable: Union[Callable, Type[object]]
-) -> Union[Callable, Type[object]]:
+def typed(cls_or_callable: Union[Callable, Type[object]]):
     """A convenience function which automatically selects the correct wrapper.
 
     Parameters
@@ -455,9 +505,13 @@ def typed(
     -------
     The target object, appropriately wrapped.
     """
+    _annotations_ = {"return": cls_or_callable}
+    typed.__annotations__.update(_annotations_)
     if inspect.isclass(cls_or_callable):
+        typed_class.__annotations__.update(_annotations_)
         return typed_class(cls_or_callable)
     elif isinstance(cls_or_callable, Callable):
+        typed_callable.__annotations__.update(_annotations_)
         return typed_callable(cls_or_callable)
     else:
         raise TypeError(
