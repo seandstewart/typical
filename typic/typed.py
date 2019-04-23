@@ -316,7 +316,9 @@ class Coercer:
                 coerced = cls._coerce_mapping(value, origin, annotation)
             elif issubclass(origin, (Collection, list)):
                 coerced = cls._coerce_collection(value, origin, annotation)
-            else:
+            # This check comes last to account for nested typing.
+            # e.g.: Dict[str, tuple], etc...
+            elif not isinstance(value, origin):
                 processed, value = (
                     safe_eval(value) if isinstance(value, str) else (False, value)
                 )
