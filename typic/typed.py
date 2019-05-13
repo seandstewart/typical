@@ -3,9 +3,9 @@
 import collections.abc
 import copy
 import datetime
-import enum
 import functools
 import inspect
+from collections import deque
 from typing import (
     ForwardRef,
     Mapping,
@@ -19,73 +19,24 @@ from typing import (
     Collection,
     get_type_hints,
     Hashable,
+    NamedTuple,
+    Deque,
     Optional,
-    ClassVar,
 )
 
 import dateutil.parser
 
+from typic import checks
 from typic.eval import safe_eval
 
 __all__ = (
-    "BUILTIN_TYPES",
-    "isbuiltintype",
-    "isclassvar",
-    "isoptional",
     "resolve_annotations",
     "coerce",
     "coerce_parameters",
     "typed",
     "typed_class",
     "typed_callable",
-    "resolve_supertype",
 )
-
-# Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
-# well-known. The closest we have is https://docs.python.org/3.7/library/functions.html, which clumps the
-# builtin-types with builtin-functions. Despite clumping these types with functions in the documentation, these types
-# eval as False when compared to types.BuiltinFunctionType, which is meant to be an alias for the builtin-functions
-# listed in the documentation.
-#
-# All this to say, here we are with a manually-defined set of builtin-types. This probably won't break anytime soon,
-# but we shall see...
-BUILTIN_TYPES = frozenset(
-    (int, bool, float, str, bytes, bytearray, list, set, frozenset, tuple, dict)
-)
-
-
-def resolve_supertype(annotation: Any) -> Any:
-    """Resolve NewTypes, recursively."""
-    if hasattr(annotation, "__supertype__"):
-        return resolve_supertype(annotation.__supertype__)
-    return annotation
-
-
-@functools.lru_cache(typed=True)
-def isbuiltintype(obj: Any) -> bool:
-    """Check whether the provided object is a builtin-type"""
-    return (
-        resolve_supertype(obj) in BUILTIN_TYPES
-        or resolve_supertype(type(obj)) in BUILTIN_TYPES
-    )
-
-
-@functools.lru_cache(typed=True)
-def isoptional(obj: Any) -> bool:
-    """Test whether an annotation is Optional"""
-    args = getattr(obj, "__args__", ())
-    return (
-        len(args) == 2
-        and args[-1]
-        is type(None)  # noqa: E721 - we don't know what args[-1] is, so this is safer
-        and getattr(obj, "__origin__", obj) in {Optional, Union}
-    )
-
-
-@functools.lru_cache(typed=True)
-def isclassvar(obj: Any) -> bool:
-    """Test whether an annotation is a ClassVar annotation."""
-    return getattr(obj, "__origin__", obj) is ClassVar
 
 
 @functools.lru_cache(typed=True)
@@ -131,6 +82,23 @@ def resolve_annotations(
     return sig
 
 
+class _Coercer(NamedTuple):
+    check: Callable
+    coerce: Callable
+    ident: str = None
+    check_origin: bool = True
+
+    @property
+    @functools.lru_cache(1)
+    def key(self):
+        return self.ident or self.coerce.__qualname__
+
+    @property
+    @functools.lru_cache(1)
+    def parameters(self):
+        return cached_signature(self.coerce).parameters
+
+
 class Coercer:
     """A callable class for coercing values."""
 
@@ -147,6 +115,72 @@ class Coercer:
     DEFAULT_BYTE_ENCODING = "utf-8"
     UNRESOLVABLE = frozenset((Any, Union))
 
+    def __init__(self):
+        self.registry = self.Registry(self)
+        self.register = self.registry.register
+
+    class Registry:
+        __registry: Deque[_Coercer] = deque()
+        __user_registry: Deque[_Coercer] = deque()
+
+        def __init__(self, cls: "Coercer"):
+            self.cls = cls
+            self._register_builtin_coercers()
+
+        def register(self, coercer: Callable, check: Callable, ident: str = None):
+            _coercer = _Coercer(check=check, coerce=coercer, ident=ident)
+            type(self).__user_registry.appendleft(_coercer)
+
+        def _register_builtin_coercers(self):
+            """Build the deque of builtin coercers.
+
+            Order here is important!
+            """
+            type(self).__registry.extend(
+                [
+                    # Check if the annotaion is a date-type
+                    _Coercer(checks.isdatetype, self.cls._coerce_datetime),
+                    # Check if the annotation maps directly to a builtin-type
+                    # We use the raw annotation here, not the origin, since we account for
+                    # subscripted generics later.
+                    _Coercer(
+                        checks.isbuiltintype,
+                        self.cls._coerce_builtin,
+                        check_origin=False,
+                    ),
+                    # Check for a class with a ``from_dict()`` factory
+                    _Coercer(checks.isfromdictclass, self.cls._coerce_from_dict),
+                    # Enums are iterable and evaluate as a Collection,
+                    # so we need to short-circuit the next set of checks
+                    _Coercer(checks.isenumtype, self.cls._coerce_enum),
+                    # Check for a subscripted generic of the ``Mapping`` type
+                    _Coercer(checks.ismappingtype, self.cls._coerce_mapping),
+                    # Check for a subscripted generic of the ``Collection`` type
+                    # This *must* come after the check for a ``Mapping`` type
+                    _Coercer(checks.iscollectiontype, self.cls._coerce_collection),
+                    # Finally, try a generic class coercion.
+                    _Coercer(inspect.isclass, self.cls._coerce_class),
+                ]
+            )
+
+        @functools.lru_cache(None, typed=True)
+        def check(self, origin: Type, annotation: Any) -> Optional[_Coercer]:
+            """Locate the """
+            for coercer in type(self).__user_registry + type(self).__registry:
+                if coercer.check(origin if coercer.check_origin else annotation):
+                    return coercer
+
+        def coerce(self, value: Any, origin: Type, annotation: Any) -> Any:
+            coercer = self.check(origin, annotation)
+            if coercer:
+                kwargs = {"value": value}
+                if "origin" in coercer.parameters:
+                    kwargs["origin"] = origin
+                if "annotation" in coercer.parameters:
+                    kwargs["annotation"] = annotation
+                return coercer.coerce(**kwargs)
+            return value
+
     @classmethod
     def _check_generics(cls, hint: Any):
         return cls.GENERIC_TYPE_MAP.get(hint, hint)
@@ -154,13 +188,15 @@ class Coercer:
     @classmethod
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
-        actual = resolve_supertype(annotation)
+        # Resolve custom NewTypes, recursively.
+        actual = checks.resolve_supertype(annotation)
+        # Extract the origin of the annotation, recursively.
         actual = getattr(actual, "__origin__", actual)
-        if isoptional(annotation) or isclassvar(annotation):
+        if checks.isoptionaltype(annotation) or checks.isclassvartype(annotation):
             return cls.get_origin(annotation.__args__[0])
 
         # provide defaults for generics
-        if not isbuiltintype(actual):
+        if not checks.isbuiltintype(actual):
             actual = cls._check_generics(actual)
 
         return actual
@@ -206,9 +242,8 @@ class Coercer:
 
         return value
 
-    @classmethod
     def _coerce_collection(
-        cls, value: Any, origin: Type, annotation: Type[Collection[Any]]
+        self, value: Any, origin: Type, annotation: Type[Collection[Any]]
     ) -> Collection:
         """Coerce a Sequence or related sub-type.
 
@@ -225,15 +260,17 @@ class Coercer:
         """
         arg = annotation.__args__[0] if annotation.__args__ else None
         if arg and not isinstance(arg, TypeVar):
-            return cls._coerce_builtin(
-                [cls.coerce_value(x, arg) for x in cls._coerce_builtin(value, origin)],
+            return self._coerce_builtin(
+                [
+                    self.coerce_value(x, arg)
+                    for x in self._coerce_builtin(value, origin)
+                ],
                 origin,
             )
-        return cls._coerce_builtin(value, origin)
+        return self._coerce_builtin(value, origin)
 
-    @classmethod
     def _coerce_mapping(
-        cls, value: Any, origin: Type, annotation: Mapping[Any, Any]
+        self, value: Any, origin: Type, annotation: Mapping[Any, Any]
     ) -> Mapping:
         """Coerce a Mapping type (i.e. dict or similar).
 
@@ -253,32 +290,49 @@ class Coercer:
             The original annotation.
         """
         args = tuple(
-            cls.get_origin(x) for x in annotation.__args__ if not isinstance(x, TypeVar)
+            self.get_origin(x)
+            for x in annotation.__args__
+            if not isinstance(x, TypeVar)
         )
         if args:
             key_type, value_type = args
-            value = cls._coerce_builtin(
+            value = self._coerce_builtin(
                 {
-                    cls.coerce_value(x, key_type): cls.coerce_value(y, value_type)
-                    for x, y in cls._coerce_builtin(value, origin).items()
+                    self.coerce_value(x, key_type): self.coerce_value(y, value_type)
+                    for x, y in self._coerce_builtin(value, origin).items()
                 },
                 origin,
             )
             return value
 
-        return cls._coerce_builtin(value, origin)
+        return self._coerce_builtin(value, origin)
 
-    @classmethod
-    def _coerce_from_dict(cls, klass: Type[object], value: Dict) -> Any:
-        if isinstance(value, klass):
+    def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
+        if isinstance(value, origin):
             return value
         if isinstance(value, (str, bytes)):
             processed, value = safe_eval(value)
-        bound = cls.coerce_parameters(inspect.signature(klass).bind(**value))
-        return klass.from_dict(dict(bound.arguments))
+        bound = self.coerce_parameters(inspect.signature(origin).bind(**value))
+        return origin.from_dict(dict(bound.arguments))
 
-    @classmethod
-    def coerce_value(cls, value: Any, annotation: Any) -> Any:
+    def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
+        processed, value = (
+            safe_eval(value) if isinstance(value, str) else (False, value)
+        )
+        coerced = value
+        if isinstance(value, (Mapping, dict)):
+            bound = self.coerce_parameters(inspect.signature(origin).bind(**value))
+            coerced = origin(*bound.args, **bound.kwargs)
+        elif value is not None and not checks.isoptionaltype(annotation):
+            coerced = origin(value)
+
+        return coerced
+
+    @staticmethod
+    def _coerce_enum(value: Any, annotation: Any) -> Any:
+        return annotation(value)
+
+    def coerce_value(self, value: Any, annotation: Any) -> Any:
         """Coerce the given value to the given annotation, if possible.
 
         Checks for:
@@ -295,40 +349,21 @@ class Coercer:
         annotation :
             The provided annotation for determining the coercion
         """
-        annotation = resolve_supertype(annotation)
-        origin = cls.get_origin(annotation)
-        coerced = value
-        if isoptional(annotation) and value is None:
-            return
-        elif isoptional(annotation) or isclassvar(annotation):
-            return cls.coerce_value(value, origin)
+        # Resolve NewTypes into their annotation. Recursive.
+        annotation = checks.resolve_supertype(annotation)
+        # Get the "origin" of the annotation. This will be a builtin for native types.
+        # For custom types or classes, this will be the same as the annotation.
+        origin = self.get_origin(annotation)
+        optional = checks.isoptionaltype(annotation)
+        # Short-circuit checks if this is an optional type and the value is None
+        # Or if the type of the value is the annotation.
+        if type(value) is annotation or (optional and value is None):
+            return value
+        # Otherwise, start over with the origin if this is an Optional or ClassVar.
+        elif optional or checks.isclassvartype(annotation):
+            return self.coerce_value(value, origin)
 
-        if annotation in {datetime.datetime, datetime.date}:
-            coerced = cls._coerce_datetime(value, origin)
-        elif isbuiltintype(annotation):
-            coerced = cls._coerce_builtin(value, origin)
-        elif inspect.isclass(origin):
-            if hasattr(origin, "from_dict"):
-                coerced = cls._coerce_from_dict(origin, value)
-            elif issubclass(origin, enum.Enum):
-                coerced = origin(value)
-            elif issubclass(origin, (Mapping, dict)):
-                coerced = cls._coerce_mapping(value, origin, annotation)
-            elif issubclass(origin, (Collection, list)):
-                coerced = cls._coerce_collection(value, origin, annotation)
-            # This check comes last to account for nested typing.
-            # e.g.: Dict[str, tuple], etc...
-            elif not isinstance(value, origin):
-                processed, value = (
-                    safe_eval(value) if isinstance(value, str) else (False, value)
-                )
-                if isinstance(value, (Mapping, dict)):
-                    bound = cls.coerce_parameters(
-                        inspect.signature(origin).bind(**value)
-                    )
-                    coerced = origin(*bound.args, **bound.kwargs)
-                else:
-                    coerced = origin(value)
+        coerced = self.registry.coerce(value, origin, annotation)
 
         return coerced
 
@@ -367,21 +402,21 @@ class Coercer:
             and (not isinstance(value, origin) or args)
         )
 
-    @classmethod
-    def coerce_parameter(cls, param: inspect.Parameter, value: Any) -> Any:
+    def coerce_parameter(self, param: inspect.Parameter, value: Any) -> Any:
         """Coerce the value of a parameter to its appropriate type."""
         if param.kind == param.VAR_POSITIONAL:
-            coerced_value = tuple(cls.coerce_value(x, param.annotation) for x in value)
+            coerced_value = tuple(self.coerce_value(x, param.annotation) for x in value)
         elif param.kind == param.VAR_KEYWORD:
             coerced_value = {
-                x: cls.coerce_value(y, param.annotation) for x, y in value.items()
+                x: self.coerce_value(y, param.annotation) for x, y in value.items()
             }
         else:
-            coerced_value = cls.coerce_value(value, param.annotation)
+            coerced_value = self.coerce_value(value, param.annotation)
         return coerced_value
 
-    @classmethod
-    def coerce_parameters(cls, bound: inspect.BoundArguments) -> inspect.BoundArguments:
+    def coerce_parameters(
+        self, bound: inspect.BoundArguments
+    ) -> inspect.BoundArguments:
         """Coerce the paramertes in the bound arguments to their annotated types.
 
         Ignore defaults and un-resolvable Forward References.
@@ -398,27 +433,26 @@ class Coercer:
         to_coerce = {
             x: y
             for x, y in bound.arguments.items()
-            if cls.should_coerce(bound.signature.parameters[x], y)
+            if self.should_coerce(bound.signature.parameters[x], y)
         }
         # return a new copy to prevent any unforeseen side-effects
         coerced = copy.copy(bound)
         for name, value in to_coerce.items():
             param: inspect.Parameter = bound.signature.parameters[name]
-            coerced_value = cls.coerce_parameter(param, value)
+            coerced_value = self.coerce_parameter(param, value)
             coerced.arguments[name] = coerced_value
 
         return coerced
 
-    @classmethod
-    def bind_wrapper(cls, wrapper: Callable, func: Callable):
+    @staticmethod
+    def bind_wrapper(wrapper: Callable, func: Callable):
         wrapper.__defaults__ = (wrapper.__defaults__ or ()) + (func.__defaults__ or ())
         wrapper.__kwdefaults__ = wrapper.__kwdefaults__ or {}.update(
             func.__kwdefaults__ or {}
         )
         wrapper.__signature__ = cached_signature(func)
 
-    @classmethod
-    def wrap(cls, func: Callable) -> Callable:
+    def wrap(self, func: Callable) -> Callable:
         """Wrap a callable to automatically enforce type-coercion.
 
         Parameters
@@ -435,15 +469,14 @@ class Coercer:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
             sig = resolve_annotations(func, inspect.signature(func))
-            bound = cls.coerce_parameters(sig.bind(*args, **kwargs))
+            bound = self.coerce_parameters(sig.bind(*args, **kwargs))
             return func(*bound.args, **bound.kwargs)
 
-        cls.bind_wrapper(wrapper, func)
+        self.bind_wrapper(wrapper, func)
 
         return wrapper
 
-    @classmethod
-    def wrap_cls(cls, klass: Type[object]):
+    def wrap_cls(self, klass: Type[object]):
         """Wrap a class to automatically enforce type-coercion on init.
 
         Notes
@@ -460,7 +493,7 @@ class Coercer:
         """
 
         def wrapper(cls_):
-            cls_.__init__ = cls.wrap(cls_.__init__)
+            cls_.__init__ = self.wrap(cls_.__init__)
             cls_.__setattr__ = __setattr_coerced__
             return cls_
 

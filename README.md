@@ -172,8 +172,50 @@ Because these signal an unclear resolution, Typical will ignore this
 flavor of annotation, leaving it to the developer to determine the
 appropriate action.
 
+
+## Updates
+
 _New in version 1.1.0:_ `typing.Optional` and `typing.ClassVar` are now
 supported.
+
+_New in version 1.2.0:_ Values set to annotated attributes are
+automagically resolved.
+
+_New in version 1.3.0:_ 
+1. Custom coercers may now be registered, e.g.:
+    ```python
+    import typic
+    
+    class MyCustomClass:
+    
+        def __init__(self, value):
+            self.value = value
+    
+        @classmethod
+        def factory(cls, value):
+            return cls(value)
+    
+    
+    def custom_class_coercer(value, annotation: MyCustomClass):
+        return annotation.factory(value)
+    
+    
+    def ismycustomclass(obj) -> bool:
+        return obj is MyCustomClass
+        
+    
+    typic.register(custom_class_coercer, ismycustomclass)
+    ```
+
+2. Squashed a few bugs:
+   -  Nested calls of `Coercer.coerce_value` didn't account for values
+      that didn't need coercion. This sometimes broke evaluation, and
+      definitely resulted in sub-optimal type resolution performance.
+   -  In the final attempt to coerce a custom class, calling
+      `typic.evals.safe_eval` could reveal that a value is null. In this
+      case, we should respect whether the annotation was optional.
+   -  Sometimes people are using a version of PyYAML that's older than
+      5.1. We should support that.
 
 
 ## Documentation

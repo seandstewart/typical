@@ -17,8 +17,9 @@ from tests.objects import (
     UserID,
     DateDict,
 )
+from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
-from typic.typed import coerce, isbuiltintype, typed, BUILTIN_TYPES, resolve_supertype
+from typic.typed import coerce, typed
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -265,3 +266,22 @@ def test_setattr():
     assert isinstance(data.foo, str)
     data.foo = 1
     assert isinstance(data.foo, str)
+
+
+def test_register():
+    class MyCustomClass:
+        def __init__(self, value):
+            self.value = value
+
+        @classmethod
+        def factory(cls, value):
+            return cls(value)
+
+    def custom_class_coercer(value, annotation: MyCustomClass):
+        return annotation.factory(value)
+
+    def ismycustomclass(obj) -> bool:
+        return obj is MyCustomClass
+
+    coerce.register(custom_class_coercer, ismycustomclass)
+    assert isinstance(coerce("foo", MyCustomClass), MyCustomClass)
