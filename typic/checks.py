@@ -34,6 +34,7 @@ BUILTIN_TYPES = frozenset(
 )
 
 
+@functools.lru_cache(typed=True)
 def resolve_supertype(annotation: Any) -> Any:
     """Resolve NewTypes, recursively."""
     if hasattr(annotation, "__supertype__"):

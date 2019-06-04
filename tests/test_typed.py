@@ -53,6 +53,7 @@ def test_isbuiltintype(obj: typing.Any):
         (Nested, {"data": {"foo": "bar!"}}),
         (NestedFromDict, {"data": {"foo": "bar!"}}),
         (FooNum, "bar"),
+        (Data, Data("bar!")),
     ],
 )
 def test_coerce_simple(annotation, value):
@@ -285,3 +286,8 @@ def test_register():
 
     coerce.register(custom_class_coercer, ismycustomclass)
     assert isinstance(coerce("foo", MyCustomClass), MyCustomClass)
+
+
+def test_no_coercer():
+
+    assert isinstance(coerce("foo", lambda x: 1), str)

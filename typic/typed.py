@@ -22,6 +22,7 @@ from typing import (
     NamedTuple,
     Deque,
     Optional,
+    TYPE_CHECKING,
 )
 
 import dateutil.parser
@@ -56,6 +57,7 @@ def cached_type_hints(obj: Callable) -> dict:
     return get_type_hints(obj)
 
 
+@functools.lru_cache(typed=True)
 def resolve_annotations(
     cls_or_callable: Union[Type[object], Callable], sig: inspect.Signature
 ):
@@ -75,7 +77,7 @@ def resolve_annotations(
     parameters = dict(sig.parameters)
     to_resolve = {x: y for x, y in parameters.items() if _should_resolve(y)}
     if to_resolve:  # nocover
-        hints = get_type_hints(cls_or_callable)
+        hints = cached_type_hints(cls_or_callable)
         resolved = {x: y.replace(annotation=hints[x]) for x, y in to_resolve.items()}
         parameters.update(resolved)
         return sig.replace(parameters=parameters.values())
@@ -186,6 +188,7 @@ class Coercer:
         return cls.GENERIC_TYPE_MAP.get(hint, hint)
 
     @classmethod
+    @functools.lru_cache(typed=True)
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
         # Resolve custom NewTypes, recursively.
@@ -310,12 +313,16 @@ class Coercer:
     def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
         if isinstance(value, origin):
             return value
+
         if isinstance(value, (str, bytes)):
             processed, value = safe_eval(value)
         bound = self.coerce_parameters(inspect.signature(origin).bind(**value))
         return origin.from_dict(dict(bound.arguments))
 
     def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
+        if isinstance(value, origin):
+            return value
+
         processed, value = (
             safe_eval(value) if isinstance(value, str) else (False, value)
         )
@@ -468,11 +475,12 @@ class Coercer:
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            sig = resolve_annotations(func, inspect.signature(func))
+            sig = resolve_annotations(func, cached_signature(func))
             bound = self.coerce_parameters(sig.bind(*args, **kwargs))
             return func(*bound.args, **bound.kwargs)
 
-        self.bind_wrapper(wrapper, func)
+        if TYPE_CHECKING:
+            self.bind_wrapper(wrapper, func)
 
         return wrapper
 
