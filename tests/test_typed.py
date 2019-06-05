@@ -274,21 +274,24 @@ def test_setattr(instance, attr, value, type):
 
 def test_register():
     class MyCustomClass:
-        def __init__(self, value):
+        def __init__(self, value: str):
             self.value = value
 
-        @classmethod
-        def factory(cls, value):
-            return cls(value)
+    class MyOtherCustomClass:
+        def __init__(self, value: int):
+            self.value = value
 
-    def custom_class_coercer(value, annotation: MyCustomClass):
-        return annotation.factory(value)
+    MyCustomType = typing.Union[MyCustomClass, MyOtherCustomClass]
+
+    def custom_class_coercer(value, annotation: MyCustomType):
+        return annotation(value)
 
     def ismycustomclass(obj) -> bool:
-        return obj is MyCustomClass
+        return obj in set(MyCustomType.__args__)
 
     coerce.register(custom_class_coercer, ismycustomclass)
     assert isinstance(coerce("foo", MyCustomClass), MyCustomClass)
+    assert isinstance(coerce("foo", MyOtherCustomClass), MyOtherCustomClass)
 
 
 def test_no_coercer():

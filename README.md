@@ -217,6 +217,14 @@ _New in version 1.3.0:_
    -  Sometimes people are using a version of PyYAML that's older than
       5.1. We should support that.
 
+_New in version 1.3.1_:
+1. Improved caching strategy and resolution times.
+
+_New in version 1.3.2:_ 
+1. Resolution time is better than ever.
+2. Custom Unions are now supported via registering custom coercers with
+   `typic.register`, as a result of raising the priority of
+   user-registered coercers.
 
 ## Documentation
 

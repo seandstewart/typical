@@ -161,12 +161,40 @@ class Coercer:
                 ]
             )
 
-        @functools.lru_cache(None, typed=True)
-        def check(self, origin: Type, annotation: Any) -> Optional[_Coercer]:
-            """Locate the """
-            for coercer in type(self).__user_registry + type(self).__registry:
+        @staticmethod
+        def _check(
+            reg: Deque[_Coercer], origin: Type, annotation: Any
+        ) -> Optional[_Coercer]:
+            for coercer in reg:
                 if coercer.check(origin if coercer.check_origin else annotation):
                     return coercer
+
+        @functools.lru_cache(None, typed=True)
+        def check_user_registry(
+            self, origin: Type, annotation: Any
+        ) -> Optional[_Coercer]:
+            """Locate a coercer from the user registry."""
+            return self._check(
+                reg=self.__user_registry, origin=origin, annotation=annotation
+            )
+
+        @functools.lru_cache(None, typed=True)
+        def check_default_registry(
+            self, origin: Type, annotation: Any
+        ) -> Optional[_Coercer]:
+            """Locate a coercer from the default registry."""
+            return self._check(
+                reg=self.__registry, origin=origin, annotation=annotation
+            )
+
+        @functools.lru_cache(None, typed=True)
+        def check(self, origin: Type, annotation: Any) -> Optional[_Coercer]:
+            """Locate the coercer for this annotation from either registry."""
+            return self._check(
+                reg=self.__user_registry + self.__registry,
+                origin=origin,
+                annotation=annotation,
+            )
 
         def coerce(self, value: Any, origin: Type, annotation: Any) -> Any:
             coercer = self.check(origin, annotation)
@@ -368,8 +396,7 @@ class Coercer:
 
     __call__ = coerce_value  # alias for easy access to most common operation.
 
-    @classmethod
-    def should_coerce(cls, parameter: inspect.Parameter, value: Any) -> bool:
+    def should_coerce(self, parameter: inspect.Parameter, value: Any) -> bool:
         """Check whether we need to coerce the given value to the parameter's annotation.
 
             1. Ignore values provided by defaults, even if the type doesn't match the annotation.
@@ -383,15 +410,22 @@ class Coercer:
         value
             The value to check for coercion.
         """
-        origin = cls.get_origin(parameter.annotation)
+        # Short circuit the check for custom coercers registered by a user.
+        if self.registry.check_user_registry(
+            checks.resolve_supertype(parameter.annotation),
+            checks.resolve_supertype(parameter.annotation),
+        ):
+            return True
+
+        origin = self.get_origin(parameter.annotation)
         is_default = (
             parameter.default is not parameter.empty and value == parameter.default
         )
         has_annotation = parameter.annotation is not parameter.empty
         special = (
             isinstance(origin, (str, ForwardRef))
-            or origin in cls.UNRESOLVABLE
-            or type(origin) in cls.UNRESOLVABLE
+            or origin in self.UNRESOLVABLE
+            or type(origin) in self.UNRESOLVABLE
         )
         args = getattr(parameter.annotation, "__args__", None)
         return (
