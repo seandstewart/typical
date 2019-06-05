@@ -51,5 +51,9 @@ class FooNum(str, enum.Enum):
     bar = "bar"
 
 
+class NoParams:
+    var: str
+
+
 UserID = typing.NewType("UserID", int)
 DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])

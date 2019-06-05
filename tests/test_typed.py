@@ -16,6 +16,7 @@ from tests.objects import (
     FooNum,
     UserID,
     DateDict,
+    NoParams,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
@@ -262,11 +263,13 @@ def test_special_form(annotation):
     assert coerce.should_coerce(param, "foo") is False
 
 
-def test_setattr():
-    data = typed(Data)("bar")
-    assert isinstance(data.foo, str)
-    data.foo = 1
-    assert isinstance(data.foo, str)
+@pytest.mark.parametrize(
+    argnames=("instance", "attr", "value", "type"),
+    argvalues=[(typed(Data)("foo"), "foo", 1, str), (typed(NoParams)(), "var", 1, str)],
+)
+def test_setattr(instance, attr, value, type):
+    setattr(instance, attr, value)
+    assert isinstance(getattr(instance, attr), type)
 
 
 def test_register():

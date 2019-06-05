@@ -23,6 +23,7 @@ from typing import (
     Deque,
     Optional,
     TYPE_CHECKING,
+    Tuple,
 )
 
 import dateutil.parser
@@ -89,11 +90,6 @@ class _Coercer(NamedTuple):
     coerce: Callable
     ident: str = None
     check_origin: bool = True
-
-    @property
-    @functools.lru_cache(1)
-    def key(self):
-        return self.ident or self.coerce.__qualname__
 
     @property
     @functools.lru_cache(1)
@@ -188,7 +184,7 @@ class Coercer:
         return cls.GENERIC_TYPE_MAP.get(hint, hint)
 
     @classmethod
-    @functools.lru_cache(typed=True)
+    @functools.lru_cache(maxsize=None, typed=True)
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
         # Resolve custom NewTypes, recursively.
@@ -203,6 +199,13 @@ class Coercer:
             actual = cls._check_generics(actual)
 
         return actual
+
+    @classmethod
+    @functools.lru_cache(maxsize=None, typed=True)
+    def get_args(cls, annotation: Any) -> Tuple[Any, ...]:
+        return tuple(
+            cls.get_origin(x) for x in annotation.__args__ if not isinstance(x, TypeVar)
+        )
 
     @classmethod
     def _coerce_builtin(cls, value: Any, annotation: Type) -> Any:
@@ -261,15 +264,11 @@ class Coercer:
         annotation :
             The original annotation.
         """
-        arg = annotation.__args__[0] if annotation.__args__ else None
-        if arg and not isinstance(arg, TypeVar):
-            return self._coerce_builtin(
-                [
-                    self.coerce_value(x, arg)
-                    for x in self._coerce_builtin(value, origin)
-                ],
-                origin,
-            )
+        args = self.get_args(annotation)
+        value = self._coerce_builtin(value, origin)
+        if args:
+            arg = args[0]
+            return type(value)(self.coerce_value(x, arg) for x in value)
         return self._coerce_builtin(value, origin)
 
     def _coerce_mapping(
@@ -292,23 +291,16 @@ class Coercer:
         annotation :
             The original annotation.
         """
-        args = tuple(
-            self.get_origin(x)
-            for x in annotation.__args__
-            if not isinstance(x, TypeVar)
-        )
+        args = self.get_args(annotation)
+        value = self._coerce_builtin(value, origin)
         if args:
             key_type, value_type = args
-            value = self._coerce_builtin(
-                {
-                    self.coerce_value(x, key_type): self.coerce_value(y, value_type)
-                    for x, y in self._coerce_builtin(value, origin).items()
-                },
-                origin,
+            return type(value)(
+                (self.coerce_value(x, key_type), self.coerce_value(y, value_type))
+                for x, y in value.items()
             )
-            return value
 
-        return self._coerce_builtin(value, origin)
+        return value
 
     def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
         if isinstance(value, origin):
@@ -452,7 +444,7 @@ class Coercer:
         return coerced
 
     @staticmethod
-    def bind_wrapper(wrapper: Callable, func: Callable):
+    def _bind_wrapper(wrapper: Callable, func: Callable):
         wrapper.__defaults__ = (wrapper.__defaults__ or ()) + (func.__defaults__ or ())
         wrapper.__kwdefaults__ = wrapper.__kwdefaults__ or {}.update(
             func.__kwdefaults__ or {}
@@ -479,8 +471,8 @@ class Coercer:
             bound = self.coerce_parameters(sig.bind(*args, **kwargs))
             return func(*bound.args, **bound.kwargs)
 
-        if TYPE_CHECKING:
-            self.bind_wrapper(wrapper, func)
+        if TYPE_CHECKING:  # nocover
+            self._bind_wrapper(wrapper, func)
 
         return wrapper
 
