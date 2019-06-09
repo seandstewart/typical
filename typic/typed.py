@@ -125,8 +125,16 @@ class Coercer:
             self.cls = cls
             self._register_builtin_coercers()
 
-        def register(self, coercer: Callable, check: Callable, ident: str = None):
-            _coercer = _Coercer(check=check, coerce=coercer, ident=ident)
+        def register(
+            self,
+            coercer: Callable,
+            check: Callable,
+            ident: str = None,
+            check_origin: bool = True,
+        ):
+            _coercer = _Coercer(
+                check=check, coerce=coercer, ident=ident, check_origin=check_origin
+            )
             type(self).__user_registry.appendleft(_coercer)
 
         def _register_builtin_coercers(self):
