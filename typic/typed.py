@@ -239,9 +239,7 @@ class Coercer:
     @classmethod
     @functools.lru_cache(maxsize=None, typed=True)
     def get_args(cls, annotation: Any) -> Tuple[Any, ...]:
-        return tuple(
-            cls.get_origin(x) for x in annotation.__args__ if not isinstance(x, TypeVar)
-        )
+        return tuple(x for x in annotation.__args__ if not isinstance(x, TypeVar))
 
     @classmethod
     def _coerce_builtin(cls, value: Any, annotation: Type) -> Any:
