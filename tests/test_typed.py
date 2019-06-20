@@ -20,6 +20,7 @@ from tests.objects import (
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
+from typic.klass import klass
 from typic.typed import coerce, typed
 
 
@@ -297,3 +298,28 @@ def test_register():
 def test_no_coercer():
 
     assert isinstance(coerce("foo", lambda x: 1), str)
+
+
+def test_typic_klass():
+    @klass
+    class Foo:
+        bar: str
+
+    assert Foo(1).bar == "1"
+
+
+def test_typic_klass_is_dataclass():
+    @klass
+    class Foo:
+        bar: str
+
+    assert dataclasses.is_dataclass(Foo)
+
+
+def test_typic_klass_passes_params():
+    @klass(frozen=True)
+    class Foo:
+        bar: str
+
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        Foo(1).bar = 2

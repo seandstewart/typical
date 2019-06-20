@@ -225,6 +225,31 @@ _New in version 1.3.2:_
 2. Custom Unions are now supported via registering custom coercers with
    `typic.register`, as a result of raising the priority of
    user-registered coercers.
+   
+_New in version 1.4.0:_
+1. A new wrapper has been added to simplify dataclass usage:
+
+    ```python
+    import typic
+    
+    @typic.klass
+    class Foo:
+        bar: str
+    
+    ```
+    is equivalent to 
+    ```python
+    import dataclasses
+    import typic
+    
+    @typic.al
+    @dataclasses.dataclass
+    class Foo:
+        bar: str
+    
+    ```
+    All standard dataclass syntax is supported with
+    `typic.klass`
 
 ## Documentation
 
