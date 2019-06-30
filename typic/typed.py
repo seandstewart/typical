@@ -534,6 +534,7 @@ class Coercer:
 
         def wrapper(cls_):
             cls_.__init__ = self.wrap(cls_.__init__)
+            cls_.__setattr_original__ = copy.deepcopy(cls_.__setattr__)
             cls_.__setattr__ = __setattr_coerced__
             return cls_
 
@@ -559,7 +560,7 @@ def __setattr_coerced__(self, name, value):
     # Otherwise use the type-hint at face-value.
     elif name in hints:
         value = coerce(value, hints[name])
-    super(type(self), self).__setattr__(name, value)
+    self.__setattr_original__(name, value)
 
 
 coerce = Coercer()
