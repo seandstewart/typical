@@ -251,7 +251,7 @@ _New in version 1.4.0:_
     All standard dataclass syntax is supported with
     `typic.klass`
    
-_New in version 1.4.0:_
+_New in version 1.4.1:_
 1. Fixed a nasty bug in wrapped classes that resulted in
    infinite recursion.
 
