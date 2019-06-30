@@ -300,6 +300,18 @@ def test_no_coercer():
     assert isinstance(coerce("foo", lambda x: 1), str)
 
 
+def test_typed_class_inheritance():
+    @typed
+    @dataclasses.dataclass
+    class Foo:
+        bar: str
+
+    class Foob(Foo):
+        pass
+
+    assert isinstance(Foob(1).bar, str)
+
+
 def test_typic_klass():
     @klass
     class Foo:
@@ -323,3 +335,14 @@ def test_typic_klass_passes_params():
 
     with pytest.raises(dataclasses.FrozenInstanceError):
         Foo(1).bar = 2
+
+
+def test_typic_klass_inheritance():
+    @klass
+    class Foo:
+        bar: str
+
+    class Foob(Foo):
+        pass
+
+    assert isinstance(Foob(1).bar, str)
