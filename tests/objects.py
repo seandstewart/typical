@@ -14,6 +14,9 @@ class FromDict:
     def from_dict(cls, dikt: typing.Mapping):
         return cls(**dikt)
 
+    def to_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
 
 @dataclasses.dataclass
 class Data:
@@ -126,3 +129,71 @@ def delayed(foo: str) -> str:
 
 UserID = typing.NewType("UserID", int)
 DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])
+
+
+@typic.constrained(max_length=5)
+class ShortStr(str):
+    ...
+
+
+@typic.constrained(values=ShortStr)
+class ShortStrList(list):
+    ...
+
+
+@typic.constrained(gt=1000)
+class LargeInt(int):
+    ...
+
+
+@typic.constrained(values=LargeInt)
+class LargeIntDict(dict):
+    ...
+
+
+ShortStrDict = typing.Dict[str, ShortStr]
+
+
+@typic.klass
+class Constrained:
+    short: ShortStr
+    large: LargeInt
+
+
+@typic.klass
+class NestedConstrained:
+    mapping: typing.Mapping[str, Constrained]
+    array: typing.List[Constrained]
+    constr: LargeIntDict
+    other_constr: ShortStrDict
+
+
+TYPIC_OBJECTS = [
+    Typic,
+    Inherited,
+    FrozenTypic,
+    KlassDelayed,
+    KlassVar,
+    KlassVarSubscripted,
+    Delayed,
+    Constrained,
+    NestedConstrained,
+]
+
+
+STD_OBJECTS = [
+    FromDict,
+    Data,
+    Nested,
+    NestedSeq,
+    NestedFromDict,
+    DefaultNone,
+    Forward,
+    FooNum,
+    Class,
+    NoParams,
+    UserID,
+    DateDict,
+    ShortStr,
+    LargeInt,
+]

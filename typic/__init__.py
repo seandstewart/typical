@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from .__about__ import *  # noqa: F403 (we've defined __all__)
-from .checks import *  # noqa: F403 (we've defined __all__)
-from .klass import klass  # noqa: F401
-from .typed import *  # noqa: F403 (we've defined __all__)
+# flake8: noqa
+from . import types, constraints
+from .checks import *
+from .constraints import *
+from .klass import klass
+from .schema import *
+from .types import *
+from .util import *
 
-al = typed  # noqa: F405
-register = coerce.register  # noqa: F405
+# NOTE: This import must come *last*
+from .api import *
+
+al = typed

@@ -1,0 +1,201 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+import dataclasses
+import decimal
+import warnings
+from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
+
+from typic import gen, util
+from .common import BaseConstraints, Context, Checks
+from .error import ConstraintSyntaxError, ConstraintValueError
+
+Number = Union[int, float, decimal.Decimal]
+
+
+def _get_digits(tup: decimal.DecimalTuple):
+    if tup.exponent >= 0:
+        # A positive exponent adds that many trailing zeros.
+        digits = len(tup.digits) + tup.exponent
+        decimals = 0
+    else:
+        # If the absolute value of the negative exponent is larger than the
+        # number of digits, then it's the same as the number of digits,
+        # because it'll consume all of the digits in digit_tuple and then
+        # add abs(exponent) - len(digit_tuple) leading zeros after the
+        # decimal point.
+        if abs(tup.exponent) > len(tup.digits):
+            digits = decimals = abs(tup.exponent)
+        else:
+            digits = len(tup.digits)
+            decimals = abs(tup.exponent)
+    whole_digits = digits - decimals
+    return whole_digits, digits, decimals
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class NumberConstraints(BaseConstraints):
+    """Specific constraints pertaining to number-like types.
+
+    Currently supports :py:class:`int`, :py:class:`float`, and
+    :py:class:`decimal.Decimal`.
+
+    See Also
+    --------
+    :py:class:`~typic.types.constraints.common.BaseConstraints`
+    """
+
+    type: ClassVar[Type[Number]]
+    """The builtin type for this constraint."""
+    gt: Optional[Number] = None
+    """The value inputs must be greater-than."""
+    ge: Optional[Number] = None
+    """The value inputs must be greater-than-or-equal-to."""
+    lt: Optional[Number] = None
+    """The value inputs must be less-than."""
+    le: Optional[Number] = None
+    """The value inputs must be less-than-or-equal-to."""
+    mul: Optional[Number] = None
+    """The value inputs must be a multiple-of."""
+
+    def _check_syntax(self):
+        if self.gt is not None:
+            if self.ge is not None:
+                raise ConstraintSyntaxError(
+                    f"Values must either be '>' or '>=', not both."
+                ) from None
+            if self.gt in {self.lt, self.le}:
+                msg = (
+                    f"Values for '>' and '<|<=' are equal ({self.gt}, {self.lt}|{self.le}), "
+                    f"this will always be false."
+                )
+                raise ConstraintSyntaxError(msg) from None
+        if self.lt is not None:
+            if self.le is not None:
+                raise ConstraintSyntaxError(
+                    f"Values must either be '<' or '<=', not both."
+                ) from None
+            if self.lt in {self.gt, self.ge}:
+                msg = (
+                    f"Values for '<' and '>|>=' are equal ({self.lt}, {self.gt}|{self.ge}), "
+                    f"this will always be false."
+                )
+                raise ConstraintSyntaxError(msg) from None
+
+    def _build_validator(self, func: gen.Block) -> Tuple[Checks, Context]:
+        # Sanity check the syntax
+        self._check_syntax()
+        # Generate the validator
+        checks: List[str] = []
+        context: Dict[str, Any] = {}
+        if self.gt is not None:
+            checks.append(f"val > {self.gt}")
+        if self.ge is not None:
+            checks.append(f"val >= {self.ge}")
+        if self.lt is not None:
+            checks.append(f"val < {self.lt}")
+        if self.le is not None:
+            checks.append(f"val <= {self.le}")
+        if self.mul is not None:
+            checks.append(f"val % {self.mul} == 0")
+
+        if util.origin(self.type) is decimal.Decimal:
+            max_digits, decimal_places = (
+                getattr(self, "max_digits", None),
+                getattr(self, "decimal_places", None),
+            )
+            context.update(decimal=decimal, Decimal=decimal.Decimal)
+            if {max_digits, decimal_places} != {None, None}:
+                # Update the global namespace for the validator
+                # Add setup/sanity checks for decimals.
+                func.l("val = decimal.Decimal(val)")
+                with func.b(
+                    "if val.is_infinite():", ConstraintValueError=ConstraintValueError
+                ) as b:
+                    b.l(
+                        "raise ConstraintValueError('Cannot validate infinite values.')"
+                    )
+                func.l("tup = val.as_tuple()")
+                func.l(
+                    "whole, digits, decimals = _get_digits(tup)",
+                    _get_digits=_get_digits,
+                )
+                if max_digits is not None:
+                    checks.append(f"digits <= {max_digits}")
+                if decimal_places is not None:
+                    checks.append(f"decimals <= {decimal_places}")
+                # Special syntax rules for Decimals
+                if decimal_places is not None and max_digits is not None:
+                    if max_digits < decimal_places:
+                        msg = (
+                            f"Contraint <decimal_places={decimal_places!r}> should never be "
+                            f"greater than Constraint <max_digits={max_digits!r}>"
+                        )
+                        raise ConstraintSyntaxError(msg) from None
+                    elif max_digits == decimal_places:
+                        msg = (
+                            f"Contraint <decimal_places={decimal_places!r}> equals "
+                            f"Constraint <max_digits={max_digits!r}>. This may be unintentional. "
+                            "Only partial numbers < '1.0' will be allowed."
+                        )
+                        warnings.warn(msg)
+                    checks.append(f"whole <= ({max_digits} - {decimal_places})")
+
+        return checks, context
+
+    def for_schema(self, *, with_type: bool = False) -> dict:
+        schema: Dict[str, Union[None, Number, str]] = dict(
+            multipleOf=self.mul,
+            minimum=self.ge,
+            maximum=self.le,
+            exclusiveMinimum=self.gt,
+            exclusiveMaximum=self.lt,
+        )
+        if with_type:
+            schema["type"] = "number"
+        return {x: y for x, y in schema.items() if y is not None}
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class IntContraints(NumberConstraints):
+    """Constraints specifically for :py:class:`int`.
+
+    See Also
+    --------
+    :py:class:`NumberConstraints`
+    """
+
+    type: ClassVar[Type[Number]] = int
+
+    def for_schema(self, *, with_type: bool = False) -> dict:
+        schema = super().for_schema()
+        if with_type:
+            schema["type"] = "integer"
+        return schema
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class FloatContraints(NumberConstraints):
+    """Constraints specifically for :py:class:`int`.
+
+    See Also
+    --------
+    :py:class:`NumberConstraints`
+    """
+
+    type: ClassVar[Type[Number]] = float
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class DecimalContraints(NumberConstraints):
+    """Constraints specifically for :py:class:`int`.
+
+    See Also
+    --------
+    :py:class:`NumberConstraints`
+    """
+
+    type: ClassVar[Type[Number]] = decimal.Decimal
+    max_digits: Optional[int] = None
+    """The maximum allowed digits for the input."""
+    decimal_places: Optional[int] = None
+    """The maximum allowed decimal places for the input."""

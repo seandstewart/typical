@@ -1,5 +1,7 @@
 Typical: Take Typing Further. :duck: 
 =====================================
+![image](docs/_static/typical.svg)
+
 [![image](https://img.shields.io/pypi/v/typical.svg)](https://pypi.org/project/typical/)
 [![image](https://img.shields.io/pypi/l/typical.svg)](https://pypi.org/project/typical/)
 [![image](https://img.shields.io/pypi/pyversions/typical.svg)](https://pypi.org/project/typical/)
@@ -11,14 +13,11 @@ Typical: Take Typing Further. :duck:
 Take Typing Further with Typical. Make your annotations work for you.
 
 ## Quickstart
-
-**Typical** is exceptionally light-weight (<50KB) and has only one
-dependency -
-[python-dateutil](https://dateutil.readthedocs.io/en/stable/), which
-it uses to parse date-strings into datetime objects.
-
 In order to install, simply `pip3 install typical` and annotate to your
 heart's content! :duck: 
+
+Or, if you're building an application, you should use
+[Poetry](poetry.eustace.io): `poetry add typical`
 
 
 ## Motivations
@@ -174,123 +173,7 @@ appropriate action.
 
 
 ## Updates
-
-_New in version 1.1.0:_ `typing.Optional` and `typing.ClassVar` are now
-supported.
-
-_New in version 1.2.0:_ Values set to annotated attributes are
-automagically resolved.
-
-_New in version 1.3.0:_ 
-1. Custom coercers may now be registered, e.g.:
-    ```python
-    import typic
-    
-    class MyCustomClass:
-    
-        def __init__(self, value):
-            self.value = value
-    
-        @classmethod
-        def factory(cls, value):
-            return cls(value)
-    
-    
-    def custom_class_coercer(value, annotation: MyCustomClass):
-        return annotation.factory(value)
-    
-    
-    def ismycustomclass(obj) -> bool:
-        return obj is MyCustomClass
-        
-    
-    typic.register(custom_class_coercer, ismycustomclass)
-    ```
-
-2. Squashed a few bugs:
-   -  Nested calls of `Coercer.coerce_value` didn't account for values
-      that didn't need coercion. This sometimes broke evaluation, and
-      definitely resulted in sub-optimal type resolution performance.
-   -  In the final attempt to coerce a custom class, calling
-      `typic.evals.safe_eval` could reveal that a value is null. In this
-      case, we should respect whether the annotation was optional.
-   -  Sometimes people are using a version of PyYAML that's older than
-      5.1. We should support that.
-
-_New in version 1.3.1_:
-1. Improved caching strategy and resolution times.
-
-_New in version 1.3.2:_ 
-1. Resolution time is better than ever.
-2. Custom Unions are now supported via registering custom coercers with
-   `typic.register`, as a result of raising the priority of
-   user-registered coercers.
-   
-_New in version 1.4.0:_
-1. A new wrapper has been added to simplify dataclass usage:
-
-    ```python
-    import typic
-    
-    @typic.klass
-    class Foo:
-        bar: str
-    
-    ```
-    is equivalent to 
-    ```python
-    import dataclasses
-    import typic
-    
-    @typic.al
-    @dataclasses.dataclass
-    class Foo:
-        bar: str
-    
-    ```
-    All standard dataclass syntax is supported with
-    `typic.klass`
-   
-_New in version 1.4.1:_
-1. Fixed a nasty bug in wrapped classes that resulted in
-   infinite recursion.
-   
-_New in version 1.5.0:_
-1. Frozen dataclasses are now supported.
-
-_New in version 1.9.0:_
-1. Introducing `typic.bind`:
-   - An optimized version of `inspect.Signature.bind` which will also 
-     coerce inputs given.
-2. `typic.al` is now up to ~30% faster on wrapped callables.
-
-_New in version 1.9.1:_
-1. Squashed a bug that broke annotation resolution when wrapping bound
-   methods of classes.
-
-_New in version 1.9.2:_
-1. Added the `delay` keyword-arg to wrappers to allow user to delay
-   annotation resolution until the first call of the wrapped object.
-2. Added the `coerce` keyword-arg to `typic.bind` to allow users to
-   bind args without coercing them.
-
-_New in version 1.10.0:_
-1. Added the ability to resolve delayed annotations with a
-   module-level callable, i.e.:  
-   ```python
-   import typic
-
-   @typic.klass(delay=True)
-   class SomeClass:
-       some_attr: str
-   
-   typic.resolve()
-   ```
-   This is useful in more complex typing situations, such as in the
-   library [iambic](https://www.github.com/seandstewart/iambic), where
-   a single coercer is registered to handle type coercion for all
-   models. In those cases, you may wish to resolve your annotations
-   after you have registered your coercer.
+See the [Changelog](CHANGELOG.md), 
 
 ## Documentation
 
@@ -300,12 +183,14 @@ Happy Typing :duck:
 
 
 ## How to Contribute
-1.  Check for open issues or open a fresh issue to start a discussion
-    around a feature idea or a bug. 
+1.  This project is packaged and distributed with
+    [Poetry](https://poetry.eustice.io)
+2.  Check for open issues or open a fresh issue to start a discussion
+    around a feature idea or a bug.
 2.  Create a branch on Github for your issue or fork
     [the repository](https://github.com/seandstewart/que) on GitHub to
     start making your changes to the **master** branch.
-3.  Write a test which shows that the bug was fixed or that the feature
-    works as expected.
-4.  Send a pull request and bug the maintainer until it gets merged and
-    published. :)
+4.  Write a test which shows that the bug was fixed or that the 
+    feature works as expected.
+5.  Send a pull request and bug the maintainer until it gets merged
+    and published. :)
