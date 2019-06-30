@@ -402,6 +402,17 @@ class Coercer:
 
     __call__ = coerce_value  # alias for easy access to most common operation.
 
+    @functools.lru_cache(None)
+    def coerceable(self, annotation: Any) -> bool:
+        origin = self.get_origin(annotation)
+        has_annotation = annotation is not inspect.Parameter.empty
+        special = (
+            isinstance(origin, (str, ForwardRef))
+            or origin in self.UNRESOLVABLE
+            or type(origin) in self.UNRESOLVABLE
+        )
+        return has_annotation and not special
+
     def should_coerce(self, parameter: inspect.Parameter, value: Any) -> bool:
         """Check whether we need to coerce the given value to the parameter's annotation.
 
@@ -427,17 +438,10 @@ class Coercer:
         is_default = (
             parameter.default is not parameter.empty and value == parameter.default
         )
-        has_annotation = parameter.annotation is not parameter.empty
-        special = (
-            isinstance(origin, (str, ForwardRef))
-            or origin in self.UNRESOLVABLE
-            or type(origin) in self.UNRESOLVABLE
-        )
         args = getattr(parameter.annotation, "__args__", None)
         return (
             not is_default
-            and has_annotation
-            and not special
+            and self.coerceable(parameter.annotation)
             and (not isinstance(value, origin) or args)
         )
 
@@ -533,7 +537,6 @@ class Coercer:
         """
 
         def wrapper(cls_):
-            cls_.__init__ = self.wrap(cls_.__init__)
             cls_.__setattr_original__ = _get_setter(cls_)
             cls_.__setattr__ = __setattr_coerced__
             return cls_
@@ -548,18 +551,19 @@ def __setattr_coerced__(self, name, value):
     # that the annotation won't change after the class is initialized.
     sig = cached_signature(type(self))
     hints = cached_type_hints(type(self))
+    param = sig.parameters.get(name)
+    hint = hints.get(name)
     # We do this to support when a parametrized attribute can default to None,
     # but isn't marked as Optional.
-    if name in sig.parameters:
-        param = sig.parameters[name]
+    if param and coerceable(param.annotation):
         value = (
             coerce.coerce_parameter(param, value)
             if coerce.should_coerce(param, value)
             else value
         )
     # Otherwise use the type-hint at face-value.
-    elif name in hints:
-        value = coerce(value, hints[name])
+    elif hint and coerceable(hint):
+        value = coerce(value, hint)
     self.__setattr_original__(name, value)
 
 
@@ -581,6 +585,7 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 
 coerce = Coercer()
 coerce_parameters = coerce.coerce_parameters
+coerceable = coerce.coerceable
 typed_callable = coerce.wrap
 typed_class = coerce.wrap_cls
 

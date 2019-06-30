@@ -3,7 +3,7 @@
 import dataclasses
 from typing import Type
 
-from .typed import __setattr_coerced__, typed_callable, _get_setter
+from .typed import __setattr_coerced__, _get_setter
 
 
 def make_typedclass(
@@ -37,7 +37,6 @@ def make_typedclass(
     tcls.__qualname__ = cls.__qualname__
     tcls.__setattr_original__ = _get_setter(tcls, bases)
     tcls.__setattr__ = __setattr_coerced__
-    tcls.__init__ = typed_callable(tcls.__init__)
     return tcls
 
 

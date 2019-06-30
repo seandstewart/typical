@@ -220,8 +220,8 @@ def test_ensure_enum():
 
 
 def test_forward_ref():
-    with pytest.raises(NameError):
-        typed(Forward)("ref")
+    f: Forward = typed(Forward)("bar")
+    assert isinstance(f.foo, FooNum)
 
 
 def test_varargs():
