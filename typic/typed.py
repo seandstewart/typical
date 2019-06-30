@@ -41,24 +41,24 @@ __all__ = (
 )
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def _should_resolve(param: inspect.Parameter) -> bool:
     return param.annotation is not param.empty and isinstance(
         param.annotation, (str, ForwardRef)
     )
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def cached_signature(obj: Callable) -> inspect.Signature:
     return inspect.signature(obj)
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def cached_type_hints(obj: Callable) -> dict:
     return get_type_hints(obj)
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def resolve_annotations(
     cls_or_callable: Union[Type[object], Callable], sig: inspect.Signature
 ):
@@ -92,7 +92,7 @@ class _Coercer(NamedTuple):
     check_origin: bool = True
 
     @property
-    @functools.lru_cache(1)
+    @functools.lru_cache(None)
     def parameters(self):
         return cached_signature(self.coerce).parameters
 
@@ -177,7 +177,7 @@ class Coercer:
                 if coercer.check(origin if coercer.check_origin else annotation):
                     return coercer
 
-        @functools.lru_cache(None, typed=True)
+        @functools.lru_cache(None)
         def check_user_registry(
             self, origin: Type, annotation: Any
         ) -> Optional[_Coercer]:
@@ -186,7 +186,7 @@ class Coercer:
                 reg=self.__user_registry, origin=origin, annotation=annotation
             )
 
-        @functools.lru_cache(None, typed=True)
+        @functools.lru_cache(None)
         def check_default_registry(
             self, origin: Type, annotation: Any
         ) -> Optional[_Coercer]:
@@ -195,7 +195,7 @@ class Coercer:
                 reg=self.__registry, origin=origin, annotation=annotation
             )
 
-        @functools.lru_cache(None, typed=True)
+        @functools.lru_cache(None)
         def check(self, origin: Type, annotation: Any) -> Optional[_Coercer]:
             """Locate the coercer for this annotation from either registry."""
             return self._check(
@@ -220,7 +220,7 @@ class Coercer:
         return cls.GENERIC_TYPE_MAP.get(hint, hint)
 
     @classmethod
-    @functools.lru_cache(maxsize=None, typed=True)
+    @functools.lru_cache(maxsize=None)
     def get_origin(cls, annotation: Any) -> Any:
         """Get origins for subclasses of typing._SpecialForm, recursive"""
         # Resolve custom NewTypes, recursively.
@@ -237,7 +237,7 @@ class Coercer:
         return actual
 
     @classmethod
-    @functools.lru_cache(maxsize=None, typed=True)
+    @functools.lru_cache(maxsize=None)
     def get_args(cls, annotation: Any) -> Tuple[Any, ...]:
         return tuple(x for x in annotation.__args__ if not isinstance(x, TypeVar))
 
@@ -342,7 +342,7 @@ class Coercer:
 
         if isinstance(value, (str, bytes)):
             processed, value = safe_eval(value)
-        bound = self.coerce_parameters(inspect.signature(origin).bind(**value))
+        bound = self.coerce_parameters(cached_signature(origin).bind(**value))
         return origin.from_dict(dict(bound.arguments))
 
     def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
@@ -354,7 +354,7 @@ class Coercer:
         )
         coerced = value
         if isinstance(value, (Mapping, dict)):
-            bound = self.coerce_parameters(inspect.signature(origin).bind(**value))
+            bound = self.coerce_parameters(cached_signature(origin).bind(**value))
             coerced = origin(*bound.args, **bound.kwargs)
         elif value is not None and not checks.isoptionaltype(annotation):
             coerced = origin(value)
@@ -412,7 +412,7 @@ class Coercer:
         Parameters
         ----------
         parameter
-            The parameter in question, provided by :func:`inspect.signature`
+            The parameter in question, provided by :func:`cached_signature`
         value
             The value to check for coercion.
         """
@@ -484,7 +484,7 @@ class Coercer:
         return coerced
 
     @staticmethod
-    def _bind_wrapper(wrapper: Callable, func: Callable):
+    def _bind_wrapper(wrapper: Callable, func: Callable):  # nocover
         wrapper.__defaults__ = (wrapper.__defaults__ or ()) + (func.__defaults__ or ())
         wrapper.__kwdefaults__ = wrapper.__kwdefaults__ or {}.update(
             func.__kwdefaults__ or {}
@@ -534,7 +534,7 @@ class Coercer:
 
         def wrapper(cls_):
             cls_.__init__ = self.wrap(cls_.__init__)
-            cls_.__setattr_original__ = copy.deepcopy(cls_.__setattr__)
+            cls_.__setattr_original__ = _get_setter(cls_)
             cls_.__setattr__ = __setattr_coerced__
             return cls_
 
@@ -561,6 +561,22 @@ def __setattr_coerced__(self, name, value):
     elif name in hints:
         value = coerce(value, hints[name])
     self.__setattr_original__(name, value)
+
+
+def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
+    bases = bases or cls.__bases__
+    setter = cls.__setattr__
+    if setter is __setattr_coerced__:
+        for base in bases:
+            name = (
+                "__setattr_original__"
+                if hasattr(base, "__setattr_original__")
+                else "__setattr__"
+            )
+            setter = getattr(base, name, None)
+            if setter is not __setattr_coerced__:
+                break
+    return copy.deepcopy(setter)
 
 
 coerce = Coercer()

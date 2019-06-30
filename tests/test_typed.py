@@ -306,6 +306,8 @@ def test_typed_class_inheritance():
     class Foo:
         bar: str
 
+    @typed
+    @dataclasses.dataclass
     class Foob(Foo):
         pass
 

@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import copy
 import dataclasses
 from typing import Type
 
-from .typed import __setattr_coerced__, typed_callable
+from .typed import __setattr_coerced__, typed_callable, _get_setter
 
 
 def make_typedclass(
@@ -36,7 +35,7 @@ def make_typedclass(
     bases = (dcls,) + dcls.__bases__
     tcls = type(dcls.__name__, bases, ddict)
     tcls.__qualname__ = cls.__qualname__
-    tcls.__setattr_original__ = copy.deepcopy(tcls.__setattr__)
+    tcls.__setattr_original__ = _get_setter(tcls, bases)
     tcls.__setattr__ = __setattr_coerced__
     tcls.__init__ = typed_callable(tcls.__init__)
     return tcls

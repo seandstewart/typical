@@ -25,7 +25,7 @@ def _get_loader():  # nocover
 load, LoaderError = _get_loader()
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=2000, typed=True)
 def safe_eval(string: str) -> Tuple[bool, Any]:
     """Try a few methods to evaluate a string and get the correct Python data-type.
 

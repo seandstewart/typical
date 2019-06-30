@@ -34,7 +34,7 @@ BUILTIN_TYPES = frozenset(
 )
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def resolve_supertype(annotation: Any) -> Any:
     """Resolve NewTypes, recursively."""
     if hasattr(annotation, "__supertype__"):
@@ -42,7 +42,7 @@ def resolve_supertype(annotation: Any) -> Any:
     return annotation
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isbuiltintype(obj: Any) -> bool:
     """Check whether the provided object is a builtin-type"""
     return (
@@ -51,7 +51,7 @@ def isbuiltintype(obj: Any) -> bool:
     )
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isoptionaltype(obj: Any) -> bool:
     """Test whether an annotation is Optional"""
     args = getattr(obj, "__args__", ())
@@ -63,37 +63,37 @@ def isoptionaltype(obj: Any) -> bool:
     )
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isdatetype(obj: Any) -> bool:
     """Test whether this annotation is a a date/datetime object."""
     return obj in {datetime.datetime, datetime.date}
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def iscollectiontype(obj: Any):
     """Test whether this annotation is a subclass of :py:class:`typing.Mapping`"""
     return inspect.isclass(obj) and issubclass(obj, Collection)
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def ismappingtype(obj: Any):
     """Test whether this annotation is a subclass of :py:class:`typing.Mapping`"""
     return inspect.isclass(obj) and issubclass(obj, Mapping)
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isenumtype(obj: Any) -> bool:
     """Test whether this annotation is a subclass of :py:class:`enum.Enum`"""
     return inspect.isclass(obj) and issubclass(obj, enum.Enum)
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isclassvartype(obj: Any) -> bool:
     """Test whether an annotation is a ClassVar annotation."""
     return getattr(obj, "__origin__", obj) is ClassVar
 
 
-@functools.lru_cache(typed=True)
+@functools.lru_cache(maxsize=None)
 def isfromdictclass(obj: Any) -> bool:
     """Test whether this annotation is a class with a ``from_dict()`` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
