@@ -3,7 +3,7 @@
 import dataclasses
 from typing import Type
 
-from .typed import __setattr_coerced__, _get_setter, typed_callable
+from .typed import __setattr_coerced__, _get_setter, typed_callable, annotations
 
 
 def make_typedclass(
@@ -35,6 +35,7 @@ def make_typedclass(
     bases = (dcls,) + dcls.__bases__
     tcls = type(dcls.__name__, bases, ddict)
     tcls.__qualname__ = cls.__qualname__
+    tcls.__typic_annotations__ = annotations(tcls)
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine.
     if frozen:
