@@ -24,6 +24,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
     Tuple,
+    Iterable,
 )
 
 import dateutil.parser
@@ -116,6 +117,10 @@ class Coercer:
     def __init__(self):
         self.registry = self.Registry(self)
         self.register = self.registry.register
+        self._parameter_handlers = {
+            inspect.Parameter.VAR_POSITIONAL: self._coerce_args,
+            inspect.Parameter.VAR_KEYWORD: self._coerce_kwargs,
+        }
 
     class Registry:
         __registry: Deque[_Coercer] = deque()
@@ -410,12 +415,13 @@ class Coercer:
             return True
 
         has_annotation = annotation is not inspect.Parameter.empty
-        special = (
-            isinstance(origin, (str, ForwardRef))
-            or origin in self.UNRESOLVABLE
-            or type(origin) in self.UNRESOLVABLE
-        )
-        return has_annotation and not special
+        if has_annotation:
+            return not (
+                isinstance(origin, (str, ForwardRef))
+                or origin in self.UNRESOLVABLE
+                or type(origin) in self.UNRESOLVABLE
+            )
+        return False
 
     def should_coerce(self, parameter: inspect.Parameter, value: Any) -> bool:
         """Check whether we need to coerce the given value to the parameter's annotation.
@@ -431,35 +437,36 @@ class Coercer:
         value
             The value to check for coercion.
         """
-        # Short circuit the check for custom coercers registered by a user.
-        if self.registry.check_user_registry(
-            checks.resolve_supertype(self.get_origin(parameter.annotation)),
-            checks.resolve_supertype(parameter.annotation),
-        ):
-            return True
+        # No need to coerce defaults
+        if value == parameter.default:
+            return False
 
         origin = self.get_origin(parameter.annotation)
-        is_default = (
-            parameter.default is not parameter.empty and value == parameter.default
+        annotation = checks.resolve_supertype(parameter.annotation)
+        # Short circuit the check for custom coercers registered by a user.
+        if self.registry.check_user_registry(origin, annotation):
+            return True
+
+        # If we can coerce the annotation,
+        # and either the annotation has args,
+        # or the value is not an instance of the origin
+        return self.coerceable(annotation) and (
+            getattr(annotation, "__args__", None) or not isinstance(value, origin)
         )
-        args = getattr(parameter.annotation, "__args__", None)
-        return (
-            not is_default
-            and self.coerceable(parameter.annotation)
-            and (not isinstance(value, origin) or args)
-        )
+
+    def _coerce_args(self, value: Iterable[Any], annotation: Any) -> Tuple[Any]:
+        return tuple(self.coerce_value(x, annotation) for x in value)
+
+    def _coerce_kwargs(
+        self, value: Mapping[str, Any], annotation: Any
+    ) -> Mapping[str, Any]:
+        return {x: self.coerce_value(y, annotation) for x, y in value.items()}
 
     def coerce_parameter(self, param: inspect.Parameter, value: Any) -> Any:
         """Coerce the value of a parameter to its appropriate type."""
-        if param.kind == param.VAR_POSITIONAL:
-            coerced_value = tuple(self.coerce_value(x, param.annotation) for x in value)
-        elif param.kind == param.VAR_KEYWORD:
-            coerced_value = {
-                x: self.coerce_value(y, param.annotation) for x, y in value.items()
-            }
-        else:
-            coerced_value = self.coerce_value(value, param.annotation)
-        return coerced_value
+        handler = self._parameter_handlers.get(param.kind, self.coerce_value)
+
+        return handler(value=value, annotation=param.annotation)
 
     def coerce_parameters(
         self, bound: inspect.BoundArguments
@@ -477,17 +484,13 @@ class Coercer:
         -------
         The bound arguments, with their values coerced.
         """
-        to_coerce = {
-            x: y
-            for x, y in bound.arguments.items()
-            if self.should_coerce(bound.signature.parameters[x], y)
-        }
-        # return a new copy to prevent any unforeseen side-effects
         coerced = copy.copy(bound)
-        for name, value in to_coerce.items():
-            param: inspect.Parameter = bound.signature.parameters[name]
-            coerced_value = self.coerce_parameter(param, value)
-            coerced.arguments[name] = coerced_value
+        params = bound.signature.parameters
+        for name, value in bound.arguments.items():
+            param: inspect.Parameter = params[name]
+            if self.should_coerce(param, value):
+                coerced_value = self.coerce_parameter(param, value)
+                coerced.arguments[name] = coerced_value
 
         return coerced
 
