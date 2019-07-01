@@ -284,15 +284,12 @@ def test_register():
 
     MyCustomType = typing.Union[MyCustomClass, MyOtherCustomClass]
 
-    def custom_class_coercer(value, annotation: MyCustomType):
-        return annotation(value)
-
     def ismycustomclass(obj) -> bool:
-        return obj in set(MyCustomType.__args__)
+        args = set(getattr(obj, "__args__", [obj]))
+        return set(MyCustomType.__args__).issuperset(args)
 
-    coerce.register(custom_class_coercer, ismycustomclass)
-    assert isinstance(coerce("foo", MyCustomClass), MyCustomClass)
-    assert isinstance(coerce("foo", MyOtherCustomClass), MyOtherCustomClass)
+    coerce.register(MyCustomClass, ismycustomclass, check_origin=False)
+    assert coerce.registry.check(MyCustomType, MyCustomType)
 
 
 def test_no_coercer():
@@ -312,6 +309,15 @@ def test_typed_class_inheritance():
         pass
 
     assert isinstance(Foob(1).bar, str)
+
+
+def test_typed_frozen():
+    @typed
+    @dataclasses.dataclass(frozen=True)
+    class Foo:
+        bar: str
+
+    assert isinstance(Foo(1).bar, str)
 
 
 def test_typic_klass():
@@ -348,3 +354,11 @@ def test_typic_klass_inheritance():
         pass
 
     assert isinstance(Foob(1).bar, str)
+
+
+def test_typic_frozen():
+    @klass(frozen=True)
+    class Foo:
+        bar: str
+
+    assert isinstance(Foo(1).bar, str)

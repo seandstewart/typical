@@ -404,7 +404,11 @@ class Coercer:
 
     @functools.lru_cache(None)
     def coerceable(self, annotation: Any) -> bool:
+        annotation = checks.resolve_supertype(annotation)
         origin = self.get_origin(annotation)
+        if self.registry.check_user_registry(origin, annotation):
+            return True
+
         has_annotation = annotation is not inspect.Parameter.empty
         special = (
             isinstance(origin, (str, ForwardRef))
@@ -429,7 +433,7 @@ class Coercer:
         """
         # Short circuit the check for custom coercers registered by a user.
         if self.registry.check_user_registry(
-            checks.resolve_supertype(parameter.annotation),
+            checks.resolve_supertype(self.get_origin(parameter.annotation)),
             checks.resolve_supertype(parameter.annotation),
         ):
             return True
@@ -537,8 +541,16 @@ class Coercer:
         """
 
         def wrapper(cls_):
-            cls_.__setattr_original__ = _get_setter(cls_)
-            cls_.__setattr__ = __setattr_coerced__
+            # Frozen dataclasses don't use the native setattr
+            # So we wrap the init. This should be fine.
+            if (
+                hasattr(cls_, "__dataclass_params__")
+                and cls_.__dataclass_params__.frozen
+            ):
+                cls_.__init__ = self.wrap(cls_.__init__)
+            else:
+                cls_.__setattr_original__ = _get_setter(cls_)
+                cls_.__setattr__ = __setattr_coerced__
             return cls_
 
         wrapped = wrapper(klass)
