@@ -5,7 +5,9 @@ import copy
 import datetime
 import functools
 import inspect
+import warnings
 from collections import deque
+from operator import attrgetter
 from typing import (
     ForwardRef,
     Mapping,
@@ -36,10 +38,16 @@ __all__ = (
     "annotations",
     "coerce",
     "coerce_parameters",
+    "coerce_input",
     "typed",
     "typed_class",
     "typed_callable",
 )
+
+_ORIG_SETTER_NAME = "__setattr_original__"
+_origsettergetter = attrgetter(_ORIG_SETTER_NAME)
+_TYPIC_ANNOS_NAME = "__typic_annotations__"
+_annosgetter = attrgetter(_TYPIC_ANNOS_NAME)
 
 
 @functools.lru_cache(maxsize=None)
@@ -68,6 +76,14 @@ _Empty = inspect.Parameter.empty
 
 
 class Annotation(NamedTuple):
+    """A named tuple of resolved annotations.
+
+    For the case of ``typical``, a "resolved annotation" is one in which we have located:
+        - Whether there is a coercer function
+        - Whether there is a default value
+        - The kind of parameter (if this :py:class:`Annotation` refers to a parameter)
+    """
+
     annotation: Any
     origin: Any
     coercer: Optional[_Coercer]
@@ -401,6 +417,9 @@ class Coercer:
 
     @functools.lru_cache(None)
     def coerceable(self, annotation: Any) -> bool:
+        if annotation is _Empty:
+            return False
+
         annotation = checks.resolve_supertype(annotation)
         origin = self.get_origin(annotation)
         if self.registry.check_user_registry(origin, annotation):
@@ -433,12 +452,8 @@ class Coercer:
         if value == parameter.default:
             return False
 
-        origin = self.get_origin(parameter.annotation)
         annotation = checks.resolve_supertype(parameter.annotation)
-        # Short circuit the check for custom coercers registered by a user.
-        if self.registry.check_user_registry(origin, annotation):
-            return True
-
+        origin = self.get_origin(annotation)
         # If we can coerce the annotation,
         # and either the annotation has args,
         # or the value is not an instance of the origin
@@ -476,6 +491,15 @@ class Coercer:
         -------
         The bound arguments, with their values coerced.
         """
+        warnings.warn(
+            (
+                f"{self.coerce_parameters.__qualname__} has been deprecated "
+                "and will be removed in version 1.8.0."
+                f"Use {self.coerce_input.__qualname__} instead."
+            ),
+            DeprecationWarning,
+            stacklevel=3,
+        )
         coerced = copy.copy(bound)
         params = bound.signature.parameters
         for name, value in bound.arguments.items():
@@ -487,8 +511,8 @@ class Coercer:
         return coerced
 
     def annotations(self, obj) -> Annotations:
-        if hasattr(obj, "__typic_annotations__"):
-            return obj.__typic_annotations__
+        if hasattr(obj, _TYPIC_ANNOS_NAME):
+            return _annosgetter(obj)
 
         hints = cached_type_hints(obj)
         sig = cached_signature(obj)
@@ -499,6 +523,9 @@ class Coercer:
             hint = hints.get(name)
             annotation = hint or param.annotation
             annotation = checks.resolve_supertype(annotation)
+            if checks.isoptionaltype(annotation) or checks.isclassvartype(annotation):
+                annotation = getattr(annotation, "__args__", [_Empty])[0]
+
             if self.coerceable(annotation):
                 origin = self.get_origin(annotation)
                 default = param.default if param else _Empty
@@ -511,8 +538,46 @@ class Coercer:
                     default=default,
                     param_kind=kind,
                 )
-        setattr(obj, "__typic_annotations__", ann)
+        setattr(obj, _TYPIC_ANNOS_NAME, ann)
         return ann
+
+    def coerce_input(
+        self,
+        obj: Type,
+        *,
+        posargs: Iterable[Any] = None,
+        kwdargs: Mapping[str, Any] = None,
+        ann: Annotations = None,
+        bound: inspect.BoundArguments = None,
+    ) -> Tuple[Tuple[Any, ...], Mapping[str, Any]]:
+        """Coerce the input to a callable according to the resovled annotations.
+
+        This is the method used under the hood by :py:class:`Coercer.wrap`.
+        The preferred API for typical is via the higher-level decorator(s),
+        but this is provided for cases where that may be un-realistic.
+
+        Parameters
+        ----------
+        obj
+            The target object you wish to convert your input to.
+        posargs
+            An iterable of positional arguments to coerce.
+        kwdargs
+            A mapping of key-word arguments to coerce.
+
+        Other Parameters
+        ----------------
+        ann
+            Optionally supply a pre-determined mapping of :py:class:`Annotation` to param name.
+        bound:
+            Optionally supply your args/kwargs already bound to the signature of your object.
+        """
+        ann = ann or self.annotations(obj)
+        bound = bound or cached_signature(obj).bind(*(posargs or []), **(kwdargs or {}))
+        for name, value in bound.arguments.items():
+            if name in ann:
+                bound.arguments[name] = ann[name].coerce(value)
+        return bound.args, bound.kwargs
 
     @staticmethod
     def _bind_wrapper(wrapper: Callable, func: Callable):  # pragma: nocover
@@ -536,15 +601,13 @@ class Coercer:
         :py:method:`inspect.Signature.bind`
         """
         ann = self.annotations(func)
-        setattr(func, "__typic_annotations__", ann)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            bound = cached_signature(func).bind(*args, **kwargs)
-            for name, value in bound.arguments.items():
-                if name in ann:
-                    bound.arguments[name] = ann[name].coerce(value)
-            return func(*bound.args, **bound.kwargs)
+            args, kwargs = self.coerce_input(
+                func, ann=ann, posargs=args, kwdargs=kwargs
+            )
+            return func(*args, **kwargs)
 
         if TYPE_CHECKING:  # pragma: nocover
             self._bind_wrapper(wrapper, func)
@@ -566,8 +629,8 @@ class Coercer:
         klass
             The class you wish to patch with coercion.
         """
-        ann = self.annotations(klass)
-        setattr(klass, "__typic_annotations__", ann)
+        # Resolve the annotations. This will store them on the object as well
+        self.annotations(klass)
 
         def wrapper(cls_):
             # Frozen dataclasses don't use the native setattr
@@ -578,7 +641,7 @@ class Coercer:
             ):
                 cls_.__init__ = self.wrap(cls_.__init__)
             else:
-                cls_.__setattr_original__ = _get_setter(cls_)
+                setattr(cls_, _ORIG_SETTER_NAME, _get_setter(cls_))
                 cls_.__setattr__ = __setattr_coerced__
             return cls_
 
@@ -588,9 +651,9 @@ class Coercer:
 
 
 def __setattr_coerced__(self, name, value):
-    ann = self.__typic_annotations__
+    ann = _annosgetter(self)
     value = ann[name].coerce(value) if name in ann else value
-    self.__setattr_original__(name, value)
+    _origsettergetter(self)(name, value)
 
 
 def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
@@ -599,9 +662,7 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
     if setter is __setattr_coerced__:
         for base in bases:
             name = (
-                "__setattr_original__"
-                if hasattr(base, "__setattr_original__")
-                else "__setattr__"
+                _ORIG_SETTER_NAME if hasattr(base, _ORIG_SETTER_NAME) else "__setattr__"
             )
             setter = getattr(base, name, None)
             if setter is not __setattr_coerced__:
@@ -611,6 +672,7 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 
 coerce = Coercer()
 coerce_parameters = coerce.coerce_parameters
+coerce_input = coerce.coerce_input
 coerceable = coerce.coerceable
 annotations = coerce.annotations
 typed_callable = coerce.wrap

@@ -16,7 +16,7 @@ def _get_loader():  # nocover
         loads = getattr(yaml, "full_load", getattr(yaml, "load"))
         return loads, yaml.error.YAMLError
 
-    except ImportError:
+    except ImportError:  # pragma: nocover
         import json
 
         return json.loads, json.JSONDecodeError

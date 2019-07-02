@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 import inspect
 import typing
+from operator import attrgetter
 
 import pytest
 
@@ -17,10 +18,19 @@ from tests.objects import (
     UserID,
     DateDict,
     NoParams,
+    Class,
+    func,
+    Frozen,
+    optional,
+    varargs,
+    Typic,
+    FrozenTypic,
+    Inherited,
+    KlassVar,
+    KlassVarSubscripted,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
-from typic.klass import klass
 from typic.typed import coerce, typed
 
 
@@ -154,55 +164,43 @@ def test_coerce_nested_sequence():
     assert all(isinstance(x, Data) for x in coerced.datum)
 
 
-def test_wrap_callable():
-    @coerce.wrap
-    def foo(bar: str):
-        return bar
-
-    assert isinstance(foo(1), str)
-
-
-def test_wrap_class():
-    @coerce.wrap_cls
-    class Foo:
-        def __init__(self, bar: str):
-            self.bar = bar
-
-    assert isinstance(Foo(1).bar, str)
-    assert inspect.isclass(Foo)
+@pytest.mark.parametrize(
+    argnames=("func", "input", "type"), argvalues=[(func, "1", int)]
+)
+def test_wrap_callable(func, input, type):
+    wrapped = coerce.wrap(func)
+    assert isinstance(wrapped(input), type)
 
 
-def test_wrap_dataclass():
-    @coerce.wrap_cls
-    @dataclasses.dataclass
-    class Foo:
-        bar: str
-
-    assert isinstance(Foo(1).bar, str)
-    assert inspect.isclass(Foo)
-
-
-def test_ensure_callable():
-    @typed
-    def foo(bar: str):
-        return bar
-
-    assert isinstance(foo, typing.Callable)
-    assert isinstance(foo(1), str)
+@pytest.mark.parametrize(
+    argnames=("klass", "var", "type"),
+    argvalues=[(Class, "var", str), (Data, "foo", str)],
+)
+def test_wrap_class(klass, var, type):
+    Wrapped = coerce.wrap_cls(klass)
+    assert isinstance(getattr(Wrapped(1), var), type)
+    assert inspect.isclass(Wrapped)
 
 
-def test_ensure_class():
-    @typed
-    @dataclasses.dataclass
-    class Foo:
-        bar: str
-
-    assert inspect.isclass(Foo)
-    assert isinstance(Foo(1).bar, str)
-
-
-def test_ensure_default_none():
-    assert typed(DefaultNone)().none is None
+@pytest.mark.parametrize(
+    argnames=("obj", "input", "getter", "type", "check"),
+    argvalues=[
+        (func, "1", None, int, inspect.isfunction),
+        (optional, 1, None, str, inspect.isfunction),
+        (optional, None, None, type(None), inspect.isfunction),
+        (Data, 1, attrgetter("foo"), str, inspect.isclass),
+        (DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
+        (Forward, "bar", attrgetter("foo"), FooNum, inspect.isclass),
+        (Frozen, "0", attrgetter("var"), bool, inspect.isclass),
+    ],
+)
+def test_typed(obj, input, getter, type, check):
+    wrapped = typed(obj)
+    result = wrapped(input)
+    if getter:
+        result = getter(result)
+    assert check(wrapped)
+    assert isinstance(result, type)
 
 
 def test_ensure_invalid():
@@ -210,28 +208,22 @@ def test_ensure_invalid():
         typed(1)
 
 
-def test_ensure_enum():
-    @typed
-    @dataclasses.dataclass
-    class Foo:
-        bar: FooNum
+@pytest.mark.parametrize(
+    argnames=("func", "args", "kwargs", "check"),
+    argvalues=[
+        (
+            varargs,
+            ({"foo": "bar"},),
+            {"bar": {"foo": "bar"}},
+            lambda res: all(isinstance(x, Data) for x in res),
+        )
+    ],
+)
+def test_typed_varargs(func, args, kwargs, check):
+    wrapped = typed(func)
+    result = wrapped(*args, **kwargs)
 
-    assert isinstance(Foo("bar").bar, FooNum)
-
-
-def test_forward_ref():
-    f: Forward = typed(Forward)("bar")
-    assert isinstance(f.foo, FooNum)
-
-
-def test_varargs():
-    @typed
-    def foo(*args: Data, **kwargs: Data):
-        return args + tuple(kwargs.values())
-
-    datum = foo({"foo": "bar"}, bar={"foo": "blah"})
-
-    assert all(isinstance(x, Data) for x in datum)
+    assert check(result)
 
 
 @pytest.mark.parametrize(
@@ -293,72 +285,34 @@ def test_register():
 
 
 def test_no_coercer():
-
     assert isinstance(coerce("foo", lambda x: 1), str)
 
 
-def test_typed_class_inheritance():
-    @typed
-    @dataclasses.dataclass
-    class Foo:
-        bar: str
-
-    @typed
-    @dataclasses.dataclass
-    class Foob(Foo):
-        pass
-
-    assert isinstance(Foob(1).bar, str)
-
-
-def test_typed_frozen():
-    @typed
-    @dataclasses.dataclass(frozen=True)
-    class Foo:
-        bar: str
-
-    assert isinstance(Foo(1).bar, str)
-
-
 def test_typic_klass():
-    @klass
-    class Foo:
-        bar: str
-
-    assert Foo(1).bar == "1"
+    assert Typic(1).var == "1"
 
 
 def test_typic_klass_is_dataclass():
-    @klass
-    class Foo:
-        bar: str
-
-    assert dataclasses.is_dataclass(Foo)
+    assert dataclasses.is_dataclass(Typic)
 
 
 def test_typic_klass_passes_params():
-    @klass(frozen=True)
-    class Foo:
-        bar: str
-
     with pytest.raises(dataclasses.FrozenInstanceError):
-        Foo(1).bar = 2
+        FrozenTypic(1).var = 2
 
 
 def test_typic_klass_inheritance():
-    @klass
-    class Foo:
-        bar: str
-
-    class Foob(Foo):
-        pass
-
-    assert isinstance(Foob(1).bar, str)
+    assert isinstance(Inherited(1).var, str)
 
 
 def test_typic_frozen():
-    @klass(frozen=True)
-    class Foo:
-        bar: str
+    assert isinstance(FrozenTypic(1).var, str)
 
-    assert isinstance(Foo(1).bar, str)
+
+@pytest.mark.parametrize(
+    argnames=("instance", "attr", "type"),
+    argvalues=[(KlassVar(), "var", int), (KlassVarSubscripted(), "var", str)],
+)
+def test_classvar(instance, attr, type):
+    setattr(instance, attr, 1)
+    assert isinstance(getattr(instance, attr), type)
