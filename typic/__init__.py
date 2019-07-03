@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+from .bind import *  # noqa: F403 (we've defined __all__)
 from .checks import *  # noqa: F403 (we've defined __all__)
 from .klass import klass  # noqa: F401
 from .typed import *  # noqa: F403 (we've defined __all__)

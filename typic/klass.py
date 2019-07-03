@@ -14,20 +14,17 @@ def make_typedclass(
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=False
+    frozen=False,
 ):
-    dcls = (
-        cls
-        if dataclasses.is_dataclass(cls)
-        else dataclasses.dataclass(
-            cls,
-            init=init,
-            repr=repr,
-            eq=eq,
-            order=order,
-            unsafe_hash=unsafe_hash,
-            frozen=frozen,
-        )
+    # Make the base dataclass.
+    dcls = dataclasses.dataclass(
+        cls,
+        init=init,
+        repr=repr,
+        eq=eq,
+        order=order,
+        unsafe_hash=unsafe_hash,
+        frozen=frozen,
     )
     ddict = dict(dcls.__dict__)
     ddict.pop("__dict__", None)
@@ -35,9 +32,10 @@ def make_typedclass(
     bases = (dcls,) + dcls.__bases__
     tcls = type(dcls.__name__, bases, ddict)
     tcls.__qualname__ = cls.__qualname__
-    tcls.__typic_annotations__ = annotations(tcls)
+    # Resolve the annotations.
+    annotations(tcls)
     # Frozen dataclasses don't use the native setattr
-    # So we wrap the init. This should be fine.
+    # So we wrap the init. This should be fine, but is more expensive.
     if frozen:
         tcls.__init__ = typed_callable(tcls.__init__)
     else:
@@ -54,7 +52,7 @@ def klass(
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=False
+    frozen=False,
 ):
     def typedclass_wrapper(cls_):
         return make_typedclass(

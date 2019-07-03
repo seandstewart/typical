@@ -12,10 +12,10 @@ Take Typing Further with Typical. Make your annotations work for you.
 
 ## Quickstart
 
-**Typical** is exceptionally light-weight (<30KB) and has only one
+**Typical** is exceptionally light-weight (<50KB) and has only one
 dependency -
-[python-dateutil](https://dateutil.readthedocs.io/en/stable/), which it
-uses to parse date-strings into datetime objects.
+[python-dateutil](https://dateutil.readthedocs.io/en/stable/), which
+it uses to parse date-strings into datetime objects.
 
 In order to install, simply `pip3 install typical` and annotate to your
 heart's content! :duck: 
