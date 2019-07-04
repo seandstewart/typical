@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import collections.abc
 import copy
+import dataclasses
 import datetime
 import functools
 import inspect
@@ -33,23 +34,33 @@ from typing import (
 import dateutil.parser
 
 from typic import checks
-from typic.bind import bind
 from typic.eval import safe_eval
 
 __all__ = (
     "annotations",
     "coerce",
     "coerce_parameters",
-    "coerce_input",
     "typed",
     "typed_class",
     "typed_callable",
+    "bind",
 )
 
 _ORIG_SETTER_NAME = "__setattr_original__"
 _origsettergetter = attrgetter(_ORIG_SETTER_NAME)
 _TYPIC_ANNOS_NAME = "__typic_annotations__"
 _annosgetter = attrgetter(_TYPIC_ANNOS_NAME)
+_TOO_MANY_POS = "too many positional arguments"
+_VAR_POSITIONAL = inspect.Parameter.VAR_POSITIONAL
+_VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
+_KEYWORD_ONLY = inspect.Parameter.KEYWORD_ONLY
+_POSITIONAL_ONLY = inspect.Parameter.POSITIONAL_ONLY
+_POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
+_KWD_KINDS = {_VAR_KEYWORD, _KEYWORD_ONLY}
+_POS_KINDS = {_VAR_POSITIONAL, _POSITIONAL_ONLY}
+_empty = inspect.Signature.empty
+_RETURN_KEY = "return"
+_SELF_NAME = "self"
 
 
 @functools.lru_cache(maxsize=None)
@@ -90,6 +101,7 @@ class ResolvedAnnotation(NamedTuple):
     origin: Any
     un_resolved: Any
     coercer: Optional[Coercer]
+    name: str = None
     default: Any = _Empty
     param_kind: Any = _Empty
     is_optional: bool = False
@@ -193,6 +205,7 @@ class CoercerRegistry:
         origin: Type,
         annotation: Any,
         *,
+        name: str = None,
         default: Any = _Empty,
         param_kind: inspect._ParameterKind = _Empty,
     ) -> ResolvedAnnotation:
@@ -218,6 +231,7 @@ class CoercerRegistry:
                     origin=origin,
                     un_resolved=annotation,
                     coercer=coercer,
+                    name=name,
                     default=default,
                     param_kind=param_kind,
                     is_optional=is_optional,
@@ -236,7 +250,49 @@ class CoercerRegistry:
         return annotation.coerce(value=value)
 
 
-Annotations = Mapping[str, ResolvedAnnotation]
+Annotations = Dict[str, ResolvedAnnotation]
+
+
+@dataclasses.dataclass(frozen=True)
+class BoundArguments:
+    annotations: Annotations
+    parameters: Mapping[str, inspect.Parameter]
+    arguments: Dict[str, Any]
+    returns: Optional[ResolvedAnnotation]
+    _argnames: Tuple[str]
+    _kwdargnames: Tuple[str]
+
+    @property
+    def args(self) -> Tuple[Any]:
+        args = list()
+        argsappend = args.append
+        argsextend = args.extend
+        paramsget = self.parameters.__getitem__
+        argumentsget = self.arguments.__getitem__
+        for name in self._argnames:
+            kind = paramsget(name).kind
+            arg = argumentsget(name)
+            if kind == _VAR_POSITIONAL:
+                argsextend(arg)
+            else:
+                argsappend(arg)
+        return tuple(args)
+
+    @property
+    def kwargs(self) -> Dict[str, Any]:
+        kwargs = {}
+        kwargsupdate = kwargs.update
+        kwargsset = kwargs.__setitem__
+        paramsget = self.parameters.__getitem__
+        argumentsget = self.arguments.__getitem__
+        for name in self._kwdargnames:
+            kind = paramsget(name).kind
+            arg = argumentsget(name)
+            if kind == _VAR_KEYWORD:
+                kwargsupdate(arg)
+            else:
+                kwargsset(name, arg)
+        return kwargs
 
 
 class TypeCoercer:
@@ -386,18 +442,12 @@ class TypeCoercer:
         return value
 
     def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
-        if isinstance(value, origin):
-            return value
-
         if isinstance(value, (str, bytes)):
             processed, value = safe_eval(value)
         bound = self.coerce_parameters(cached_signature(origin).bind(**value))
         return origin.from_dict(dict(bound.arguments))
 
     def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
-        if isinstance(value, origin):
-            return value
-
         processed, value = (
             safe_eval(value) if isinstance(value, str) else (False, value)
         )
@@ -412,9 +462,6 @@ class TypeCoercer:
 
     @staticmethod
     def _coerce_enum(value: Any, annotation: Any) -> Any:
-        if isinstance(value, annotation):
-            return value
-
         return annotation(value)
 
     def coerce_value(self, value: Any, annotation: Any) -> Any:
@@ -531,7 +578,7 @@ class TypeCoercer:
             (
                 f"{self.coerce_parameters.__qualname__} has been deprecated "
                 "and will be removed in version 2.0."
-                f"Use {self.coerce_input.__qualname__} instead."
+                f" Use {self.bind.__qualname__} instead."
             ),
             DeprecationWarning,
             stacklevel=3,
@@ -550,13 +597,14 @@ class TypeCoercer:
         self,
         annotation: Any,
         *,
+        name: str = None,
         default: Any = _Empty,
         param_kind: inspect._ParameterKind = _Empty,
     ) -> Optional[ResolvedAnnotation]:
         if self.coerceable(annotation):
             origin = self.get_origin(annotation)
             resolved = self.registry.check(
-                origin, annotation, default=default, param_kind=param_kind
+                origin, annotation, default=default, param_kind=param_kind, name=name
             )
             return resolved
 
@@ -575,51 +623,200 @@ class TypeCoercer:
             annotation = checks.resolve_supertype(annotation)
             default = param.default if param else _Empty
             kind = param.kind if param else _Empty
-            resolved = self.resolve(annotation, default=default, param_kind=kind)
+            resolved = self.resolve(
+                annotation, default=default, param_kind=kind, name=name
+            )
             if resolved:
-                ann[name] = self.resolve(annotation, default=default, param_kind=kind)
+                ann[name] = resolved
         setattr(obj, _TYPIC_ANNOS_NAME, ann)
         return ann
 
-    def coerce_input(
-        self,
-        obj: Type,
-        *,
-        posargs: Iterable[Any] = None,
-        kwdargs: Mapping[str, Any] = None,
-        ann: Annotations = None,
-        bound: inspect.BoundArguments = None,
-    ) -> Tuple[Tuple[Any, ...], Mapping[str, Any]]:
-        """Coerce the input to a callable according to the resovled annotations.
+    @staticmethod
+    def _bind_posargs(
+        arguments: Dict[str, Any],
+        params: Deque[inspect.Parameter],
+        annos: Dict[str, ResolvedAnnotation],
+        args: Deque[Any],
+        kwargs: Dict[str, Any],
+    ) -> Tuple[Any]:
+        posargs = list()
+        posargsadd = posargs.append
+        argspop = args.popleft
+        paramspop = params.popleft
+        annosget = annos.get
+        argumentsset = arguments.__setitem__
+        while args and params:
+            val = argspop()
+            param: inspect.Parameter = paramspop()
+            name = param.name
+            anno: Optional[ResolvedAnnotation] = annosget(name)
+            kind = param.kind
+            # We've got varargs, so push all supplied args to that param.
+            if kind == _VAR_POSITIONAL:
+                value = (val,) + tuple(args)
+                if anno:
+                    value = anno.coerce(value)
+                argumentsset(name, value)
+                posargsadd(name)
+                break
 
-        This is the method used under the hood by :py:class:`Coercer.wrap`.
-        The preferred API for typical is via the higher-level decorator(s),
-        but this is provided for cases where that may be un-realistic.
+            # We're not supposed to have kwdargs....
+            if kind in _KWD_KINDS:
+                raise TypeError(_TOO_MANY_POS) from None
+
+            # Passed in by ref and assignment... no good.
+            if name in kwargs:
+                raise TypeError(f"multiple values for argument '{name}'") from None
+
+            # We're g2g
+            value = anno.coerce(val) if anno else val
+            argumentsset(name, value)
+            posargsadd(name)
+
+        if args:
+            raise TypeError(_TOO_MANY_POS) from None
+
+        return tuple(posargs)
+
+    @staticmethod
+    def _bind_kwdargs(
+        arguments: Dict[str, Any],
+        params: Deque[inspect.Parameter],
+        annos: Dict[str, ResolvedAnnotation],
+        kwargs: Dict[str, Any],
+        partial: bool = False,
+    ) -> Tuple[str]:
+        # Bind any key-word arguments
+        kwdargs = list()
+        kwdargsadd = kwdargs.append
+        kwargs_anno = None
+        kwdargs_param = None
+        kwargspop = kwargs.pop
+        annosget = annos.get
+        argumentsset = arguments.__setitem__
+        for param in params:
+            kind = param.kind
+            name = param.name
+            anno = annosget(name)
+            # Move on, but don't forget
+            if kind == _VAR_KEYWORD:
+                kwargs_anno = anno
+                kwdargs_param = param
+                continue
+            # We don't care about these
+            if kind == _VAR_POSITIONAL:
+                continue
+
+            try:
+                val = kwargspop(name)
+                if kind == _POSITIONAL_ONLY:
+                    raise TypeError(
+                        f"{name!r} parameter is positional only,"
+                        "but was passed as a keyword."
+                    )
+                value = anno.coerce(val) if anno else val
+                argumentsset(name, value)
+                kwdargsadd(name)
+            except KeyError:
+                if not partial and param.default is _empty:
+                    raise TypeError(f"missing required argument: {name!r}")
+        if kwargs:
+            if kwdargs_param is not None:
+                # Process our '**kwargs'-like parameter
+                name = kwdargs_param.name
+                value = kwargs_anno.coerce(kwargs) if kwargs_anno else kwargs
+                argumentsset(name, value)
+                kwdargsadd(name)
+            else:
+                raise TypeError(
+                    f"'got an unexpected keyword argument {next(iter(kwargs))!r}'"
+                )
+
+        return tuple(kwdargs)
+
+    def _bind_input(
+        self,
+        annos: Annotations,
+        params: Mapping[str, inspect.Parameter],
+        args: Iterable[Any],
+        kwargs: Dict[str, Any],
+        *,
+        partial: bool = False,
+    ) -> BoundArguments:
+        """Bind annotations and parameters to received input.
+
+        Taken approximately from :py:meth:`inspect.Signature.bind`, with a few changes.
+
+        About 10% faster, on average, and coerces values with their annotation if possible.
+
+        Parameters
+        ----------
+        annos
+            A mapping of :py:class:`ResolvedAnnotation` to param name.
+        params
+            A mapping of :py:class:`inspect.Parameter` to param name.
+        args
+            The positional args to bind to their param and annotation, if possible.
+        kwargs
+            The keyword args to bind to their param and annotation, if possible.
+
+        Other Parameters
+        ----------------
+        partial
+            Bind a partial input.
+
+        Raises
+        ------
+        TypeError
+            If we can't match up the received input to the signature
+        """
+        arguments = dict()
+        returns = annos.pop(_RETURN_KEY, None)
+        args = deque(args)
+        parameters = deque(params.values())
+        # Bind any positional arguments.
+        posargs = self._bind_posargs(arguments, parameters, annos, args, kwargs)
+        # Bind any keyword arguments.
+        kwdargs = self._bind_kwdargs(arguments, parameters, annos, kwargs, partial)
+        return BoundArguments(annos, params, arguments, returns, posargs, kwdargs)
+
+    def bind(
+        self, obj: Type, *args: Any, partial: bool = False, **kwargs: Mapping[str, Any]
+    ) -> BoundArguments:
+        """Bind a received input to a callable or object's signature.
+
+        If we can locate an annotation for any args or kwargs, we'll automatically coerce as well.
+
+        This implementation is similar to :py:meth`inspect.Signature.bind`, but is ~10-20% faster.
+        We also use a cached the signature to avoid the expense of that call if possible.
 
         Parameters
         ----------
         obj
-            The target object you wish to convert your input to.
-        posargs
-            An iterable of positional arguments to coerce.
-        kwdargs
-            A mapping of key-word arguments to coerce.
+            The object you wish to bind your input to.
+        *args
+            The given positional args.
+        partial
+            Whether to bind a partial input.
+        **kwargs
+            The given keyword args.
 
-        Other Parameters
-        ----------------
-        ann
-            Optionally supply a pre-determined mapping of :py:class:`Annotation` to param name.
-        bound:
-            Optionally supply your args/kwargs already bound to the signature of your object.
+        Returns
+        -------
+        The bound and coerced arguments.
+
+        Raises
+        ------
+        TypeError
+            If we can't match up the received input to the signature
         """
-        annos = ann or self.annotations(obj)
-        bound = bound or bind(
-            cached_signature(obj), args=posargs or (), kwargs=kwdargs or {}
+        return self._bind_input(
+            annos=self.annotations(obj),
+            params=cached_signature(obj).parameters,
+            args=args,
+            kwargs=kwargs,
+            partial=partial,
         )
-        arguments = bound.arguments
-        for name in set(annos) & set(arguments):
-            arguments[name] = annos[name].coerce(arguments[name])
-        return bound.args, bound.kwargs
 
     @staticmethod
     def _bind_wrapper(wrapper: Callable, func: Callable):  # pragma: nocover
@@ -642,14 +839,12 @@ class TypeCoercer:
         :py:func:`inspect.signature`
         :py:method:`inspect.Signature.bind`
         """
-        ann = self.annotations(func)
+        self.annotations(func)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            args, kwargs = self.coerce_input(
-                func, ann=ann, posargs=args, kwdargs=kwargs
-            )
-            return func(*args, **kwargs)
+            bound = self.bind(func, *args, **kwargs)
+            return func(*bound.args, **bound.kwargs)
 
         if TYPE_CHECKING:  # pragma: nocover
             self._bind_wrapper(wrapper, func)
@@ -714,11 +909,11 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 
 coerce = TypeCoercer()
 coerce_parameters = coerce.coerce_parameters
-coerce_input = coerce.coerce_input
 coerceable = coerce.coerceable
 annotations = coerce.annotations
 typed_callable = coerce.wrap
 typed_class = coerce.wrap_cls
+bind = coerce.bind
 
 
 def typed(cls_or_callable: Union[Callable, Type[object]]):

@@ -31,7 +31,7 @@ def test_bind():
     sig = inspect.signature(foo)
     args, kwargs = (1, 2), {"kwd": "kwd", "kwarg": "kwarg"}
     builtin: inspect.BoundArguments = sig.bind(*args, **kwargs)
-    baked = typic.bind(sig, args, kwargs)
+    baked = typic.bind(foo, *args, **kwargs)
     assert builtin.kwargs == baked.kwargs
     assert builtin.args == baked.args
     assert dict(builtin.arguments) == baked.arguments
@@ -49,7 +49,6 @@ def test_bind():
     ],
 )
 def test_bind_errors(func, params):
-    sig = inspect.signature(func)
     args, kwargs = params
     with pytest.raises(TypeError):
-        typic.bind(sig, args, kwargs)
+        typic.bind(func, *args, **kwargs)
