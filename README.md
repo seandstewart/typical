@@ -261,7 +261,7 @@ _New in version 1.5.0:_
 _New in versio 1.9.0:_
 1. Introducing `typic.bind`:
    - An optimized version of `inspect.Signature.bind` which will also coerce inputs given.
-2 `typic.al` is now up to ~30% faster on wrapped callables.
+2. `typic.al` is now up to ~30% faster on wrapped callables.
 
 ## Documentation
 
