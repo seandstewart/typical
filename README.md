@@ -268,6 +268,12 @@ _New in version 1.9.1:_
 1. Squashed a bug that broke annotation resolution when wrapping bound
    methods of classes.
 
+_New in version 1.9.2:_
+1. Added the `delay` keyword-arg to wrappers to allow user to delay
+   annotation resolution until the first call of the wrapped object.
+2. Added the `coerce` keyword-arg to `typic.bind` to allow users to
+   bind args without coercing them.
+
 ## Documentation
 
 Full documentation coming soon!

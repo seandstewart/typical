@@ -108,5 +108,21 @@ class Method:
         return a * a
 
 
+@typic.klass(delay=True)
+class KlassDelayed:
+    foo: str
+
+
+@typic.al(delay=True)
+@dataclasses.dataclass
+class Delayed:
+    foo: str
+
+
+@typic.al(delay=True)
+def delayed(foo: str) -> str:
+    return foo
+
+
 UserID = typing.NewType("UserID", int)
 DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])

@@ -320,6 +320,14 @@ class TypeCoercer:
         }
         self._sig_registry = {}
 
+    @functools.lru_cache(maxsize=None)
+    def seen(self, cls_or_callable: Union[Callable, Type]) -> bool:
+        return (
+            hasattr(cls_or_callable, _TYPIC_ANNOS_NAME)
+            or cached_signature(cls_or_callable) in self._sig_registry
+            or getattr(cls_or_callable, "__setattr__", None) is __setattr_coerced__
+        )
+
     @classmethod
     def _check_generics(cls, hint: Any):
         return cls.GENERIC_TYPE_MAP.get(hint, hint)
@@ -445,17 +453,27 @@ class TypeCoercer:
     def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
         if isinstance(value, (str, bytes)):
             processed, value = safe_eval(value)
-        bound = self.coerce_parameters(cached_signature(origin).bind(**value))
-        return origin.from_dict(dict(bound.arguments))
+        # Go ahead and wrap the class
+        if not self.seen(origin):
+            self.wrap_cls(origin)
+        argnames = set(cached_signature(origin).parameters)
+        value = value or {}
+        arguments = {x: value[x] for x in value.keys() & argnames}
+        return origin.from_dict(arguments)
 
     def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
         processed, value = (
-            safe_eval(value) if isinstance(value, str) else (False, value)
+            safe_eval(value) if isinstance(value, (str, bytes)) else (False, value)
         )
         coerced = value
+        # Go ahead and wrap the class
+        if not self.seen(origin):
+            self.wrap_cls(origin)
+
         if isinstance(value, (Mapping, dict)):
-            bound = self.coerce_parameters(cached_signature(origin).bind(**value))
-            coerced = origin(*bound.args, **bound.kwargs)
+            argnames = set(cached_signature(origin).parameters)
+            arguments = {x: value[x] for x in value.keys() & argnames}
+            coerced = origin(**arguments)
         elif value is not None and not checks.isoptionaltype(annotation):
             coerced = origin(value)
 
@@ -794,7 +812,12 @@ class TypeCoercer:
         return BoundArguments(annos, params, arguments, returns, posargs, kwdargs)
 
     def bind(
-        self, obj: Type, *args: Any, partial: bool = False, **kwargs: Mapping[str, Any]
+        self,
+        obj: Type,
+        *args: Any,
+        partial: bool = False,
+        coerce: bool = True,
+        **kwargs: Mapping[str, Any],
     ) -> BoundArguments:
         """Bind a received input to a callable or object's signature.
 
@@ -824,7 +847,7 @@ class TypeCoercer:
             If we can't match up the received input to the signature
         """
         return self._bind_input(
-            annos=self.annotations(obj),
+            annos=self.annotations(obj) if coerce else {},
             params=cached_signature(obj).parameters,
             args=args,
             kwargs=kwargs,
@@ -839,20 +862,23 @@ class TypeCoercer:
         )
         wrapper.__signature__ = cached_signature(func)
 
-    def wrap(self, func: Callable) -> Callable:
+    def wrap(self, func: Callable, *, delay: bool = False) -> Callable:
         """Wrap a callable to automatically enforce type-coercion.
 
         Parameters
         ----------
-        func :
+        func
             The callable for which you wish to ensure type-safety
+        delay
+            Delay annotation resolution until the first call
 
         See Also
         --------
         :py:func:`inspect.signature`
         :py:method:`inspect.Signature.bind`
         """
-        self.annotations(func)
+        if not delay:
+            self.annotations(func)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
@@ -864,7 +890,7 @@ class TypeCoercer:
 
         return wrapper
 
-    def wrap_cls(self, klass: Type[object]):
+    def wrap_cls(self, klass: Type, *, delay: bool = False):
         """Wrap a class to automatically enforce type-coercion on init.
 
         Notes
@@ -878,9 +904,12 @@ class TypeCoercer:
         ----------
         klass
             The class you wish to patch with coercion.
+        delay
+            Delay annotation resolution until first initialization.
         """
         # Resolve the annotations. This will store them on the object as well
-        self.annotations(klass)
+        if not delay:
+            self.annotations(klass)
 
         def wrapper(cls_):
             # Frozen dataclasses don't use the native setattr
@@ -889,7 +918,7 @@ class TypeCoercer:
                 hasattr(cls_, "__dataclass_params__")
                 and cls_.__dataclass_params__.frozen
             ):
-                cls_.__init__ = self.wrap(cls_.__init__)
+                cls_.__init__ = self.wrap(cls_.__init__, delay=delay)
             else:
                 setattr(cls_, _ORIG_SETTER_NAME, _get_setter(cls_))
                 cls_.__setattr__ = __setattr_coerced__
@@ -901,7 +930,10 @@ class TypeCoercer:
 
 
 def __setattr_coerced__(self, name, value):
-    ann = _annosgetter(self)
+    try:
+        ann = _annosgetter(self)
+    except AttributeError:
+        ann = annotations(type(self))
     value = ann[name].coerce(value) if name in ann else value
     _origsettergetter(self)(name, value)
 
@@ -929,27 +961,35 @@ typed_class = coerce.wrap_cls
 bind = coerce.bind
 
 
-def typed(cls_or_callable: Union[Callable, Type[object]]):
+def typed(
+    _cls_or_callable: Union[Callable, Type[object]] = None, *, delay: bool = False
+):
     """A convenience function which automatically selects the correct wrapper.
 
     Parameters
     ----------
-    cls_or_callable
+    _cls_or_callable
         The target object.
+    delay
+        Optionally delay annotation resolution until first call.
 
     Returns
     -------
     The target object, appropriately wrapped.
     """
-    _annotations_ = {"return": cls_or_callable}
-    typed.__annotations__.update(_annotations_)
-    if inspect.isclass(cls_or_callable):
-        typed_class.__annotations__.update(_annotations_)
-        return typed_class(cls_or_callable)
-    elif isinstance(cls_or_callable, Callable):
-        typed_callable.__annotations__.update(_annotations_)
-        return typed_callable(cls_or_callable)
-    else:
-        raise TypeError(
-            f"{__name__} requires a callable or class. Provided: {type(cls_or_callable)}: {cls_or_callable}"
-        )
+
+    def _typed(obj: Union[Type, Callable]):
+        _annotations_ = {"return": obj}
+        typed.__annotations__.update(_annotations_)
+        if inspect.isclass(obj):
+            typed_class.__annotations__.update(_annotations_)
+            return typed_class(obj, delay=delay)
+        elif isinstance(obj, Callable):
+            typed_callable.__annotations__.update(_annotations_)
+            return typed_callable(obj, delay=delay)
+        else:
+            raise TypeError(
+                f"{__name__} requires a callable or class. Provided: {type(obj)}: {obj}"
+            )
+
+    return _typed(_cls_or_callable) if _cls_or_callable is not None else _typed

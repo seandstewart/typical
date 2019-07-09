@@ -29,6 +29,9 @@ from tests.objects import (
     KlassVar,
     KlassVarSubscripted,
     Method,
+    KlassDelayed,
+    Delayed,
+    delayed,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
@@ -318,3 +321,19 @@ def test_typic_frozen():
 def test_classvar(instance, attr, type):
     setattr(instance, attr, 1)
     assert isinstance(getattr(instance, attr), type)
+
+
+def test_typic_klass_delayed():
+    assert not hasattr(KlassDelayed, "__typic_annotations__")
+    assert isinstance(KlassDelayed(1).foo, str)
+    assert hasattr(KlassDelayed, "__typic_annotations__")
+
+
+def test_typic_class_delayed():
+    assert not hasattr(Delayed, "__typic_annotations__")
+    assert isinstance(Delayed(1).foo, str)
+    assert hasattr(Delayed, "__typic_annotations__")
+
+
+def test_typic_callable_delayed():
+    assert isinstance(delayed(1), str)

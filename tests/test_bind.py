@@ -27,6 +27,10 @@ def kwarg(arg, **kwargs):  # pragma: nocover
     pass
 
 
+def typed(arg: str):
+    return type(arg)
+
+
 def test_bind():
     sig = inspect.signature(foo)
     args, kwargs = (1, 2), {"kwd": "kwd", "kwarg": "kwarg"}
@@ -35,6 +39,11 @@ def test_bind():
     assert builtin.kwargs == baked.kwargs
     assert builtin.args == baked.args
     assert dict(builtin.arguments) == baked.arguments
+
+
+def test_typed_no_coerce():
+    bound = typic.bind(typed, 1, coerce=False)
+    assert bound.arguments["arg"] == 1
 
 
 @pytest.mark.parametrize(

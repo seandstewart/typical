@@ -9,12 +9,13 @@ from .typed import __setattr_coerced__, _get_setter, typed_callable, annotations
 def make_typedclass(
     cls: Type,
     *,
-    init=True,
-    repr=True,
-    eq=True,
-    order=False,
-    unsafe_hash=False,
-    frozen=False,
+    init: bool = True,
+    repr: bool = True,
+    eq: bool = True,
+    order: bool = False,
+    unsafe_hash: bool = False,
+    frozen: bool = False,
+    delay: bool = False
 ):
     # Make the base dataclass.
     dcls = dataclasses.dataclass(
@@ -33,7 +34,8 @@ def make_typedclass(
     tcls = type(dcls.__name__, bases, ddict)
     tcls.__qualname__ = cls.__qualname__
     # Resolve the annotations.
-    annotations(tcls)
+    if not delay:
+        annotations(tcls)
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine, but is more expensive.
     if frozen:
@@ -47,12 +49,13 @@ def make_typedclass(
 def klass(
     _cls: Type = None,
     *,
-    init=True,
-    repr=True,
-    eq=True,
-    order=False,
-    unsafe_hash=False,
-    frozen=False,
+    init: bool = True,
+    repr: bool = True,
+    eq: bool = True,
+    order: bool = False,
+    unsafe_hash: bool = False,
+    frozen: bool = False,
+    delay: bool = False
 ):
     def typedclass_wrapper(cls_):
         return make_typedclass(
@@ -63,6 +66,7 @@ def klass(
             order=order,
             unsafe_hash=unsafe_hash,
             frozen=frozen,
+            delay=delay,
         )
 
     return typedclass_wrapper(_cls) if _cls else typedclass_wrapper
