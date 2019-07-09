@@ -318,6 +318,7 @@ class TypeCoercer:
             inspect.Parameter.VAR_POSITIONAL: self._coerce_args,
             inspect.Parameter.VAR_KEYWORD: self._coerce_kwargs,
         }
+        self._sig_registry = {}
 
     @classmethod
     def _check_generics(cls, hint: Any):
@@ -612,8 +613,13 @@ class TypeCoercer:
         if hasattr(obj, _TYPIC_ANNOS_NAME):
             return _annosgetter(obj)
 
-        hints = cached_type_hints(obj)
+        # Check if we registered these annotations locally.
+        # Should only happen if we can't set the annotations attr
         sig = cached_signature(obj)
+        if sig in self._sig_registry:
+            return self._sig_registry[sig]
+
+        hints = cached_type_hints(obj)
         params: Mapping[str, inspect.Parameter] = sig.parameters
         ann = {}
         for name in set(params) | set(hints):
@@ -628,7 +634,14 @@ class TypeCoercer:
             )
             if resolved:
                 ann[name] = resolved
-        setattr(obj, _TYPIC_ANNOS_NAME, ann)
+        try:
+            setattr(obj, _TYPIC_ANNOS_NAME, ann)
+        # We wrapped a bound method, or
+        # are wrapping a static/class method
+        # after they were wrapped with @static/class
+        except AttributeError:
+            self._sig_registry[sig] = ann
+
         return ann
 
     @staticmethod

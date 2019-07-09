@@ -103,5 +103,10 @@ def varargs(*args: Data, **kwargs: Data):
     return args + tuple(kwargs.values())
 
 
+class Method:
+    def math(self, a: int) -> int:
+        return a * a
+
+
 UserID = typing.NewType("UserID", int)
 DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])

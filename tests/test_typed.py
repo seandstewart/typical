@@ -28,6 +28,7 @@ from tests.objects import (
     Inherited,
     KlassVar,
     KlassVarSubscripted,
+    Method,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
@@ -165,7 +166,8 @@ def test_coerce_nested_sequence():
 
 
 @pytest.mark.parametrize(
-    argnames=("func", "input", "type"), argvalues=[(func, "1", int)]
+    argnames=("func", "input", "type"),
+    argvalues=[(func, "1", int), (Method().math, "4", int)],
 )
 def test_wrap_callable(func, input, type):
     wrapped = coerce.wrap(func)
