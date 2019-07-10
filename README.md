@@ -274,6 +274,24 @@ _New in version 1.9.2:_
 2. Added the `coerce` keyword-arg to `typic.bind` to allow users to
    bind args without coercing them.
 
+_New in version 1.10.0:_
+1. Added the ability to resolve delayed annotations with a
+   module-level callable, i.e.:  
+   ```python
+   import typic
+
+   @typic.klass(delay=True)
+   class SomeClass:
+       some_attr: str
+   
+   typic.resolve()
+   ```
+   This is useful in more complex typing situations, such as in the
+   library [iambic](https://www.github.com/seandstewart/iambic), where
+   a single coercer is registered to handle type coercion for all
+   models. In those cases, you may wish to resolve your annotations
+   after you have registered your coercer.
+
 ## Documentation
 
 Full documentation coming soon!

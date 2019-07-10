@@ -29,6 +29,7 @@ from typing import (
     Tuple,
     Iterable,
     MutableMapping,
+    List,
 )
 
 import dateutil.parser
@@ -36,15 +37,7 @@ import dateutil.parser
 from typic import checks
 from typic.eval import safe_eval
 
-__all__ = (
-    "annotations",
-    "coerce",
-    "coerce_parameters",
-    "typed",
-    "typed_class",
-    "typed_callable",
-    "bind",
-)
+__all__ = ("annotations", "bind", "coerce", "coerce_parameters", "resolve", "typed")
 
 _ORIG_SETTER_NAME = "__setattr_original__"
 _origsettergetter = attrgetter(_ORIG_SETTER_NAME)
@@ -61,6 +54,7 @@ _POS_KINDS = {_VAR_POSITIONAL, _POSITIONAL_ONLY}
 _empty = inspect.Signature.empty
 _RETURN_KEY = "return"
 _SELF_NAME = "self"
+_TO_RESOLVE: List[Union[Type, Callable]] = []
 
 
 @functools.lru_cache(maxsize=None)
@@ -506,9 +500,14 @@ class TypeCoercer:
         # For custom types or classes, this will be the same as the annotation.
         origin = self.get_origin(annotation)
         optional = checks.isoptionaltype(annotation)
+        args = set(self.get_args(annotation))
         # Short-circuit checks if this is an optional type and the value is None
         # Or if the type of the value is the annotation.
-        if type(value) is annotation or (optional and value is None):
+        if (
+            type(value) is annotation
+            or (origin is Union and type(value) in args)
+            or (optional and value is None)
+        ):
             return value
 
         coerced = self.registry.coerce(value, origin, annotation)
@@ -879,6 +878,8 @@ class TypeCoercer:
         """
         if not delay:
             self.annotations(func)
+        else:
+            _TO_RESOLVE.append(func)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> Any:
@@ -910,6 +911,8 @@ class TypeCoercer:
         # Resolve the annotations. This will store them on the object as well
         if not delay:
             self.annotations(klass)
+        else:
+            _TO_RESOLVE.append(klass)
 
         def wrapper(cls_):
             # Frozen dataclasses don't use the native setattr
@@ -993,3 +996,23 @@ def typed(
             )
 
     return _typed(_cls_or_callable) if _cls_or_callable is not None else _typed
+
+
+def resolve():
+    """Resolve any delayed annotations.
+
+    If this is not called, annotations will be resolved on first call of the wrapped class or callable.
+
+    Examples
+    --------
+    >>> import typic
+    >>>
+    >>> @typic.klass(delay=True)
+    ... class Duck:
+    ...     color: str
+    ...
+    >>> typic.resolve()
+    """
+    while _TO_RESOLVE:
+        obj = _TO_RESOLVE.pop()
+        annotations(obj)

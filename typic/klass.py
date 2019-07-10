@@ -3,7 +3,13 @@
 import dataclasses
 from typing import Type
 
-from .typed import __setattr_coerced__, _get_setter, typed_callable, annotations
+from .typed import (
+    __setattr_coerced__,
+    _get_setter,
+    typed_callable,
+    annotations,
+    _TO_RESOLVE,
+)
 
 
 def make_typedclass(
@@ -36,6 +42,8 @@ def make_typedclass(
     # Resolve the annotations.
     if not delay:
         annotations(tcls)
+    else:
+        _TO_RESOLVE.append(tcls)
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine, but is more expensive.
     if frozen:

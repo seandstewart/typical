@@ -35,7 +35,7 @@ from tests.objects import (
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
 from typic.eval import safe_eval
-from typic.typed import coerce, typed
+from typic.typed import coerce, typed, resolve
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -333,7 +333,14 @@ def test_typic_class_delayed():
     assert not hasattr(Delayed, "__typic_annotations__")
     assert isinstance(Delayed(1).foo, str)
     assert hasattr(Delayed, "__typic_annotations__")
+    del Delayed.__typic_annotations__
 
 
 def test_typic_callable_delayed():
     assert isinstance(delayed(1), str)
+
+
+def test_typic_resolve():
+    assert not hasattr(Delayed, "__typic_annotations__")
+    resolve()
+    assert hasattr(Delayed, "__typic_annotations__")
