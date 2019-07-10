@@ -97,3 +97,17 @@ def isclassvartype(obj: Any) -> bool:
 def isfromdictclass(obj: Any) -> bool:
     """Test whether this annotation is a class with a ``from_dict()`` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
+
+
+_isinstance = isinstance
+
+
+@functools.lru_cache(maxsize=None)
+def _type_check(t) -> bool:
+    if _isinstance(t, tuple):
+        return all(_type_check(x) for x in t)
+    return inspect.isclass(t)
+
+
+def isinstance(o, t) -> bool:
+    return _type_check(t) and _isinstance(o, t)

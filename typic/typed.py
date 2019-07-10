@@ -6,6 +6,7 @@ import dataclasses
 import datetime
 import functools
 import inspect
+import re
 import warnings
 from collections import deque
 from operator import attrgetter
@@ -30,6 +31,8 @@ from typing import (
     Iterable,
     MutableMapping,
     List,
+    Pattern,
+    Match,
 )
 
 import dateutil.parser
@@ -83,12 +86,12 @@ _Empty = inspect.Parameter.empty
 
 
 class ResolvedAnnotation(NamedTuple):
-    """A named tuple of resolved annotations.
+    """A named tuple of a resolved annotation.
 
     For the case of ``typical``, a "resolved annotation" is one in which we have located:
         - Whether there is a coercer function
         - Whether there is a default value
-        - The kind of parameter (if this :py:class:`Annotation` refers to a parameter)
+        - The kind of parameter (if this :py:class:`ResolvedAnnotation` refers to a parameter)
     """
 
     annotation: Any
@@ -107,7 +110,10 @@ class ResolvedAnnotation(NamedTuple):
 
     def coerce(self, value: Any) -> Any:
         if (
-            type(value) is self.annotation
+            (
+                checks.isinstance(value, self.origin)
+                and not coerce.get_args(self.annotation)
+            )
             or value == self.default
             or not self.coercer
             or self.is_optional
@@ -303,7 +309,7 @@ class TypeCoercer:
         collections.abc.Hashable: str,
     }
     DEFAULT_BYTE_ENCODING = "utf-8"
-    UNRESOLVABLE = frozenset((Any, Union))
+    UNRESOLVABLE = frozenset((Any, Union, Pattern, Match, re.Pattern, re.Match))
 
     def __init__(self):
         self.registry = CoercerRegistry(self)
@@ -314,7 +320,6 @@ class TypeCoercer:
         }
         self._sig_registry = {}
 
-    @functools.lru_cache(maxsize=None)
     def seen(self, cls_or_callable: Union[Callable, Type]) -> bool:
         return (
             hasattr(cls_or_callable, _TYPIC_ANNOS_NAME)
@@ -444,30 +449,34 @@ class TypeCoercer:
 
         return value
 
-    def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
-        if isinstance(value, (str, bytes)):
-            processed, value = safe_eval(value)
-        # Go ahead and wrap the class
-        if not self.seen(origin):
-            self.wrap_cls(origin)
-        argnames = set(cached_signature(origin).parameters)
-        value = value or {}
-        arguments = {x: value[x] for x in value.keys() & argnames}
-        return origin.from_dict(arguments)
-
-    def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
+    def _pre_process_class(self, origin: Type, value: Any):
         processed, value = (
             safe_eval(value) if isinstance(value, (str, bytes)) else (False, value)
         )
-        coerced = value
-        # Go ahead and wrap the class
-        if not self.seen(origin):
-            self.wrap_cls(origin)
-
-        if isinstance(value, (Mapping, dict)):
+        # Go ahead and wrap the class if we can
+        try:
+            if not self.seen(origin):
+                self.wrap_cls(origin)
+            wrapped = True
+        except (AttributeError, TypeError):
+            wrapped = False
+            pass
+        if isinstance(value, Mapping):
             argnames = set(cached_signature(origin).parameters)
             arguments = {x: value[x] for x in value.keys() & argnames}
-            coerced = origin(**arguments)
+            value = arguments if wrapped else self.bind(origin, **arguments).arguments
+        return value
+
+    def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
+        value = self._pre_process_class(origin, value)
+        value = value or {}
+        return origin.from_dict(value)
+
+    def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
+        value = self._pre_process_class(origin, value)
+        coerced = value
+        if isinstance(value, (Mapping, dict)):
+            coerced = origin(**value)
         elif value is not None and not checks.isoptionaltype(annotation):
             coerced = origin(value)
 
@@ -504,9 +513,9 @@ class TypeCoercer:
         # Short-circuit checks if this is an optional type and the value is None
         # Or if the type of the value is the annotation.
         if (
-            type(value) is annotation
-            or (origin is Union and type(value) in args)
+            (checks.isinstance(value, origin) and not args)
             or (optional and value is None)
+            or (origin is Union and any(checks.isinstance(value, x) for x in args))
         ):
             return value
 
