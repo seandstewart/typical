@@ -89,6 +89,36 @@ def test_default_none():
 
 
 @pytest.mark.parametrize(
+    argnames=("annotation", "origin"),
+    argvalues=[
+        (typing.List, list),
+        (typing.ClassVar, typing.ClassVar),
+        (typing.List[str], list),
+        (typing.Union[str, None], str),
+        (typing.Optional[str], str),
+    ],
+)
+def test_get_origin(annotation, origin):
+    assert coerce.get_origin(annotation) is origin
+
+
+T = typing.TypeVar("T")
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "args"),
+    argvalues=[
+        (typing.List, ()),
+        (typing.List[T], ()),
+        (typing.List[str], (str,)),
+        (typing.Optional[str], (str, type(None))),
+    ],
+)
+def test_get_args(annotation, args):
+    assert coerce.get_args(annotation) == args
+
+
+@pytest.mark.parametrize(
     argnames=("annotation", "value", "expected"),
     argvalues=[
         (typing.Optional[str], 1, "1"),

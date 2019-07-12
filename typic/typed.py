@@ -340,7 +340,8 @@ class TypeCoercer:
         # Extract the origin of the annotation, recursively.
         actual = getattr(actual, "__origin__", actual)
         if checks.isoptionaltype(annotation) or checks.isclassvartype(annotation):
-            return cls.get_origin(cls.get_args(annotation))
+            args = cls.get_args(annotation)
+            return cls.get_origin(args[0]) if args else actual
 
         # provide defaults for generics
         if not checks.isbuiltintype(actual):
@@ -588,7 +589,7 @@ class TypeCoercer:
     def coerce_parameters(
         self, bound: inspect.BoundArguments
     ) -> inspect.BoundArguments:
-        """Coerce the paramertes in the bound arguments to their annotated types.
+        """Coerce the parameters in the bound arguments to their annotated types.
 
         Ignore defaults and un-resolvable Forward References.
 
@@ -745,8 +746,8 @@ class TypeCoercer:
             # We don't care about these
             if kind == _VAR_POSITIONAL:
                 continue
-
-            try:
+            # try to bind the parameter
+            if name in kwargs:
                 val = kwargspop(name)
                 if kind == _POSITIONAL_ONLY:
                     raise TypeError(
@@ -756,9 +757,10 @@ class TypeCoercer:
                 value = anno.coerce(val) if anno else val
                 argumentsset(name, value)
                 kwdargsadd(name)
-            except KeyError:
-                if not partial and param.default is _empty:
-                    raise TypeError(f"missing required argument: {name!r}")
+            elif not partial and param.default is _empty:
+                raise TypeError(f"missing required argument: {name!r}")
+
+        # We didn't clear out all the kwdargs. Check to see if we came across a **kwargs
         if kwargs:
             if kwdargs_param is not None:
                 # Process our '**kwargs'-like parameter
