@@ -369,6 +369,8 @@ class TypeCoercer:
             value, (bytes, bytearray)
         ):
             value = str(value).encode(cls.DEFAULT_BYTE_ENCODING)
+        elif annotation is str and isinstance(value, (bytes, bytearray)):
+            value = value.decode(cls.DEFAULT_BYTE_ENCODING)
 
         return annotation(value)
 
@@ -694,6 +696,7 @@ class TypeCoercer:
             # We've got varargs, so push all supplied args to that param.
             if kind == _VAR_POSITIONAL:
                 value = (val,) + tuple(args)
+                args = deque()
                 if anno:
                     value = anno.coerce(value)
                 argumentsset(name, value)
