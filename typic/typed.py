@@ -125,7 +125,7 @@ class ResolvedAnnotation(NamedTuple):
             return coerce._coerce_args(value, self.annotation)
         if self.param_kind == inspect.Parameter.VAR_KEYWORD:
             return coerce._coerce_kwargs(value, self.annotation)
-        return self.coercer.coerce(value=value, **self.parameters)
+        return self.coercer.coerce(value, **self.parameters)
 
 
 class CoercerRegistry:
