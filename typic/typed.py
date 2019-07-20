@@ -452,7 +452,7 @@ class TypeCoercer:
 
         return value
 
-    def _pre_process_class(self, origin: Type, value: Any):
+    def _pre_process_class(self, value: Any, origin: Type):
         processed, value = (
             safe_eval(value) if isinstance(value, (str, bytes)) else (False, value)
         )
@@ -470,13 +470,13 @@ class TypeCoercer:
             value = arguments if wrapped else self.bind(origin, **arguments).arguments
         return value
 
-    def _coerce_from_dict(self, origin: Type, value: Dict) -> Any:
-        value = self._pre_process_class(origin, value)
+    def _coerce_from_dict(self, value: Dict, origin: Type) -> Any:
+        value = self._pre_process_class(value, origin)
         value = value or {}
         return origin.from_dict(value)
 
     def _coerce_class(self, value: Any, origin: Type, annotation: Any) -> Any:
-        value = self._pre_process_class(origin, value)
+        value = self._pre_process_class(value, origin)
         coerced = value
         if isinstance(value, (Mapping, dict)):
             coerced = origin(**value)
