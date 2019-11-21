@@ -20,6 +20,14 @@ Or, if you're building an application, you should use
 [Poetry](poetry.eustace.io): `poetry add typical`
 
 
+## Updates
+See the [Changelog](CHANGELOG.md).
+
+## Documentation
+See the full documentation
+[Here](https://seandstewart.github.io/typical).
+
+
 ## Motivations
 
 In the world of web-services development, type-safety becomes necessary
@@ -135,14 +143,12 @@ the data you'll get.
 As of this version, **Typical** can parse the following inputs into
 valid Python types and classes:
 * JSON
-* YAML (if [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation) is 
-  installed)
-* Python code (via
+* Python literals (via
   [ast.literal_eval](https://docs.python.org/3/library/ast.html#ast.literal_eval))
 * Date-strings and Unix Timestamps (via
-  [python-dateutil](https://dateutil.readthedocs.io/en/stable/))
+  [pendulum](https://pendulum.eustace.io/))
 * Custom `NewType` declarations.
-
+* and so much more...
 
 ### Limitations
 
@@ -159,27 +165,17 @@ type-coercion, make sure the annotated type is in the namespace of the
 object you're wrapping and avoid Forward References if at all possible.
 
 #### Special Forms
-There is a subset of type annotations which are 'suscriptable' - meaning
-you can specify what other types this annotation may resolve to. In a
-few of those cases, the intended type for the incoming data is too
-ambiguous to resolve. The following annotations are special forms which
-cannot be supported:
+There is a subset of type annotations which are 'suscriptable' -
+meaning you can specify what other types this annotation may resolve
+to. In a few of those cases, the intended type for the incoming data
+is too ambiguous to resolve. The following annotations are special
+forms which cannot be resolved:
 * Union
 * Any
 
 Because these signal an unclear resolution, Typical will ignore this
 flavor of annotation, leaving it to the developer to determine the
 appropriate action.
-
-
-## Updates
-See the [Changelog](CHANGELOG.md), 
-
-## Documentation
-
-Full documentation coming soon!
-
-Happy Typing :duck:
 
 
 ## How to Contribute
@@ -194,3 +190,6 @@ Happy Typing :duck:
     feature works as expected.
 5.  Send a pull request and bug the maintainer until it gets merged
     and published. :)
+
+
+Happy Typing :duck:
