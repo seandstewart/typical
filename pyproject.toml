@@ -24,7 +24,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 include = ["README.md", "LICENSE"]
-exclude = ["tests", "docs"]
+exclude = ["tests", "docs", "docsrc", "benchmark"]
 
 [tool.poetry.dependencies]
 python = "^3.7"

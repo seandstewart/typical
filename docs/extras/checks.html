@@ -1,0 +1,692 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>typical Checks &#8212; typical 2.0.0b1 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="typical Utilities" href="utilities.html" />
+    <link rel="prev" title="typical JSON Schema" href="schema.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/favicon/apple-touch-icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">A simple, fast, & correct data-validation library.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=seandstewart&repo=typical&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/seandstewart/typical">
+    <img
+        alt="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+        src="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/seandstewart/typical">
+    <img
+    alt="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    src="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="types.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="settings.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constraints.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schema.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utilities.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/index.html">Low-Level API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul>
+      <li>Previous: <a href="schema.html" title="previous chapter"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a></li>
+      <li>Next: <a href="utilities.html" title="next chapter"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="schema.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a>
+        </li>
+        <li>
+          <a href="utilities.html" title="Next document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="typical-checks">
+<h1><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks<a class="headerlink" href="#typical-checks" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">typical</span></code> provides a great collection of runtime checks for every occasion. Just give
+this a look and enjoy them to your heart’s content.</p>
+<span class="target" id="module-typic.checks"></span><dl class="data">
+<dt id="typic.checks.Object">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">Object</code><em class="property"> = ~Object</em><a class="headerlink" href="#typic.checks.Object" title="Permalink to this definition">¶</a></dt>
+<dd><p>A type-alias for a python object.</p>
+<p>Used in place of <code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code> for better type-hinting.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Type</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">typic</span><span class="o">.</span><span class="n">Object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]:</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_type</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>  <span class="c1"># IDE/mypy tracks input type</span>
+<span class="go">str</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isbuiltintype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isbuiltintype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isbuiltintype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether the provided object is a builtin-type.</p>
+<p>Python stdlib and Python documentation have no “definitive list” of
+builtin-<strong>types</strong>, despite the fact that they are well-known. The closest we have
+is <a class="reference external" href="https://docs.python.org/3.7/library/functions.html">https://docs.python.org/3.7/library/functions.html</a>, which clumps the
+builtin-types with builtin-functions. Despite clumping these types with functions
+in the documentation, these types eval as False when compared to
+<code class="xref py py-class docutils literal notranslate"><span class="pre">types.BuiltinFunctionType</span></code>, which is meant to be an alias for the
+builtin-functions listed in the documentation.</p>
+<p>All this to say, here we are with a custom check to determine whether a type is a
+builtin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isbuiltintype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isbuiltintype</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;MyStr&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Foo</span><span class="p">:</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isbuiltintype</span><span class="p">(</span><span class="n">Foo</span><span class="p">)</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isbuiltintype</span><span class="p">(</span><span class="n">Mapping</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isclassvartype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isclassvartype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isclassvartype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether an annotation is a ClassVar annotation.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isclassvartype</span><span class="p">(</span><span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isclassvartype</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.iscollectiontype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iscollectiontype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.iscollectiontype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether this annotation is a subclass of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Collection" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Collection</span></code></a>.</p>
+<p>Includes builtins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="n">Collection</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iscollectiontype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isconstrained">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isconstrained</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isconstrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether a type is restricted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@typic</span><span class="o">.</span><span class="n">constrained</span><span class="p">(</span><span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">class</span> <span class="nc">TinyInt</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isconstrained</span><span class="p">(</span><span class="n">TinyInt</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Switch</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Switch&quot;</span><span class="p">,</span> <span class="n">TinyInt</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isconstrained</span><span class="p">(</span><span class="n">Switch</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isdatetype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isdatetype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isdatetype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether this annotation is a a date/datetime object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isdatetype</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isdatetype</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isdatetype</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isenumtype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isenumtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isenumtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether this annotation is a subclass of <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">enum</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">FooNum</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isenumtype</span><span class="p">(</span><span class="n">FooNum</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isfinal">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfinal</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isfinal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether an annotation is <code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Final</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="k">import</span> <span class="n">Final</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isfinal</span><span class="p">(</span><span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isfinal</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">]))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isfromdictclass">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfromdictclass</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isfromdictclass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether this annotation is a class with a <code class="docutils literal notranslate"><span class="pre">from_dict()</span></code> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.checks.ishashable">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ishashable</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.ishashable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether an object is hashable.</p>
+<p>An order of magnitude faster than <a class="reference internal" href="#typic.checks.isinstance" title="typic.checks.isinstance"><code class="xref py py-class docutils literal notranslate"><span class="pre">isinstance</span></code></a> with
+<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Hashable</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<em>~Object</em>) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ishashable</span><span class="p">(</span><span class="nb">str</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ishashable</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">())</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ishashable</span><span class="p">(</span><span class="nb">list</span><span class="p">())</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.checks.isinstance">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isinstance</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isinstance" title="Permalink to this definition">¶</a></dt>
+<dd><p>A safer instance check…</p>
+<p>Validates that <code class="docutils literal notranslate"><span class="pre">t</span></code> is not an instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>o</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>) – The object to test.</p></li>
+<li><p><strong>t</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object], …]]) – The type(s) to test against.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isinstance</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isinstance</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.ismappingtype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ismappingtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.ismappingtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether this annotation is a subtype of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Mapping</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">DefaultDict</span><span class="p">,</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">Mapping</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">DefaultDict</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">MyDict</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">MyMapping</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isoptionaltype">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isoptionaltype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isoptionaltype" title="Permalink to this definition">¶</a></dt>
+<dd><p>class`typing.Optional`, or can be treated as.</p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Optional</span></code> is an alias for <code class="docutils literal notranslate"><span class="pre">typing.Union[&lt;T&gt;,</span> <span class="pre">None]</span></code>, so both are
+“optional”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isoptionaltype</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isoptionaltype</span><span class="p">(</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isoptionaltype</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Test whether an annotation is</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>py</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.isreadonly">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isreadonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isreadonly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether an annotation is marked as <code class="xref py py-class docutils literal notranslate"><span class="pre">typic.ReadOnly</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isreadonly</span><span class="p">(</span><span class="n">typic</span><span class="o">.</span><span class="n">ReadOnly</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isreadonly</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">typic</span><span class="o">.</span><span class="n">ReadOnly</span><span class="p">[</span><span class="nb">str</span><span class="p">]))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.checks.issubclass">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">issubclass</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.issubclass" title="Permalink to this definition">¶</a></dt>
+<dd><p>A safer subclass check…</p>
+<p>Validates that <code class="docutils literal notranslate"><span class="pre">t</span></code> and/or <code class="docutils literal notranslate"><span class="pre">o</span></code> are not instances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>o</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]) – The type to validate</p></li>
+<li><p><strong>t</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object], …]]) – The type(s) to validate against</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Not compatible with classes from <a class="reference external" href="https://docs.python.org/3/library/typing.html#module-typing" title="(in Python v3.8)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">typing</span></code></a>, as they return False with
+<a class="reference external" href="https://docs.python.org/3/library/inspect.html#inspect.isclass" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">inspect.isclass()</span></code></a></p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyStr</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">issubclass</span><span class="p">(</span><span class="n">MyStr</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">issubclass</span><span class="p">(</span><span class="n">MyStr</span><span class="p">(),</span> <span class="nb">str</span><span class="p">)</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">issubclass</span><span class="p">(</span><span class="n">MyStr</span><span class="p">,</span> <span class="nb">str</span><span class="p">())</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.istypeddict">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypeddict</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.istypeddict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether an object is a <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypedDict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.TypedDict</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="k">import</span> <span class="n">TypedDict</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">FooMap</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">bar</span><span class="p">:</span> <span class="nb">str</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">istypeddict</span><span class="p">(</span><span class="n">FooMap</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.istypedtuple">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypedtuple</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.istypedtuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether an object is a “typed” tuple (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.NamedTuple</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NamedTuple</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">FooTup</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">bar</span><span class="p">:</span> <span class="nb">str</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">istypedtuple</span><span class="p">(</span><span class="n">FooTup</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.iswriteonly">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iswriteonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.iswriteonly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether an annotation is marked as <code class="xref py py-class docutils literal notranslate"><span class="pre">typic.WriteOnly</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iswriteonly</span><span class="p">(</span><span class="n">typic</span><span class="o">.</span><span class="n">WriteOnly</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">iswriteonly</span><span class="p">(</span><span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Foo&quot;</span><span class="p">,</span> <span class="n">typic</span><span class="o">.</span><span class="n">WriteOnly</span><span class="p">[</span><span class="nb">str</span><span class="p">]))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.checks.should_unwrap">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">should_unwrap</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.should_unwrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test whether we should use the __args__ attr for resolving the type.</p>
+<p>This is useful for determining what type to use at run-time for coercion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="schema.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a>
+        </li>
+        <li>
+          <a href="utilities.html" title="Next document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;Copyright 2019 Sean Stewart.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/extras/checks.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
