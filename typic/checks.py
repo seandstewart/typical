@@ -4,56 +4,132 @@ import datetime
 import enum
 import functools
 import inspect
-from typing import Any, Optional, Union, Collection, Mapping, ClassVar
+from operator import attrgetter
+from typing import (
+    Any,
+    Optional,
+    Union,
+    Collection,
+    Mapping,
+    ClassVar,
+    Type,
+    Tuple,
+    TypeVar,
+)
 
+import typic
+import typic.util as util
+from typic.compat import Final
+
+Object = TypeVar("Object")
+"""A type-alias for a python object.
+
+Used in place of :py:class:`Any` for better type-hinting.
+
+Examples
+--------
+>>> import typic
+>>> from typing import Type
+>>> def get_type(obj: typic.Object) -> Type[Object]:
+...     return type(obj)
+...
+>>> get_type("")  # IDE/mypy tracks input type
+str
+"""
 
 __all__ = (
     "BUILTIN_TYPES",
-    "resolve_supertype",
+    "Object",
     "isbuiltintype",
     "isclassvartype",
     "iscollectiontype",
+    "isconstrained",
     "isdatetype",
     "isenumtype",
+    "isfinal",
     "isfromdictclass",
+    "ishashable",
+    "isinstance",
     "ismappingtype",
     "isoptionaltype",
+    "isreadonly",
+    "issubclass",
+    "istypeddict",
+    "istypedtuple",
+    "iswriteonly",
+    "should_unwrap",
 )
 
 
-# Python stdlib and Python documentation have no "definitive list" of builtin-**types**, despite the fact that they are
-# well-known. The closest we have is https://docs.python.org/3.7/library/functions.html, which clumps the
-# builtin-types with builtin-functions. Despite clumping these types with functions in the documentation, these types
-# eval as False when compared to types.BuiltinFunctionType, which is meant to be an alias for the builtin-functions
-# listed in the documentation.
-#
-# All this to say, here we are with a manually-defined set of builtin-types. This probably won't break anytime soon,
-# but we shall see...
+# Here we are with a manually-defined set of builtin-types.
+# This probably won't break anytime soon, but we shall see...
 BUILTIN_TYPES = frozenset(
     (int, bool, float, str, bytes, bytearray, list, set, frozenset, tuple, dict)
 )
 
 
 @functools.lru_cache(maxsize=None)
-def resolve_supertype(annotation: Any) -> Any:
-    """Resolve NewTypes, recursively."""
-    if hasattr(annotation, "__supertype__"):
-        return resolve_supertype(annotation.__supertype__)
-    return annotation
+def isbuiltintype(obj: Type[Object]) -> bool:
+    """Check whether the provided object is a builtin-type.
 
+    Python stdlib and Python documentation have no "definitive list" of
+    builtin-**types**, despite the fact that they are well-known. The closest we have
+    is https://docs.python.org/3.7/library/functions.html, which clumps the
+    builtin-types with builtin-functions. Despite clumping these types with functions
+    in the documentation, these types eval as False when compared to
+    :py:class:`types.BuiltinFunctionType`, which is meant to be an alias for the
+    builtin-functions listed in the documentation.
 
-@functools.lru_cache(maxsize=None)
-def isbuiltintype(obj: Any) -> bool:
-    """Check whether the provided object is a builtin-type"""
+    All this to say, here we are with a custom check to determine whether a type is a
+    builtin.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType, Mapping
+    >>> typic.isbuiltintype(str)
+    True
+    >>> typic.isbuiltintype(NewType("MyStr", str))
+    True
+    >>> class Foo: ...
+    ...
+    >>> typic.isbuiltintype(Foo)
+    False
+    >>> typic.isbuiltintype(Mapping)
+    False
+    """
     return (
-        resolve_supertype(obj) in BUILTIN_TYPES
-        or resolve_supertype(type(obj)) in BUILTIN_TYPES
+        util.resolve_supertype(obj) in BUILTIN_TYPES
+        or util.resolve_supertype(type(obj)) in BUILTIN_TYPES
     )
 
 
 @functools.lru_cache(maxsize=None)
-def isoptionaltype(obj: Any) -> bool:
-    """Test whether an annotation is Optional"""
+def isoptionaltype(obj: Type[Object]) -> bool:
+    """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
+
+    :py:class:`typing.Optional` is an alias for ``typing.Union[<T>, None]``, so both are
+    "optional".
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Optional, Union, Dict
+    >>> typic.isoptionaltype(Optional[str])
+    True
+    >>> typic.isoptionaltype(Union[str, None])
+    True
+    >>> typic.isoptionaltype(Dict[str, None])
+    False
+    """
     args = getattr(obj, "__args__", ())
     return (
         len(args) == 2
@@ -64,37 +140,206 @@ def isoptionaltype(obj: Any) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isdatetype(obj: Any) -> bool:
-    """Test whether this annotation is a a date/datetime object."""
-    return obj in {datetime.datetime, datetime.date}
+def isreadonly(obj: Type[Object]) -> bool:
+    """Test whether an annotation is marked as :py:class:`typic.ReadOnly`
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType
+    >>> typic.isreadonly(typic.ReadOnly[str])
+    True
+    >>> typic.isreadonly(NewType("Foo", typic.ReadOnly[str]))
+    True
+    """
+    return util.origin(obj) is typic.ReadOnly
 
 
 @functools.lru_cache(maxsize=None)
-def iscollectiontype(obj: Any):
-    """Test whether this annotation is a subclass of :py:class:`typing.Mapping`"""
-    return inspect.isclass(obj) and issubclass(obj, Collection)
+def isfinal(obj: Type[Object]) -> bool:
+    """Test whether an annotation is :py:class:`typing.Final`.
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType
+    >>> from typing_extensions import Final
+    >>> typic.isfinal(Final[str])
+    True
+    >>> typic.isfinal(NewType("Foo", Final[str]))
+    True
+    """
+    return util.origin(obj) is Final
 
 
 @functools.lru_cache(maxsize=None)
-def ismappingtype(obj: Any):
-    """Test whether this annotation is a subclass of :py:class:`typing.Mapping`"""
-    return inspect.isclass(obj) and issubclass(obj, Mapping)
+def iswriteonly(obj: Type[Object]) -> bool:
+    """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType
+    >>> typic.iswriteonly(typic.WriteOnly[str])
+    True
+    >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
+    True
+    """
+    return util.origin(obj) is typic.WriteOnly
 
 
 @functools.lru_cache(maxsize=None)
-def isenumtype(obj: Any) -> bool:
-    """Test whether this annotation is a subclass of :py:class:`enum.Enum`"""
-    return inspect.isclass(obj) and issubclass(obj, enum.Enum)
+def isdatetype(obj: Type[Object]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.isdatetype(datetime.datetime)
+    True
+    >>> typic.isdatetype(datetime.date)
+    True
+    >>> typic.isdatetype(NewType("Foo", datetime.datetime))
+    True
+    """
+    return util.origin(obj) in {datetime.datetime, datetime.date}
+
+
+_COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
 @functools.lru_cache(maxsize=None)
-def isclassvartype(obj: Any) -> bool:
-    """Test whether an annotation is a ClassVar annotation."""
+def iscollectiontype(obj: Type[Object]):
+    """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
+
+    Includes builtins.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Collection, Mapping, NewType
+    >>> typic.iscollectiontype(Collection)
+    True
+    >>> typic.iscollectiontype(Mapping[str, str])
+    True
+    >>> typic.iscollectiontype(str)
+    True
+    >>> typic.iscollectiontype(list)
+    True
+    >>> typic.iscollectiontype(NewType("Foo", dict))
+    True
+    >>> typic.iscollectiontype(int)
+    False
+    """
+    obj = util.origin(obj)
+    return obj in _COLLECTIONS or _issubclass(obj, Collection)
+
+
+@functools.lru_cache(maxsize=None)
+def ismappingtype(obj: Type[Object]):
+    """Test whether this annotation is a subtype of :py:class:`typing.Mapping`.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Mapping, Dict, DefaultDict, NewType
+    >>> typic.ismappingtype(Mapping)
+    True
+    >>> typic.ismappingtype(Dict[str, str])
+    True
+    >>> typic.ismappingtype(DefaultDict)
+    True
+    >>> typic.ismappingtype(dict)
+    True
+    >>> class MyDict(dict): ...
+    ...
+    >>> typic.ismappingtype(MyDict)
+    True
+    >>> class MyMapping(Mapping): ...
+    ...
+    >>> typic.ismappingtype(MyMapping)
+    True
+    >>> typic.ismappingtype(NewType("Foo", dict))
+    True
+    """
+    obj = util.origin(obj)
+    return _issubclass(obj, dict) or _issubclass(obj, Mapping)
+
+
+@functools.lru_cache(maxsize=None)
+def isenumtype(obj: Type[Object]) -> bool:
+    """Test whether this annotation is a subclass of :py:class:`enum.Enum`
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import enum
+    >>> import typic
+    >>>
+    >>> class FooNum(enum.Enum): ...
+    ...
+    >>> typic.isenumtype(FooNum)
+    True
+    """
+    return issubclass(obj, enum.Enum)
+
+
+@functools.lru_cache(maxsize=None)
+def isclassvartype(obj: Type[Object]) -> bool:
+    """Test whether an annotation is a ClassVar annotation.
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import ClassVar, NewType
+    >>> typic.isclassvartype(ClassVar[str])
+    True
+    >>> typic.isclassvartype(NewType("Foo", ClassVar[str]))
+    True
+    """
+    obj = util.resolve_supertype(obj)
     return getattr(obj, "__origin__", obj) is ClassVar
 
 
+_UNWRAPPABLE = (isclassvartype, isoptionaltype, isreadonly, iswriteonly, isfinal)
+
+
 @functools.lru_cache(maxsize=None)
-def isfromdictclass(obj: Any) -> bool:
+def should_unwrap(obj: Type[Object]) -> bool:
+    """Test whether we should use the __args__ attr for resolving the type.
+
+    This is useful for determining what type to use at run-time for coercion.
+    """
+    return any(x(obj) for x in _UNWRAPPABLE)
+
+
+@functools.lru_cache(maxsize=None)
+def isfromdictclass(obj: Type[Object]) -> bool:
     """Test whether this annotation is a class with a ``from_dict()`` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
@@ -109,5 +354,171 @@ def _type_check(t) -> bool:
     return inspect.isclass(t)
 
 
-def isinstance(o, t) -> bool:
+@functools.lru_cache(maxsize=None)
+def _get_type(
+    t: Union[Object, Tuple[Object, ...]]
+) -> Union[Type[Object], Tuple[Type[Object], ...]]:
+    if _isinstance(t, tuple):
+        return (*(type(_t) for _t in t),)  # type: ignore
+    return type(t)  # type: ignore
+
+
+def isinstance(o: Any, t: Union[Type[Object], Tuple[Type[Object], ...]]) -> bool:
+    """A safer instance check...
+
+    Validates that ``t`` is not an instance.
+
+    Parameters
+    ----------
+    o
+        The object to test.
+    t
+        The type(s) to test against.
+
+    Examples
+    --------
+    >>> import typic
+    >>> typic.isinstance("", str)
+    True
+    >>> typic.isinstance("", "")
+    False
+    """
     return _type_check(t) and _isinstance(o, t)
+
+
+_issubclass = issubclass
+
+
+def issubclass(o: Type[Any], t: Union[Type[Object], Tuple[Type[Object], ...]]) -> bool:
+    """A safer subclass check...
+
+    Validates that ``t`` and/or ``o`` are not instances.
+
+    Parameters
+    ----------
+    o
+        The type to validate
+    t
+        The type(s) to validate against
+
+    Notes
+    -----
+    Not compatible with classes from :py:mod:`typing`, as they return False with
+    :py:func:`inspect.isclass`
+
+    Examples
+    --------
+    >>> import typic
+    >>> class MyStr(str): ...
+    ...
+    >>> typic.issubclass(MyStr, str)
+    True
+    >>> typic.issubclass(MyStr(), str)
+    False
+    >>> typic.issubclass(MyStr, str())
+    False
+    """
+    return _type_check(t) and _type_check(o) and _issubclass(o, t)
+
+
+@functools.lru_cache(maxsize=None)
+def isconstrained(obj: Type[Object]) -> bool:
+    """Test whether a type is restricted.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType
+    >>>
+    >>> @typic.constrained(ge=0, le=1)
+    ... class TinyInt(int): ...
+    ...
+    >>> typic.isconstrained(TinyInt)
+    True
+    >>> Switch = NewType("Switch", TinyInt)
+    >>> typic.isconstrained(Switch)
+    True
+    """
+    return hasattr(util.resolve_supertype(obj), "__constraints__")
+
+
+__hashgetter = attrgetter("__hash__")
+
+
+def ishashable(obj: Object) -> bool:
+    """Check whether an object is hashable.
+
+    An order of magnitude faster than :py:class:`isinstance` with
+    :py:class:`typing.Hashable`
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> typic.ishashable(str())
+    True
+    >>> typic.ishashable(frozenset())
+    True
+    >>> typic.ishashable(list())
+    False
+    """
+    return __hashgetter(obj) is not None
+
+
+@functools.lru_cache(maxsize=None)
+def istypeddict(obj: Type[Object]) -> bool:
+    """Check whether an object is a :py:class:`typing.TypedDict`.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing_extensions import TypedDict
+    >>>
+    >>> class FooMap(TypedDict):
+    ...     bar: str
+    ...
+    >>> typic.istypeddict(FooMap)
+    True
+    """
+    return (
+        inspect.isclass(obj)
+        and dict in {*inspect.getmro(obj)}
+        and hasattr(obj, "__annotations__")
+    )
+
+
+@functools.lru_cache(maxsize=None)
+def istypedtuple(obj: Type[Object]) -> bool:
+    """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NamedTuple
+    >>>
+    >>> class FooTup(NamedTuple):
+    ...     bar: str
+    ...
+    >>> typic.istypedtuple(FooTup)
+    True
+    """
+    return (
+        inspect.isclass(obj)
+        and issubclass(obj, tuple)
+        and hasattr(obj, "__annotations__")
+    )

@@ -27,7 +27,7 @@ def kwarg(arg, **kwargs):  # pragma: nocover
     pass
 
 
-def typed(arg: str):
+def typed(arg: str):  # pragma: nocover
     return type(arg)
 
 

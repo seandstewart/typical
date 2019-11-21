@@ -29,13 +29,17 @@ from tests.objects import (
     KlassVar,
     KlassVarSubscripted,
     Method,
-    KlassDelayed,
     Delayed,
     delayed,
+    ShortStr,
+    LargeInt,
+    Constrained,
+    LargeIntDict,
 )
-from typic.checks import isbuiltintype, BUILTIN_TYPES, resolve_supertype
-from typic.eval import safe_eval
-from typic.typed import coerce, typed, resolve
+from typic.api import coerce, typed, resolve, wrap, wrap_cls, constrained
+from typic.checks import isbuiltintype, BUILTIN_TYPES
+from typic.constraints import ConstraintValueError
+from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -99,7 +103,7 @@ def test_default_none():
     ],
 )
 def test_get_origin(annotation, origin):
-    assert coerce.get_origin(annotation) is origin
+    assert get_origin(annotation) is origin
 
 
 T = typing.TypeVar("T")
@@ -115,7 +119,7 @@ T = typing.TypeVar("T")
     ],
 )
 def test_get_args(annotation, args):
-    assert coerce.get_args(annotation) == args
+    assert get_args(annotation) == args
 
 
 @pytest.mark.parametrize(
@@ -203,7 +207,7 @@ def test_coerce_nested_sequence():
     argvalues=[(func, "1", int), (Method().math, "4", int)],
 )
 def test_wrap_callable(func, input, type):
-    wrapped = coerce.wrap(func)
+    wrapped = wrap(func)
     assert isinstance(wrapped(input), type)
 
 
@@ -212,7 +216,7 @@ def test_wrap_callable(func, input, type):
     argvalues=[(Class, "var", str), (Data, "foo", str)],
 )
 def test_wrap_class(klass, var, type):
-    Wrapped = coerce.wrap_cls(klass)
+    Wrapped = wrap_cls(klass)
     assert isinstance(getattr(Wrapped(1), var), type)
     assert inspect.isclass(Wrapped)
 
@@ -271,7 +275,7 @@ def test_typed_varargs(func, args, kwargs, check):
     ],
 )
 def test_get_origin_returns_origin(annotation, origin):
-    detected = coerce.get_origin(annotation)
+    detected = get_origin(annotation)
     assert detected is origin
 
 
@@ -279,16 +283,6 @@ def test_eval_invalid():
     processed, result = safe_eval("{")
     assert not processed
     assert result == "{"
-
-
-@pytest.mark.parametrize(
-    argnames=("annotation",), argvalues=[(typing.Any,), (typing.Union,)]
-)
-def test_special_form(annotation):
-    param = inspect.Parameter(
-        "foo", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=annotation
-    )
-    assert coerce.should_coerce(param, "foo") is False
 
 
 @pytest.mark.parametrize(
@@ -301,11 +295,11 @@ def test_setattr(instance, attr, value, type):
 
 
 def test_register():
-    class MyCustomClass:
+    class MyCustomClass:  # pragma: nocover
         def __init__(self, value: str):
             self.value = value
 
-    class MyOtherCustomClass:
+    class MyOtherCustomClass:  # pragma: nocover
         def __init__(self, value: int):
             self.value = value
 
@@ -315,12 +309,17 @@ def test_register():
         args = set(getattr(obj, "__args__", [obj]))
         return set(MyCustomType.__args__).issuperset(args)
 
-    coerce.register(MyCustomClass, ismycustomclass, check_origin=False)
-    assert coerce.registry.check(MyCustomType, MyCustomType)
+    coerce.register(MyCustomClass, ismycustomclass)
+    assert (ismycustomclass, MyCustomClass) in coerce._user_coercers
 
 
-def test_no_coercer():
-    assert isinstance(coerce("foo", lambda x: 1), str)
+@pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])
+def test_no_coercer(val):
+    class NoCoercer:
+        def __init__(self, x):
+            self.x = x
+
+    assert coerce(val, NoCoercer).x == val
 
 
 def test_typic_klass():
@@ -346,24 +345,11 @@ def test_typic_frozen():
 
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "type"),
-    argvalues=[(KlassVar(), "var", int), (KlassVarSubscripted(), "var", str)],
+    argvalues=[(KlassVar(), "var", str), (KlassVarSubscripted(), "var", str)],
 )
 def test_classvar(instance, attr, type):
     setattr(instance, attr, 1)
     assert isinstance(getattr(instance, attr), type)
-
-
-def test_typic_klass_delayed():
-    assert not hasattr(KlassDelayed, "__typic_annotations__")
-    assert isinstance(KlassDelayed(1).foo, str)
-    assert hasattr(KlassDelayed, "__typic_annotations__")
-
-
-def test_typic_class_delayed():
-    assert not hasattr(Delayed, "__typic_annotations__")
-    assert isinstance(Delayed(1).foo, str)
-    assert hasattr(Delayed, "__typic_annotations__")
-    del Delayed.__typic_annotations__
 
 
 def test_typic_callable_delayed():
@@ -371,6 +357,41 @@ def test_typic_callable_delayed():
 
 
 def test_typic_resolve():
-    assert not hasattr(Delayed, "__typic_annotations__")
     resolve()
-    assert hasattr(Delayed, "__typic_annotations__")
+    assert Delayed(1).foo == "1"
+
+
+@pytest.mark.parametrize(
+    argnames=("type", "value", "expected"),
+    argvalues=[
+        (ShortStr, "foo", "foo"),
+        (ShortStr, 1, "1"),
+        (LargeInt, "1001", 1001),
+        (LargeIntDict, [("foo", 1001)], {"foo": 1001}),
+    ],
+)
+def test_cast_constrained(type, value, expected):
+    assert type(value) == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("type", "value"),
+    argvalues=[(ShortStr, "fooooo"), (LargeInt, 500), (LargeIntDict, {"foo": 1})],
+)
+def test_cast_constrained_invalid(type, value):
+    with pytest.raises(ConstraintValueError):
+        type(value)
+
+
+def test_typic_klass_constrained():
+    inst = Constrained(1, "1001")
+    assert inst.short == "1"
+    assert inst.large == 1001
+
+
+def test_bad_constraint_class():
+    with pytest.raises(TypeError):
+
+        @constrained
+        class Foo:
+            ...

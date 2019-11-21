@@ -3,13 +3,7 @@
 import dataclasses
 from typing import Type
 
-from .typed import (
-    __setattr_coerced__,
-    _get_setter,
-    typed_callable,
-    annotations,
-    _TO_RESOLVE,
-)
+from typic.api import wrap_cls
 
 
 def make_typedclass(
@@ -23,8 +17,21 @@ def make_typedclass(
     frozen: bool = False,
     delay: bool = False
 ):
+    """A convenience function for generating a dataclass with type-coercion.
+
+    Allows the user to create typed dataclasses on-demand from a base-class, i.e.::
+
+        TypedClass = make_typedclass(UnTypedClass)
+
+    The preferred method is via the ``klass`` decorator, however.
+
+    See Also
+    --------
+    :py:func:`klass`
+    :py:func:`dataclasses.dataclass`
+    """
     # Make the base dataclass.
-    dcls = dataclasses.dataclass(
+    dcls = dataclasses.dataclass(  # type: ignore
         cls,
         init=init,
         repr=repr,
@@ -33,25 +40,7 @@ def make_typedclass(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
-    ddict = dict(dcls.__dict__)
-    ddict.pop("__dict__", None)
-    ddict.pop("__weakref__", None)
-    bases = (dcls,) + dcls.__bases__
-    tcls = type(dcls.__name__, bases, ddict)
-    tcls.__qualname__ = cls.__qualname__
-    # Resolve the annotations.
-    if not delay:
-        annotations(tcls)
-    else:
-        _TO_RESOLVE.append(tcls)
-    # Frozen dataclasses don't use the native setattr
-    # So we wrap the init. This should be fine, but is more expensive.
-    if frozen:
-        tcls.__init__ = typed_callable(tcls.__init__)
-    else:
-        tcls.__setattr_original__ = _get_setter(tcls, bases)
-        tcls.__setattr__ = __setattr_coerced__
-    return tcls
+    return wrap_cls(dcls, delay=delay)
 
 
 def klass(
@@ -65,6 +54,32 @@ def klass(
     frozen: bool = False,
     delay: bool = False
 ):
+    """A convenience decorator for generating a dataclass with type-coercion.
+
+    This::
+
+        import typic
+
+        @typic.klass
+        class Foo:
+            bar: str
+
+    Is functionally equivalent to::
+
+        import dataclasses
+        import typic
+
+        @typic.al
+        @dataclasses.dataclass
+        class Foo:
+            bar: str
+
+    See Also
+    --------
+    :py:func:`~typic.typed.glob.wrap_cls`
+    :py:func:`dataclasses.dataclass`
+    """
+
     def typedclass_wrapper(cls_):
         return make_typedclass(
             cls=cls_,

@@ -1,19 +1,34 @@
 dist: xenial
+sudo: false
 language: python
 python:
-  - "3.7-dev"
-  - "3.8-dev"
   - "3.7"
+  - "3.8"
+  - "3.8-dev"
   - "nightly"
 
-# Disable sudo to speed up the build
-sudo: false
-# command to install dependencies
+stages:
+  - linting
+  - test
+
+cache:
+  directories:
+    - "$HOME/.cache/pre-commit"
+
 install:
-  - pip install -r requirements.txt
-# command to run tests
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry install -v
+
 script:
-  - py.test --cov-config=.coveragerc --cov=./ --cov-report xml tests/
-# report coverage
-after_success:
-- codecov
+  - pytest . --cov
+
+jobs:
+  include:
+    - stage: lint
+      install:
+        - pip install --upgrade pip
+        - pip install pre-commit
+        - pre-commit install-hooks
+      script:
+        - pre-commit run --all-files
