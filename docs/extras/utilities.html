@@ -1,0 +1,403 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>typical Utilities &#8212; typical 2.0.0b1 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Low-Level API" href="../api/index.html" />
+    <link rel="prev" title="typical Checks" href="checks.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/favicon/apple-touch-icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">A simple, fast, & correct data-validation library.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=seandstewart&repo=typical&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/seandstewart/typical">
+    <img
+        alt="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+        src="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/seandstewart/typical">
+    <img
+    alt="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    src="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="types.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="settings.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constraints.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schema.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checks.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/index.html">Low-Level API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul>
+      <li>Previous: <a href="checks.html" title="previous chapter"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a></li>
+      <li>Next: <a href="../api/index.html" title="next chapter">Low-Level API</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="checks.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a>
+        </li>
+        <li>
+          <a href="../api/index.html" title="Next document">Low-Level API</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="typical-utilities">
+<h1><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities<a class="headerlink" href="#typical-utilities" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">typical</span></code> also provides some pretty useful utilities for interacting with type
+annotations.</p>
+<span class="target" id="module-typic.util"></span><dl class="attribute">
+<dt id="typic.util.safe_eval">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">safe_eval</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.safe_eval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try a few methods to evaluate a string and get the correct Python data-type.</p>
+<p>Return the result and an indicator for whether we could do anything with it.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">safe_eval</span><span class="p">(</span><span class="s1">&#39;{&quot;foo&quot;: null}&#39;</span><span class="p">)</span>
+<span class="go">(True, {&#39;foo&#39;: None})</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The string to attempt to evaluate into a valid Python data-structure or object</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>processed</em> – Whether we successfully evaluated the string</p></li>
+<li><p><em>result</em> – The final result of the operation</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.util.origin">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">origin</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the ‘origin’-type for subclasses of typing._SpecialForm, recursive.</p>
+<p>For the purposes of this library, if we can resolve to a builtin type, we will.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">NewType</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">origin</span><span class="p">(</span><span class="n">Dict</span><span class="p">)</span>
+<span class="go">&lt;class &#39;dict&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">origin</span><span class="p">(</span><span class="n">Mapping</span><span class="p">)</span>
+<span class="go">&lt;class &#39;dict&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Registry</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s1">&#39;Registry&#39;</span><span class="p">,</span> <span class="n">Dict</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">origin</span><span class="p">(</span><span class="n">Registry</span><span class="p">)</span>
+<span class="go">&lt;class &#39;dict&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">origin</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">])</span>
+<span class="go">&lt;class &#39;dict&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Foo</span><span class="p">:</span> <span class="o">...</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">origin</span><span class="p">(</span><span class="n">Foo</span><span class="p">)</span>
+<span class="go">&lt;class &#39;typic.util.Foo&#39;&gt;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.util.get_args">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">get_args</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.get_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the args supplied to an annotation, excluding <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeVar" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.TypeVar</span></code></a>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">Dict</span><span class="p">)</span>
+<span class="go">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span>
+<span class="go">(&lt;class &#39;str&#39;&gt;, &lt;class &#39;int&#39;&gt;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">T</span><span class="p">])</span>
+<span class="go">(&lt;class &#39;str&#39;&gt;,)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.util.resolve_supertype">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">resolve_supertype</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.resolve_supertype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve NewTypes, recursively.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">NewType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">UserID</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;UserID&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AdminID</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;AdminID&quot;</span><span class="p">,</span> <span class="n">UserID</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">resolve_supertype</span><span class="p">(</span><span class="n">AdminID</span><span class="p">)</span>
+<span class="go">&lt;class &#39;int&#39;&gt;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.util.cached_signature">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cached_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>A cached result of <a class="reference external" href="https://docs.python.org/3/library/inspect.html#inspect.signature" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">inspect.signature()</span></code></a>.</p>
+<p>Building the function signature is notoriously slow, but we can be safe that the
+signature won’t change at runtime, so we cache the result.</p>
+<p>We also provide a little magic so that we can introspect the new <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/inspect.html#inspect.Signature" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Signature</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.util.cached_type_hints">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_type_hints</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cached_type_hints" title="Permalink to this definition">¶</a></dt>
+<dd><p>A cached result of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.get_type_hints" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">typing.get_type_hints()</span></code></a>.</p>
+<p>We don’t want to go through the process of resolving type-hints every time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.util.typed_dict_signature">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">typed_dict_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.typed_dict_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>A little faker for getting the “signature” of a <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code>.</p>
+<p>Technically, these are dicts at runtime, but we are enforcing a static shape,
+so we should be able to declare a matching signature for it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/inspect.html#inspect.Signature" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Signature</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.util.primitive">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">primitive</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.primitive" title="Permalink to this definition">¶</a></dt>
+<dd><p>A single-dispatch function for converting an object to its primitive equivalent.</p>
+<p>Useful for encoding data to JSON.</p>
+<p>Registration for custom types may be done by wrapping your handler with <cite>&#64;primitive.register</cite></p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">uuid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">ipaddress</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">re</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<span class="go">&#39;foo&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">((</span><span class="s2">&quot;foo&quot;</span><span class="p">,))</span>  <span class="c1"># containers are converted to lists/dicts</span>
+<span class="go">[&#39;foo&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1970</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># note that we assume UTC</span>
+<span class="go">&#39;1970-01-01T00:00:00+00:00&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<span class="go">&#39;foo&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="n">ipaddress</span><span class="o">.</span><span class="n">IPv4Address</span><span class="p">(</span><span class="s2">&quot;0.0.0.0&quot;</span><span class="p">))</span>
+<span class="go">&#39;0.0.0.0&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;[0-9]&quot;</span><span class="p">))</span>
+<span class="go">&#39;[0-9]&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">(</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+<span class="go">&#39;00000000-0000-0000-0000-000000000000&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="gp">... </span><span class="k">class</span> <span class="nc">Foo</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">bar</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">primitive</span><span class="p">(</span><span class="n">Foo</span><span class="p">())</span>
+<span class="go">{&#39;bar&#39;: &#39;bar&#39;}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.util.cachedmethod">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cachedmethod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread-safe caching of the result of an instance method.</p>
+<p>Mimics some of the pure-Python implementation of <a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.lru_cache" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.lru_cache()</span></code></a>.
+Major differences are that it’s un-bounded in size and no direct access to the cache.
+It’s also slower, being that it’s pure-Python and the actual <code class="docutils literal notranslate"><span class="pre">_lru_cache_wrapper</span></code>
+is implemented in C.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="typic.util.fastcachedmethod">
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">fastcachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.fastcachedmethod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Super-fast memoization of a method.</p>
+<p class="rubric">Notes</p>
+<p>This is limited to a method that takes only one arg and is un-bounded in size.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Foo</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nd">@typic</span><span class="o">.</span><span class="n">fastcachedmethod</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">num</span> <span class="o">*</span> <span class="p">(</span><span class="n">num</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="checks.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a>
+        </li>
+        <li>
+          <a href="../api/index.html" title="Next document">Low-Level API</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;Copyright 2019 Sean Stewart.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/extras/utilities.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

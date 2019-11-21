@@ -1,0 +1,994 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>typical Types &#8212; typical 2.0.0b1 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="typical Settings" href="settings.html" />
+    <link rel="prev" title="typical Extras" href="index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/favicon/apple-touch-icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">A simple, fast, & correct data-validation library.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=seandstewart&repo=typical&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/seandstewart/typical">
+    <img
+        alt="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+        src="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/seandstewart/typical">
+    <img
+    alt="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    src="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="settings.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constraints.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schema.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> JSON Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checks.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utilities.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/index.html">Low-Level API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a></li>
+      <li>Next: <a href="settings.html" title="next chapter"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="index.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a>
+        </li>
+        <li>
+          <a href="settings.html" title="Next document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="typical-types">
+<h1><code class="docutils literal notranslate"><span class="pre">typical</span></code> Types<a class="headerlink" href="#typical-types" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">typical</span></code> provides a whole host of useful types for interacting with every-day
+web-oriented programming: secrets, emails, DSNs, URLs…</p>
+<div class="section" id="secrets">
+<h2>Secrets<a class="headerlink" href="#secrets" title="Permalink to this headline">¶</a></h2>
+<p>Secrets are important aspects of day-to-day application development. However, most of
+the time these are poorly handled and not hidden from simple logging, etc. <code class="docutils literal notranslate"><span class="pre">typical</span></code>
+secret types allow you to have your verbose logging without fear of a security risk,
+while also making it easy to pass on your secrets (e.g. for authenticating via an
+external service).</p>
+<span class="target" id="module-typic.types.secret"></span><dl class="class">
+<dt id="typic.types.secret.SecretMixin">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretMixin</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A mixin for making a sized object ‘secret’ (hiding the value(s)).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.secret.SecretStr" title="typic.types.secret.SecretStr"><code class="xref py py-class docutils literal notranslate"><span class="pre">SecretStr</span></code></a>, <a class="reference internal" href="#typic.types.secret.SecretBytes" title="typic.types.secret.SecretBytes"><code class="xref py py-class docutils literal notranslate"><span class="pre">SecretBytes</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.secret.SecretStr">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretStr</code><span class="sig-paren">(</span><em class="sig-param">value=''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretStr" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string that hides the true value in its repr.</p>
+<p>The hidden value may be accessed via <code class="xref py py-attr docutils literal notranslate"><span class="pre">SecretStr.secret</span></code></p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mysecret</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">SecretStr</span><span class="p">(</span><span class="s2">&quot;The Ring is in Frodo&#39;s pocket.&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mysecret</span><span class="p">)</span>
+<span class="go">******************************</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mysecret</span><span class="o">.</span><span class="n">secret</span><span class="p">)</span>
+<span class="go">The Ring is in Frodo&#39;s pocket.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="s2">&quot;</span><span class="si">{mysecret}</span><span class="s2">&quot;</span>
+<span class="go">&#39;******************************&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">mysecret</span><span class="p">])</span>
+<span class="go">&#39;[&quot;The Ring is in Frodo\&#39;s pocket.&quot;]&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits directly from <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> and, so is natively JSON-serializable.
+There is no need to add logic to extract the secret value.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.secret.SecretMixin" title="typic.types.secret.SecretMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SecretMixin</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.secret.SecretBytes">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretBytes</code><span class="sig-paren">(</span><em class="sig-param">value=b''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretBytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>A bytes object that hides the true value in its repr.</p>
+<p>The hidden value may be accessed via <code class="xref py py-attr docutils literal notranslate"><span class="pre">SecretBytes.secret</span></code></p>
+<p class="rubric">Notes</p>
+<p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> is not natively JSON serializable, so a user would need to register
+a default handler for that type. However, once done, no additional work needs to be done
+to make this type serializable.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.secret.SecretMixin" title="typic.types.secret.SecretMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SecretMixin</span></code></a>, <a class="reference internal" href="#typic.types.secret.SecretStr" title="typic.types.secret.SecretStr"><code class="xref py py-class docutils literal notranslate"><span class="pre">SecretStr</span></code></a></p>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="frozendict">
+<h2>FrozenDict<a class="headerlink" href="#frozendict" title="Permalink to this headline">¶</a></h2>
+<p>A hashable, immutable mapping is great for storing run-time configuration without fear
+of an irresponsible developer coming along and mutating your global state. (Yes, global
+state is evil, but it’s often a bit necessary as well.)</p>
+<span class="target" id="module-typic.types.frozendict"></span><dl class="class">
+<dt id="typic.types.frozendict.FrozenDict">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.frozendict.</code><code class="sig-name descname">FrozenDict</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>An immutable, hashable mapping.</p>
+<p>This inherits directly from the builtin <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
+<p class="rubric">Notes</p>
+<p>Because it must recursively freeze all nested items to ensure it is hashable,
+this data-structure is substantially slower on init than a native dict.</p>
+<p>This operation is highly optimized, but the recursive nature is still expensive.</p>
+<p>However, once initialized, it is equivalent in performance to a native dict in every
+other way. The recommended use-case for this object is for compile-time objects
+(such as configurations, dictionary-dispatching, etc.).</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">FrozenDict</span><span class="p">({</span><span class="s2">&quot;foo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">]})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">ishashable</span><span class="p">(</span><span class="n">fdict</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span>
+<span class="go">(&#39;bar&#39;,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;car&quot;</span><span class="p">])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">TypeError</span>: <span class="n">attempting to mutate immutable type &#39;FrozenDict&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">fdict</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">TypeError</span>: <span class="n">attempting to mutate immutable type &#39;FrozenDict&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">TypeError</span>: <span class="n">attempting to mutate immutable type &#39;FrozenDict&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">TypeError</span>: <span class="n">attempting to mutate immutable type &#39;FrozenDict&#39;</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.clear">
+<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutations are disallowed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.mutate">
+<code class="sig-name descname">mutate</code><span class="sig-paren">(</span><em class="sig-param">other=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.mutate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new <a class="reference internal" href="#typic.types.frozendict.FrozenDict" title="typic.types.frozendict.FrozenDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrozenDict</span></code></a> with changes merged in.</p>
+<dl class="simple">
+<dt>Priority of keys is in inverse order, i.e.:</dt><dd><ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">**kwargs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">other</span></code> mapping</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, the object you’re mutating.</p></li>
+</ol>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">FrozenDict</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fdict</span><span class="o">.</span><span class="n">mutate</span><span class="p">({</span><span class="s2">&quot;bazz&quot;</span><span class="p">:</span> <span class="s2">&quot;buzz&quot;</span><span class="p">},</span> <span class="n">bazz</span><span class="o">=</span><span class="s2">&quot;blah&quot;</span><span class="p">)</span>
+<span class="go">{&#39;foo&#39;: (&#39;bar&#39;,), &#39;bazz&#39;: &#39;blah&#39;}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#typic.types.frozendict.FrozenDict" title="typic.types.frozendict.FrozenDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrozenDict</span></code></a>[~KT, +VT]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.pop">
+<code class="sig-name descname">pop</code><span class="sig-paren">(</span><em class="sig-param">k</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.pop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutations are disallowed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.popitem">
+<code class="sig-name descname">popitem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.popitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutations are disallowed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.setdefault">
+<code class="sig-name descname">setdefault</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.setdefault" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutations are disallowed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.frozendict.FrozenDict.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutations are disallowed.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="urls">
+<h2>URLs<a class="headerlink" href="#urls" title="Permalink to this headline">¶</a></h2>
+<p>Oh hey, <em>another</em> URL implementation. Yup, I re-invented the wheel. However, these
+types are super-powered: they’re natively JSON-serializable, immutable, and
+initialization is <em>fast</em>.</p>
+<span class="target" id="module-typic.types.url"></span><dl class="class">
+<dt id="typic.types.url.NetAddrInfo">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">scheme</em>, <em class="sig-param">auth</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">path</em>, <em class="sig-param">qs</em>, <em class="sig-param">params</em>, <em class="sig-param">fragment</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetAddrInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detailed information about a network address.</p>
+<p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as
+<a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a>, or created with <a class="reference internal" href="#typic.types.url.NetAddrInfo.from_str" title="typic.types.url.NetAddrInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NetAddrInfo.from_str()</span></code></a></p>
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.address">
+<code class="sig-name descname">address</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.address" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified network address.</p>
+<p>If this instance was generated from a string, it will match.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.address_encoded">
+<code class="sig-name descname">address_encoded</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.address_encoded" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified network address, encoded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.auth">
+<code class="sig-name descname">auth</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>The user auth info.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ‘base’ of the URL, including scheme, auth, and host.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.fragment">
+<code class="sig-name descname">fragment</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.fragment" title="Permalink to this definition">¶</a></dt>
+<dd><p>The uri fragment, e.g. <code class="docutils literal notranslate"><span class="pre">#some-page-anchor</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.url.NetAddrInfo.from_str">
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a string, validate, and return an instance of <a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.host">
+<code class="sig-name descname">host</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.host" title="Permalink to this definition">¶</a></dt>
+<dd><p>The host for this addres, e.g. <code class="docutils literal notranslate"><span class="pre">0.0.0.0</span></code>, <code class="docutils literal notranslate"><span class="pre">foobar.net</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.is_absolute">
+<code class="sig-name descname">is_absolute</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.is_absolute" title="Permalink to this definition">¶</a></dt>
+<dd><p>The opposite of <code class="docutils literal notranslate"><span class="pre">is_relative</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.is_default_port">
+<code class="sig-name descname">is_default_port</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.is_default_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether address is using the default port assigned to the given scheme.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.is_internal">
+<code class="sig-name descname">is_internal</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.is_internal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the host provided is an ‘internal’ host.</p>
+<p>This may or may not be private, hence the distinction.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.is_private">
+<code class="sig-name descname">is_private</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.is_private" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not the URL is using a ‘private’ host, i.e., ‘localhost’.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.is_relative">
+<code class="sig-name descname">is_relative</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.is_relative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether address is ‘relative’ (i.e., whether a scheme is provided).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.parameters">
+<code class="sig-name descname">parameters</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>The params, parsed into a mapping of key -&gt; [values, …].</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.params">
+<code class="sig-name descname">params</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The url parameters, unparsed, e.g. <code class="docutils literal notranslate"><span class="pre">id=2;foo=bar</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.password">
+<code class="sig-name descname">password</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.password" title="Permalink to this definition">¶</a></dt>
+<dd><p>The user’s password.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.path">
+<code class="sig-name descname">path</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>The URI path.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.port">
+<code class="sig-name descname">port</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.port" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port for this net-address</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.qs">
+<code class="sig-name descname">qs</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.qs" title="Permalink to this definition">¶</a></dt>
+<dd><p>The query-string, unparsed, e.g. <code class="docutils literal notranslate"><span class="pre">?id=1&amp;name=foo</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.query">
+<code class="sig-name descname">query</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>The query-string, parsed into a mapping of key -&gt; [values, …].</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.relative">
+<code class="sig-name descname">relative</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.relative" title="Permalink to this definition">¶</a></dt>
+<dd><p>path, params, query, and fragment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>The ‘relative’ portion of the URL</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.url.NetAddrInfo.scheme">
+<code class="sig-name descname">scheme</code><a class="headerlink" href="#typic.types.url.NetAddrInfo.scheme" title="Permalink to this definition">¶</a></dt>
+<dd><p>The net-address scheme, e.g., <code class="docutils literal notranslate"><span class="pre">http</span></code>, <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, <code class="docutils literal notranslate"><span class="pre">ssh</span></code>, etc.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.url.NetworkAddress">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddress</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetworkAddress" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic, immutable network address string.</p>
+<p>Detailed information about the network address string can be looked up via
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">NetworkAddress.info</span></code>.</p>
+<p>This object is the base object for network-related objects.
+<a class="reference internal" href="#typic.types.url.URL" title="typic.types.url.URL"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a> has a much richer interface.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">NetworkAddress</span><span class="p">(</span><span class="s2">&quot;http://foo.bar/bazz;foo=bar?buzz=1#loc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">is_absolute</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">host</span>
+<span class="go">&#39;foo.bar&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">scheme</span>
+<span class="go">&#39;http&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">address_encoded</span>
+<span class="go">&#39;http%3A//foo.bar/bazz%3Bfoo%3Dbar%3Fbuzz%3D1%23loc&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">query</span>
+<span class="go">mappingproxy({&#39;buzz&#39;: [&#39;1&#39;]})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">parameters</span>
+<span class="go">mappingproxy({&#39;foo&#39;: [&#39;bar&#39;]})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">fragment</span>
+<span class="go">&#39;loc&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">domain</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">URL</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">domain</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">is_relative</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">domain</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">host</span>
+<span class="go">&#39;foo.bar&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">net_addr</span>
+<span class="go">&#39;http://foo.bar/bazz;foo=bar?buzz=1#loc&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">net_addr</span><span class="p">])</span>
+<span class="go">&#39;[&quot;http://foo.bar/bazz;foo=bar?buzz=1#loc&quot;]&#39;</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a>, <a class="reference internal" href="#typic.types.url.URL" title="typic.types.url.URL"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits directly from <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> and so is natively
+JSON-serializable.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.url.NetworkAddressValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddressValueError</code><a class="headerlink" href="#typic.types.url.NetworkAddressValueError" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic error indicating the value is not a valid network address.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.url.AbsoluteURL">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.AbsoluteURL" title="Permalink to this definition">¶</a></dt>
+<dd><p>An absolute URL.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.url.URL" title="typic.types.url.URL"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.url.AbsoluteURLValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURLValueError</code><a class="headerlink" href="#typic.types.url.AbsoluteURLValueError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="typic.types.url.HostName">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostName</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.HostName" title="Permalink to this definition">¶</a></dt>
+<dd><p>A network address referencing only a host-name (e.g. foo.bar.com).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a>, <a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits directly from <a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a> and, so is natively
+JSON-serializable.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.url.HostNameValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostNameValueError</code><a class="headerlink" href="#typic.types.url.HostNameValueError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="typic.types.url.RelativeURL">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.RelativeURL" title="Permalink to this definition">¶</a></dt>
+<dd><p>A relative URL.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.url.URL" title="typic.types.url.URL"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.url.RelativeURLValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURLValueError</code><a class="headerlink" href="#typic.types.url.RelativeURLValueError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="typic.types.url.URL">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">URL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.URL" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string which parses the value provided as if it were a URL.</p>
+<p>Detailed information about the url string can be looked up via <code class="xref py py-attr docutils literal notranslate"><span class="pre">URL.info</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">url</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">URL</span><span class="p">(</span><span class="s2">&quot;http://foo.bar/bazz&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">more</span> <span class="o">=</span> <span class="n">url</span> <span class="o">/</span> <span class="s1">&#39;foo&#39;</span> <span class="o">/</span> <span class="s1">&#39;bar&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">more</span>
+<span class="go">&#39;http://foo.bar/bazz/foo/bar&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">URL</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">base</span><span class="p">)</span> <span class="o">/</span> <span class="s1">&#39;other&#39;</span>
+<span class="go">&#39;http://foo.bar/other&#39;</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a>, <a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits directly from <a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a> and so is natively
+JSON-serializable.</p>
+<dl class="method">
+<dt id="typic.types.url.URL.join">
+<code class="sig-name descname">join</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.URL.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Join another URL with this one.</p>
+<p>This works roughly like <code class="xref py py-meth docutils literal notranslate"><span class="pre">pathlib.Path.joinpath()</span></code>.</p>
+<p>Unlike <a class="reference external" href="https://docs.python.org/3/library/urllib.parse.html#urllib.parse.urljoin" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">urllib.parse.urljoin()</span></code></a>, this method allows the user to build
+onto existing paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#typic.types.url.URL" title="typic.types.url.URL"><code class="xref py py-class docutils literal notranslate"><span class="pre">URL</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="dsns">
+<h2>DSNs<a class="headerlink" href="#dsns" title="Permalink to this headline">¶</a></h2>
+<p>DSNs are network addresses, but they have a slightly different standardized API.</p>
+<span class="target" id="module-typic.types.dsn"></span><dl class="class">
+<dt id="typic.types.dsn.DSN">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSN</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSN" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Data Source Name string.</p>
+<p>Detailed information about the DSN string can be looked up via <a class="reference internal" href="#typic.types.dsn.DSN.info" title="typic.types.dsn.DSN.info"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DSN.info</span></code></a>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></p>
+</div>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">DSN</span><span class="p">(</span><span class="s2">&quot;postgresql://user:secret@localhost:5432/mydb&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span>
+<span class="go">&#39;postgresql://user:secret@localhost:5432/mydb&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">host</span>
+<span class="go">&#39;localhost&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">is_private</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">is_default_port</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">username</span>
+<span class="go">&#39;user&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">password</span>  <span class="c1"># This has been converted to a secret :)</span>
+<span class="go">******</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;/mydb&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dsn</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">driver</span>
+<span class="go">&#39;postgresql&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">dsn</span><span class="p">])</span>
+<span class="go">&#39;[&quot;postgresql://user:secret@localhost:5432/mydb&quot;]&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits from <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> and, so is natively JSON-serializable.</p>
+<dl class="attribute">
+<dt id="typic.types.dsn.DSN.info">
+<code class="sig-name descname">info</code><a class="headerlink" href="#typic.types.dsn.DSN.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get detailed information about your DSN string.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.dsn.DSNInfo" title="typic.types.dsn.DSNInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSNInfo</span></code></a></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.dsn.DSNInfo">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNInfo</code><span class="sig-paren">(</span><em class="sig-param">driver</em>, <em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">name</em>, <em class="sig-param">qs</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSNInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detailed information about a D(ata)S(ource)N(ame).</p>
+<p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as <a class="reference internal" href="#typic.types.dsn.DSN" title="typic.types.dsn.DSN"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSN</span></code></a>,
+or created with <a class="reference internal" href="#typic.types.dsn.DSNInfo.from_str" title="typic.types.dsn.DSNInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DSNInfo.from_str()</span></code></a></p>
+<p class="rubric">Notes</p>
+<p>DSNs are <em>technically</em> a type of network address, but are more strict.
+There’s also a semi-standard API for interacting with them, thanks to SQLAlchemy, etc.
+So we have our own <code class="docutils literal notranslate"><span class="pre">-Info</span></code> object which conforms more closely with the expected API.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">typic.types.NetAddrInfo</span></code></p>
+</div>
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.address">
+<code class="sig-name descname">address</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.address" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified address.</p>
+<p>If this instance was generated from a string, it will match the string exactly,
+EXCEPT if a port wasn’t provided in the original string. In those cases, we try
+to determine the appropriate port based upon the driver name provided.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.address_encoded">
+<code class="sig-name descname">address_encoded</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.address_encoded" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified address, encoded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ‘base’ of this DSN.</p>
+<p>Includes driver, user/pass, host, &amp; port</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.driver">
+<code class="sig-name descname">driver</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.driver" title="Permalink to this definition">¶</a></dt>
+<dd><p>The database driver, e.g., <code class="docutils literal notranslate"><span class="pre">mysql</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.dsn.DSNInfo.from_str">
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSNInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse &amp; validate a string and generate an instance of <a class="reference internal" href="#typic.types.dsn.DSNInfo" title="typic.types.dsn.DSNInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSNInfo</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#typic.types.dsn.DSNInfo" title="typic.types.dsn.DSNInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSNInfo</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.host">
+<code class="sig-name descname">host</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.host" title="Permalink to this definition">¶</a></dt>
+<dd><p>The host address where the server is located.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.is_default_port">
+<code class="sig-name descname">is_default_port</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.is_default_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not the port is the default for the SQL dialect.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.is_internal">
+<code class="sig-name descname">is_internal</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.is_internal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the host provided is an internal IP/DNS.</p>
+<p>Internal IP/DNS addresses aren’t necessarily private, hence the distinction.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.is_private">
+<code class="sig-name descname">is_private</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.is_private" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the host is a private host, i.e., ‘localhost’.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The database name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.password">
+<code class="sig-name descname">password</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.password" title="Permalink to this definition">¶</a></dt>
+<dd><p>The password used for authentication.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.port">
+<code class="sig-name descname">port</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.port" title="Permalink to this definition">¶</a></dt>
+<dd><p>The exposed port to connect to.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.qs">
+<code class="sig-name descname">qs</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.qs" title="Permalink to this definition">¶</a></dt>
+<dd><p>The query-string to pass on to the database.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.query">
+<code class="sig-name descname">query</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>The query-string, parsed into a mapping of key -&gt; [values, …].</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.relative">
+<code class="sig-name descname">relative</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.relative" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ‘relative’ portion of this DSN.</p>
+<p>Includes the database/schema name and query-string.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.dsn.DSNInfo.username">
+<code class="sig-name descname">username</code><a class="headerlink" href="#typic.types.dsn.DSNInfo.username" title="Permalink to this definition">¶</a></dt>
+<dd><p>The username used for authentication.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.dsn.DSNValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNValueError</code><a class="headerlink" href="#typic.types.dsn.DSNValueError" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic error indicating the given value is not a valid DSN.</p>
+<p>Inherits from <code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddressValueError</span></code>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="email">
+<h2>Email<a class="headerlink" href="#email" title="Permalink to this headline">¶</a></h2>
+<p>Probably the best implementation of an Email-type there is :snake:.</p>
+<span class="target" id="module-typic.types.email"></span><dl class="class">
+<dt id="typic.types.email.Email">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">Email</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.Email" title="Permalink to this definition">¶</a></dt>
+<dd><p>An immutable email address. Supports ‘pretty’ and ‘raw’, i.e.:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">Foo</span> <span class="pre">Bar</span> <span class="pre">&lt;foo.bar&#64;foobar.net&gt;</span></code>
+<code class="docutils literal notranslate"><span class="pre">foo.bar&#64;foobar.net</span></code></p>
+</div></blockquote>
+<p>Detailed information about the email string can be found up via <a class="reference internal" href="#typic.types.email.Email.info" title="typic.types.email.Email.info"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Email.info</span></code></a>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">email</span> <span class="o">=</span> <span class="n">typic</span><span class="o">.</span><span class="n">Email</span><span class="p">(</span><span class="s2">&quot;Foo Bar &lt;foo.bar@foobar.net&gt;&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+<span class="go">Foo Bar &lt;foo.bar@foobar.net&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">email</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">host</span>
+<span class="go">&#39;foobar.net&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">email</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">is_named</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">email</span><span class="p">])</span>
+<span class="go">&#39;[&quot;Foo Bar &lt;foo.bar@foobar.net&gt;&quot;]&#39;</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.email.EmailAddrInfo" title="typic.types.email.EmailAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmailAddrInfo</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<p>This object inherits from <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> and so is natively JSON-serializable.</p>
+<dl class="attribute">
+<dt id="typic.types.email.Email.info">
+<code class="sig-name descname">info</code><a class="headerlink" href="#typic.types.email.Email.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get detailed information about your email string.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#typic.types.email.EmailAddrInfo" title="typic.types.email.EmailAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmailAddrInfo</span></code></a></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.email.EmailAddrInfo">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">username</em>, <em class="sig-param">host</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.EmailAddrInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detailed information about an email address.</p>
+<p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as <a class="reference internal" href="#typic.types.email.Email" title="typic.types.email.Email"><code class="xref py py-class docutils literal notranslate"><span class="pre">Email</span></code></a>,
+or created with <a class="reference internal" href="#typic.types.email.EmailAddrInfo.from_str" title="typic.types.email.EmailAddrInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">EmailAddrInfo.from_str()</span></code></a></p>
+<p class="rubric">Notes</p>
+<p>An email address is also, technically, a network address. However, it has some more
+constraints and we’re interested in only a specific amount of information.</p>
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.PATTERN">
+<code class="sig-name descname">PATTERN</code><em class="property"> = re.compile('\n    (\n        ^\n        ((?P&lt;name&gt;([A-Z]+\\s?)+)\\s&lt;)?\n        # user\n        (?P&lt;username&gt;([A-Z0-9]([_.+-])?)*[A-Z0-9]+)\n        &#64;\n        # host\n        (?P&lt;host&gt;(?:\n        # Domain\n   , re.IGNORECASE|re.VERBOSE)</em><a class="headerlink" href="#typic.types.email.EmailAddrInfo.PATTERN" title="Permalink to this definition">¶</a></dt>
+<dd><p>The raw match from paring the provided string.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.address">
+<code class="sig-name descname">address</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.address" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified email address.</p>
+<p>If this instance was generated from a string, it will match.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.address_encoded">
+<code class="sig-name descname">address_encoded</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.address_encoded" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully-qualified email address, encoded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="typic.types.email.EmailAddrInfo.from_str">
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.EmailAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse &amp; validate a string, generate an instance of <a class="reference internal" href="#typic.types.email.EmailAddrInfo" title="typic.types.email.EmailAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmailAddrInfo</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#typic.types.email.EmailAddrInfo" title="typic.types.email.EmailAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmailAddrInfo</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.host">
+<code class="sig-name descname">host</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.host" title="Permalink to this definition">¶</a></dt>
+<dd><p>The host address where the email server is located.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.is_internal">
+<code class="sig-name descname">is_internal</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.is_internal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not the host in the email is an internal address.</p>
+<p>Internal DNS/IP addresses aren’t necessarily private, hence the differentiation.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.is_named">
+<code class="sig-name descname">is_named</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.is_named" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not this email is ‘named’ (or ‘pretty’)</p>
+<p>i.e.: <code class="docutils literal notranslate"><span class="pre">&lt;Foo</span> <span class="pre">foo&#64;bar.com&gt;</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.is_private">
+<code class="sig-name descname">is_private</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.is_private" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not the host in the email is a private IP, i.e., ‘localhost’.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The proper name associated to the email.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="typic.types.email.EmailAddrInfo.username">
+<code class="sig-name descname">username</code><a class="headerlink" href="#typic.types.email.EmailAddrInfo.username" title="Permalink to this definition">¶</a></dt>
+<dd><p>The username portion of the email.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.email.EmailValueError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailValueError</code><a class="headerlink" href="#typic.types.email.EmailValueError" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic error for when we’ve received an invalid value for an email.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="path">
+<h2>Path<a class="headerlink" href="#path" title="Permalink to this headline">¶</a></h2>
+<p>This just provides a couple more strict Path objects, which inherit directly from
+<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>.</p>
+<span class="target" id="module-typic.types.path"></span><dl class="exception">
+<dt id="typic.types.path.FilePathError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePathError</code><a class="headerlink" href="#typic.types.path.FilePathError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic error raised when the given value is not a File-Path.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.path.FilePath">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.path.FilePath" title="Permalink to this definition">¶</a></dt>
+<dd><p>A path object pointing to a file.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="typic.types.path.DirectoryPathError">
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPathError</code><a class="headerlink" href="#typic.types.path.DirectoryPathError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic error raised when the given value is not a Directory-Path.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="typic.types.path.DirectoryPath">
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.path.DirectoryPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>A path object pointing to a directory.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a></p>
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="index.html" title="Previous document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a>
+        </li>
+        <li>
+          <a href="settings.html" title="Next document"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Settings</a>
+          &rarr;
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;Copyright 2019 Sean Stewart.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/extras/types.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
