@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Settings &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Settings &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/extras/settings.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -153,7 +154,7 @@
 <code class="docutils literal notranslate"><span class="pre">typical</span></code> has your back with the <code class="docutils literal notranslate"><span class="pre">typic.settings</span></code> decorator:</p>
 <dl class="function">
 <dt>
-<code class="sig-prename descclassname">&#64;</code><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">settings</code><span class="sig-paren">(</span><em class="sig-param">_klass=None</em>, <em class="sig-param">*</em>, <em class="sig-param">prefix=''</em>, <em class="sig-param">case_sensitive=False</em>, <em class="sig-param">frozen=True</em>, <em class="sig-param">aliases=None</em><span class="sig-paren">)</span></dt>
+<code class="sig-prename descclassname">&#64;</code><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">settings</code><span class="sig-paren">(</span><em class="sig-param">_klass=None</em>, <em class="sig-param">*</em>, <em class="sig-param">prefix=''</em>, <em class="sig-param">case_sensitive=False</em>, <em class="sig-param">frozen=True</em>, <em class="sig-param">aliases=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/api.html#settings"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Create a typed class which sets its defaults from env vars.</p>
 <p>The resolution order of values is <code class="docutils literal notranslate"><span class="pre">default(s)</span> <span class="pre">-&gt;</span> <span class="pre">env</span> <span class="pre">value(s)</span> <span class="pre">-&gt;</span> <span class="pre">passed</span> <span class="pre">value(s)</span></code>.</p>
 <p>Settings instances are indistinguishable from other <code class="docutils literal notranslate"><span class="pre">typical</span></code> dataclasses at

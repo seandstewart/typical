@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Types &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Types &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/extras/types.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -160,7 +161,7 @@ while also making it easy to pass on your secrets (e.g. for authenticating via a
 external service).</p>
 <span class="target" id="module-typic.types.secret"></span><dl class="class">
 <dt id="typic.types.secret.SecretMixin">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretMixin</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretMixin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretMixin</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/secret.html#SecretMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.secret.SecretMixin" title="Permalink to this definition">¶</a></dt>
 <dd><p>A mixin for making a sized object ‘secret’ (hiding the value(s)).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -170,7 +171,7 @@ external service).</p>
 
 <dl class="class">
 <dt id="typic.types.secret.SecretStr">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretStr</code><span class="sig-paren">(</span><em class="sig-param">value=''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretStr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretStr</code><span class="sig-paren">(</span><em class="sig-param">value=''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/secret.html#SecretStr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.secret.SecretStr" title="Permalink to this definition">¶</a></dt>
 <dd><p>A string that hides the true value in its repr.</p>
 <p>The hidden value may be accessed via <code class="xref py py-attr docutils literal notranslate"><span class="pre">SecretStr.secret</span></code></p>
 <p class="rubric">Examples</p>
@@ -198,7 +199,7 @@ There is no need to add logic to extract the secret value.</p>
 
 <dl class="class">
 <dt id="typic.types.secret.SecretBytes">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretBytes</code><span class="sig-paren">(</span><em class="sig-param">value=b''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.secret.SecretBytes" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.secret.</code><code class="sig-name descname">SecretBytes</code><span class="sig-paren">(</span><em class="sig-param">value=b''</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">errors='strict'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/secret.html#SecretBytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.secret.SecretBytes" title="Permalink to this definition">¶</a></dt>
 <dd><p>A bytes object that hides the true value in its repr.</p>
 <p>The hidden value may be accessed via <code class="xref py py-attr docutils literal notranslate"><span class="pre">SecretBytes.secret</span></code></p>
 <p class="rubric">Notes</p>
@@ -219,7 +220,7 @@ of an irresponsible developer coming along and mutating your global state. (Yes,
 state is evil, but it’s often a bit necessary as well.)</p>
 <span class="target" id="module-typic.types.frozendict"></span><dl class="class">
 <dt id="typic.types.frozendict.FrozenDict">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.frozendict.</code><code class="sig-name descname">FrozenDict</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.frozendict.</code><code class="sig-name descname">FrozenDict</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict" title="Permalink to this definition">¶</a></dt>
 <dd><p>An immutable, hashable mapping.</p>
 <p>This inherits directly from the builtin <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
 <p class="rubric">Notes</p>
@@ -256,13 +257,13 @@ other way. The recommended use-case for this object is for compile-time objects
 </div>
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.clear">
-<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.clear" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.clear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mutations are disallowed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.mutate">
-<code class="sig-name descname">mutate</code><span class="sig-paren">(</span><em class="sig-param">other=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.mutate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">mutate</code><span class="sig-paren">(</span><em class="sig-param">other=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.mutate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.mutate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new <a class="reference internal" href="#typic.types.frozendict.FrozenDict" title="typic.types.frozendict.FrozenDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrozenDict</span></code></a> with changes merged in.</p>
 <dl class="simple">
 <dt>Priority of keys is in inverse order, i.e.:</dt><dd><ol class="arabic simple">
@@ -288,25 +289,25 @@ other way. The recommended use-case for this object is for compile-time objects
 
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.pop">
-<code class="sig-name descname">pop</code><span class="sig-paren">(</span><em class="sig-param">k</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.pop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">pop</code><span class="sig-paren">(</span><em class="sig-param">k</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.pop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.pop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mutations are disallowed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.popitem">
-<code class="sig-name descname">popitem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.popitem" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">popitem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.popitem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.popitem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mutations are disallowed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.setdefault">
-<code class="sig-name descname">setdefault</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.setdefault" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">setdefault</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.setdefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.setdefault" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mutations are disallowed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="typic.types.frozendict.FrozenDict.update">
-<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.frozendict.FrozenDict.update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/frozendict.html#FrozenDict.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.frozendict.FrozenDict.update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mutations are disallowed.</p>
 </dd></dl>
 
@@ -320,7 +321,7 @@ types are super-powered: they’re natively JSON-serializable, immutable, and
 initialization is <em>fast</em>.</p>
 <span class="target" id="module-typic.types.url"></span><dl class="class">
 <dt id="typic.types.url.NetAddrInfo">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">scheme</em>, <em class="sig-param">auth</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">path</em>, <em class="sig-param">qs</em>, <em class="sig-param">params</em>, <em class="sig-param">fragment</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetAddrInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">scheme</em>, <em class="sig-param">auth</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">path</em>, <em class="sig-param">qs</em>, <em class="sig-param">params</em>, <em class="sig-param">fragment</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#NetAddrInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.NetAddrInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Detailed information about a network address.</p>
 <p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as
 <a class="reference internal" href="#typic.types.url.NetworkAddress" title="typic.types.url.NetworkAddress"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddress</span></code></a>, or created with <a class="reference internal" href="#typic.types.url.NetAddrInfo.from_str" title="typic.types.url.NetAddrInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NetAddrInfo.from_str()</span></code></a></p>
@@ -357,7 +358,7 @@ initialization is <em>fast</em>.</p>
 
 <dl class="method">
 <dt id="typic.types.url.NetAddrInfo.from_str">
-<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#NetAddrInfo.from_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.NetAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse a string, validate, and return an instance of <a class="reference internal" href="#typic.types.url.NetAddrInfo" title="typic.types.url.NetAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">NetAddrInfo</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -466,7 +467,7 @@ initialization is <em>fast</em>.</p>
 
 <dl class="class">
 <dt id="typic.types.url.NetworkAddress">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddress</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.NetworkAddress" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddress</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#NetworkAddress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.NetworkAddress" title="Permalink to this definition">¶</a></dt>
 <dd><p>A generic, immutable network address string.</p>
 <p>Detailed information about the network address string can be looked up via
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">NetworkAddress.info</span></code>.</p>
@@ -512,13 +513,13 @@ JSON-serializable.</p>
 
 <dl class="exception">
 <dt id="typic.types.url.NetworkAddressValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddressValueError</code><a class="headerlink" href="#typic.types.url.NetworkAddressValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">NetworkAddressValueError</code><a class="reference internal" href="../_modules/typic/types/url.html#NetworkAddressValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.NetworkAddressValueError" title="Permalink to this definition">¶</a></dt>
 <dd><p>A generic error indicating the value is not a valid network address.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="typic.types.url.AbsoluteURL">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.AbsoluteURL" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#AbsoluteURL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.AbsoluteURL" title="Permalink to this definition">¶</a></dt>
 <dd><p>An absolute URL.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -528,12 +529,12 @@ JSON-serializable.</p>
 
 <dl class="exception">
 <dt id="typic.types.url.AbsoluteURLValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURLValueError</code><a class="headerlink" href="#typic.types.url.AbsoluteURLValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">AbsoluteURLValueError</code><a class="reference internal" href="../_modules/typic/types/url.html#AbsoluteURLValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.AbsoluteURLValueError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">
 <dt id="typic.types.url.HostName">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostName</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.HostName" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostName</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#HostName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.HostName" title="Permalink to this definition">¶</a></dt>
 <dd><p>A network address referencing only a host-name (e.g. foo.bar.com).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -546,12 +547,12 @@ JSON-serializable.</p>
 
 <dl class="exception">
 <dt id="typic.types.url.HostNameValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostNameValueError</code><a class="headerlink" href="#typic.types.url.HostNameValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">HostNameValueError</code><a class="reference internal" href="../_modules/typic/types/url.html#HostNameValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.HostNameValueError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">
 <dt id="typic.types.url.RelativeURL">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.RelativeURL" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#RelativeURL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.RelativeURL" title="Permalink to this definition">¶</a></dt>
 <dd><p>A relative URL.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -561,12 +562,12 @@ JSON-serializable.</p>
 
 <dl class="exception">
 <dt id="typic.types.url.RelativeURLValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURLValueError</code><a class="headerlink" href="#typic.types.url.RelativeURLValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">RelativeURLValueError</code><a class="reference internal" href="../_modules/typic/types/url.html#RelativeURLValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.RelativeURLValueError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">
 <dt id="typic.types.url.URL">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">URL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.URL" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.url.</code><code class="sig-name descname">URL</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#URL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.URL" title="Permalink to this definition">¶</a></dt>
 <dd><p>A string which parses the value provided as if it were a URL.</p>
 <p>Detailed information about the url string can be looked up via <code class="xref py py-attr docutils literal notranslate"><span class="pre">URL.info</span></code>.</p>
 <p class="rubric">Examples</p>
@@ -588,7 +589,7 @@ JSON-serializable.</p>
 JSON-serializable.</p>
 <dl class="method">
 <dt id="typic.types.url.URL.join">
-<code class="sig-name descname">join</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.url.URL.join" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">join</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/url.html#URL.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.url.URL.join" title="Permalink to this definition">¶</a></dt>
 <dd><p>Join another URL with this one.</p>
 <p>This works roughly like <code class="xref py py-meth docutils literal notranslate"><span class="pre">pathlib.Path.joinpath()</span></code>.</p>
 <p>Unlike <a class="reference external" href="https://docs.python.org/3/library/urllib.parse.html#urllib.parse.urljoin" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">urllib.parse.urljoin()</span></code></a>, this method allows the user to build
@@ -608,7 +609,7 @@ onto existing paths.</p>
 <p>DSNs are network addresses, but they have a slightly different standardized API.</p>
 <span class="target" id="module-typic.types.dsn"></span><dl class="class">
 <dt id="typic.types.dsn.DSN">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSN</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSN" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSN</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/dsn.html#DSN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.dsn.DSN" title="Permalink to this definition">¶</a></dt>
 <dd><p>A Data Source Name string.</p>
 <p>Detailed information about the DSN string can be looked up via <a class="reference internal" href="#typic.types.dsn.DSN.info" title="typic.types.dsn.DSN.info"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DSN.info</span></code></a>.</p>
 <div class="admonition seealso">
@@ -655,7 +656,7 @@ onto existing paths.</p>
 
 <dl class="class">
 <dt id="typic.types.dsn.DSNInfo">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNInfo</code><span class="sig-paren">(</span><em class="sig-param">driver</em>, <em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">name</em>, <em class="sig-param">qs</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSNInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNInfo</code><span class="sig-paren">(</span><em class="sig-param">driver</em>, <em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">host</em>, <em class="sig-param">port</em>, <em class="sig-param">name</em>, <em class="sig-param">qs</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/dsn.html#DSNInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.dsn.DSNInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Detailed information about a D(ata)S(ource)N(ame).</p>
 <p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as <a class="reference internal" href="#typic.types.dsn.DSN" title="typic.types.dsn.DSN"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSN</span></code></a>,
 or created with <a class="reference internal" href="#typic.types.dsn.DSNInfo.from_str" title="typic.types.dsn.DSNInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DSNInfo.from_str()</span></code></a></p>
@@ -697,7 +698,7 @@ to determine the appropriate port based upon the driver name provided.</p>
 
 <dl class="method">
 <dt id="typic.types.dsn.DSNInfo.from_str">
-<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.dsn.DSNInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/dsn.html#DSNInfo.from_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.dsn.DSNInfo.from_str" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse &amp; validate a string and generate an instance of <a class="reference internal" href="#typic.types.dsn.DSNInfo" title="typic.types.dsn.DSNInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">DSNInfo</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -778,7 +779,7 @@ to determine the appropriate port based upon the driver name provided.</p>
 
 <dl class="exception">
 <dt id="typic.types.dsn.DSNValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNValueError</code><a class="headerlink" href="#typic.types.dsn.DSNValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.dsn.</code><code class="sig-name descname">DSNValueError</code><a class="reference internal" href="../_modules/typic/types/dsn.html#DSNValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.dsn.DSNValueError" title="Permalink to this definition">¶</a></dt>
 <dd><p>A generic error indicating the given value is not a valid DSN.</p>
 <p>Inherits from <code class="xref py py-class docutils literal notranslate"><span class="pre">NetworkAddressValueError</span></code>.</p>
 </dd></dl>
@@ -789,7 +790,7 @@ to determine the appropriate port based upon the driver name provided.</p>
 <p>Probably the best implementation of an Email-type there is :snake:.</p>
 <span class="target" id="module-typic.types.email"></span><dl class="class">
 <dt id="typic.types.email.Email">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">Email</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.Email" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">Email</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/email.html#Email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.email.Email" title="Permalink to this definition">¶</a></dt>
 <dd><p>An immutable email address. Supports ‘pretty’ and ‘raw’, i.e.:</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">Foo</span> <span class="pre">Bar</span> <span class="pre">&lt;foo.bar&#64;foobar.net&gt;</span></code>
@@ -830,7 +831,7 @@ to determine the appropriate port based upon the driver name provided.</p>
 
 <dl class="class">
 <dt id="typic.types.email.EmailAddrInfo">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">username</em>, <em class="sig-param">host</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.EmailAddrInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailAddrInfo</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">username</em>, <em class="sig-param">host</em>, <em class="sig-param">is_ip=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/email.html#EmailAddrInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.email.EmailAddrInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Detailed information about an email address.</p>
 <p>Can be called directly, generated by casting a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> as <a class="reference internal" href="#typic.types.email.Email" title="typic.types.email.Email"><code class="xref py py-class docutils literal notranslate"><span class="pre">Email</span></code></a>,
 or created with <a class="reference internal" href="#typic.types.email.EmailAddrInfo.from_str" title="typic.types.email.EmailAddrInfo.from_str"><code class="xref py py-meth docutils literal notranslate"><span class="pre">EmailAddrInfo.from_str()</span></code></a></p>
@@ -858,7 +859,7 @@ constraints and we’re interested in only a specific amount of information.</p>
 
 <dl class="method">
 <dt id="typic.types.email.EmailAddrInfo.from_str">
-<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.email.EmailAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">from_str</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/email.html#EmailAddrInfo.from_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.email.EmailAddrInfo.from_str" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse &amp; validate a string, generate an instance of <a class="reference internal" href="#typic.types.email.EmailAddrInfo" title="typic.types.email.EmailAddrInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmailAddrInfo</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -909,7 +910,7 @@ constraints and we’re interested in only a specific amount of information.</p>
 
 <dl class="exception">
 <dt id="typic.types.email.EmailValueError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailValueError</code><a class="headerlink" href="#typic.types.email.EmailValueError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.email.</code><code class="sig-name descname">EmailValueError</code><a class="reference internal" href="../_modules/typic/types/email.html#EmailValueError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.email.EmailValueError" title="Permalink to this definition">¶</a></dt>
 <dd><p>A generic error for when we’ve received an invalid value for an email.</p>
 </dd></dl>
 
@@ -920,13 +921,13 @@ constraints and we’re interested in only a specific amount of information.</p>
 <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>.</p>
 <span class="target" id="module-typic.types.path"></span><dl class="exception">
 <dt id="typic.types.path.FilePathError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePathError</code><a class="headerlink" href="#typic.types.path.FilePathError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePathError</code><a class="reference internal" href="../_modules/typic/types/path.html#FilePathError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.path.FilePathError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic error raised when the given value is not a File-Path.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="typic.types.path.FilePath">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.path.FilePath" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">FilePath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/path.html#FilePath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.path.FilePath" title="Permalink to this definition">¶</a></dt>
 <dd><p>A path object pointing to a file.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -936,13 +937,13 @@ constraints and we’re interested in only a specific amount of information.</p>
 
 <dl class="exception">
 <dt id="typic.types.path.DirectoryPathError">
-<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPathError</code><a class="headerlink" href="#typic.types.path.DirectoryPathError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPathError</code><a class="reference internal" href="../_modules/typic/types/path.html#DirectoryPathError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.path.DirectoryPathError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic error raised when the given value is not a Directory-Path.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="typic.types.path.DirectoryPath">
-<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.types.path.DirectoryPath" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.types.path.</code><code class="sig-name descname">DirectoryPath</code><span class="sig-paren">(</span><em class="sig-param">*pathsegments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/types/path.html#DirectoryPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.types.path.DirectoryPath" title="Permalink to this definition">¶</a></dt>
 <dd><p>A path object pointing to a directory.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>

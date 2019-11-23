@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Checks &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Checks &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/extras/checks.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -170,7 +171,7 @@ this a look and enjoy them to your heart’s content.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isbuiltintype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isbuiltintype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isbuiltintype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isbuiltintype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isbuiltintype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isbuiltintype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check whether the provided object is a builtin-type.</p>
 <p>Python stdlib and Python documentation have no “definitive list” of
 builtin-<strong>types</strong>, despite the fact that they are well-known. The closest we have
@@ -210,7 +211,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isclassvartype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isclassvartype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isclassvartype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isclassvartype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isclassvartype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isclassvartype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether an annotation is a ClassVar annotation.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -230,7 +231,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.iscollectiontype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iscollectiontype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.iscollectiontype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iscollectiontype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#iscollectiontype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.iscollectiontype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether this annotation is a subclass of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Collection" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Collection</span></code></a>.</p>
 <p>Includes builtins.</p>
 <dl class="field-list simple">
@@ -259,7 +260,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isconstrained">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isconstrained</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isconstrained" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isconstrained</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isconstrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isconstrained" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether a type is restricted.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -289,7 +290,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isdatetype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isdatetype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isdatetype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isdatetype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isdatetype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isdatetype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether this annotation is a a date/datetime object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -317,7 +318,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isenumtype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isenumtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isenumtype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isenumtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isenumtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isenumtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether this annotation is a subclass of <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -343,7 +344,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isfinal">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfinal</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isfinal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfinal</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isfinal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isfinal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether an annotation is <code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Final</span></code>.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -364,7 +365,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isfromdictclass">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfromdictclass</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isfromdictclass" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isfromdictclass</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isfromdictclass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isfromdictclass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether this annotation is a class with a <code class="docutils literal notranslate"><span class="pre">from_dict()</span></code> method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -375,7 +376,7 @@ builtin.</p>
 
 <dl class="function">
 <dt id="typic.checks.ishashable">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ishashable</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.ishashable" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ishashable</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#ishashable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.ishashable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check whether an object is hashable.</p>
 <p>An order of magnitude faster than <a class="reference internal" href="#typic.checks.isinstance" title="typic.checks.isinstance"><code class="xref py py-class docutils literal notranslate"><span class="pre">isinstance</span></code></a> with
 <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Hashable" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Hashable</span></code></a></p>
@@ -403,7 +404,7 @@ builtin.</p>
 
 <dl class="function">
 <dt id="typic.checks.isinstance">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isinstance</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isinstance" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isinstance</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isinstance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isinstance" title="Permalink to this definition">¶</a></dt>
 <dd><p>A safer instance check…</p>
 <p>Validates that <code class="docutils literal notranslate"><span class="pre">t</span></code> is not an instance.</p>
 <dl class="field-list simple">
@@ -431,7 +432,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.ismappingtype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ismappingtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.ismappingtype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">ismappingtype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#ismappingtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.ismappingtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether this annotation is a subtype of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Mapping</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -465,7 +466,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isoptionaltype">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isoptionaltype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isoptionaltype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isoptionaltype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isoptionaltype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isoptionaltype" title="Permalink to this definition">¶</a></dt>
 <dd><p>class`typing.Optional`, or can be treated as.</p>
 <p><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Optional</span></code> is an alias for <code class="docutils literal notranslate"><span class="pre">typing.Union[&lt;T&gt;,</span> <span class="pre">None]</span></code>, so both are
 “optional”.</p>
@@ -500,7 +501,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.isreadonly">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isreadonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.isreadonly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isreadonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isreadonly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isreadonly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether an annotation is marked as <code class="xref py py-class docutils literal notranslate"><span class="pre">typic.ReadOnly</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -525,7 +526,7 @@ builtin.</p>
 
 <dl class="function">
 <dt id="typic.checks.issubclass">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">issubclass</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.issubclass" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">issubclass</code><span class="sig-paren">(</span><em class="sig-param">o</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#issubclass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.issubclass" title="Permalink to this definition">¶</a></dt>
 <dd><p>A safer subclass check…</p>
 <p>Validates that <code class="docutils literal notranslate"><span class="pre">t</span></code> and/or <code class="docutils literal notranslate"><span class="pre">o</span></code> are not instances.</p>
 <dl class="field-list simple">
@@ -560,7 +561,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.istypeddict">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypeddict</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.istypeddict" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypeddict</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#istypeddict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.istypeddict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check whether an object is a <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypedDict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.TypedDict</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -587,7 +588,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.istypedtuple">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypedtuple</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.istypedtuple" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypedtuple</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#istypedtuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.istypedtuple" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check whether an object is a “typed” tuple (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.NamedTuple</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -614,7 +615,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.iswriteonly">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iswriteonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.iswriteonly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">iswriteonly</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#iswriteonly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.iswriteonly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether an annotation is marked as <code class="xref py py-class docutils literal notranslate"><span class="pre">typic.WriteOnly</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -639,7 +640,7 @@ builtin.</p>
 
 <dl class="attribute">
 <dt id="typic.checks.should_unwrap">
-<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">should_unwrap</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.checks.should_unwrap" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">should_unwrap</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#should_unwrap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.should_unwrap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test whether we should use the __args__ attr for resolving the type.</p>
 <p>This is useful for determining what type to use at run-time for coercion.</p>
 <dl class="field-list simple">

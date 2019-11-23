@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Advanced Usage &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Advanced Usage &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/usage/advanced.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -179,7 +180,7 @@ types a breeze:</p>
 
 <dl class="function">
 <dt>
-<code class="sig-prename descclassname">typic.</code><code class="sig-name descname">primitive</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span></dt>
+<code class="sig-prename descclassname">typic.</code><code class="sig-name descname">primitive</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#primitive"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>A single-dispatch function for converting an object to its primitive equivalent.</p>
 <p>Useful for encoding data to JSON.</p>
 <p>Registration for custom types may be done by wrapping your handler with <cite>&#64;primitive.register</cite></p>
@@ -374,7 +375,7 @@ This method give high-level, immediate read access to that registry.</p>
 <p>There are a few high-level classes that may be interacted with.</p>
 <dl class="class">
 <dt>
-<em class="property">class </em><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">ResolvedAnnotation</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">origin</em>, <em class="sig-param">un_resolved</em>, <em class="sig-param">coercer</em>, <em class="sig-param">parameter</em>, <em class="sig-param">constraints=None</em><span class="sig-paren">)</span></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">ResolvedAnnotation</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">origin</em>, <em class="sig-param">un_resolved</em>, <em class="sig-param">coercer</em>, <em class="sig-param">parameter</em>, <em class="sig-param">constraints=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>An actionable run-time annotation.</p>
 <dl class="simple">
 <dt>For the case of <code class="docutils literal notranslate"><span class="pre">typical</span></code>, a “resolved annotation” is one in which we have located:</dt><dd><ul class="simple">
@@ -398,7 +399,7 @@ This method give high-level, immediate read access to that registry.</p>
 
 <dl class="method">
 <dt>
-<code class="sig-name descname">coerce</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span></dt>
+<code class="sig-name descname">coerce</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation.coerce"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Coercer an in-coming <code class="docutils literal notranslate"><span class="pre">value</span></code> to the appropriate type defined by the anno.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -439,7 +440,7 @@ This method give high-level, immediate read access to that registry.</p>
 
 <dl class="method">
 <dt>
-<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span></dt>
+<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation.validate"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>If this annotation has any defined constraints, we can a value against them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -452,7 +453,7 @@ This method give high-level, immediate read access to that registry.</p>
 
 <dl class="class">
 <dt>
-<em class="property">class </em><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">BoundArguments</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">annotations</em>, <em class="sig-param">parameters</em>, <em class="sig-param">arguments</em>, <em class="sig-param">returns</em>, <em class="sig-param">_argnames</em>, <em class="sig-param">_kwdargnames</em><span class="sig-paren">)</span></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.</code><code class="sig-name descname">BoundArguments</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">annotations</em>, <em class="sig-param">parameters</em>, <em class="sig-param">arguments</em>, <em class="sig-param">returns</em>, <em class="sig-param">_argnames</em>, <em class="sig-param">_kwdargnames</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#BoundArguments"><span class="viewcode-link">[source]</span></a></dt>
 <dd><dl class="attribute">
 <dt>
 <code class="sig-name descname">annotations</code><em class="property"> = None</em></dt>
@@ -473,7 +474,7 @@ This method give high-level, immediate read access to that registry.</p>
 
 <dl class="method">
 <dt>
-<code class="sig-name descname">eval</code><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<code class="sig-name descname">eval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#BoundArguments.eval"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Evaluate the callable against the input provided.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -527,7 +528,7 @@ quite yet. This can cause issues resolving your annotation for coercion. In thos
 cases, we provide a simple <code class="docutils literal notranslate"><span class="pre">delay</span></code> parameter and a <code class="docutils literal notranslate"><span class="pre">typic.resolve()</span></code> function.</p>
 <dl class="function">
 <dt id="typic.resolve">
-<code class="sig-prename descclassname">typic.</code><code class="sig-name descname">resolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.resolve" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.</code><code class="sig-name descname">resolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/api.html#resolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.resolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve any delayed annotations.</p>
 <p>If this is not called, annotations will be resolved on first call
 of the wrapped class or callable.</p>
