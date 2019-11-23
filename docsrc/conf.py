@@ -47,6 +47,8 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
     "sphinx.ext.doctest",
+    "sphinx.ext.viewcode",
+    "sphinx_sitemap",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -65,7 +67,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "alabaster"
 html_theme_options = {
-    "logo": "logo.svg",
+    "logo": "logo.png",
     "touch_icon": "favicon/apple-touch-icon.png",
     "description": "A simple, fast, & correct data-validation library.",
     "show_related": True,
@@ -78,6 +80,7 @@ html_theme_options = {
     "show_relbars": True,
     "page_width": "75%",
 }
+html_baseurl = "https://seandstewart.github.io/typical/"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.0b2"
+version = "2.0.0b3"
 description = "Typical: Take Typing Further."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -47,6 +47,7 @@ toastedmarshmallow = "^2.15"
 djangorestframework = "^3.10"
 pydantic = {version = "^1.0", extras = ["email"]}
 django = "^2.2"
+sphinx-sitemap = "^1.0"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Klass API &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Klass API &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/api/klass.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -155,7 +156,7 @@ and are encourage to not touch the internal API, but the documentation is provid
 for completion.</p>
 <span class="target" id="module-typic.klass"></span><dl class="function">
 <dt id="typic.klass.klass">
-<code class="sig-prename descclassname">typic.klass.</code><code class="sig-name descname">klass</code><span class="sig-paren">(</span><em class="sig-param">_cls=None</em>, <em class="sig-param">*</em>, <em class="sig-param">init=True</em>, <em class="sig-param">repr=True</em>, <em class="sig-param">eq=True</em>, <em class="sig-param">order=False</em>, <em class="sig-param">unsafe_hash=False</em>, <em class="sig-param">frozen=False</em>, <em class="sig-param">delay=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.klass.klass" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.klass.</code><code class="sig-name descname">klass</code><span class="sig-paren">(</span><em class="sig-param">_cls=None</em>, <em class="sig-param">*</em>, <em class="sig-param">init=True</em>, <em class="sig-param">repr=True</em>, <em class="sig-param">eq=True</em>, <em class="sig-param">order=False</em>, <em class="sig-param">unsafe_hash=False</em>, <em class="sig-param">frozen=False</em>, <em class="sig-param">delay=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/klass.html#klass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.klass.klass" title="Permalink to this definition">¶</a></dt>
 <dd><p>A convenience decorator for generating a dataclass with type-coercion.</p>
 <p>This:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">typic</span>
@@ -184,7 +185,7 @@ for completion.</p>
 
 <dl class="function">
 <dt id="typic.klass.make_typedclass">
-<code class="sig-prename descclassname">typic.klass.</code><code class="sig-name descname">make_typedclass</code><span class="sig-paren">(</span><em class="sig-param">cls</em>, <em class="sig-param">*</em>, <em class="sig-param">init=True</em>, <em class="sig-param">repr=True</em>, <em class="sig-param">eq=True</em>, <em class="sig-param">order=False</em>, <em class="sig-param">unsafe_hash=False</em>, <em class="sig-param">frozen=False</em>, <em class="sig-param">delay=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.klass.make_typedclass" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.klass.</code><code class="sig-name descname">make_typedclass</code><span class="sig-paren">(</span><em class="sig-param">cls</em>, <em class="sig-param">*</em>, <em class="sig-param">init=True</em>, <em class="sig-param">repr=True</em>, <em class="sig-param">eq=True</em>, <em class="sig-param">order=False</em>, <em class="sig-param">unsafe_hash=False</em>, <em class="sig-param">frozen=False</em>, <em class="sig-param">delay=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/klass.html#make_typedclass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.klass.make_typedclass" title="Permalink to this definition">¶</a></dt>
 <dd><p>A convenience function for generating a dataclass with type-coercion.</p>
 <p>Allows the user to create typed dataclasses on-demand from a base-class, i.e.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TypedClass</span> <span class="o">=</span> <span class="n">make_typedclass</span><span class="p">(</span><span class="n">UnTypedClass</span><span class="p">)</span>

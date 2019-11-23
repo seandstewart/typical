@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Utilities &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Utilities &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/extras/utilities.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -153,7 +154,7 @@
 annotations.</p>
 <span class="target" id="module-typic.util"></span><dl class="attribute">
 <dt id="typic.util.safe_eval">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">safe_eval</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.safe_eval" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">safe_eval</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#safe_eval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.safe_eval" title="Permalink to this definition">¶</a></dt>
 <dd><p>Try a few methods to evaluate a string and get the correct Python data-type.</p>
 <p>Return the result and an indicator for whether we could do anything with it.</p>
 <p class="rubric">Examples</p>
@@ -180,7 +181,7 @@ annotations.</p>
 
 <dl class="attribute">
 <dt id="typic.util.origin">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">origin</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.origin" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">origin</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#origin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.origin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the ‘origin’-type for subclasses of typing._SpecialForm, recursive.</p>
 <p>For the purposes of this library, if we can resolve to a builtin type, we will.</p>
 <p class="rubric">Examples</p>
@@ -210,7 +211,7 @@ annotations.</p>
 
 <dl class="attribute">
 <dt id="typic.util.get_args">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">get_args</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.get_args" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">get_args</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#get_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.get_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the args supplied to an annotation, excluding <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeVar" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.TypeVar</span></code></a>.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -233,7 +234,7 @@ annotations.</p>
 
 <dl class="attribute">
 <dt id="typic.util.resolve_supertype">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">resolve_supertype</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.resolve_supertype" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">resolve_supertype</code><span class="sig-paren">(</span><em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#resolve_supertype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.resolve_supertype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve NewTypes, recursively.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -253,7 +254,7 @@ annotations.</p>
 
 <dl class="attribute">
 <dt id="typic.util.cached_signature">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cached_signature" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#cached_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.cached_signature" title="Permalink to this definition">¶</a></dt>
 <dd><p>A cached result of <a class="reference external" href="https://docs.python.org/3/library/inspect.html#inspect.signature" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">inspect.signature()</span></code></a>.</p>
 <p>Building the function signature is notoriously slow, but we can be safe that the
 signature won’t change at runtime, so we cache the result.</p>
@@ -267,7 +268,7 @@ signature won’t change at runtime, so we cache the result.</p>
 
 <dl class="attribute">
 <dt id="typic.util.cached_type_hints">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_type_hints</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cached_type_hints" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cached_type_hints</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#cached_type_hints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.cached_type_hints" title="Permalink to this definition">¶</a></dt>
 <dd><p>A cached result of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.get_type_hints" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">typing.get_type_hints()</span></code></a>.</p>
 <p>We don’t want to go through the process of resolving type-hints every time.</p>
 <dl class="field-list simple">
@@ -279,7 +280,7 @@ signature won’t change at runtime, so we cache the result.</p>
 
 <dl class="function">
 <dt id="typic.util.typed_dict_signature">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">typed_dict_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.typed_dict_signature" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">typed_dict_signature</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#typed_dict_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.typed_dict_signature" title="Permalink to this definition">¶</a></dt>
 <dd><p>A little faker for getting the “signature” of a <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code>.</p>
 <p>Technically, these are dicts at runtime, but we are enforcing a static shape,
 so we should be able to declare a matching signature for it.</p>
@@ -292,7 +293,7 @@ so we should be able to declare a matching signature for it.</p>
 
 <dl class="function">
 <dt id="typic.util.primitive">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">primitive</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.primitive" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">primitive</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#primitive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.primitive" title="Permalink to this definition">¶</a></dt>
 <dd><p>A single-dispatch function for converting an object to its primitive equivalent.</p>
 <p>Useful for encoding data to JSON.</p>
 <p>Registration for custom types may be done by wrapping your handler with <cite>&#64;primitive.register</cite></p>
@@ -334,7 +335,7 @@ so we should be able to declare a matching signature for it.</p>
 
 <dl class="function">
 <dt id="typic.util.cachedmethod">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.cachedmethod" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">cachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#cachedmethod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.cachedmethod" title="Permalink to this definition">¶</a></dt>
 <dd><p>Thread-safe caching of the result of an instance method.</p>
 <p>Mimics some of the pure-Python implementation of <a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.lru_cache" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.lru_cache()</span></code></a>.
 Major differences are that it’s un-bounded in size and no direct access to the cache.
@@ -344,7 +345,7 @@ is implemented in C.</p>
 
 <dl class="function">
 <dt id="typic.util.fastcachedmethod">
-<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">fastcachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.util.fastcachedmethod" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">typic.util.</code><code class="sig-name descname">fastcachedmethod</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/util.html#fastcachedmethod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.util.fastcachedmethod" title="Permalink to this definition">¶</a></dt>
 <dd><p>Super-fast memoization of a method.</p>
 <p class="rubric">Notes</p>
 <p>This is limited to a method that takes only one arg and is un-bounded in size.</p>

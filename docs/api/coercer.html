@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Coercer API &#8212; typical 2.0.0b1 documentation</title>
+    <title>typical Coercer API &#8212; typical 2.0.0b3 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -12,6 +12,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/api/coercer.html" />
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -32,7 +33,7 @@
         <div class="sphinxsidebarwrapper">
 <p class="logo">
   <a href="../index.html">
-    <img class="logo" src="../_static/logo.svg" alt="Logo"/>
+    <img class="logo" src="../_static/logo.png" alt="Logo"/>
     
   </a>
 </p>
@@ -161,7 +162,7 @@ for completion.</p>
 
 <dl class="class">
 <dt id="typic.coercer.BoundArguments">
-<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">BoundArguments</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">annotations</em>, <em class="sig-param">parameters</em>, <em class="sig-param">arguments</em>, <em class="sig-param">returns</em>, <em class="sig-param">_argnames</em>, <em class="sig-param">_kwdargnames</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.BoundArguments" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">BoundArguments</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">annotations</em>, <em class="sig-param">parameters</em>, <em class="sig-param">arguments</em>, <em class="sig-param">returns</em>, <em class="sig-param">_argnames</em>, <em class="sig-param">_kwdargnames</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#BoundArguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.BoundArguments" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
 <dt id="typic.coercer.BoundArguments.annotations">
 <code class="sig-name descname">annotations</code><em class="property"> = None</em><a class="headerlink" href="#typic.coercer.BoundArguments.annotations" title="Permalink to this definition">¶</a></dt>
@@ -182,7 +183,7 @@ for completion.</p>
 
 <dl class="method">
 <dt id="typic.coercer.BoundArguments.eval">
-<code class="sig-name descname">eval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.BoundArguments.eval" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">eval</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#BoundArguments.eval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.BoundArguments.eval" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluate the callable against the input provided.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
@@ -251,7 +252,7 @@ a given coercer.</p>
 
 <dl class="class">
 <dt id="typic.coercer.ResolvedAnnotation">
-<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">ResolvedAnnotation</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">origin</em>, <em class="sig-param">un_resolved</em>, <em class="sig-param">coercer</em>, <em class="sig-param">parameter</em>, <em class="sig-param">constraints=None</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.ResolvedAnnotation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">ResolvedAnnotation</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">origin</em>, <em class="sig-param">un_resolved</em>, <em class="sig-param">coercer</em>, <em class="sig-param">parameter</em>, <em class="sig-param">constraints=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.ResolvedAnnotation" title="Permalink to this definition">¶</a></dt>
 <dd><p>An actionable run-time annotation.</p>
 <dl class="simple">
 <dt>For the case of <code class="docutils literal notranslate"><span class="pre">typical</span></code>, a “resolved annotation” is one in which we have located:</dt><dd><ul class="simple">
@@ -275,7 +276,7 @@ a given coercer.</p>
 
 <dl class="method">
 <dt id="typic.coercer.ResolvedAnnotation.coerce">
-<code class="sig-name descname">coerce</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.ResolvedAnnotation.coerce" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">coerce</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation.coerce"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.ResolvedAnnotation.coerce" title="Permalink to this definition">¶</a></dt>
 <dd><p>Coercer an in-coming <code class="docutils literal notranslate"><span class="pre">value</span></code> to the appropriate type defined by the anno.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -316,7 +317,7 @@ a given coercer.</p>
 
 <dl class="method">
 <dt id="typic.coercer.ResolvedAnnotation.validate">
-<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.ResolvedAnnotation.validate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#ResolvedAnnotation.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.ResolvedAnnotation.validate" title="Permalink to this definition">¶</a></dt>
 <dd><p>If this annotation has any defined constraints, we can a value against them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -329,7 +330,7 @@ a given coercer.</p>
 
 <dl class="class">
 <dt id="typic.coercer.TypeCoercer">
-<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">TypeCoercer</code><a class="headerlink" href="#typic.coercer.TypeCoercer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">typic.coercer.</code><code class="sig-name descname">TypeCoercer</code><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer" title="Permalink to this definition">¶</a></dt>
 <dd><p>A callable class for coercing values.</p>
 <dl class="simple">
 <dt>Checks for:</dt><dd><ul class="simple">
@@ -356,12 +357,12 @@ a given coercer.</p>
 
 <dl class="attribute">
 <dt id="typic.coercer.TypeCoercer.UNRESOLVABLE">
-<code class="sig-name descname">UNRESOLVABLE</code><em class="property"> = frozenset({&lt;class 're.Match'&gt;, &lt;class 'NoneType'&gt;, &lt;class 'inspect._empty'&gt;, typing.Any, typing.Union, typing.Match})</em><a class="headerlink" href="#typic.coercer.TypeCoercer.UNRESOLVABLE" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">UNRESOLVABLE</code><em class="property"> = frozenset({&lt;class 're.Match'&gt;, &lt;class 'NoneType'&gt;, typing.Union, &lt;class 'inspect._empty'&gt;, typing.Match, typing.Any})</em><a class="headerlink" href="#typic.coercer.TypeCoercer.UNRESOLVABLE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.annotations">
-<code class="sig-name descname">annotations</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.annotations" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">annotations</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.annotations" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a mapping of param/attr name -&gt; <a class="reference internal" href="#typic.coercer.ResolvedAnnotation" title="typic.coercer.ResolvedAnnotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvedAnnotation</span></code></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -391,7 +392,7 @@ a given coercer.</p>
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.bind">
-<code class="sig-name descname">bind</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">*args</em>, <em class="sig-param">partial=False</em>, <em class="sig-param">coerce=True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.bind" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">bind</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">*args</em>, <em class="sig-param">partial=False</em>, <em class="sig-param">coerce=True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.bind" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bind a received input to a callable or object’s signature.</p>
 <p>If we can locate an annotation for any args or kwargs, we’ll automatically
 coerce as well.</p>
@@ -438,7 +439,7 @@ We also use a cached the signature to avoid the expense of that call if possible
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.coerce_value">
-<code class="sig-name descname">coerce_value</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.coerce_value" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">coerce_value</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">annotation</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.coerce_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.coerce_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Coerce the given value to the given annotation, if possible.</p>
 <dl class="simple">
 <dt>Checks for:</dt><dd><ul class="simple">
@@ -465,7 +466,7 @@ We also use a cached the signature to avoid the expense of that call if possible
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.get_coercer">
-<code class="sig-name descname">get_coercer</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">*</em>, <em class="sig-param">default</em>, <em class="sig-param">is_optional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.get_coercer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_coercer</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">*</em>, <em class="sig-param">default</em>, <em class="sig-param">is_optional=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.get_coercer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.get_coercer" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.8)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], ~Origin]</p>
@@ -475,7 +476,7 @@ We also use a cached the signature to avoid the expense of that call if possible
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.register">
-<code class="sig-name descname">register</code><span class="sig-paren">(</span><em class="sig-param">coercer</em>, <em class="sig-param">check</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.register" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">register</code><span class="sig-paren">(</span><em class="sig-param">coercer</em>, <em class="sig-param">check</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.register" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register a user-defined coercer.</p>
 <p>In the rare case where typic can’t figure out how to coerce your annotation
 correctly, a custom coercer may be registered alongside a check function which
@@ -485,7 +486,7 @@ annotation.</p>
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.resolve">
-<code class="sig-name descname">resolve</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">*</em>, <em class="sig-param">origin=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">parameter=None</em>, <em class="sig-param">constraints=None</em>, <em class="sig-param">is_optional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.resolve" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">resolve</code><span class="sig-paren">(</span><em class="sig-param">annotation</em>, <em class="sig-param">*</em>, <em class="sig-param">origin=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">parameter=None</em>, <em class="sig-param">constraints=None</em>, <em class="sig-param">is_optional=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.resolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.resolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a <a class="reference internal" href="#typic.coercer.ResolvedAnnotation" title="typic.coercer.ResolvedAnnotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvedAnnotation</span></code></a> from a type.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
@@ -496,7 +497,7 @@ annotation.</p>
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.schema">
-<code class="sig-name descname">schema</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">*</em>, <em class="sig-param">primitive=False</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.schema" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">schema</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">*</em>, <em class="sig-param">primitive=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.schema" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get a JSON schema for object for the given object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -529,7 +530,7 @@ a “primitive” (dict object).</p></li>
 
 <dl class="method">
 <dt id="typic.coercer.TypeCoercer.seen">
-<code class="sig-name descname">seen</code><span class="sig-paren">(</span><em class="sig-param">cls_or_callable</em><span class="sig-paren">)</span><a class="headerlink" href="#typic.coercer.TypeCoercer.seen" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">seen</code><span class="sig-paren">(</span><em class="sig-param">cls_or_callable</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/coercer.html#TypeCoercer.seen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.coercer.TypeCoercer.seen" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>

@@ -347,12 +347,9 @@ def _resolve_from_env(
     environ: Mapping[str, str] = None,
 ) -> Type[Object]:
     environ = environ or os.environ
-    env = {
-        (x.lstrip(prefix).lower() if not case_sensitive else x.lstrip(prefix)): y
-        for x, y in environ.items()
-    }
+    env = {(x.lower() if not case_sensitive else x): y for x, y in environ.items()}
     fields = {
-        (x.lower() if not case_sensitive else x): (x, y)
+        (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
         for x, y in cls.__annotations__.items()
     }
     names = {*fields, *aliases}

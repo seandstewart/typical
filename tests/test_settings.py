@@ -11,6 +11,10 @@ class Foo:
     bar: int
 
 
+class DB:
+    port: int
+
+
 @pytest.mark.parametrize(
     argnames=("kwargs", "value", "name"),
     argvalues=[
@@ -18,6 +22,7 @@ class Foo:
         ({"prefix": "", "case_sensitive": True, "aliases": {}}, 1, "bar"),
         ({"prefix": "", "case_sensitive": False, "aliases": {}}, 1, "BAR"),
         ({"prefix": "OTHER_", "case_sensitive": False, "aliases": {}}, 1, "OTHER_BAR"),
+        ({"prefix": "FAB_", "case_sensitive": False, "aliases": {}}, 1, "FAB_BAR"),
     ],
 )
 def test__resolve_from_env(kwargs, value, name):
@@ -26,9 +31,9 @@ def test__resolve_from_env(kwargs, value, name):
 
 
 def test__resolve_from_env_field():
-    Foo.bar = dataclasses.field()
-    _resolve_from_env(Foo, "", False, {}, environ={"bar": "1"})
-    assert Foo.bar.default == 1
+    DB.port = dataclasses.field()
+    _resolve_from_env(DB, "APP_", False, {}, environ={"APP_PORT": "1"})
+    assert DB.port.default == 1
 
 
 class Bar:
