@@ -1,0 +1,618 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>typic.api &#8212; typical 2.0.0b3 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/_modules/typic/api.html" />
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../_static/favicon/apple-touch-icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">A simple, fast, & correct data-validation library.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=seandstewart&repo=typical&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/seandstewart/typical">
+    <img
+        alt="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+        src="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/seandstewart/typical">
+    <img
+    alt="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    src="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../extras/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">Low-Level API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for typic.api</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: UTF-8 -*-</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Union</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">Type</span><span class="p">,</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Mapping</span><span class="p">,</span>
+    <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">Generic</span><span class="p">,</span>
+    <span class="n">cast</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">typic.constraints</span> <span class="k">as</span> <span class="nn">c</span>
+<span class="kn">from</span> <span class="nn">typic.checks</span> <span class="k">import</span> <span class="nb">issubclass</span><span class="p">,</span> <span class="n">ishashable</span>
+<span class="kn">from</span> <span class="nn">typic.coercer</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">TypeCoercer</span> <span class="k">as</span> <span class="n">__TypeCoercer</span><span class="p">,</span>
+    <span class="n">_TO_RESOLVE</span><span class="p">,</span>
+    <span class="n">_ORIG_SETTER_NAME</span><span class="p">,</span>
+    <span class="n">_origsettergetter</span><span class="p">,</span>
+    <span class="n">BoundArguments</span><span class="p">,</span>
+    <span class="n">ResolvedAnnotation</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">typic.util</span> <span class="k">import</span> <span class="n">origin</span><span class="p">,</span> <span class="n">primitive</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;annotations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bind&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;coerce&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;register&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;resolve&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;settings&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;schema&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;schemas&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;typed&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wrap&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wrap_cls&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;constrained&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BoundArguments&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ResolvedAnnotation&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">Object</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;Object&quot;</span><span class="p">)</span>
+
+<span class="n">coerce</span><span class="p">:</span> <span class="n">__TypeCoercer</span> <span class="o">=</span> <span class="n">__TypeCoercer</span><span class="p">()</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">bind</span>
+<span class="n">register</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">register</span>
+<span class="n">annotations</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">annotations</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">schema</span>
+<span class="n">schemas</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">schema_builder</span><span class="o">.</span><span class="n">all</span>
+
+<span class="n">_T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_T&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TypicObject</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">_T</span><span class="p">]):</span>
+
+    <span class="n">schema</span> <span class="o">=</span> <span class="nb">classmethod</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+    <span class="n">primitive</span> <span class="o">=</span> <span class="n">primitive</span>
+
+
+<div class="viewcode-block" id="wrap"><a class="viewcode-back" href="../../api/api.html#typic.api.wrap">[docs]</a><span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Wrap a callable to automatically enforce type-coercion.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func</span>
+<span class="sd">        The callable for which you wish to ensure type-safety</span>
+<span class="sd">    delay</span>
+<span class="sd">        Delay annotation resolution until the first call</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :py:func:`inspect.signature`</span>
+<span class="sd">    :py:meth:`inspect.Signature.bind`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">delay</span><span class="p">:</span>
+        <span class="n">coerce</span><span class="o">.</span><span class="n">annotations</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_TO_RESOLVE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">func_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">bound</span> <span class="o">=</span> <span class="n">coerce</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">func_wrapper</span></div>
+
+
+<div class="viewcode-block" id="wrap_cls"><a class="viewcode-back" href="../../api/api.html#typic.api.wrap_cls">[docs]</a><span class="k">def</span> <span class="nf">wrap_cls</span><span class="p">(</span>
+    <span class="n">klass</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">TypicObject</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Wrap a class to automatically enforce type-coercion on init.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    While ``Coercer.wrap`` will work with classes alone, it changes the signature of the</span>
+<span class="sd">    object to a function, there-by breaking inheritance. This follows a similar pattern to</span>
+<span class="sd">    :func:`dataclasses.dataclasses`, which executes the function when wrapped, preserving</span>
+<span class="sd">    the signature of the target class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    klass</span>
+<span class="sd">        The class you wish to patch with coercion.</span>
+<span class="sd">    delay</span>
+<span class="sd">        Delay annotation resolution until first initialization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Resolve the annotations. This will store them on the object as well</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">delay</span><span class="p">:</span>
+        <span class="n">coerce</span><span class="o">.</span><span class="n">annotations</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+        <span class="n">coerce</span><span class="o">.</span><span class="n">schema</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_TO_RESOLVE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">cls_wrapper</span><span class="p">(</span><span class="n">cls_</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">TypicObject</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]]]:</span>
+        <span class="n">cls_</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="nb">classmethod</span><span class="p">(</span><span class="n">coerce</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="n">cls_</span><span class="o">.</span><span class="n">primitive</span> <span class="o">=</span> <span class="n">primitive</span>  <span class="c1"># type: ignore</span>
+        <span class="c1"># Frozen dataclasses don&#39;t use the native setattr</span>
+        <span class="c1"># So we wrap the init. This should be fine,</span>
+        <span class="c1"># just slower :(</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">cls_</span><span class="p">,</span> <span class="s2">&quot;__dataclass_params__&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">cls_</span><span class="o">.</span><span class="n">__dataclass_params__</span><span class="o">.</span><span class="n">frozen</span>  <span class="c1"># type: ignore</span>
+        <span class="p">):</span>
+            <span class="n">cls_</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">wrap</span><span class="p">(</span><span class="n">cls_</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">cls_</span><span class="p">,</span> <span class="n">_ORIG_SETTER_NAME</span><span class="p">,</span> <span class="n">_get_setter</span><span class="p">(</span><span class="n">cls_</span><span class="p">))</span>
+            <span class="n">cls_</span><span class="o">.</span><span class="fm">__setattr__</span> <span class="o">=</span> <span class="n">__setattr_coerced__</span>  <span class="c1"># type: ignore</span>
+        <span class="k">return</span> <span class="n">cls_</span>  <span class="c1"># type: ignore</span>
+
+    <span class="n">wrapped</span> <span class="o">=</span> <span class="n">cls_wrapper</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wrapped</span></div>
+
+
+<span class="k">def</span> <span class="nf">__setattr_coerced__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="n">ann</span> <span class="o">=</span> <span class="n">annotations</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">ann</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ann</span> <span class="k">else</span> <span class="n">value</span>
+    <span class="n">_origsettergetter</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_setter</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span> <span class="n">bases</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="n">bases</span> <span class="o">=</span> <span class="n">bases</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__bases__</span>
+    <span class="n">setter</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span>
+    <span class="k">if</span> <span class="n">setter</span> <span class="ow">is</span> <span class="n">__setattr_coerced__</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">_ORIG_SETTER_NAME</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">_ORIG_SETTER_NAME</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;__setattr__&quot;</span>
+            <span class="p">)</span>
+            <span class="n">setter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">setter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">__setattr_coerced__</span><span class="p">:</span>
+                <span class="k">break</span>
+    <span class="k">return</span> <span class="n">setter</span>
+
+
+<div class="viewcode-block" id="typed"><a class="viewcode-back" href="../../api/api.html#typic.api.typed">[docs]</a><span class="k">def</span> <span class="nf">typed</span><span class="p">(</span><span class="n">_cls_or_callable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A convenience function which automatically selects the correct wrapper.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    delay</span>
+<span class="sd">        Optionally delay annotation resolution until first call.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    The target object, appropriately wrapped.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_typed</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]]):</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">wrap_cls</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>  <span class="c1"># type: ignore</span>
+            <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="n">delay</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{__name__}</span><span class="s2"> requires a callable or class. Provided: {type(obj)}: </span><span class="si">{obj}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_typed</span><span class="p">(</span><span class="n">_cls_or_callable</span><span class="p">)</span> <span class="k">if</span> <span class="n">_cls_or_callable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_typed</span></div>
+
+
+<div class="viewcode-block" id="resolve"><a class="viewcode-back" href="../../usage/advanced.html#typic.api.resolve">[docs]</a><span class="k">def</span> <span class="nf">resolve</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Resolve any delayed annotations.</span>
+
+<span class="sd">    If this is not called, annotations will be resolved on first call</span>
+<span class="sd">    of the wrapped class or callable.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import typic</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; @typic.klass(delay=True)</span>
+<span class="sd">    ... class Duck:</span>
+<span class="sd">    ...     color: str</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; typic.resolve()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="n">_TO_RESOLVE</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">_TO_RESOLVE</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">annotations</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">schema</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span></div>
+
+
+<span class="n">_CONSTRAINT_TYPE_MAP</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="o">.</span><span class="n">type</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">Constraints</span><span class="o">.</span><span class="n">__args__</span><span class="p">}</span>  <span class="c1"># type: ignore</span>
+
+
+<span class="k">def</span> <span class="nf">_get_constraint_cls</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">Constraints</span><span class="p">]]:</span>
+    <span class="k">if</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">_CONSTRAINT_TYPE_MAP</span><span class="p">:</span>  <span class="c1"># pragma: nocover</span>
+        <span class="k">return</span> <span class="n">_CONSTRAINT_TYPE_MAP</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">typ</span><span class="p">,</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">_CONSTRAINT_TYPE_MAP</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">origin</span><span class="p">(</span><span class="bp">cls</span><span class="p">),</span> <span class="n">typ</span><span class="p">):</span>
+            <span class="n">_CONSTRAINT_TYPE_MAP</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span> <span class="o">=</span> <span class="n">constr</span>
+            <span class="k">return</span> <span class="n">constr</span>
+
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="constrained"><a class="viewcode-back" href="../../extras/constraints.html#typic.api.constrained">[docs]</a><span class="k">def</span> <span class="nf">constrained</span><span class="p">(</span>
+    <span class="n">_klass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">constraints</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A wrapper to indicate a &#39;constrained&#39; type.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    values</span>
+<span class="sd">        For container-types, you can pass in other constraints for the values to be</span>
+<span class="sd">        validated against. Can be a single constraint for all values or a tuple of</span>
+<span class="sd">        constraints to choose from.</span>
+
+<span class="sd">    **constraints</span>
+<span class="sd">        The restrictions to apply to values being cast as the decorated type.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import typic</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; @typic.constrained(max_length=10)</span>
+<span class="sd">    ... class ShortStr(str):</span>
+<span class="sd">    ...     &#39;&#39;&#39;A short string.&#39;&#39;&#39;</span>
+<span class="sd">    ...     ...</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; ShortStr(&#39;foo&#39;)</span>
+<span class="sd">    &#39;foo&#39;</span>
+<span class="sd">    &gt;&gt;&gt; ShortStr(&#39;waytoomanycharacters&#39;)</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    typic.constraints.error.ConstraintValueError: Given value &lt;&#39;waytoomanycharacters&#39;&gt; fails constraints: (type=str, max_length=10)</span>
+<span class="sd">    &gt;&gt;&gt; @typic.constrained(values=ShortStr, max_items=2)</span>
+<span class="sd">    ... class SmallMap(dict):</span>
+<span class="sd">    ...     &#39;&#39;&#39;A small map that only allows short strings.&#39;&#39;&#39;</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; import json</span>
+<span class="sd">    &gt;&gt;&gt; print(json.dumps(typic.schema(SmallMap, primitive=True), indent=2))</span>
+<span class="sd">    {</span>
+<span class="sd">      &quot;type&quot;: &quot;object&quot;,</span>
+<span class="sd">      &quot;title&quot;: &quot;SmallMap&quot;,</span>
+<span class="sd">      &quot;description&quot;: &quot;A small map that only allows short strings.&quot;,</span>
+<span class="sd">      &quot;additionalProperties&quot;: {</span>
+<span class="sd">        &quot;type&quot;: &quot;string&quot;,</span>
+<span class="sd">        &quot;maxLength&quot;: 10</span>
+<span class="sd">      },</span>
+<span class="sd">      &quot;maxProperties&quot;: 2</span>
+<span class="sd">    }</span>
+
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :py:mod:`typic.constraints.array`</span>
+
+<span class="sd">    :py:mod:`typic.constraints.common`</span>
+
+<span class="sd">    :py:mod:`typic.constraints.error`</span>
+
+<span class="sd">    :py:mod:`typic.constraints.mapping`</span>
+
+<span class="sd">    :py:mod:`typic.constraints.number`</span>
+
+<span class="sd">    :py:mod:`typic.constraints.text`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">constr_wrapper</span><span class="p">(</span><span class="n">cls_</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]:</span>
+        <span class="k">nonlocal</span> <span class="n">constraints</span>
+        <span class="k">nonlocal</span> <span class="n">values</span>
+        <span class="n">constr_cls</span> <span class="o">=</span> <span class="n">_get_constraint_cls</span><span class="p">(</span><span class="n">cls_</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">constr_cls</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;can&#39;t constrain type </span><span class="si">{cls_.__name__!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">values</span> <span class="ow">and</span> <span class="n">constr_cls</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">}:</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">__constraints__</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">values</span><span class="o">.</span><span class="n">__constraints__</span>
+            <span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;additional_items&quot;</span> <span class="k">if</span> <span class="n">constr_cls</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="nb">dict</span> <span class="k">else</span> <span class="s2">&quot;items&quot;</span>
+            <span class="n">constraints</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+
+        <span class="n">constraints_inst</span> <span class="o">=</span> <span class="n">constr_cls</span><span class="p">(</span><span class="o">**</span><span class="n">constraints</span><span class="p">)</span>
+        <span class="n">cdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">cls_</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="n">cdict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;__dict__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">cdict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;__weakref__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">bases</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmro</span><span class="p">(</span><span class="n">cls_</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">new</span><span class="p">(</span><span class="n">_new</span><span class="p">):</span>
+            <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">_new</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">__constrained_new</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">_new</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">constraints_inst</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">__constrained_new</span>
+
+        <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="n">_init</span><span class="p">):</span>
+            <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">_init</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">__constrained_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">constraints_inst</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">__constrained_init</span>
+
+        <span class="n">cdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">__constraints__</span><span class="o">=</span><span class="n">constraints_inst</span><span class="p">,</span>
+            <span class="n">__origin__</span><span class="o">=</span><span class="n">constraints_inst</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;__new__&quot;</span><span class="p">:</span> <span class="n">new</span><span class="p">(</span><span class="n">cls_</span><span class="o">.</span><span class="fm">__new__</span><span class="p">)}</span>
+                <span class="k">if</span> <span class="n">constraints_inst</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">}</span>
+                <span class="k">else</span> <span class="p">{</span><span class="s2">&quot;__init__&quot;</span><span class="p">:</span> <span class="n">init</span><span class="p">(</span><span class="n">cls_</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)}</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="n">cls_</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">cdict</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">return</span> <span class="n">constr_wrapper</span><span class="p">(</span><span class="n">_klass</span><span class="p">)</span> <span class="k">if</span> <span class="n">_klass</span> <span class="k">else</span> <span class="n">constr_wrapper</span></div>
+
+
+<span class="k">def</span> <span class="nf">_resolve_from_env</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">],</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">case_sensitive</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">aliases</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">environ</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]:</span>
+    <span class="n">environ</span> <span class="o">=</span> <span class="n">environ</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="p">{(</span><span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">case_sensitive</span> <span class="k">else</span> <span class="n">x</span><span class="p">):</span> <span class="n">y</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">environ</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">f</span><span class="s2">&quot;</span><span class="si">{prefix}{x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">case_sensitive</span> <span class="k">else</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{prefix}{x}</span><span class="s2">&quot;</span><span class="p">):</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__annotations__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="o">*</span><span class="n">fields</span><span class="p">,</span> <span class="o">*</span><span class="n">aliases</span><span class="p">}</span>
+    <span class="n">sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">names</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">attr</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">coerce</span><span class="p">(</span><span class="n">env</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">typ</span><span class="p">)</span>
+        <span class="n">use_factory</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">ishashable</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">sentinel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">Field</span><span class="p">):</span>
+            <span class="n">field</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">use_factory</span><span class="p">:</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">default_factory</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">val</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">MISSING</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">default_factory</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">MISSING</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">cls</span>
+
+
+<div class="viewcode-block" id="settings"><a class="viewcode-back" href="../../extras/settings.html#typic.api.settings">[docs]</a><span class="k">def</span> <span class="nf">settings</span><span class="p">(</span>
+    <span class="n">_klass</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">case_sensitive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">aliases</span><span class="p">:</span> <span class="n">Mapping</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Create a typed class which sets its defaults from env vars.</span>
+
+<span class="sd">    The resolution order of values is ``default(s) -&gt; env value(s) -&gt; passed value(s)``.</span>
+
+<span class="sd">    Settings instances are indistinguishable from other ``typical`` dataclasses at</span>
+<span class="sd">    run-time and are frozen by default. If you really want your settings to be mutable,</span>
+<span class="sd">    you may pass in ``frozen=False`` manually.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    prefix</span>
+<span class="sd">        The prefix to strip from you env variables, i.e., ``APP_``</span>
+<span class="sd">    case_sensitive</span>
+<span class="sd">        Whether your variables are case-sensitive. Defaults to ``False``.</span>
+<span class="sd">    frozen</span>
+<span class="sd">        Whether to generate a frozen dataclass. Defaults to ``True``</span>
+<span class="sd">    aliases</span>
+<span class="sd">        An optional mapping of potential aliases for your dataclass&#39;s fields.</span>
+<span class="sd">        ``{&#39;other_foo&#39;: &#39;foo&#39;}`` will locate the env var ``OTHER_FOO`` and place it</span>
+<span class="sd">        on the ``Bar.foo`` attribute.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Environment variables are resolved at compile-time, so updating your env after your</span>
+<span class="sd">    typed classes are loaded into the namespace will not work.</span>
+
+<span class="sd">    If you are using dotenv based configuration, you should read your dotenv file(s)</span>
+<span class="sd">    into the env *before* initializing the module where your settings are located.</span>
+
+<span class="sd">    A structure might look like:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my-project/</span>
+<span class="sd">        -- env/</span>
+<span class="sd">        ..  -- .env.default</span>
+<span class="sd">        ..  -- .env.local</span>
+<span class="sd">        ..      ...</span>
+<span class="sd">        ..  -- __init__.py  # load your dotenv files here</span>
+<span class="sd">        ..  -- settings.py  # define your classes</span>
+
+
+<span class="sd">    This will ensure your dotenv files are loaded into the environment before the Python</span>
+<span class="sd">    interpreter parses &amp; compiles your config classes, since the Python parser parses</span>
+<span class="sd">    the init file before parsing anything else under the directory.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import os</span>
+<span class="sd">    &gt;&gt;&gt; import typic</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; os.environ[&#39;FOO&#39;] = &quot;1&quot;</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; @typic.settings</span>
+<span class="sd">    ... class Bar:</span>
+<span class="sd">    ...     foo: int</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; Bar()</span>
+<span class="sd">    Bar(foo=1)</span>
+<span class="sd">    &gt;&gt;&gt; Bar(&quot;3&quot;)</span>
+<span class="sd">    Bar(foo=3)</span>
+<span class="sd">    &gt;&gt;&gt; bar = Bar()</span>
+<span class="sd">    &gt;&gt;&gt; bar.foo = 2</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    dataclasses.FrozenInstanceError: cannot assign to field &#39;foo&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">aliases</span> <span class="o">=</span> <span class="n">aliases</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">settings_wrapper</span><span class="p">(</span><span class="n">_cls</span><span class="p">):</span>
+        <span class="n">_resolve_from_env</span><span class="p">(</span><span class="n">_cls</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="p">,</span> <span class="n">aliases</span><span class="p">)</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">wrap_cls</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">dataclass</span><span class="p">(</span><span class="n">_cls</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="n">frozen</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">return</span> <span class="n">settings_wrapper</span><span class="p">(</span><span class="n">_klass</span><span class="p">)</span> <span class="k">if</span> <span class="n">_klass</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">settings_wrapper</span></div>
+</pre></div>
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;Copyright 2019 Sean Stewart.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

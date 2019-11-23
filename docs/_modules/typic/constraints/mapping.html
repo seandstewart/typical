@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>typic.constraints.mapping &#8212; typical 2.0.0b3 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="canonical" href="https://seandstewart.github.io/typical/_modules/typic/constraints/mapping.html" />
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../../_static/favicon/apple-touch-icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">A simple, fast, & correct data-validation library.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=seandstewart&repo=typical&type=star&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/seandstewart/typical">
+    <img
+        alt="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+        src="https://secure.travis-ci.org/seandstewart/typical.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/seandstewart/typical">
+    <img
+    alt="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    src="https://codecov.io/github/seandstewart/typical/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../extras/index.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Extras</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">Low-Level API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for typic.constraints.mapping</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: UTF-8 -*-</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Type</span><span class="p">,</span>
+    <span class="n">ClassVar</span><span class="p">,</span>
+    <span class="n">Mapping</span><span class="p">,</span>
+    <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
+    <span class="n">FrozenSet</span><span class="p">,</span>
+    <span class="n">Pattern</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span>
+    <span class="n">Collection</span><span class="p">,</span>
+    <span class="n">List</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">typic</span> <span class="k">import</span> <span class="n">gen</span>
+<span class="kn">from</span> <span class="nn">typic.types.frozendict</span> <span class="k">import</span> <span class="n">FrozenDict</span>
+<span class="kn">from</span> <span class="nn">.common</span> <span class="k">import</span> <span class="n">BaseConstraints</span><span class="p">,</span> <span class="n">Context</span><span class="p">,</span> <span class="n">Checks</span><span class="p">,</span> <span class="n">VT</span>
+<span class="kn">from</span> <span class="nn">.error</span> <span class="k">import</span> <span class="n">ConstraintSyntaxError</span>
+
+<span class="n">KeyDependency</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="s2">&quot;MappingConstraints&quot;</span><span class="p">]</span>
+<span class="sd">&quot;&quot;&quot;A &#39;key dependency&#39; defines constraints which are applied *only* if a key is present.</span>
+
+<span class="sd">This can be either a tuple of dependent keys, or an additional MappingConstraints, which</span>
+<span class="sd">is treated as a sub-schema to the parent MappingConstraints.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_validate_item</span><span class="p">(</span><span class="n">constraints</span><span class="p">:</span> <span class="n">BaseConstraints</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">VT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VT</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">constraints</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_validate_item_multi</span><span class="p">(</span><span class="n">constraints</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">],</span> <span class="n">val</span><span class="p">:</span> <span class="n">VT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VT</span><span class="p">:</span>
+    <span class="n">validator</span> <span class="o">=</span> <span class="n">constraints</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="n">validator</span> <span class="k">else</span> <span class="n">val</span>
+
+
+<span class="k">def</span> <span class="nf">validate_pattern_constraints</span><span class="p">(</span>
+    <span class="n">constraints</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Pattern</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">VT</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VT</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">const</span> <span class="ow">in</span> <span class="n">constraints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">val</span>
+
+
+<div class="viewcode-block" id="MappingConstraints"><a class="viewcode-back" href="../../../api/constraints.html#typic.constraints.mapping.MappingConstraints">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">MappingConstraints</span><span class="p">(</span><span class="n">BaseConstraints</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]]</span>
+    <span class="n">min_items</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;The minimum number of items which must be present in this mapping.&quot;&quot;&quot;</span>
+    <span class="n">max_items</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;The maximum number of items which may be present in this mapping.&quot;&quot;&quot;</span>
+    <span class="n">required_keys</span><span class="p">:</span> <span class="n">FrozenSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;A frozenset of keys which must be present in the mapping.&quot;&quot;&quot;</span>
+    <span class="n">key_pattern</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;A regex pattern for which all keys must match.&quot;&quot;&quot;</span>
+    <span class="n">items</span><span class="p">:</span> <span class="n">FrozenDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">FrozenDict</span>
+    <span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;A mapping of constraints associated to specific keys.&quot;&quot;&quot;</span>
+    <span class="n">patterns</span><span class="p">:</span> <span class="n">FrozenDict</span><span class="p">[</span><span class="n">Pattern</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">FrozenDict</span>
+    <span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;A mapping of constraints associated to any key which match the regex pattern.&quot;&quot;&quot;</span>
+    <span class="n">additional_items</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;Whether items not defined as required are allowed.</span>
+
+<span class="sd">    May be a boolean, or more constraints which are applied to all additional items.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">key_dependencies</span><span class="p">:</span> <span class="n">FrozenDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">KeyDependency</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">FrozenDict</span>
+    <span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;A mapping of keys and their dependent restrictions if they are present.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_select_additional_validator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">],</span> <span class="n">BaseConstraints</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">BaseConstraints</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">]:</span>
+        <span class="n">addtl_constraints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span>
+        <span class="n">addtl_validator</span> <span class="o">=</span> <span class="n">_validate_item</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">addtl_constraints</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="o">.</span><span class="n">type</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">}</span>
+            <span class="n">addtl_validator</span> <span class="o">=</span> <span class="n">_validate_item_multi</span>
+        <span class="k">return</span> <span class="n">addtl_constraints</span><span class="p">,</span> <span class="n">addtl_validator</span>
+
+    <span class="k">def</span> <span class="nf">_set_item_validator_loop_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">item_constr_name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_items_validator&quot;</span>
+        <span class="n">addtl_constr_name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_addtl_constr&quot;</span>
+        <span class="n">addtl_validator_name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_addtl_validator&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">:</span>
+            <span class="n">addtl_constraints</span><span class="p">,</span> <span class="n">addtl_validator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_additional_validator</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;val[x] = </span><span class="si">{item_constr_name}</span><span class="s2">[x].validate(y) &quot;</span>
+                <span class="n">f</span><span class="s2">&quot;if x in </span><span class="si">{item_constr_name}</span><span class="s2"> &quot;</span>
+                <span class="n">f</span><span class="s2">&quot;else </span><span class="si">{addtl_validator_name}</span><span class="s2">(</span><span class="si">{addtl_constr_name}</span><span class="s2">, y)&quot;</span>
+            <span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="n">item_constr_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">,</span>
+                    <span class="n">addtl_constr_name</span><span class="p">:</span> <span class="n">addtl_constraints</span><span class="p">,</span>
+                    <span class="n">addtl_validator_name</span><span class="p">:</span> <span class="n">addtl_validator</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;val[x] = </span><span class="si">{item_constr_name}</span><span class="s2">[x].validate(y) &quot;</span>
+                <span class="n">f</span><span class="s2">&quot;if x in </span><span class="si">{item_constr_name}</span><span class="s2"> else y&quot;</span>
+            <span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">item_constr_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">})</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">:</span>
+            <span class="n">addtl_constraints</span><span class="p">,</span> <span class="n">addtl_validator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_additional_validator</span><span class="p">()</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;val[x] = </span><span class="si">{addtl_validator_name}</span><span class="s2">(</span><span class="si">{addtl_constr_name}</span><span class="s2">, y)&quot;</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="n">addtl_constr_name</span><span class="p">:</span> <span class="n">addtl_constraints</span><span class="p">,</span>
+                    <span class="n">addtl_validator_name</span><span class="p">:</span> <span class="n">addtl_validator</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="n">loop</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_item_validator_pattern_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># Item constraints based upon key-pattern</span>
+        <span class="n">pattern_constr_name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_pattern_constraints&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">patterns</span><span class="p">:</span>
+            <span class="n">loop</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;val[x] = validate_pattern_constraints(</span><span class="si">{pattern_constr_name}</span><span class="s2">, x, y)&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="s2">&quot;validate_pattern_constraints&quot;</span><span class="p">:</span> <span class="n">validate_pattern_constraints</span><span class="p">,</span>
+                    <span class="n">pattern_constr_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">patterns</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
+        <span class="c1"># Required key pattern</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_pattern</span><span class="p">:</span>
+            <span class="n">key_pattern_name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_key_pattern&quot;</span>
+            <span class="n">loop</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;valid = bool(</span><span class="si">{key_pattern_name}</span><span class="s2">.match(x))&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="p">{</span><span class="n">key_pattern_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_pattern</span><span class="p">},</span>
+            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;if not valid:&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;break&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_create_item_validator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ns</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">,</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">,</span> <span class="p">(</span><span class="n">BaseConstraints</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">patterns</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">key_pattern</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ns</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{func_name}</span><span class="s2">_item_validator&quot;</span>
+            <span class="k">with</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span> <span class="k">as</span> <span class="n">main</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">main</span><span class="o">.</span><span class="n">f</span><span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">main</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">),</span>
+                    <span class="n">main</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="s2">&quot;addtl&quot;</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="nb">set</span><span class="p">),</span>
+                <span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;valid = True&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">f</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;for x, y in val.items():&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">loop</span><span class="p">:</span>
+                        <span class="c1"># Basic item constraints.</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_set_item_validator_loop_line</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                        <span class="c1"># Key pattern and Item constraints based on pattern.</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_set_item_validator_pattern_constraints</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="c1"># Return the result of the validation</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;return valid, val&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">main</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_build_key_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checks</span><span class="p">:</span> <span class="n">Checks</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">dep</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_dependencies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># If it&#39;s a collection, then we&#39;re just checking if another set of keys exist.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dep</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">dep</span><span class="p">,</span> <span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;{{*val.keys()}}.issuperset({set(dep)})&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;if </span><span class="si">{key!r}</span><span class="s2"> in val else True&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># If it&#39;s an instance of mapping constraints,</span>
+            <span class="c1"># then we validate the entire value against that constraint.</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dep</span><span class="p">,</span> <span class="n">MappingConstraints</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;__</span><span class="si">{key}</span><span class="s2">_constr_{uuid.uuid4().int}&quot;</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{name}</span><span class="s2">.validate(val) if </span><span class="si">{key!r}</span><span class="s2"> in val else True&quot;</span>
+                <span class="n">context</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">dep</span>
+            <span class="c1"># Fail loud and make the user fix that shit.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConstraintSyntaxError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;Got an unsupported dependency in </span><span class="si">{self!r}</span><span class="s2"> for key </span><span class="si">{key!r}</span><span class="s2">: </span><span class="si">{dep!r}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_validator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Checks</span><span class="p">,</span> <span class="n">Context</span><span class="p">]:</span>
+
+        <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>
+            <span class="n">f</span><span class="s2">&quot;addtl = val.keys() - &quot;</span>
+            <span class="n">f</span><span class="s2">&quot;{(self.required_keys or set()) | self.items.keys()}&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_items</span><span class="p">}</span> <span class="o">!=</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">}:</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;size = len(val)&quot;</span><span class="p">)</span>
+
+        <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">checks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_items</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;size &gt;= </span><span class="si">{self.min_items}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_items</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;size &lt;= </span><span class="si">{self.max_items}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_keys</span><span class="p">:</span>
+            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;{{*val.keys()}}.issuperset(</span><span class="si">{self.required_keys}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">checks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;not addtl&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_dependencies</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_build_key_dependencies</span><span class="p">(</span><span class="n">checks</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checks</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;True&quot;</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;valid = </span><span class="si">{check}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">item_validator</span><span class="p">,</span> <span class="n">item_validator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_item_validator</span><span class="p">(</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">context</span>  <span class="c1"># type: ignore</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">item_validator</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">func</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;if valid:&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
+                    <span class="n">f</span><span class="s2">&quot;valid, val = </span><span class="si">{item_validator_name}</span><span class="s2">(val, addtl)&quot;</span><span class="p">,</span>
+                    <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span><span class="n">item_validator_name</span><span class="p">:</span> <span class="n">item_validator</span><span class="p">},</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[],</span> <span class="n">context</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_set_return</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">checks</span><span class="p">:</span> <span class="n">Checks</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">):</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;return valid, val&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">context</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MappingConstraints.for_schema"><a class="viewcode-back" href="../../../api/constraints.html#typic.constraints.mapping.MappingConstraints.for_schema">[docs]</a>    <span class="k">def</span> <span class="nf">for_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">with_type</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">minProperties</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_items</span><span class="p">,</span>
+            <span class="n">maxProperties</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_items</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_keys</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">propertyNames</span><span class="o">=</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;pattern&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_pattern</span><span class="o">.</span><span class="n">pattern</span><span class="p">}</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_pattern</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">),</span>
+            <span class="n">patternProperties</span><span class="o">=</span><span class="p">(</span>
+                <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">for_schema</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">patterns</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span> <span class="ow">or</span> <span class="kc">None</span>
+            <span class="p">),</span>
+            <span class="n">additionalProperties</span><span class="o">=</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="o">.</span><span class="n">for_schema</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">)</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_items</span>
+            <span class="p">),</span>
+            <span class="n">dependencies</span><span class="o">=</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="n">x</span><span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">for_schema</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">BaseConstraints</span><span class="p">)</span> <span class="k">else</span> <span class="n">y</span>
+                    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_dependencies</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+                <span class="ow">or</span> <span class="kc">None</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+            <span class="n">schema</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;object&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">y</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="DictConstraints"><a class="viewcode-back" href="../../../api/constraints.html#typic.constraints.mapping.DictConstraints">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DictConstraints</span><span class="p">(</span><span class="n">MappingConstraints</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">dict</span></div>
+</pre></div>
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;Copyright 2019 Sean Stewart.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
