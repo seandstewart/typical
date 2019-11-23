@@ -1,6 +1,6 @@
 Typical: Take Typing Further. :duck: 
 =====================================
-![image](docs/_static/typical.svg)
+![image](docs/_static/typical.png)
 
 [![image](https://img.shields.io/pypi/v/typical.svg)](https://pypi.org/project/typical/)
 [![image](https://img.shields.io/pypi/l/typical.svg)](https://pypi.org/project/typical/)
