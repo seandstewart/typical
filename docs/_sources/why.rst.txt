@@ -4,18 +4,19 @@ There are many libaries out there that do some or most of what ``typical`` can d
 should you pick ``typical`` out of the pack? Here's a short list:
 
 #. Simplicity.
-    - ``typical`` doesn't require you to learn to learn a new DSL - all you need to
-      know is how to use Python's type-annotations.
-
-
-#. Flexibility.
-    - ``typical`` works for you and doesn't enforce arbitrarily strict rules.
+    - ``typical`` doesn't require you to learn a new DSL - all you need to know is how
+      to use Python's standard type-annotations.
 
 
 #. No Metaclasses.
     - ``typical`` doesn't use metaclasses. We don't infect your inheritance. When you
       wrap a class with ``@typic.al``, the class you get is the one you defined. That's
       it.
+
+#. Flexibility.
+    - ``typical`` works for you and doesn't enforce arbitrarily strict rules.
+    - Because of an emphasis on simplicity and an aversion to inheritance-mangling,
+      you're free to use this library as it works for your use-case.
 
 
 #. Performance.
@@ -27,7 +28,7 @@ should you pick ``typical`` out of the pack? Here's a short list:
     :target: _static/benchmark_20191106_223028-Invalid_Data.svg
     :alt: Click to expand and interact!
 
-    Average time (in us) for validation and attempted initialization of invalid data in a
+    Average time (in μs) for validation and attempted initialization of invalid data in a
     complex, nested object.
 
 
@@ -35,5 +36,5 @@ should you pick ``typical`` out of the pack? Here's a short list:
     :target: _static/benchmark_20191106_223028-Invalid_Data.svg
     :alt: Click to expand and interact!
 
-    Average time (in us) for validation and initialization of invalid data in a
-    complex, nested object.
+    Average time (in μs) for validation and initialization of valid data in a complex,
+    nested object.

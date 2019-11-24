@@ -8,7 +8,7 @@
 <meta content="python, typical, typing, data-validation, type-hints, annotations, validation, json schema" name="keywords" />
 <meta content="1d1M7PtADuuG8yyUECl7Z1cwPMx4K84teRGeDdV4VLg" name="google-site-verification" />
 
-    <title>Take Typing Further. &#8212; typical 2.0.0b3 documentation</title>
+    <title>Take Typing Further. &#8212; typical 2.0.0b4 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -82,7 +82,6 @@
 </a>
 </p>
 <h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
@@ -139,23 +138,45 @@
   <img alt="_images/typical.png" src="_images/typical.png" />
 <div class="section" id="take-typing-further">
 <h1>Take Typing Further.<a class="headerlink" href="#take-typing-further" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-is-this">
+<h2>What Is This?<a class="headerlink" href="#what-is-this" title="Permalink to this headline">¶</a></h2>
+<p>Typical is a simple fast, and correct data-validation library using Python 3 type
+annotations. It supports automatic, guaranteed validation and coercion of incoming
+data by taking advantage of the type-hinting syntax provided by
+<a class="reference external" href="https://www.python.org/dev/peps/pep-0484/">PEP 484</a> and the standard
+<a class="reference external" href="https://docs.python.org/3/library/typing.html">typing</a> module.</p>
+<p>Unlike other popular libraries such as Pydantic, Marshmallow, or Django Rest Framework,
+there is no new DSL to learn. <code class="docutils literal notranslate"><span class="pre">typical</span></code> does all of the work for you and all you need
+to know how to use is builtin type-hint syntax.</p>
+<p><code class="docutils literal notranslate"><span class="pre">typical</span></code> provides an entire suite of tools and functionality over-and-above the
+standard data-validation run-time:</p>
+<ul class="simple">
+<li><p>Extended types for everyday web-development.</p></li>
+<li><p>Contrained type descriptions for builtin types.</p></li>
+<li><p>JSON Schema generation for builtins, <code class="docutils literal notranslate"><span class="pre">typing</span></code> types, and your own custom types or
+classes.</p></li>
+</ul>
+</div>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">typical</span></code> is a Python-only package <a class="reference external" href="https://pypi.org/project/typical/">hosted on PyPI</a>.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install typical
 </pre></div>
 </div>
-<p>The next three steps should bring you up and running in no time:</p>
+<p>The next few steps should bring you up and running in no time:</p>
 <ul class="simple">
+<li><p><cite>why</cite> gives you a rundown of potential alternatives and why we think
+<code class="docutils literal notranslate"><span class="pre">typical</span></code> is superior.</p></li>
 <li><p><cite>overview</cite> will show you a simple example of <code class="docutils literal notranslate"><span class="pre">typical</span></code> in action and introduce you
 to its philosophy.</p></li>
-<li><p><cite>usage</cite> will give you a quick look at the high-level API.</p></li>
+<li><p><cite>usage</cite> will give you a quick look at the high-level API, and a few useful advanced
+patterns as well.</p></li>
 <li><p><cite>extras</cite> will give you a comprehensive tour of <code class="docutils literal notranslate"><span class="pre">typical</span></code>’s features.</p></li>
-<li><p>Finally <cite>why</cite> gives you a rundown of potential alternatives and why we think
-<code class="docutils literal notranslate"><span class="pre">typical</span></code> is superior.</p></li>
 </ul>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a><ul>
