@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typical Checks &#8212; typical 2.0.0b4 documentation</title>
+    <title>typical Checks &#8212; typical 2.0.0b5 documentation</title>
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -79,7 +79,6 @@
 </a>
 </p>
 <h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../why.html">Why <code class="docutils literal notranslate"><span class="pre">typical</span></code>?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html"><code class="docutils literal notranslate"><span class="pre">typical</span></code> Overview</a></li>
@@ -465,6 +464,31 @@ builtin.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="typic.checks.isnamedtuple">
+<code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isnamedtuple</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isnamedtuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isnamedtuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether an object is a “named” tuple (<a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">collections.namedtuple()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">typic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FooTup</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;FooTup&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">typic</span><span class="o">.</span><span class="n">isnamedtuple</span><span class="p">(</span><span class="n">FooTup</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="typic.checks.isoptionaltype">
 <code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">isoptionaltype</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#isoptionaltype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.isoptionaltype" title="Permalink to this definition">¶</a></dt>
 <dd><p>class`typing.Optional`, or can be treated as.</p>
@@ -589,7 +613,7 @@ builtin.</p>
 <dl class="attribute">
 <dt id="typic.checks.istypedtuple">
 <code class="sig-prename descclassname">typic.checks.</code><code class="sig-name descname">istypedtuple</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typic/checks.html#istypedtuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#typic.checks.istypedtuple" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check whether an object is a “typed” tuple (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.NamedTuple</span></code></a>.</p>
+<dd><p>Check whether an object is a “typed” tuple (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.NamedTuple</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code></a>[~Object]) – </p>

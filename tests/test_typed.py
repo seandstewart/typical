@@ -35,6 +35,9 @@ from tests.objects import (
     LargeInt,
     Constrained,
     LargeIntDict,
+    NTup,
+    ntup,
+    TDict,
 )
 from typic.api import coerce, typed, resolve, wrap, wrap_cls, constrained
 from typic.checks import isbuiltintype, BUILTIN_TYPES
@@ -85,6 +88,19 @@ def test_coerce_simple(annotation, value):
 def test_coerce_newtype(annotation, value):
     coerced = coerce(value, annotation)
     assert isinstance(coerced, annotation.__supertype__)
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (TDict, '{"a": "2"}', {"a": 2}),
+        (NTup, '{"a": "2"}', NTup(2)),
+        (ntup, '{"a": "2"}', ntup("2")),
+    ],
+)
+def test_coerce_collection_metas(annotation, value, expected):
+    coerced = coerce(value, annotation)
+    assert coerced == expected
 
 
 def test_default_none():

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typic.util &#8212; typical 2.0.0b4 documentation</title>
+    <title>typic.util &#8212; typical 2.0.0b5 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -493,7 +493,12 @@
     <span class="n">hints</span> <span class="o">=</span> <span class="n">cached_type_hints</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Signature</span><span class="p">(</span>
         <span class="n">parameters</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
-            <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">kind</span><span class="o">=</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span>
+                <span class="n">annotation</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">checks</span><span class="o">.</span><span class="n">isoptionaltype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">else</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">hints</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">)</span>
     <span class="p">)</span></div>

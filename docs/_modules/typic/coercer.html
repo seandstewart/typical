@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typic.coercer &#8212; typical 2.0.0b4 documentation</title>
+    <title>typic.coercer &#8212; typical 2.0.0b5 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -323,10 +323,13 @@
     <span class="sd">&quot;&quot;&quot;A callable class for coercing values.</span>
 
 <span class="sd">    Checks for:</span>
-<span class="sd">            - :class:`datetime.date`</span>
-<span class="sd">            - :class:`datetime.datetime`</span>
 <span class="sd">            - builtin types</span>
-<span class="sd">            - extended type annotations as described in the ``typing`` module.</span>
+<span class="sd">            - :py:mod:`typing` type annotations</span>
+<span class="sd">            - :py:class:`datetime.date`</span>
+<span class="sd">            - :py:class:`datetime.datetime`</span>
+<span class="sd">            - :py:class:`typing.TypedDict`</span>
+<span class="sd">            - :py:class:`typing.NamedTuple`</span>
+<span class="sd">            - :py:func:`collections.namedtuple`</span>
 <span class="sd">            - User-defined classes (limited)</span>
 
 <span class="sd">    Examples</span>
@@ -440,6 +443,22 @@
             <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;_, val = safe_eval(val)&quot;</span><span class="p">,</span> <span class="n">safe_eval</span><span class="o">=</span><span class="n">safe_eval</span><span class="p">)</span>
         <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;val = </span><span class="si">{anno_name}</span><span class="s2">.from_dict(val)&quot;</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_build_typeddict_coercer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">func</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;if isinstance(val, (str, bytes)):&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;_, val = safe_eval(val)&quot;</span><span class="p">,</span> <span class="n">safe_eval</span><span class="o">=</span><span class="n">safe_eval</span><span class="p">)</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;val = __bind(</span><span class="si">{anno_name}</span><span class="s2">, **val).eval()&quot;</span><span class="p">,</span> <span class="n">__bind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_build_typedtuple_coercer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">func</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;if isinstance(val, (str, bytes)):&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;_, val = safe_eval(val)&quot;</span><span class="p">,</span> <span class="n">safe_eval</span><span class="o">=</span><span class="n">safe_eval</span><span class="p">)</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>
+            <span class="n">f</span><span class="s2">&quot;val = __bind(</span><span class="si">{anno_name}</span><span class="s2">, **val).eval()&quot;</span>
+            <span class="n">f</span><span class="s2">&quot;if isinstance(val, Mapping) else &quot;</span>
+            <span class="n">f</span><span class="s2">&quot;__bind(</span><span class="si">{anno_name}</span><span class="s2">, *val).eval()&quot;</span><span class="p">,</span>
+            <span class="n">__bind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">,</span>
+            <span class="n">Mapping</span><span class="o">=</span><span class="n">Mapping</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">_build_mapping_coercer</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">gen</span><span class="o">.</span><span class="n">Block</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Type</span><span class="p">],</span> <span class="n">anno_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">):</span>
@@ -451,7 +470,8 @@
         <span class="k">with</span> <span class="n">func</span><span class="o">.</span><span class="n">b</span><span class="p">(</span><span class="s2">&quot;if isinstance(val, (str, bytes)):&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
             <span class="n">b</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;_, val = safe_eval(val)&quot;</span><span class="p">,</span> <span class="n">safe_eval</span><span class="o">=</span><span class="n">safe_eval</span><span class="p">)</span>
         <span class="n">func</span><span class="o">.</span><span class="n">l</span><span class="p">(</span>
-            <span class="n">f</span><span class="s2">&quot;val = </span><span class="si">{anno_name}</span><span class="s2">((</span><span class="si">{kc_name}</span><span class="s2">(x), </span><span class="si">{it_name}</span><span class="s2">(y)) for x, y in </span><span class="si">{anno_name}</span><span class="s2">(val).items())&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s2">&quot;val = </span><span class="si">{anno_name}</span><span class="s2">((</span><span class="si">{kc_name}</span><span class="s2">(x), </span><span class="si">{it_name}</span><span class="s2">(y)) &quot;</span>
+            <span class="n">f</span><span class="s2">&quot;for x, y in </span><span class="si">{anno_name}</span><span class="s2">(val).items())&quot;</span><span class="p">,</span>
             <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="o">**</span><span class="p">{</span><span class="n">kc_name</span><span class="p">:</span> <span class="n">key_coercer</span><span class="p">,</span> <span class="n">it_name</span><span class="p">:</span> <span class="n">item_coercer</span><span class="p">},</span>
         <span class="p">)</span>
@@ -527,6 +547,10 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_build_fromdict_coercer</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="n">checks</span><span class="o">.</span><span class="n">isenumtype</span><span class="p">(</span><span class="n">origin</span><span class="p">):</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_build_builtin_coercer</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">checks</span><span class="o">.</span><span class="n">istypeddict</span><span class="p">(</span><span class="n">origin</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_build_typeddict_coercer</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">checks</span><span class="o">.</span><span class="n">istypedtuple</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span> <span class="ow">or</span> <span class="n">checks</span><span class="o">.</span><span class="n">isnamedtuple</span><span class="p">(</span><span class="n">origin</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_build_typedtuple_coercer</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="n">checks</span><span class="o">.</span><span class="n">ismappingtype</span><span class="p">(</span><span class="n">origin</span><span class="p">):</span>
                         <span class="n">args</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Type</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_build_mapping_coercer</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">anno_name</span><span class="p">)</span>

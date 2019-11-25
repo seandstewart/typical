@@ -363,7 +363,12 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
     hints = cached_type_hints(obj)
     return inspect.Signature(
         parameters=tuple(
-            inspect.Parameter(name=x, kind=inspect.Parameter.KEYWORD_ONLY, annotation=y)
+            inspect.Parameter(
+                name=x,
+                kind=inspect.Parameter.KEYWORD_ONLY,
+                annotation=y,
+                default=None if checks.isoptionaltype(y) else inspect.Parameter.empty,
+            )
             for x, y in hints.items()
         )
     )
