@@ -193,10 +193,13 @@ class TypeCoercer:
     """A callable class for coercing values.
 
     Checks for:
-            - :class:`datetime.date`
-            - :class:`datetime.datetime`
             - builtin types
-            - extended type annotations as described in the ``typing`` module.
+            - :py:mod:`typing` type annotations
+            - :py:class:`datetime.date`
+            - :py:class:`datetime.datetime`
+            - :py:class:`typing.TypedDict`
+            - :py:class:`typing.NamedTuple`
+            - :py:func:`collections.namedtuple`
             - User-defined classes (limited)
 
     Examples
@@ -310,6 +313,22 @@ class TypeCoercer:
             b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
         func.l(f"val = {anno_name}.from_dict(val)")
 
+    def _build_typeddict_coercer(self, func: gen.Block, anno_name: str):
+        with func.b("if isinstance(val, (str, bytes)):") as b:
+            b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
+        func.l(f"val = __bind({anno_name}, **val).eval()", __bind=self.bind)
+
+    def _build_typedtuple_coercer(self, func: gen.Block, anno_name: str):
+        with func.b("if isinstance(val, (str, bytes)):") as b:
+            b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
+        func.l(
+            f"val = __bind({anno_name}, **val).eval()"
+            f"if isinstance(val, Mapping) else "
+            f"__bind({anno_name}, *val).eval()",
+            __bind=self.bind,
+            Mapping=Mapping,
+        )
+
     def _build_mapping_coercer(
         self, func: gen.Block, args: Tuple[Type, Type], anno_name: str
     ):
@@ -321,7 +340,8 @@ class TypeCoercer:
         with func.b("if isinstance(val, (str, bytes)):") as b:
             b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
         func.l(
-            f"val = {anno_name}(({kc_name}(x), {it_name}(y)) for x, y in {anno_name}(val).items())",
+            f"val = {anno_name}(({kc_name}(x), {it_name}(y)) "
+            f"for x, y in {anno_name}(val).items())",
             level=None,
             **{kc_name: key_coercer, it_name: item_coercer},
         )
@@ -397,6 +417,10 @@ class TypeCoercer:
                         self._build_fromdict_coercer(func, anno_name)
                     elif checks.isenumtype(origin):
                         self._build_builtin_coercer(func, origin, anno_name)
+                    elif checks.istypeddict(origin):
+                        self._build_typeddict_coercer(func, anno_name)
+                    elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
+                        self._build_typedtuple_coercer(func, anno_name)
                     elif checks.ismappingtype(origin):
                         args = cast(Tuple[Type, Type], args)
                         self._build_mapping_coercer(func, args, anno_name)

@@ -79,6 +79,39 @@ def test_typic_objects_schema(obj):
             objects.ShortStrList,
             typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
         ),
+        (
+            objects.TDict,
+            typic.ObjectSchemaField(
+                description=objects.TDict.__doc__,
+                title=objects.TDict.__name__,
+                properties=typic.FrozenDict(a=typic.IntSchemaField()),
+                required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.NTup,
+            typic.ObjectSchemaField(
+                description=objects.NTup.__doc__,
+                title=objects.NTup.__name__,
+                properties=typic.FrozenDict(a=typic.IntSchemaField()),
+                required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.ntup,
+            typic.ObjectSchemaField(
+                description=objects.ntup.__doc__,
+                title=objects.ntup.__name__.title(),
+                properties=typic.FrozenDict(a=typic.UndeclaredSchemaField()),
+                required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
     ],
 )
 def test_typic_schema(obj, expected):

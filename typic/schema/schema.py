@@ -11,9 +11,10 @@ from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.types.frozendict import FrozenDict
 
-from .field import (
+from .field import (  # type: ignore
     MultiSchemaField,
     ObjectSchemaField,
+    UndeclaredSchemaField,
     ReadOnly,
     Ref,
     SchemaField,
@@ -107,7 +108,6 @@ class SchemaBuilder:
         """Get a field definition for a JSON Schema."""
         if anno in self.__cache:
             return self.__cache[anno]
-
         # Get the default value
         # `None` gets filtered out down the line. this is okay.
         # If a field isn't required an empty default is functionally the same
@@ -119,10 +119,17 @@ class SchemaBuilder:
         formats = SCHEMA_FIELD_FORMATS
         # `use` is the based annotation we will use for building the schema
         use = anno.origin
-        # Unions are `oneOf`, get a new field for each arg and return.
-        # {'type': ['string', 'integer']} == {'oneOf': [{'type': 'string'}, {'type': 'integer'}]}
-        # We don't care about syntactic sugar if it's functionally the same.
+        # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaField
+        if use is anno.EMPTY:
+            schema = UndeclaredSchemaField()
+            self.__cache[anno] = schema
+            return schema
+
+        # Unions are `oneOf`, get a new field for each arg and return.
+        # {'type': ['string', 'integer']} ==
+        #   {'oneOf': [{'type': 'string'}, {'type': 'integer'}]}
+        # We don't care about syntactic sugar if it's functionally the same.
         if use is Union:
             schema = MultiSchemaField(
                 title=self.defname(anno.annotation, name=name) if name else None,

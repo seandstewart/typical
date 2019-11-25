@@ -51,6 +51,7 @@ __all__ = (
     "ishashable",
     "isinstance",
     "ismappingtype",
+    "isnamedtuple",
     "isoptionaltype",
     "isreadonly",
     "issubclass",
@@ -500,7 +501,7 @@ def istypeddict(obj: Type[Object]) -> bool:
 
 @functools.lru_cache(maxsize=None)
 def istypedtuple(obj: Type[Object]) -> bool:
-    """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`.
+    """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`).
 
     Parameters
     ----------
@@ -522,3 +523,23 @@ def istypedtuple(obj: Type[Object]) -> bool:
         and issubclass(obj, tuple)
         and hasattr(obj, "__annotations__")
     )
+
+
+@functools.lru_cache(maxsize=None)
+def isnamedtuple(obj: Type[Object]) -> bool:
+    """Check whether an object is a "named" tuple (:py:func:`collections.namedtuple`).
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from collections import namedtuple
+    >>>
+    >>> FooTup = namedtuple("FooTup", ["bar"])
+    >>> typic.isnamedtuple(FooTup)
+    True
+    """
+    return inspect.isclass(obj) and issubclass(obj, tuple) and hasattr(obj, "_fields")

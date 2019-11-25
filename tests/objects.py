@@ -1,14 +1,20 @@
+import collections
 import dataclasses
 import datetime
 import enum
 import typing
+
+try:
+    from typing_extensions import TypedDict
+except ImportError:
+    from typing import TypedDict  # type: ignore
 
 import typic
 
 
 @dataclasses.dataclass
 class FromDict:
-    foo: str = None
+    foo: typing.Optional[str] = None
 
     @classmethod
     def from_dict(cls, dikt: typing.Mapping):
@@ -44,7 +50,7 @@ class NestedFromDict:
 
 @dataclasses.dataclass
 class DefaultNone:
-    none: str = None
+    none: typing.Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -168,6 +174,17 @@ class NestedConstrained:
     other_constr: ShortStrDict
 
 
+class TDict(TypedDict):
+    a: int
+
+
+class NTup(typing.NamedTuple):
+    a: int
+
+
+ntup = collections.namedtuple("ntup", ["a"])
+
+
 TYPIC_OBJECTS = [
     Typic,
     Inherited,
@@ -196,4 +213,7 @@ STD_OBJECTS = [
     DateDict,
     ShortStr,
     LargeInt,
+    TDict,
+    NTup,
+    ntup,
 ]

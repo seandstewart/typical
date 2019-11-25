@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>typic.checks &#8212; typical 2.0.0b4 documentation</title>
+    <title>typic.checks &#8212; typical 2.0.0b5 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -181,6 +181,7 @@
     <span class="s2">&quot;ishashable&quot;</span><span class="p">,</span>
     <span class="s2">&quot;isinstance&quot;</span><span class="p">,</span>
     <span class="s2">&quot;ismappingtype&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;isnamedtuple&quot;</span><span class="p">,</span>
     <span class="s2">&quot;isoptionaltype&quot;</span><span class="p">,</span>
     <span class="s2">&quot;isreadonly&quot;</span><span class="p">,</span>
     <span class="s2">&quot;issubclass&quot;</span><span class="p">,</span>
@@ -630,7 +631,7 @@
 
 <div class="viewcode-block" id="istypedtuple"><a class="viewcode-back" href="../../extras/checks.html#typic.checks.istypedtuple">[docs]</a><span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">istypedtuple</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Check whether an object is a &quot;typed&quot; tuple (:py:class:`typing.NamedTuple`.</span>
+    <span class="sd">&quot;&quot;&quot;Check whether an object is a &quot;typed&quot; tuple (:py:class:`typing.NamedTuple`).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -652,6 +653,26 @@
         <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
         <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__annotations__&quot;</span><span class="p">)</span>
     <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="isnamedtuple"><a class="viewcode-back" href="../../extras/checks.html#typic.checks.isnamedtuple">[docs]</a><span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">isnamedtuple</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Check whether an object is a &quot;named&quot; tuple (:py:func:`collections.namedtuple`).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import typic</span>
+<span class="sd">    &gt;&gt;&gt; from collections import namedtuple</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; FooTup = namedtuple(&quot;FooTup&quot;, [&quot;bar&quot;])</span>
+<span class="sd">    &gt;&gt;&gt; typic.isnamedtuple(FooTup)</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;_fields&quot;</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
