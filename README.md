@@ -9,6 +9,7 @@ Typical: Take Typing Further. :duck:
 [![image](https://img.shields.io/travis/seandstewart/typical.svg)](https://travis-ci.org/seandstewart/typical)
 [![codecov](https://codecov.io/gh/seandstewart/typical/branch/master/graph/badge.svg)](https://codecov.io/gh/seandstewart/typical)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/982a0ced-bb7f-4391-87e8-1957071d2f66/deploy-status)](https://app.netlify.com/sites/typical-python/deploys)
 
 Take Typing Further with Typical. Make your annotations work for you.
 
@@ -25,7 +26,7 @@ See the [Changelog](CHANGELOG.md).
 
 ## Documentation
 See the full documentation
-[Here](https://seandstewart.github.io/typical).
+[Here](https://typical-python.seandstewart.io/).
 
 
 ## Motivations

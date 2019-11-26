@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.0b5"
+version = "2.0.0b6"
 description = "Typical: Take Typing Further."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
