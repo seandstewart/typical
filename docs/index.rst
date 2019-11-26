@@ -4,7 +4,7 @@
                   type-hints.
     :keywords: python, typical, typing, data-validation, type-hints, annotations,
                validation, json schema
-    :google-site-verification: 1d1M7PtADuuG8yyUECl7Z1cwPMx4K84teRGeDdV4VLg
+    :google-site-verification: vl_NQTz6odu2LExtMrIkBhinLBnhp9ke47nTtXqTwmU
 
 .. image:: _static/typical.png
 
