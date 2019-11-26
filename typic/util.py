@@ -5,6 +5,7 @@ import collections
 import dataclasses
 import datetime
 import decimal
+import enum
 import functools
 import inspect
 import ipaddress
@@ -367,7 +368,7 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
                 name=x,
                 kind=inspect.Parameter.KEYWORD_ONLY,
                 annotation=y,
-                default=None if checks.isoptionaltype(y) else inspect.Parameter.empty,
+                default=getattr(obj, x, inspect.Parameter.empty),
             )
             for x, y in hints.items()
         )
@@ -383,7 +384,8 @@ def primitive(obj: Any) -> Any:
 
     Useful for encoding data to JSON.
 
-    Registration for custom types may be done by wrapping your handler with `@primitive.register`
+    Registration for custom types may be done by wrapping your handler with
+    `@primitive.register`
 
     Examples
     --------
@@ -414,6 +416,14 @@ def primitive(obj: Any) -> Any:
     >>> typic.primitive(Foo())
     {'bar': 'bar'}
     """
+    if isinstance(obj, enum.Enum):
+        obj = obj.value
+    return _primitive(obj)
+
+
+@functools.singledispatch
+def _primitive(obj: Any) -> Any:
+
     # Common methods found in classes for dumping to dicts
     if hasattr(obj, "asdict"):
         return primitive(obj.asdict())
@@ -435,63 +445,63 @@ IPvAnyType = Union[
 ]
 
 
-@primitive.register(str)  # type: ignore
-@primitive.register(int)
-@primitive.register(bool)
-@primitive.register(float)
-@primitive.register(type(None))
+@_primitive.register(str)  # type: ignore
+@_primitive.register(int)
+@_primitive.register(bool)
+@_primitive.register(float)
+@_primitive.register(type(None))
 def _(obj):
     return obj
 
 
-@primitive.register(dict)  # type: ignore
-@primitive.register(Mapping_abc)
-@primitive.register(MappingProxyType)
+@_primitive.register(dict)  # type: ignore
+@_primitive.register(Mapping_abc)
+@_primitive.register(MappingProxyType)
 def _(obj):
     return {primitive(x): primitive(y) for x, y in obj.items()}
 
 
-@primitive.register(list)  # type: ignore
-@primitive.register(tuple)
-@primitive.register(set)
-@primitive.register(frozenset)
-@primitive.register(Collection_abc)
+@_primitive.register(list)  # type: ignore
+@_primitive.register(tuple)
+@_primitive.register(set)
+@_primitive.register(frozenset)
+@_primitive.register(Collection_abc)
 def _(obj):
     return [primitive(x) for x in obj]
 
 
-@primitive.register(bytes)  # type: ignore
-@primitive.register(bytearray)
+@_primitive.register(bytes)  # type: ignore
+@_primitive.register(bytearray)
 def _(obj):
     return obj.decode(DEFAULT_ENCODING)
 
 
-@primitive.register(ipaddress.IPv4Address)  # type: ignore
-@primitive.register(ipaddress.IPv4Interface)
-@primitive.register(ipaddress.IPv4Network)
-@primitive.register(ipaddress.IPv6Address)
-@primitive.register(ipaddress.IPv6Interface)
-@primitive.register(ipaddress.IPv6Network)
-@primitive.register(pathlib.Path)
-@primitive.register(uuid.UUID)
+@_primitive.register(ipaddress.IPv4Address)  # type: ignore
+@_primitive.register(ipaddress.IPv4Interface)
+@_primitive.register(ipaddress.IPv4Network)
+@_primitive.register(ipaddress.IPv6Address)
+@_primitive.register(ipaddress.IPv6Interface)
+@_primitive.register(ipaddress.IPv6Network)
+@_primitive.register(pathlib.Path)
+@_primitive.register(uuid.UUID)
 def _(obj: Union[IPvAnyType, pathlib.Path, uuid.UUID]) -> str:
     return str(obj)
 
 
-@primitive.register(datetime.datetime)  # type: ignore
-@primitive.register(datetime.date)
-@primitive.register(datetime.time)
+@_primitive.register(datetime.datetime)  # type: ignore
+@_primitive.register(datetime.date)
+@_primitive.register(datetime.time)
 def _(obj: Union[datetime.datetime, datetime.date, datetime.time]) -> str:
     if isinstance(obj, (datetime.datetime, datetime.time)) and not obj.tzinfo:
         return f"{obj.isoformat()}+00:00"
     return obj.isoformat()
 
 
-@primitive.register(re.Pattern)  # type: ignore
+@_primitive.register(re.Pattern)  # type: ignore
 def _(obj: re.Pattern) -> str:  # type: ignore
     return obj.pattern
 
 
-@primitive.register(decimal.Decimal)  # type: ignore
+@_primitive.register(decimal.Decimal)  # type: ignore
 def _(obj: decimal.Decimal) -> float:
     return float(obj)

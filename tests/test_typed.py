@@ -38,11 +38,13 @@ from tests.objects import (
     NTup,
     ntup,
     TDict,
+    TDictPartial,
 )
 from typic.api import coerce, typed, resolve, wrap, wrap_cls, constrained
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
+from typic.types import NetworkAddress
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -77,6 +79,7 @@ def test_isbuiltintype(obj: typing.Any):
         (NestedFromDict, {"data": {"foo": "bar!"}}),
         (FooNum, "bar"),
         (Data, Data("bar!")),
+        (NetworkAddress, "localhost"),
     ],
 )
 def test_coerce_simple(annotation, value):
@@ -96,6 +99,7 @@ def test_coerce_newtype(annotation, value):
         (TDict, '{"a": "2"}', {"a": 2}),
         (NTup, '{"a": "2"}', NTup(2)),
         (ntup, '{"a": "2"}', ntup("2")),
+        (TDictPartial, "{}", {}),
     ],
 )
 def test_coerce_collection_metas(annotation, value, expected):

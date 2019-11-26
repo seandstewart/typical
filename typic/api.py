@@ -363,7 +363,7 @@ def _resolve_from_env(
         if not isinstance(field, dataclasses.Field):
             field = dataclasses.field()
         if use_factory:
-            field.default_factory = lambda: val
+            field.default_factory = lambda x=val: x
             field.default = dataclasses.MISSING
         else:
             field.default = val

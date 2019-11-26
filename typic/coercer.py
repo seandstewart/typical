@@ -313,10 +313,15 @@ class TypeCoercer:
             b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
         func.l(f"val = {anno_name}.from_dict(val)")
 
-    def _build_typeddict_coercer(self, func: gen.Block, anno_name: str):
+    def _build_typeddict_coercer(
+        self, func: gen.Block, anno_name: str, partial: bool = False
+    ):
         with func.b("if isinstance(val, (str, bytes)):") as b:
             b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
-        func.l(f"val = __bind({anno_name}, **val).eval()", __bind=self.bind)
+        func.l(
+            f"val = __bind({anno_name}, partial={partial}, **val).eval()",
+            __bind=self.bind,
+        )
 
     def _build_typedtuple_coercer(self, func: gen.Block, anno_name: str):
         with func.b("if isinstance(val, (str, bytes)):") as b:
@@ -418,9 +423,15 @@ class TypeCoercer:
                     elif checks.isenumtype(origin):
                         self._build_builtin_coercer(func, origin, anno_name)
                     elif checks.istypeddict(origin):
-                        self._build_typeddict_coercer(func, anno_name)
+                        self._build_typeddict_coercer(
+                            func, anno_name, not origin.__total__
+                        )
                     elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
                         self._build_typedtuple_coercer(func, anno_name)
+                    elif not args and checks.issubclass(
+                        origin, (*checks.BUILTIN_TYPES,)
+                    ):
+                        self._build_builtin_coercer(func, origin, anno_name)
                     elif checks.ismappingtype(origin):
                         args = cast(Tuple[Type, Type], args)
                         self._build_mapping_coercer(func, args, anno_name)
