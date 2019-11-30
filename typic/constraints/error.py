@@ -12,7 +12,3 @@ class ConstraintValueError(ValueError):
     """A generic error indicating a value violates a constraint."""
 
     pass
-
-
-def raise_exc(exc: Exception, *, _from: Exception = None):
-    raise exc from _from

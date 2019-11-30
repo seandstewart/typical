@@ -25,6 +25,7 @@ from typing import (
     ClassVar,
     cast,
     TypeVar,
+    Generic,
 )
 
 from pendulum import parse as dateparse
@@ -40,7 +41,6 @@ from typic.util import (
     cached_type_hints,
     cached_property,
     cachedmethod,
-    fastcachedmethod,
 )
 
 _ORIG_SETTER_NAME = "__setattr_original__"
@@ -61,27 +61,66 @@ _SELF_NAME = "self"
 _TO_RESOLVE: List[Union[Type, Callable]] = []
 _SCHEMA_NAME = "__json_schema__"
 
-Object = TypeVar("Object")
+ObjectT = TypeVar("ObjectT")
 
 
-Origin = TypeVar("Origin")
+OriginT = TypeVar("OriginT")
 """A type alias for an instance of the type associated to a Coercer."""
 
-Coercer = Callable[[Any], Origin]
+CoercerT = Callable[[Any], OriginT]
 """A type alias for the expected signature of a type coercer.
 
 Type coercers should take a value of any type and return a value of the target type.
 """
-CoercerTypeCheck = Callable[[Type[Any]], bool]
+CoercerTypeCheckT = Callable[[Type[Any]], bool]
 """A type alias for the expected signature of a type-check for a coercer.
 
 Type-checkers should return a boolean indicating whether the provided type is valid for
 a given coercer.
 """
-CoercerRegistry = Deque[Tuple[CoercerTypeCheck, Coercer]]
+CoercerRegistryT = Deque[Tuple[CoercerTypeCheckT, CoercerT]]
 
 
-@dataclasses.dataclass(frozen=True)
+class Strict(Generic[ObjectT]):
+    """A type-hint indicating an object should be validated rather than coerced.
+
+    Examples
+    --------
+    >>> import typic
+    >>>
+    >>> @typic.klass
+    ... class Foo:
+    ...     bar: typic.Strict[str]
+    ...
+    >>> Foo(1)
+    Traceback (most recent call last):
+        ...
+    typic.constraints.error.ConstraintValueError: Given value <1> fails constraints: (type=str, nullable=False, coerce=False)
+    """
+
+
+StrictStrT = Strict[str]
+"""Strings are by far the most common use-case for enforced strictness.
+
+This is because pretty much any Python object can be cast to ``str``. It's encouraged to
+make use of this annotation in lieu of a bare ``str`` as that can lead to unwanted states.
+
+Examples
+--------
+>>> import typic
+>>>
+>>> @typic.klass
+... class Foo:
+...     bar: typic.StrictStrT
+...
+>>> Foo(1)
+Traceback (most recent call last):
+    ...
+typic.constraints.error.ConstraintValueError: Given value <1> fails constraints: (type=str, nullable=False, coerce=False)
+"""
+
+
+@dataclasses.dataclass(unsafe_hash=True)
 class ResolvedAnnotation:
     """An actionable run-time annotation.
 
@@ -95,28 +134,43 @@ class ResolvedAnnotation:
 
     annotation: Any
     """The type annotation used to build the coercer."""
-    origin: Type[Origin]  # type: ignore
+    origin: Type
     """The "origin"-type of the annotation."""
     un_resolved: Any
     """The type annotation before resolving super-types."""
-    coercer: Coercer
+    coercer: CoercerT
     """The actual coercer for the annotation."""
     parameter: inspect.Parameter
     """The parameter this annotation refers to."""
-    constraints: Optional[const.Constraints] = None
+    constraints: Optional[const.ConstraintsT]
     """Type restrictions, if any."""
+    strict: bool = False
+    """Whether to enforce the annotation, rather than coerce."""
 
-    def validate(self, value: Any) -> Any:
-        """If this annotation has any defined constraints, we can a value against them."""
-        if self.constraints:
-            return self.constraints.validate(value)
-        return value
+    def __post_init__(self):
+        self.validate = self.constraints.validate
+        self.coerce = self.coercer
 
-    def coerce(self, value: Any) -> Origin:
-        """Coercer an in-coming ``value`` to the appropriate type defined by the anno."""
-        return self.coercer(value)
+        self._call = self.__caller
 
-    __call__ = coerce
+    @cached_property
+    def __caller(self):
+        __call = self.coerce
+        if isinstance(self.constraints, const.TypeConstraints):
+            if self.strict and not self.constraints.coerce:
+                __call = self.validate
+        else:
+            if self.strict and self.constraints.coerce:
+
+                def __call(val: Any) -> ObjectT:
+                    return self.coerce(self.validate(val))
+
+            elif self.strict:
+                __call = self.validate
+        return __call
+
+    def __call__(self, val: Any) -> ObjectT:
+        return self._call(val)
 
 
 Annotations = Dict[str, ResolvedAnnotation]
@@ -211,6 +265,7 @@ class TypeCoercer:
     {'foo': 'bar'}
     """
 
+    STRICT: bool = False
     DEFAULT_BYTE_ENCODING = "utf-8"
     UNRESOLVABLE = frozenset(
         (
@@ -230,9 +285,9 @@ class TypeCoercer:
         self.schema_builder = s.SchemaBuilder()
         for typ in checks.BUILTIN_TYPES:
             self._build_coercer(typ)
-        self._user_coercers: CoercerRegistry = deque()
+        self._user_coercers: CoercerRegistryT = deque()
 
-    def register(self, coercer: Coercer, check: CoercerTypeCheck):
+    def register(self, coercer: CoercerT, check: CoercerTypeCheckT):
         """Register a user-defined coercer.
 
         In the rare case where typic can't figure out how to coerce your annotation
@@ -392,8 +447,6 @@ class TypeCoercer:
         func_name = self._get_coercer_name(annotation, default, is_optional)
         if func_name in self._coercer_cache:
             return self._coercer_cache[func_name]
-        # Resolve any constraints *first*, since ConstrainedTypes are basically NewTypes
-        constraints = self._constraints_from_anno(annotation)
         # Resolve NewTypes into their annotation. Recursive.
         resolved = resolve_supertype(annotation)
         args = get_args(resolved)
@@ -440,20 +493,13 @@ class TypeCoercer:
                         self._build_collection_coercer(func, args, anno_name)
                     else:
                         self._build_generic_coercer(func, origin, anno_name)
-                if constraints:
-                    constr_name = f"{anno_name}_constraints"
-                    func.l(
-                        f"val = {constr_name}.validate(val)",
-                        level=None,
-                        **{constr_name: constraints},
-                    )
                 func.l("return val")
         coercer = main.compile(ns=self._coercer_cache, name=func_name)
         return coercer
 
     def get_coercer(
         self, annotation, *, default: Any = _empty, is_optional: bool = None
-    ) -> Coercer:
+    ) -> CoercerT:
         key = self._get_coercer_name(annotation, default, is_optional)
         if key in self._coercer_cache:
             return self._coercer_cache[key]
@@ -464,7 +510,7 @@ class TypeCoercer:
 
         return self._build_coercer(annotation, default=default, is_optional=is_optional)
 
-    def coerce_value(self, value: Any, annotation: Type[Object]) -> Object:
+    def coerce_value(self, value: Any, annotation: Type[ObjectT]) -> ObjectT:
         """Coerce the given value to the given annotation, if possible.
 
         Checks for:
@@ -482,7 +528,7 @@ class TypeCoercer:
             The provided annotation for determining the coercion
         """
         resolved: ResolvedAnnotation = self.resolve(annotation)
-        coerced: Object = resolved(value)
+        coerced: ObjectT = resolved(value)
 
         return coerced
 
@@ -491,47 +537,42 @@ class TypeCoercer:
     @cachedmethod
     def resolve(
         self,
-        annotation: Type,
+        annotation: Type[ObjectT],
         *,
-        origin: Type = None,
         name: str = None,
         parameter: Optional[inspect.Parameter] = None,
-        constraints: Optional[const.Constraints] = None,
         is_optional: bool = None,
+        is_strict: bool = None,
     ) -> ResolvedAnnotation:
         """Get a :py:class:`ResolvedAnnotation` from a type."""
         if parameter is None:
             parameter = inspect.Parameter(
-                "_", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=annotation
+                name or "_",
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=annotation,
             )
         # Check for the super-type
         non_super = resolve_supertype(annotation)
-        origin = origin or get_origin(annotation)
+        origin = get_origin(annotation)
         use = non_super
         # Get the unfiltered args
         args = getattr(non_super, "__args__", None)
-        # Set whether this is optional
-        if is_optional is None:
-            is_optional = checks.isoptionaltype(non_super)
+        # Set whether this is optional/strict
+        is_optional = is_optional or checks.isoptionaltype(non_super)
+        is_strict = is_strict or checks.isstrict(non_super)
         # Determine whether we should use the first arg of the annotation
-        if checks.should_unwrap(non_super) and args:
-            use = args[0]
-            # Recurse on read-only and write-only
-            if (
-                checks.iswriteonly(non_super)
-                or checks.isreadonly(non_super)
-                or checks.isfinal(non_super)
-            ):
-                return self.resolve(
-                    use,
-                    origin=get_origin(non_super),
-                    name=name,
-                    parameter=parameter,
-                    constraints=constraints,
-                    is_optional=checks.isoptionaltype(use),
-                )
+        while checks.should_unwrap(use) and args:
+            is_optional = is_optional or checks.isoptionaltype(use)
+            is_strict = is_strict or checks.isstrict(use)
+            if is_optional and len(args) > 2:
+                # We can't resolve this annotation.
+                break
+            non_super = resolve_supertype(args[0])
+            use = non_super
+            args = get_args(use)
+
         # Build the coercer
-        coercer: Coercer = self.get_coercer(
+        coercer: CoercerT = self.get_coercer(
             use, default=parameter.default, is_optional=is_optional
         )
         # Handle *args and **kwargs
@@ -553,33 +594,21 @@ class TypeCoercer:
             un_resolved=annotation,
             coercer=coercer,
             parameter=parameter,
-            constraints=constraints or self._constraints_from_anno(annotation),
+            constraints=const.get_constraints(use, nullable=is_optional),
+            strict=is_strict or self.STRICT,
         )
         return resolved
 
-    @staticmethod
-    def _constraints_from_anno(annotation: Type[Any]) -> Optional[const.Constraints]:
-        if checks.isconstrained(annotation):
-            return annotation.__constraints__
-        return None
-
-    @staticmethod
-    def _constraints_from_hints(
-        hints: Mapping[str, Type]
-    ) -> Mapping[str, const.Constraints]:
-        """Get the constraints associated to a typic.klass"""
-        return {
-            x: y.__constraints__ for x, y in hints.items() if checks.isconstrained(y)
-        }
-
-    @fastcachedmethod
-    def annotations(self, obj) -> Annotations:
+    @cachedmethod
+    def annotations(self, obj, *, strict: bool = False) -> Annotations:
         """Get a mapping of param/attr name -> :py:class:`ResolvedAnnotation`
 
         Parameters
         ----------
         obj
             The class or callable object you wish to extract resolved annotations from.
+        strict
+            Whether to validate instead of coerce.
 
         Examples
         --------
@@ -607,13 +636,11 @@ class TypeCoercer:
         fields: Mapping[str, dataclasses.Field] = {}
         if dataclasses.is_dataclass(obj):
             fields = {f.name: f for f in dataclasses.fields(obj)}
-        all_constraints = self._constraints_from_hints(hints)
         ann = {}
         for name in params.keys() | hints.keys():
             param = params.get(name)
             hint = hints.get(name)
             field = fields.get(name)
-            constraints = all_constraints.get(name)
             annotation = hint or param.annotation  # type: ignore
             annotation = resolve_supertype(annotation)
             param = param or inspect.Parameter(
@@ -637,8 +664,8 @@ class TypeCoercer:
                 if field.init is False and get_origin(annotation) is not s.ReadOnly:
                     annotation = s.ReadOnly[annotation]  # type: ignore
                 param = param.replace(default=field.default)
-            resolved = self.resolve(
-                annotation, parameter=param, name=name, constraints=constraints
+            resolved: ResolvedAnnotation = self.resolve(
+                annotation, parameter=param, name=name, is_strict=strict
             )
             ann[name] = resolved
         try:
@@ -651,8 +678,8 @@ class TypeCoercer:
 
         return ann
 
-    @staticmethod
     def _bind_posargs(
+        self,
         arguments: Dict[str, Any],
         params: Deque[inspect.Parameter],
         annos: Dict[str, ResolvedAnnotation],
@@ -681,7 +708,7 @@ class TypeCoercer:
                 value = (val,) + tuple(args)
                 args = deque()
                 if anno:
-                    value = anno.coerce(value)
+                    value = anno(value)
                 argumentsset(name, value)
                 posargsadd(name)
                 break
@@ -695,7 +722,7 @@ class TypeCoercer:
                 raise TypeError(f"multiple values for argument '{name}'") from None
 
             # We're g2g
-            value = anno.coerce(val) if anno else val
+            value = anno(val) if anno else val
             argumentsset(name, value)
             posargsadd(name)
 
@@ -704,8 +731,8 @@ class TypeCoercer:
 
         return tuple(posargs)
 
-    @staticmethod
     def _bind_kwdargs(
+        self,
         arguments: Dict[str, Any],
         params: Deque[inspect.Parameter],
         annos: Dict[str, ResolvedAnnotation],
@@ -740,7 +767,7 @@ class TypeCoercer:
                         f"{name!r} parameter is positional only,"
                         "but was passed as a keyword."
                     )
-                value = anno.coerce(val) if anno else val
+                value = anno(val) if anno else val
                 argumentsset(name, value)
                 kwdargsadd(name)
             elif not partial and param.default is _empty:
@@ -814,6 +841,7 @@ class TypeCoercer:
         *args: Any,
         partial: bool = False,
         coerce: bool = True,
+        strict: bool = False,
         **kwargs: Mapping[str, Any],
     ) -> BoundArguments:
         """Bind a received input to a callable or object's signature.
@@ -833,6 +861,10 @@ class TypeCoercer:
             The given positional args.
         partial
             Whether to bind a partial input.
+        coerce
+            Whether to coerce the input to the annotation provided.
+        strict
+            Whether to validate the input against the annotation provided.
         **kwargs
             The given keyword args.
 
@@ -862,17 +894,23 @@ class TypeCoercer:
         {'c': 3}
         >>> bound.eval()
         6
+        >>> typic.bind(add, 1, 3.0, strict=True)
+        Traceback (most recent call last):
+            ...
+        typic.constraints.error.ConstraintValueError: Given value <3.0> fails constraints: (type=int, nullable=False, coerce=False)
         """
         return self._bind_input(
             obj=obj,
-            annos=self.annotations(obj) if coerce else {},
+            annos=self.annotations(obj, strict=strict) if (coerce or strict) else {},
             params=cached_signature(obj).parameters,
             args=args,
             kwargs=kwargs,
             partial=partial,
         )
 
-    def schema(self, obj: Type, *, primitive: bool = False) -> "s.ObjectSchemaField":
+    def schema(
+        self, obj: Type[ObjectT], *, primitive: bool = False
+    ) -> "s.ObjectSchemaField":
         """Get a JSON schema for object for the given object.
 
         Parameters

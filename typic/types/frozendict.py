@@ -60,10 +60,17 @@ class FrozenDict(Generic[KT, VT], dict):
     _MSG = f"attempting to mutate immutable type 'FrozenDict'"
 
     def __init__(
-        self, obj: Union[Mapping, List[Tuple[str, Hashable]]] = None, **kwargs
+        self,
+        __obj: Union[Mapping, List[Tuple[str, Hashable]]] = None,
+        *,
+        __hashgetter=_hashgetter,
+        **kwargs,
     ):
         super().__init__(
-            {x: self._freeze(y) for x, y in {**(dict(obj or {})), **kwargs}.items()}
+            {
+                x: y if __hashgetter(y) else self._freeze(y)
+                for x, y in {**(dict(__obj or {})), **kwargs}.items()
+            }
         )
 
     def __copy__(self) -> "FrozenDict":
@@ -79,19 +86,19 @@ class FrozenDict(Generic[KT, VT], dict):
         if __hashgetter(o):
             return o
 
-        if isinstance(o, Mapping):
-            return cls({x: cls._freeze(y) for x, y in o.items()})
-
-        gen = (cls._freeze(x) for x in o)
-
         if isinstance(o, set):
-            return frozenset(gen)
+            return frozenset(o)
 
-        return (*gen,)
+        if isinstance(o, Mapping):
+            return cls(
+                {x: y if __hashgetter(y) else cls._freeze(y) for x, y in o.items()}
+            )
+
+        return (*(x if __hashgetter(x) else cls._freeze(x) for x in o),)
 
     @cached_property
     def __hash(self) -> int:
-        return hash((*self.items(),))
+        return hash(frozenset(self.items()))
 
     def __hash__(self) -> int:  # type: ignore
         return self.__hash

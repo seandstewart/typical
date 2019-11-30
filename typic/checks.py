@@ -21,7 +21,7 @@ import typic
 import typic.util as util
 from typic.compat import Final
 
-Object = TypeVar("Object")
+ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
 
 Used in place of :py:class:`Any` for better type-hinting.
@@ -30,7 +30,7 @@ Examples
 --------
 >>> import typic
 >>> from typing import Type
->>> def get_type(obj: typic.Object) -> Type[Object]:
+>>> def get_type(obj: typic.ObjectT) -> Type[ObjectT]:
 ...     return type(obj)
 ...
 >>> get_type("")  # IDE/mypy tracks input type
@@ -39,7 +39,7 @@ str
 
 __all__ = (
     "BUILTIN_TYPES",
-    "Object",
+    "ObjectT",
     "isbuiltintype",
     "isclassvartype",
     "iscollectiontype",
@@ -54,6 +54,7 @@ __all__ = (
     "isnamedtuple",
     "isoptionaltype",
     "isreadonly",
+    "isstrict",
     "issubclass",
     "istypeddict",
     "istypedtuple",
@@ -70,7 +71,7 @@ BUILTIN_TYPES = frozenset(
 
 
 @functools.lru_cache(maxsize=None)
-def isbuiltintype(obj: Type[Object]) -> bool:
+def isbuiltintype(obj: Type[ObjectT]) -> bool:
     """Check whether the provided object is a builtin-type.
 
     Python stdlib and Python documentation have no "definitive list" of
@@ -110,7 +111,7 @@ def isbuiltintype(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isoptionaltype(obj: Type[Object]) -> bool:
+def isoptionaltype(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
 
     :py:class:`typing.Optional` is an alias for ``typing.Union[<T>, None]``, so both are
@@ -133,7 +134,7 @@ def isoptionaltype(obj: Type[Object]) -> bool:
     """
     args = getattr(obj, "__args__", ())
     return (
-        len(args) == 2
+        len(args) > 1
         and args[-1]
         is type(None)  # noqa: E721 - we don't know what args[-1] is, so this is safer
         and getattr(obj, "__origin__", obj) in {Optional, Union}
@@ -141,7 +142,7 @@ def isoptionaltype(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isreadonly(obj: Type[Object]) -> bool:
+def isreadonly(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is marked as :py:class:`typic.ReadOnly`
 
     Parameters
@@ -161,7 +162,7 @@ def isreadonly(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isfinal(obj: Type[Object]) -> bool:
+def isfinal(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is :py:class:`typing.Final`.
 
     Examples
@@ -178,7 +179,7 @@ def isfinal(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def iswriteonly(obj: Type[Object]) -> bool:
+def iswriteonly(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
     Parameters
@@ -198,7 +199,27 @@ def iswriteonly(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isdatetype(obj: Type[Object]) -> bool:
+def isstrict(obj: Type[ObjectT]) -> bool:
+    """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType
+    >>> typic.iswriteonly(typic.WriteOnly[str])
+    True
+    >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
+    True
+    """
+    return util.origin(obj) is typic.Strict
+
+
+@functools.lru_cache(maxsize=None)
+def isdatetype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a a date/datetime object.
 
     Parameters
@@ -224,7 +245,7 @@ _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
 @functools.lru_cache(maxsize=None)
-def iscollectiontype(obj: Type[Object]):
+def iscollectiontype(obj: Type[ObjectT]):
     """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
 
     Includes builtins.
@@ -255,7 +276,7 @@ def iscollectiontype(obj: Type[Object]):
 
 
 @functools.lru_cache(maxsize=None)
-def ismappingtype(obj: Type[Object]):
+def ismappingtype(obj: Type[ObjectT]):
     """Test whether this annotation is a subtype of :py:class:`typing.Mapping`.
 
     Parameters
@@ -290,7 +311,7 @@ def ismappingtype(obj: Type[Object]):
 
 
 @functools.lru_cache(maxsize=None)
-def isenumtype(obj: Type[Object]) -> bool:
+def isenumtype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a subclass of :py:class:`enum.Enum`
 
     Parameters
@@ -311,7 +332,7 @@ def isenumtype(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isclassvartype(obj: Type[Object]) -> bool:
+def isclassvartype(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is a ClassVar annotation.
 
     Examples
@@ -327,11 +348,18 @@ def isclassvartype(obj: Type[Object]) -> bool:
     return getattr(obj, "__origin__", obj) is ClassVar
 
 
-_UNWRAPPABLE = (isclassvartype, isoptionaltype, isreadonly, iswriteonly, isfinal)
+_UNWRAPPABLE = (
+    isclassvartype,
+    isoptionaltype,
+    isreadonly,
+    iswriteonly,
+    isfinal,
+    isstrict,
+)
 
 
 @functools.lru_cache(maxsize=None)
-def should_unwrap(obj: Type[Object]) -> bool:
+def should_unwrap(obj: Type[ObjectT]) -> bool:
     """Test whether we should use the __args__ attr for resolving the type.
 
     This is useful for determining what type to use at run-time for coercion.
@@ -340,7 +368,7 @@ def should_unwrap(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isfromdictclass(obj: Type[Object]) -> bool:
+def isfromdictclass(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a class with a ``from_dict()`` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
@@ -355,16 +383,7 @@ def _type_check(t) -> bool:
     return inspect.isclass(t)
 
 
-@functools.lru_cache(maxsize=None)
-def _get_type(
-    t: Union[Object, Tuple[Object, ...]]
-) -> Union[Type[Object], Tuple[Type[Object], ...]]:
-    if _isinstance(t, tuple):
-        return (*(type(_t) for _t in t),)  # type: ignore
-    return type(t)  # type: ignore
-
-
-def isinstance(o: Any, t: Union[Type[Object], Tuple[Type[Object], ...]]) -> bool:
+def isinstance(o: Any, t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]) -> bool:
     """A safer instance check...
 
     Validates that ``t`` is not an instance.
@@ -390,7 +409,9 @@ def isinstance(o: Any, t: Union[Type[Object], Tuple[Type[Object], ...]]) -> bool
 _issubclass = issubclass
 
 
-def issubclass(o: Type[Any], t: Union[Type[Object], Tuple[Type[Object], ...]]) -> bool:
+def issubclass(
+    o: Type[Any], t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]
+) -> bool:
     """A safer subclass check...
 
     Validates that ``t`` and/or ``o`` are not instances.
@@ -423,7 +444,7 @@ def issubclass(o: Type[Any], t: Union[Type[Object], Tuple[Type[Object], ...]]) -
 
 
 @functools.lru_cache(maxsize=None)
-def isconstrained(obj: Type[Object]) -> bool:
+def isconstrained(obj: Type[ObjectT]) -> bool:
     """Test whether a type is restricted.
 
     Parameters
@@ -450,7 +471,7 @@ def isconstrained(obj: Type[Object]) -> bool:
 __hashgetter = attrgetter("__hash__")
 
 
-def ishashable(obj: Object) -> bool:
+def ishashable(obj: ObjectT) -> bool:
     """Check whether an object is hashable.
 
     An order of magnitude faster than :py:class:`isinstance` with
@@ -474,7 +495,7 @@ def ishashable(obj: Object) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def istypeddict(obj: Type[Object]) -> bool:
+def istypeddict(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a :py:class:`typing.TypedDict`.
 
     Parameters
@@ -500,7 +521,7 @@ def istypeddict(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def istypedtuple(obj: Type[Object]) -> bool:
+def istypedtuple(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`).
 
     Parameters
@@ -526,7 +547,7 @@ def istypedtuple(obj: Type[Object]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
-def isnamedtuple(obj: Type[Object]) -> bool:
+def isnamedtuple(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a "named" tuple (:py:func:`collections.namedtuple`).
 
     Parameters

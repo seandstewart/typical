@@ -61,7 +61,7 @@ def test_validate_values_multi(val: str, constraint: ListContraints, expected: l
     argvalues=[
         (
             [1, 2],
-            ListContraints(min_items=1, max_items=2, items=IntContraints(ge=1)),
+            ListContraints(min_items=1, max_items=2, values=IntContraints(ge=1)),
             [1, 2],
         ),
         (
@@ -69,7 +69,7 @@ def test_validate_values_multi(val: str, constraint: ListContraints, expected: l
             ListContraints(
                 min_items=1,
                 max_items=2,
-                items=(StrConstraints(strip_whitespace=True, min_length=2),),
+                values=StrConstraints(strip_whitespace=True, min_length=2),
             ),
             ["foo"],
         ),

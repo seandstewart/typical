@@ -5,7 +5,11 @@ from typing import List, Tuple, Set, Union, Mapping
 import pytest
 
 import typic
-from typic.schema.field import MultiSchemaField, UndeclaredSchemaField, get_field_type
+from typic.schema import (
+    MultiSchemaField,
+    UndeclaredSchemaField,
+    get_field_type,
+)
 from typic.compat import Final
 from tests import objects
 
@@ -28,12 +32,10 @@ def test_typic_objects_schema(obj):
         (set, typic.ArraySchemaField(uniqueItems=True)),
         (frozenset, typic.ArraySchemaField(uniqueItems=True, additionalItems=False)),
         (tuple, typic.ArraySchemaField(additionalItems=False)),
-        (List[str], typic.ArraySchemaField(items=(typic.StrSchemaField(),))),
+        (List[str], typic.ArraySchemaField(items=typic.StrSchemaField())),
         (
             List[objects.LargeInt],
-            typic.ArraySchemaField(
-                items=(typic.IntSchemaField(exclusiveMinimum=1000),)
-            ),
+            typic.ArraySchemaField(items=typic.IntSchemaField(exclusiveMinimum=1000)),
         ),
         (
             Mapping[str, objects.LargeInt],
@@ -145,16 +147,16 @@ def test_typic_schema(obj, expected):
         (set, {"type": "array", "uniqueItems": True}),
         (frozenset, {"type": "array", "uniqueItems": True, "additionalItems": False}),
         (tuple, {"type": "array", "additionalItems": False}),
-        (List[str], {"type": "array", "items": [{"type": "string"}]}),
+        (List[str], {"type": "array", "items": {"type": "string"}}),
         (
             Set[str],
-            {"type": "array", "items": [{"type": "string"}], "uniqueItems": True},
+            {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
         ),
         (
             Tuple[str],
-            {"type": "array", "items": [{"type": "string"}], "additionalItems": False},
+            {"type": "array", "items": {"type": "string"}, "additionalItems": False},
         ),
-        (Tuple[str, ...], {"type": "array", "items": [{"type": "string"}]}),
+        (Tuple[str, ...], {"type": "array", "items": {"type": "string"}}),
         (
             objects.FromDict,
             dict(

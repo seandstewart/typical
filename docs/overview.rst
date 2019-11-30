@@ -46,7 +46,7 @@ sending over the wire. Adding to the snippet from above:
 
 
     >>> donald.primitive()
-    {'type': <DuckType.WHT: 'white'>, 'name': 'Donald', 'created_on': '1970-01-01T00:00:00+00:00'}
+    {'type': 'white', 'name': 'Donald', 'created_on': '1970-01-01T00:00:00+00:00'}
 
 
 The output from ``donald.primitive()`` is JSON-serializable, **guaranteed**, no need to
@@ -66,7 +66,6 @@ Philosophy
 
 **Correctness is Key**
     - Python embraces the builtin type-system and work with it rather than against it.
-      No converting floats to ints by design! (I'm looking at you, pydantic)
     - There should be one -- and preferably only one -- way to do things. ``typical``
       follows a predictable waterfall when resolving your type annotation into an
       actionable coercer for run-time that covers about 99% of cases.

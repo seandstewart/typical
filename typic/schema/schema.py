@@ -2,7 +2,18 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 import enum
-from typing import Union, Type, Mapping, Optional, Dict, Any, List, Generic, cast
+from typing import (
+    Union,
+    Type,
+    Mapping,
+    Optional,
+    Dict,
+    Any,
+    List,
+    Generic,
+    cast,
+    Iterable,
+)
 
 import inflection  # type: ignore
 
@@ -10,7 +21,6 @@ from typic import api
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.types.frozendict import FrozenDict
-from typic.checks import isoptionaltype
 
 from .field import (  # type: ignore
     MultiSchemaField,
@@ -23,7 +33,6 @@ from .field import (  # type: ignore
     SCHEMA_FIELD_FORMATS,
     get_field_type,
     SchemaType,
-    NullSchemaField,
 )
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
@@ -93,7 +102,9 @@ class SchemaBuilder:
             )
         if args:
             constrs = set(self.get_field(api.coerce.resolve(x)) for x in args)
-            constraints["items"] = tuple({*constraints.get("items", ())} | constrs)
+            items = constraints.get("items", ())
+            constrs = constrs | ({*items} if isinstance(items, Iterable) else {items})
+            constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
             if anno.origin in {tuple, frozenset}:
                 constraints["additionalItems"] = False if not has_ellipsis else None
             if anno.origin in {set, frozenset}:
@@ -120,8 +131,7 @@ class SchemaBuilder:
         # Get known schemas mapped to Python types.
         formats = SCHEMA_FIELD_FORMATS
         # `use` is the based annotation we will use for building the schema
-        use = anno.origin
-        optional = isoptionaltype(anno.annotation)
+        use = getattr(anno.origin, "__parent__", anno.origin)
         # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaField
         if use is anno.EMPTY:
@@ -148,14 +158,15 @@ class SchemaBuilder:
         if use in {ReadOnly, WriteOnly, Final}:
             ro = (use in {ReadOnly, Final}) or None
             wo = (use is WriteOnly) or None
-            use = origin(anno.un_resolved)
+            use = origin(anno.annotation)
+            use = getattr(use, "__parent__", use)
 
         # Check for an enumeration
         enum_ = None
         if issubclass(use, enum.Enum):
             use = cast(Type[enum.Enum], use)
             enum_ = tuple(x.value for x in use)
-            use = use._member_type_  # type: ignore
+            use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
 
         # If this is ro with a default, we can consider this a const
         # Which is an enum with a single value -
@@ -179,18 +190,13 @@ class SchemaBuilder:
         else:
             schema = self.build_schema(use, name=self.defname(use, name=name))
 
-        if optional:
-            schema = MultiSchemaField(
-                title=self.defname(anno.annotation, name=name) if name else None,
-                oneOf=(schema, NullSchemaField()),
-            )
         self.__cache[anno] = schema
         return schema
 
     @staticmethod
     def defname(obj, name: str = None) -> Optional[str]:
         """Get the definition name for an object."""
-        defname = getattr(obj, "__name__", None) or name
+        defname = name or getattr(obj, "__name__", None)
         if (obj is dict or origin(obj) is dict) and name:
             defname = name
         return inflection.camelize(defname) if defname else None

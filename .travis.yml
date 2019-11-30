@@ -14,6 +14,8 @@ stages:
 cache:
   directories:
     - "$HOME/.cache/pre-commit"
+    - "$HOME/.cache/pypoetry"
+    - "$HOME/virtualenv/"
 
 install:
   - pip install --upgrade pip
@@ -21,7 +23,7 @@ install:
   - poetry install -v
 
 script:
-  - pytest . --cov
+  - pytest tests typic --doctest-modules --cov
 
 jobs:
   include:

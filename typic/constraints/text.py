@@ -4,7 +4,7 @@ import dataclasses
 from typing import ClassVar, Type, Pattern, Tuple, Optional, Union, Dict, Any, Text
 
 from typic import gen
-from .common import BaseConstraints, Context, Checks
+from .common import BaseConstraints, ContextT, ChecksT
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -31,7 +31,7 @@ class TextConstraints(BaseConstraints):
     regex: Optional[Pattern[Text]] = None
     """A regex pattern which the input must match."""
 
-    def _build_validator(self, func: gen.Block) -> Tuple[Checks, Context]:
+    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
         # Set up the local env.
         if self.curtail_length is not None:
             func.l(f"val = val[:{self.curtail_length}]")

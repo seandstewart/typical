@@ -8,13 +8,13 @@ from typing import (
     Union,
     Callable,
     Type,
-    Any,
     Tuple,
     Optional,
     Mapping,
     TypeVar,
     Generic,
     cast,
+    Iterable,
 )
 
 import typic.constraints as c
@@ -26,27 +26,35 @@ from typic.coercer import (
     _origsettergetter,
     BoundArguments,
     ResolvedAnnotation,
+    Annotations,
+    Strict,
+    StrictStrT,
 )
 from typic.util import origin, primitive
+from typic.types import FrozenDict
 
 __all__ = (
     "annotations",
     "bind",
     "coerce",
+    "is_strict_mode",
     "register",
     "resolve",
     "settings",
     "schema",
     "schemas",
+    "strict_mode",
     "typed",
     "wrap",
     "wrap_cls",
     "constrained",
     "BoundArguments",
     "ResolvedAnnotation",
+    "Strict",
+    "StrictStrT",
 )
 
-Object = TypeVar("Object")
+ObjectT = TypeVar("ObjectT")
 
 coerce: __TypeCoercer = __TypeCoercer()
 bind = coerce.bind
@@ -64,7 +72,45 @@ class TypicObject(Generic[_T]):
     primitive = primitive
 
 
-def wrap(func: Callable, *, delay: bool = False) -> Callable:
+def strict_mode() -> bool:
+    """Turn on global ``strict`` mode.
+
+    All resolved annotations will validate their inputs against the generated constraints.
+    In some cases, coercion may still be used as the method for validation.
+    Additionally, post-validation coercion will occur for user-defined classes if needed.
+
+    Notes
+    -----
+    Global state is messy, but this is provided for convenience. Care must be taken
+    when manipulating global state in this way. If you intend to turn on global
+    ``strict`` mode, it should be done once, at the start of the application runtime,
+    before all annotations have been resolved.
+
+    You cannot toggle ``strict`` mode off once it is enabled during the runtime of an
+    application. This is intentional, to limit the potential for hazy or unclear state.
+
+    If you find yourself in a situation where you need ``strict`` mode for some cases,
+    but not others, you're encouraged to flag ``strict=True`` on the decorated
+    class/callable, or even make use of the :py:class:`~typic.api.Strict` annotation to
+    flag ``strict`` mode on individual fields.
+    """
+    coerce.STRICT = True
+    return coerce.STRICT
+
+
+def is_strict_mode() -> bool:
+    """Test whether we are currently in ``strict`` mode.
+
+    See Also
+    --------
+    :py:func:`strict_mode`
+    """
+    return coerce.STRICT
+
+
+def wrap(
+    func: Callable[..., _T], *, delay: bool = False, strict: bool = False
+) -> Callable[..., _T]:
     """Wrap a callable to automatically enforce type-coercion.
 
     Parameters
@@ -73,6 +119,8 @@ def wrap(func: Callable, *, delay: bool = False) -> Callable:
         The callable for which you wish to ensure type-safety
     delay
         Delay annotation resolution until the first call
+    strict
+        Turn on "validator mode": e.g. validate incoming data rather than coerce.
 
     See Also
     --------
@@ -85,16 +133,23 @@ def wrap(func: Callable, *, delay: bool = False) -> Callable:
         _TO_RESOLVE.append(func)
 
     @functools.wraps(func)
-    def func_wrapper(*args, **kwargs) -> Any:
-        bound = coerce.bind(func, *args, **kwargs)
-        return func(*bound.args, **bound.kwargs)
+    def func_wrapper(*args, **kwargs) -> _T:
+        bound = coerce.bind(func, *args, strict=strict, **kwargs)
+        return bound.eval()
 
     return func_wrapper
 
 
+_sentinel = object()
+
+
 def wrap_cls(
-    klass: Type[Object], *, delay: bool = False
-) -> Type[TypicObject[Type[Object]]]:
+    klass: Type[ObjectT],
+    *,
+    delay: bool = False,
+    strict: bool = False,
+    jsonschema: bool = True,
+) -> Type[TypicObject[Type[ObjectT]]]:
     """Wrap a class to automatically enforce type-coercion on init.
 
     Notes
@@ -110,17 +165,24 @@ def wrap_cls(
         The class you wish to patch with coercion.
     delay
         Delay annotation resolution until first initialization.
+    strict
+        Turn on "validator mode": e.g. validate incoming data rather than coerce.
+    jsonschema
+        Generate a JSON Schema entry for this object.
     """
-    # Resolve the annotations. This will store them on the object as well
-    if not delay:
-        coerce.annotations(klass)
-        coerce.schema(klass)
-    else:
-        _TO_RESOLVE.append(klass)
 
-    def cls_wrapper(cls_: Type[Object]) -> Type[TypicObject[Type[Object]]]:
-        cls_.schema = classmethod(coerce.schema)  # type: ignore
+    def cls_wrapper(cls_: Type[ObjectT]) -> Type[TypicObject[Type[ObjectT]]]:
+        if jsonschema:
+            cls_.schema = classmethod(coerce.schema)  # type: ignore
         cls_.primitive = primitive  # type: ignore
+
+        ann: Optional[Annotations] = None
+        if not delay:
+            ann = coerce.annotations(cls_, strict=strict)
+            if jsonschema:
+                schema(cls_)
+        else:
+            _TO_RESOLVE.append(cls_)
         # Frozen dataclasses don't use the native setattr
         # So we wrap the init. This should be fine,
         # just slower :(
@@ -128,8 +190,17 @@ def wrap_cls(
             hasattr(cls_, "__dataclass_params__")
             and cls_.__dataclass_params__.frozen  # type: ignore
         ):
-            cls_.__init__ = wrap(cls_.__init__, delay=delay)  # type: ignore
+            cls_.__init__ = wrap(  # type: ignore
+                cls_.__init__, delay=delay, strict=strict
+            )
         else:
+
+            def __setattr_coerced__(self, name, value):
+                nonlocal ann
+                ann = annotations(type(self)) if ann is None else ann
+                value = ann[name](value) if name in ann else value
+                _origsettergetter(self)(name, value)
+
             setattr(cls_, _ORIG_SETTER_NAME, _get_setter(cls_))
             cls_.__setattr__ = __setattr_coerced__  # type: ignore
         return cls_  # type: ignore
@@ -138,44 +209,40 @@ def wrap_cls(
     return wrapped
 
 
-def __setattr_coerced__(self, name, value):
-    ann = annotations(type(self))
-    value = ann[name](value) if name in ann else value
-    _origsettergetter(self)(name, value)
-
-
 def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
     bases = bases or cls.__bases__
     setter = cls.__setattr__
-    if setter is __setattr_coerced__:
+    if setter.__name__ == "__setattr_coerced__":
         for base in bases:
             name = (
                 _ORIG_SETTER_NAME if hasattr(base, _ORIG_SETTER_NAME) else "__setattr__"
             )
             setter = getattr(base, name, None)
-            if setter is not __setattr_coerced__:
+            if setter.__name__ == "__setattr_coerced__":
                 break
     return setter
 
 
-def typed(_cls_or_callable=None, *, delay: bool = False):
+def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
     """A convenience function which automatically selects the correct wrapper.
 
     Parameters
     ----------
     delay
         Optionally delay annotation resolution until first call.
+    strict
+        Turn on "validator mode": e.g. validate incoming data rather than coerce.
 
     Returns
     -------
     The target object, appropriately wrapped.
     """
 
-    def _typed(obj: Union[Callable, Type[Object]]):
+    def _typed(obj: Union[Callable, Type[ObjectT]]):
         if inspect.isclass(obj):
-            return wrap_cls(obj, delay=delay)  # type: ignore
+            return wrap_cls(obj, delay=delay, strict=strict)  # type: ignore
         elif isinstance(obj, Callable):  # type: ignore
-            return wrap(obj, delay=delay)  # type: ignore
+            return wrap(obj, delay=delay, strict=strict)  # type: ignore
         else:
             raise TypeError(
                 f"{__name__} requires a callable or class. Provided: {type(obj)}: {obj}"
@@ -207,10 +274,14 @@ def resolve():
             schema(obj)
 
 
-_CONSTRAINT_TYPE_MAP = {x.type: x for x in c.Constraints.__args__}  # type: ignore
+_CONSTRAINT_TYPE_MAP = {
+    x.type: x
+    for x in c.ConstraintsT.__args__  # type: ignore
+    if hasattr(x, "type") and x.type != object
+}
 
 
-def _get_constraint_cls(cls: Type) -> Optional[Type[c.Constraints]]:
+def _get_constraint_cls(cls: Type) -> Optional[Type[c.ConstraintsT]]:
     if cls in _CONSTRAINT_TYPE_MAP:  # pragma: nocover
         return _CONSTRAINT_TYPE_MAP[cls]
     for typ, constr in _CONSTRAINT_TYPE_MAP.items():
@@ -219,6 +290,18 @@ def _get_constraint_cls(cls: Type) -> Optional[Type[c.Constraints]]:
             return constr
 
     return None
+
+
+def _get_maybe_multi_constraints(
+    v,
+) -> Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]:
+    cons: Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]
+    if isinstance(v, Iterable):
+        cons_gen = (c.get_constraints(x) for x in v)
+        cons = tuple((x for x in cons_gen if x is not None))
+    else:
+        cons = c.get_constraints(v)
+    return cons
 
 
 def constrained(
@@ -250,7 +333,7 @@ def constrained(
     >>> ShortStr('waytoomanycharacters')
     Traceback (most recent call last):
     ...
-    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, max_length=10)
+    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, coerce=False, max_length=10)
     >>> @typic.constrained(values=ShortStr, max_items=2)
     ... class SmallMap(dict):
     ...     '''A small map that only allows short strings.'''
@@ -284,7 +367,7 @@ def constrained(
     :py:mod:`typic.constraints.text`
     """
 
-    def constr_wrapper(cls_: Type[Object]) -> Type[Object]:
+    def constr_wrapper(cls_: Type[ObjectT]) -> Type[ObjectT]:
         nonlocal constraints
         nonlocal values
         constr_cls = _get_constraint_cls(cls_)
@@ -292,13 +375,23 @@ def constrained(
             raise TypeError(f"can't constrain type {cls_.__name__!r}")
 
         if values and constr_cls.type in {list, dict, set, tuple, frozenset}:
-            values = (
-                tuple(x.__constraints__ for x in values)
-                if isinstance(values, tuple)
-                else values.__constraints__
-            )
-            key = "additional_items" if constr_cls.type == dict else "items"
-            constraints[key] = values
+            vcons = _get_maybe_multi_constraints(values)
+            if vcons:
+                constraints["values"] = vcons
+        if constr_cls.type == dict:
+            if "keys" in constraints:
+                kcons = _get_maybe_multi_constraints(constraints["keys"])
+                if kcons:
+                    constraints["keys"] = kcons
+            for k in ("items", "patterns", "key_dependencies"):
+                if k in constraints:
+                    f = {}
+                    for n, c_ in constraints[k].items():
+                        c__cons = _get_maybe_multi_constraints(c_)
+                        if c__cons:
+                            f[n] = c__cons
+
+                    constraints[k] = FrozenDict(f)
 
         constraints_inst = constr_cls(**constraints)
         cdict = dict(cls_.__dict__)
@@ -324,14 +417,14 @@ def constrained(
 
         cdict.update(
             __constraints__=constraints_inst,
-            __origin__=constraints_inst.type,
+            __parent__=constraints_inst.type,
             **(
                 {"__new__": new(cls_.__new__)}
                 if constraints_inst.type in {str, bytes, int, float}
                 else {"__init__": init(cls_.__init__)}
             ),
         )
-        cls: Type[Object] = cast(Type[Object], type(cls_.__name__, bases, cdict))
+        cls: Type[ObjectT] = cast(Type[ObjectT], type(cls_.__name__, bases, cdict))
 
         return cls
 
@@ -339,13 +432,13 @@ def constrained(
 
 
 def _resolve_from_env(
-    cls: Type[Object],
+    cls: Type[ObjectT],
     prefix: str,
     case_sensitive: bool,
     aliases: Mapping[str, str],
     *,
     environ: Mapping[str, str] = None,
-) -> Type[Object]:
+) -> Type[ObjectT]:
     environ = environ or os.environ
     env = {(x.lower() if not case_sensitive else x): y for x, y in environ.items()}
     fields = {
@@ -374,13 +467,13 @@ def _resolve_from_env(
 
 
 def settings(
-    _klass: Type[Object] = None,
+    _klass: Type[ObjectT] = None,
     *,
     prefix: str = "",
     case_sensitive: bool = False,
     frozen: bool = True,
     aliases: Mapping = None,
-) -> Type[Object]:
+) -> Type[ObjectT]:
     """Create a typed class which sets its defaults from env vars.
 
     The resolution order of values is ``default(s) -> env value(s) -> passed value(s)``.
@@ -452,7 +545,7 @@ def settings(
 
     def settings_wrapper(_cls):
         _resolve_from_env(_cls, prefix, case_sensitive, aliases)
-        cls = wrap_cls(dataclasses.dataclass(_cls, frozen=frozen))
+        cls = wrap_cls(dataclasses.dataclass(_cls, frozen=frozen), jsonschema=False)
         return cls
 
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper

@@ -7,4 +7,5 @@ Here you'll find an overview of the high-level API and how to use it in your pro
 
     quickstart
     examples
+    strict-mode
     advanced
