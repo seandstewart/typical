@@ -10,6 +10,7 @@ from typic import api
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.types.frozendict import FrozenDict
+from typic.checks import isoptionaltype
 
 from .field import (  # type: ignore
     MultiSchemaField,
@@ -22,6 +23,7 @@ from .field import (  # type: ignore
     SCHEMA_FIELD_FORMATS,
     get_field_type,
     SchemaType,
+    NullSchemaField,
 )
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
@@ -119,6 +121,7 @@ class SchemaBuilder:
         formats = SCHEMA_FIELD_FORMATS
         # `use` is the based annotation we will use for building the schema
         use = anno.origin
+        optional = isoptionaltype(anno.annotation)
         # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaField
         if use is anno.EMPTY:
@@ -173,11 +176,16 @@ class SchemaBuilder:
                 self._handle_array(anno, constraints)
             base: SchemaField = formats[use]
             schema = dataclasses.replace(base, **constraints)
-            self.__cache[anno] = schema
-            return schema
+        else:
+            schema = self.build_schema(use, name=self.defname(use, name=name))
 
-        # Else assume this is a custom object and build a new schema for it
-        return self.build_schema(use, name=self.defname(use, name=name))
+        if optional:
+            schema = MultiSchemaField(
+                title=self.defname(anno.annotation, name=name) if name else None,
+                oneOf=(schema, NullSchemaField()),
+            )
+        self.__cache[anno] = schema
+        return schema
 
     @staticmethod
     def defname(obj, name: str = None) -> Optional[str]:
@@ -196,9 +204,11 @@ class SchemaBuilder:
         definitions: Dict[str, Any] = {}
         properties: Dict[str, Any] = {}
         required: List[str] = []
+        total: bool = getattr(obj, "__total__", True)
         for nm, annotation in annotations.items():
             field = self.get_field(annotation, name=nm)
-            # If we received an object schema, figure out a name and inherit the definitions.
+            # If we received an object schema,
+            # figure out a name and inherit the definitions.
             if isinstance(field, ObjectSchemaField):
                 definitions.update(**(field.definitions or {}))  # type: ignore
                 field = dataclasses.replace(field, definitions=None)
@@ -215,7 +225,7 @@ class SchemaBuilder:
             description=obj.__doc__,
             properties=FrozenDict(properties),
             additionalProperties=False,
-            required=tuple(required),
+            required=(*required,) if total else (),
             definitions=FrozenDict(definitions),
         )
         self.__cache[obj] = schema

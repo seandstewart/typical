@@ -38,19 +38,23 @@ def test__resolve_from_env_field():
 
 class Bar:
     data: dict
+    array: list
 
 
 @pytest.mark.parametrize(
-    argnames=("kwargs", "value", "name"),
+    argnames=("kwargs", "environ"),
     argvalues=[
-        ({"prefix": "", "case_sensitive": False, "aliases": {}}, "{}", "data"),
+        (
+            {"prefix": "", "case_sensitive": False, "aliases": {}},
+            {"data": "{}", "array": "[]"},
+        ),
         (
             {"prefix": "OTHER_", "case_sensitive": False, "aliases": {}},
-            "{}",
-            "OTHER_DATA",
+            {"OTHER_DATA": "{}", "OTHER_ARRAY": "[]"},
         ),
     ],
 )
-def test__resolve_from_env_factory(kwargs, value, name):
-    resolved = _resolve_from_env(Bar, **kwargs, environ={name: value})
+def test__resolve_from_env_factory(kwargs, environ):
+    resolved = _resolve_from_env(Bar, **kwargs, environ=environ)
     assert resolved.data.default_factory() == {}
+    assert resolved.array.default_factory() == []

@@ -42,11 +42,12 @@ from tests import objects
         (objects.Data(foo="foo"), {"foo": "foo"}),
         (objects.FromDict(), {"foo": None}),
         (decimal.Decimal("1.0"), 1.0),
+        (objects.FooNum.bar, "bar"),
     ],
 )
 def test_primitive(obj, expected):
     primitive = typic.util.primitive(obj)
-    assert primitive == expected
+    assert repr(primitive) == repr(expected)
     assert isinstance(primitive, type(expected))
 
 

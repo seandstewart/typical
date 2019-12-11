@@ -46,7 +46,12 @@ def test_typic_objects_schema(obj):
             typic.ObjectSchemaField(
                 description=objects.FromDict.__doc__,
                 title=objects.FromDict.__name__,
-                properties=typic.FrozenDict(foo=typic.StrSchemaField()),
+                properties=typic.FrozenDict(
+                    foo=typic.MultiSchemaField(
+                        title="Foo",
+                        oneOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    )
+                ),
                 required=(),
                 additionalProperties=False,
                 definitions=typic.FrozenDict(),
@@ -86,6 +91,17 @@ def test_typic_objects_schema(obj):
                 title=objects.TDict.__name__,
                 properties=typic.FrozenDict(a=typic.IntSchemaField()),
                 required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.TDictPartial,
+            typic.ObjectSchemaField(
+                description=objects.TDictPartial.__doc__,
+                title=objects.TDictPartial.__name__,
+                properties=typic.FrozenDict(a=typic.IntSchemaField()),
+                required=(),
                 additionalProperties=False,
                 definitions=typic.FrozenDict(),
             ),
@@ -144,7 +160,12 @@ def test_typic_schema(obj, expected):
             dict(
                 description=objects.FromDict.__doc__,
                 title=objects.FromDict.__name__,
-                properties={"foo": {"type": "string"}},
+                properties={
+                    "foo": {
+                        "oneOf": [{"type": "string"}, {"type": "null"}],
+                        "title": "Foo",
+                    }
+                },
                 required=[],
                 additionalProperties=False,
                 definitions={},

@@ -38,8 +38,9 @@ __all__ = (
     "BaseSchemaField",
     "BooleanSchemaField",
     "IntSchemaField",
-    "NumberSchemaField",
     "MultiSchemaField",
+    "NumberSchemaField",
+    "NullSchemaField",
     "ObjectSchemaField",
     "ReadOnly",
     "Ref",
@@ -80,6 +81,7 @@ class SchemaType(str, enum.Enum):
     OBJ = "object"
     ARR = "array"
     BOOL = "boolean"
+    NULL = "null"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -213,6 +215,11 @@ class MultiSchemaField(BaseSchemaField):
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
+class NullSchemaField(BaseSchemaField):
+    type = SchemaType.NULL
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
 class StrSchemaField(BaseSchemaField):
     """A JSON Schema Field for the ``string`` type.
 
@@ -323,6 +330,7 @@ SchemaField = Union[
     ArraySchemaField,
     MultiSchemaField,
     UndeclaredSchemaField,
+    NullSchemaField,
 ]
 """A type-alias for the defined JSON Schema Fields."""
 
@@ -381,5 +389,6 @@ SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaField] = frozendict.Froz
         re.Pattern: StrSchemaField(format=StringFormat.RE),  # type: ignore
         ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
         ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
+        type(None): NullSchemaField(),
     }
 )

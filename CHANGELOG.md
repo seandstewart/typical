@@ -1,7 +1,17 @@
+**v2.0.0b7**  
+1. #14: Improve TypedDict support: 
+   - respect total=False flag on coercion & schema gen 
+   - Proper support for typing.Optional in schema gen.
+2. #21: Properly handle enums:
+   - Downgrade enums to their held values on calls to typic.primitive
+3. Also:
+   - Fix lazy evaluation of value for default factories in settings
+   - Treat subclasses of builtins as builtins in coercer
+
 **v2.0.0b1**  
 This release brings an entirely new annotation resolution engine which
 is backwards-incompatible with v1. The high-level API remains largely
-the same. 
+the same.
 
 New features include:
 1. ``@typic.constrained`` for definining restricted versions of

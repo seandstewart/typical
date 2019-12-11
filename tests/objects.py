@@ -178,6 +178,10 @@ class TDict(TypedDict):
     a: int
 
 
+class TDictPartial(TypedDict, total=False):
+    a: int
+
+
 class NTup(typing.NamedTuple):
     a: int
 
