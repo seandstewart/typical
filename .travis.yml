@@ -24,13 +24,3 @@ install:
 
 script:
   - pytest tests typic --doctest-modules --cov
-
-jobs:
-  include:
-    - stage: lint
-      install:
-        - pip install --upgrade pip
-        - pip install pre-commit
-        - pre-commit install-hooks
-      script:
-        - pre-commit run --all-files

@@ -837,7 +837,7 @@ testing = ["pathlib2", "contextlib2", "unittest2"]
 schema = ["fastjsonschema"]
 
 [metadata]
-content-hash = "305a3ce1b2aaad3d296a10432a5c5b9eb7d6c71d104573761d148c5c3094d8c0"
+content-hash = "d594c27ff70f62baf00a5bfb29e63f28ccc4be14e5424ed978989a3551ee45be"
 python-versions = "^3.7"
 
 [metadata.files]
