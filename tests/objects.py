@@ -152,12 +152,37 @@ class LargeInt(int):
     ...
 
 
-@typic.constrained(values=LargeInt)
+@typic.constrained(values=LargeInt, keys=ShortStr)
 class LargeIntDict(dict):
     ...
 
 
-ShortStrDict = typing.Dict[str, ShortStr]
+@typic.constrained(keys=ShortStr)
+class ShortKeyDict(dict):
+    ...
+
+
+@typic.constrained(items={"foo": LargeInt}, values=ShortStr)
+class ItemizedValuedDict(dict):
+    ...
+
+
+@typic.constrained(items={"foo": LargeInt}, keys=ShortStr)
+class ItemizedKeyedDict(dict):
+    ...
+
+
+@typic.constrained(items={"foo": LargeInt})
+class ItemizedDict(dict):
+    ...
+
+
+@typic.constrained(items={"foo": LargeInt}, keys=ShortStr, values=ShortStr)
+class ItemizedKeyedValuedDict(dict):
+    ...
+
+
+ShortStrDictT = typing.Dict[ShortStr, ShortStr]
 
 
 @typic.klass
@@ -171,7 +196,7 @@ class NestedConstrained:
     mapping: typing.Mapping[str, Constrained]
     array: typing.List[Constrained]
     constr: LargeIntDict
-    other_constr: ShortStrDict
+    other_constr: ShortStrDictT
 
 
 class TDict(TypedDict):

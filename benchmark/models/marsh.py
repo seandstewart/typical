@@ -4,7 +4,7 @@ import dataclasses
 import datetime
 from typing import Optional, List
 
-from marshmallow import fields, Schema, validate as mvalidate
+from marshmallow import fields, Schema, validate as mvalidate, ValidationError
 
 
 class LocationSchema(Schema):
@@ -26,7 +26,7 @@ class ModelSchema(Schema):
     client_name = fields.Str(validate=mvalidate.Length(max=255), required=True)
     sort_index = fields.Float(required=True)
     client_phone = fields.Str(validate=mvalidate.Length(max=255), allow_none=True)
-    location = LocationSchema()
+    location = fields.Nested(LocationSchema())
     contractor = fields.Integer(validate=mvalidate.Range(min=0), allow_none=True)
     upstream_http_referrer = fields.Str(
         validate=mvalidate.Length(max=1023), allow_none=True
@@ -80,8 +80,9 @@ def initialize(**data):
 
 
 def validate(data):
-    result = SCHEMA.load(data)
-    if result.errors:
-        return False, result.errors
+    try:
+        result = SCHEMA.load(data)
+    except ValidationError as err:
+        return False, err
 
-    return True, initialize(**data)
+    return True, initialize(**result)

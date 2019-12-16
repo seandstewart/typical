@@ -1,35 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-
 # flake8: noqa
-from typing import Union
 
-from .array import ListContraints, TupleContraints, SetContraints, FrozenSetConstraints
-from .common import Validator, BaseConstraints
+from .array import (
+    ListContraints,
+    TupleContraints,
+    SetContraints,
+    FrozenSetConstraints,
+    Array,
+    ArrayConstraints,
+)
+from .common import (
+    ValidatorT,
+    BaseConstraints,
+    VT,
+    MultiConstraints,
+    TypeConstraints,
+)
 from .error import ConstraintValueError, ConstraintSyntaxError
-from .mapping import DictConstraints
+from .mapping import DictConstraints, MappingConstraints, ObjectConstraints
 from .number import DecimalContraints, FloatContraints, IntContraints, Number
 from .text import BytesConstraints, StrConstraints
-
-Constraints = Union[
-    BytesConstraints,
-    DecimalContraints,
-    DictConstraints,
-    FloatContraints,
-    FrozenSetConstraints,
-    IntContraints,
-    ListContraints,
-    SetContraints,
-    StrConstraints,
-    TupleContraints,
-]
-
+from .factory import ConstraintsT, get_constraints
 
 __all__ = (
     "ConstraintValueError",
     "ConstraintSyntaxError",
     "BytesConstraints",
-    "Constraints",
+    "ConstraintsT",
     "DecimalContraints",
     "DictConstraints",
     "FloatContraints",
@@ -40,6 +38,7 @@ __all__ = (
     "SetContraints",
     "StrConstraints",
     "TupleContraints",
-    "Validator",
+    "ValidatorT",
     "BaseConstraints",
+    "get_constraints",
 )

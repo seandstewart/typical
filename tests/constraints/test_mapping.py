@@ -63,19 +63,19 @@ def test_validate_keys(val: str, constraint: DictConstraints, expected: list):
         (BAR, DictConstraints(key_pattern=FPATT), ConstraintValueError),
         (
             FOOBAR,
-            DictConstraints(required_keys=frozenset(("foo",)), additional_items=False),
+            DictConstraints(required_keys=frozenset(("foo",)), total=True),
             ConstraintValueError,
         ),
         (
             FOOBAR,
-            DictConstraints(additional_items=StrConstraints(min_length=1)),
+            DictConstraints(values=StrConstraints(min_length=1)),
             ConstraintValueError,
         ),
         (
             FOOBAR,
             DictConstraints(
                 items=FrozenDict({"foo": IntContraints(ge=1)}),
-                additional_items=StrConstraints(min_length=1),
+                values=StrConstraints(min_length=1),
             ),
             ConstraintValueError,
         ),
@@ -98,6 +98,13 @@ def test_validate_keys_error(
         constraint.validate(val)
 
 
-def test_syntax_error():
+@pytest.mark.parametrize(
+    argnames=("kwargs",),
+    argvalues=[
+        (dict(key_dependencies=FrozenDict(foo="bar")),),
+        (dict(keys=StrConstraints(), total=True),),
+    ],
+)
+def test_syntax_error(kwargs):
     with pytest.raises(ConstraintSyntaxError):
-        DictConstraints(key_dependencies=FrozenDict(foo="bar"))
+        DictConstraints(**kwargs)

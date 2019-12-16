@@ -1,11 +1,10 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.0b7"
+version = "2.0.0b8"
 description = "Typical: Take Typing Further."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
-copyright = "Copyright 2019 Sean Stewart"
 readme = "README.md"
 repository = "https://github.com/seandstewart/typical"
 keywords = ["typing", "data", "annotations", "validation", "json-schema"]
@@ -48,6 +47,7 @@ djangorestframework = "^3.10"
 pydantic = {version = "^1.0", extras = ["email"]}
 django = "^2.2"
 sphinx-sitemap = "^1.0"
+mypy = {version = "^0.750.0", allow-prereleases = true}
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]

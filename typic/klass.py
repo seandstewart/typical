@@ -15,7 +15,9 @@ def make_typedclass(
     order: bool = False,
     unsafe_hash: bool = False,
     frozen: bool = False,
-    delay: bool = False
+    delay: bool = False,
+    validator: bool = False,
+    jsonschema: bool = False,
 ):
     """A convenience function for generating a dataclass with type-coercion.
 
@@ -40,7 +42,7 @@ def make_typedclass(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
-    return wrap_cls(dcls, delay=delay)
+    return wrap_cls(dcls, delay=delay, strict=validator, jsonschema=jsonschema)
 
 
 def klass(
@@ -52,7 +54,9 @@ def klass(
     order: bool = False,
     unsafe_hash: bool = False,
     frozen: bool = False,
-    delay: bool = False
+    delay: bool = False,
+    validator: bool = False,
+    jsonschema: bool = True,
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
 
@@ -90,6 +94,8 @@ def klass(
             unsafe_hash=unsafe_hash,
             frozen=frozen,
             delay=delay,
+            validator=validator,
+            jsonschema=jsonschema,
         )
 
     return typedclass_wrapper(_cls) if _cls else typedclass_wrapper

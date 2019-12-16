@@ -6,7 +6,7 @@ import warnings
 from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
 
 from typic import gen, util
-from .common import BaseConstraints, Context, Checks
+from .common import BaseConstraints, ContextT, ChecksT
 from .error import ConstraintSyntaxError, ConstraintValueError
 
 Number = Union[int, float, decimal.Decimal]
@@ -81,7 +81,7 @@ class NumberConstraints(BaseConstraints):
                 )
                 raise ConstraintSyntaxError(msg) from None
 
-    def _build_validator(self, func: gen.Block) -> Tuple[Checks, Context]:
+    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
         # Sanity check the syntax
         self._check_syntax()
         # Generate the validator

@@ -27,7 +27,6 @@ metadata = toml.load(root / "pyproject.toml")["tool"]["poetry"]
 # -- Project information -----------------------------------------------------
 
 project = metadata["name"]
-copyright = metadata["copyright"]
 authors = metadata["authors"]
 release = metadata["version"]
 version = metadata["version"]
@@ -45,7 +44,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.githubpages",
     "sphinx.ext.napoleon",
-    "sphinx_autodoc_typehints",
+    # "sphinx_autodoc_typehints",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
     "sphinx_sitemap",
@@ -78,7 +77,7 @@ html_theme_options = {
     "codecov_button": True,
     "travis_button": True,
     "show_relbars": True,
-    "page_width": "75%",
+    # "page_width": "75%",
 }
 html_baseurl = "https://seandstewart.github.io/typical/"
 
@@ -89,6 +88,7 @@ html_static_path = ["_static"]
 html_favicon = "_static/favicon/favicon.ico"
 
 # -- Extension configuration -------------------------------------------------
+# set_type_checking_flag = True
 
 # -- Options for intersphinx extension ---------------------------------------
 

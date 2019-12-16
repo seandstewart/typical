@@ -50,6 +50,7 @@ __all__ = (
     "StrSchemaField",
     "UndeclaredSchemaField",
     "WriteOnly",
+    "get_field_type",
 )
 
 T = TypeVar("T")
@@ -174,6 +175,18 @@ class BaseSchemaField:
         return self.__repr
 
     @cached_property
+    def __str(self) -> str:
+        fields = [f"type={self.type.value!r}"]
+        for f in dataclasses.fields(self):
+            val = getattr(self, f.name)
+            if (val or val in {False, 0}) and f.repr:
+                fields.append(f"{f.name}={val!r}")
+        return f"({', '.join(fields)})"
+
+    def __str__(self) -> str:
+        return self.__str
+
+    @cached_property
     def validator(self) -> Callable:  # pragma: nocover
         """The JSON Schema validator.
 
@@ -187,11 +200,19 @@ class BaseSchemaField:
         """
         if fastjsonschema:
             return fastjsonschema.compile(self.asdict())
-        raise ValueError("Can't compile validator, 'fastjsonschema' is not installed.")
+        raise RuntimeError(
+            "Can't compile validator, 'fastjsonschema' is not installed."
+        )
 
     def validate(self, obj) -> Any:  # pragma: nocover
         """Validate an object against the defined JSON Schema."""
-        return self.validator(obj)
+        try:
+            return self.validator(obj)
+        except (
+            fastjsonschema.JsonSchemaException,
+            fastjsonschema.JsonSchemaDefinitionException,
+        ):
+            raise ValueError(f"<{obj!r}> violates schema: {str(self)}") from None
 
     def copy(self):  # pragma: nocover
         """Return a new copy of this schema field."""

@@ -6,7 +6,7 @@ from copy import deepcopy
 
 import pytest
 
-from benchmark.models import drf, typ, marsh, pyd, tmarsh
+from benchmark.models import drf, typ, marsh, pyd
 
 THIS_DIR = pathlib.Path(__file__).parent.resolve()
 
@@ -17,7 +17,6 @@ INVALID = json.loads((THIS_DIR / "invalid.json").read_text())
 _MODS = {
     "typical": typ,
     "pydantic": pyd,
-    "toastedmarshmallow": tmarsh,
     "marshmallow": marsh,
     "djangorestframework": drf,
 }

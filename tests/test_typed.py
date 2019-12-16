@@ -39,8 +39,24 @@ from tests.objects import (
     ntup,
     TDict,
     TDictPartial,
+    ItemizedValuedDict,
+    ItemizedDict,
+    ItemizedKeyedDict,
+    ItemizedKeyedValuedDict,
+    ShortKeyDict,
 )
-from typic.api import coerce, typed, resolve, wrap, wrap_cls, constrained
+from typic.api import (
+    coerce,
+    typed,
+    resolve,
+    wrap,
+    wrap_cls,
+    constrained,
+    strict_mode,
+    is_strict_mode,
+    StrictStrT,
+    Strict,
+)
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
@@ -118,8 +134,6 @@ def test_default_none():
         (typing.List, list),
         (typing.ClassVar, typing.ClassVar),
         (typing.List[str], list),
-        (typing.Union[str, None], str),
-        (typing.Optional[str], str),
     ],
 )
 def test_get_origin(annotation, origin):
@@ -388,6 +402,7 @@ def test_typic_resolve():
         (ShortStr, 1, "1"),
         (LargeInt, "1001", 1001),
         (LargeIntDict, [("foo", 1001)], {"foo": 1001}),
+        (ShortKeyDict, {"foo": ""}, {"foo": ""}),
     ],
 )
 def test_cast_constrained(type, value, expected):
@@ -396,11 +411,25 @@ def test_cast_constrained(type, value, expected):
 
 @pytest.mark.parametrize(
     argnames=("type", "value"),
-    argvalues=[(ShortStr, "fooooo"), (LargeInt, 500), (LargeIntDict, {"foo": 1})],
+    argvalues=[
+        (ShortStr, "fooooo"),
+        (LargeInt, 500),
+        (LargeIntDict, {"foo": 1}),
+        (LargeIntDict, {1: 1001}),
+        (LargeIntDict, {"fooooo": 1001}),
+        (ItemizedValuedDict, {"foo": 1}),
+        (ItemizedDict, {"foo": 1}),
+        (ItemizedKeyedValuedDict, {"foo": 1}),
+        (ItemizedKeyedDict, {"foo": 1}),
+        (ItemizedValuedDict, {"blah": "foooooooo"}),
+        (ItemizedKeyedValuedDict, {"blah": "foooooooo"}),
+        (ItemizedKeyedDict, {"foooooooo": "blah"}),
+        (ShortKeyDict, {"fooooooo": "blah"}),
+    ],
 )
 def test_cast_constrained_invalid(type, value):
     with pytest.raises(ConstraintValueError):
-        type(value)
+        coerce(value, type)
 
 
 def test_typic_klass_constrained():
@@ -415,3 +444,62 @@ def test_bad_constraint_class():
         @constrained
         class Foo:
             ...
+
+
+def test_strict_mode():
+    strict_mode()
+    assert is_strict_mode()
+    coerce.STRICT = False
+
+
+def test_enforce_strict_mode():
+    strict_mode()
+
+    @typed
+    @dataclasses.dataclass
+    class Foo:
+        bar: str
+
+    with pytest.raises(ConstraintValueError):
+        Foo(1)
+
+    coerce.STRICT = False
+
+
+@pytest.mark.parametrize(
+    argnames=("anno", "val"),
+    argvalues=[
+        (Strict[typing.List[int]], ["1"]),
+        (Strict[typing.List[int]], [1.0]),
+        (Strict[typing.List[int]], [None]),
+        (Strict[typing.List[int]], {1}),
+        (Strict[typing.Optional[typing.List[int]]], {None}),
+        (Strict[typing.Optional[typing.List[int]]], [1.0]),
+        (typing.Optional[Strict[str]], 1.0),
+        (Strict[typing.Union[str, int]], 1.0),
+        (Strict[typing.Union[str, int]], None),
+        (StrictStrT, b""),
+    ],
+)
+def test_strict_anno_fails(anno, val):
+    with pytest.raises(ConstraintValueError):
+        coerce(val, anno)
+
+
+@pytest.mark.parametrize(
+    argnames=("anno", "val"),
+    argvalues=[
+        (Strict[typing.List[int]], [1]),
+        (Strict[typing.Optional[typing.List[int]]], None),
+        (Strict[typing.Optional[typing.List[int]]], [1]),
+        (typing.Optional[Strict[str]], None),
+        (typing.Optional[Strict[str]], "foo"),
+        (Strict[typing.Optional[str]], "foo"),
+        (Strict[typing.Optional[str]], None),
+        (Strict[typing.Union[str, int]], 1),
+        (Strict[typing.Union[str, int]], "foo"),
+        (StrictStrT, "foo"),
+    ],
+)
+def test_strict_anno_passes(anno, val):
+    assert coerce(val, anno) == val

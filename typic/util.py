@@ -122,7 +122,7 @@ def filtered_repr(self) -> str:
 
 @functools.lru_cache(maxsize=None)
 def origin(annotation: Any) -> Any:
-    """Get the 'origin'-type for subclasses of typing._SpecialForm, recursive.
+    """Get the highest-order 'origin'-type for subclasses of typing._SpecialForm.
 
     For the purposes of this library, if we can resolve to a builtin type, we will.
 
@@ -137,22 +137,22 @@ def origin(annotation: Any) -> Any:
     >>> Registry = NewType('Registry', Dict)
     >>> typic.origin(Registry)
     <class 'dict'>
-    >>> typic.origin(Optional[Dict])
-    <class 'dict'>
     >>> class Foo: ...
     ...
     >>> typic.origin(Foo)
     <class 'typic.util.Foo'>
     """
-    # Resolve custom NewTypes, recursively.
+    # Resolve custom NewTypes.
     actual = resolve_supertype(annotation)
-    # Extract the origin of the annotation, recursively.
-    actual = getattr(actual, "__origin__", actual)
-    if hasattr(actual, "__origin__"):
-        return origin(actual)
-    if checks.isoptionaltype(annotation) or checks.isclassvartype(annotation):
-        args = get_args(annotation)
-        return origin(args[0]) if args else actual
+
+    # Unwrap optional/classvar
+    if checks.isclassvartype(actual):
+        args = get_args(actual)
+        actual = args[0] if args else actual
+
+    # Extract the highest-order origin of the annotation.
+    while hasattr(actual, "__origin__"):
+        actual = actual.__origin__
 
     # provide defaults for generics
     if not checks.isbuiltintype(actual):
@@ -184,7 +184,7 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
 
 @functools.lru_cache(maxsize=None)
 def resolve_supertype(annotation: Type[Any]) -> Any:
-    """Resolve NewTypes, recursively.
+    """Get the highest-order supertype for a NewType.
 
     Examples
     --------
@@ -195,8 +195,8 @@ def resolve_supertype(annotation: Type[Any]) -> Any:
     >>> typic.resolve_supertype(AdminID)
     <class 'int'>
     """
-    if hasattr(annotation, "__supertype__"):
-        return resolve_supertype(annotation.__supertype__)
+    while hasattr(annotation, "__supertype__"):
+        annotation = annotation.__supertype__
     return annotation
 
 
@@ -261,7 +261,10 @@ def _make_key(
     return __HashedSeq(key)
 
 
-def cachedmethod(func):
+_T = TypeVar("_T")
+
+
+def cachedmethod(func: Callable[..., _T]) -> Callable[..., _T]:
     """Thread-safe caching of the result of an instance method.
 
     Mimics some of the pure-Python implementation of :py:func:`functools.lru_cache`.
@@ -277,7 +280,7 @@ def cachedmethod(func):
     lock = RLock()
 
     @functools.wraps(func)
-    def _cached_method_wrapper(*args, **kwargs):
+    def _cached_method_wrapper(*args, **kwargs) -> _T:
         nonlocal cache
         key = makekey(args[1:], kwargs)
         result = cacheget(key, sentinel)

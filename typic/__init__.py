@@ -5,7 +5,7 @@ from . import types, constraints
 from .checks import *
 from .constraints import *
 from .klass import klass
-from .schema import *
+from typic.schema import *
 from .types import *
 from .util import *
 

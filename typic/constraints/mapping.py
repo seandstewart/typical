@@ -16,12 +16,24 @@ from typing import (
     Tuple,
     Collection,
     List,
+    Hashable,
+    TYPE_CHECKING,
 )
 
 from typic import gen
 from typic.types.frozendict import FrozenDict
-from .common import BaseConstraints, Context, Checks, VT
+from .common import (
+    BaseConstraints,
+    ContextT,
+    ChecksT,
+    VT,
+    InstanceCheck,
+)
 from .error import ConstraintSyntaxError
+
+
+if TYPE_CHECKING:  # pragma: nocover
+    from typic.constraints.factory import ConstraintsT  # noqa: F401
 
 KeyDependency = Union[Tuple[str], "MappingConstraints"]
 """A 'key dependency' defines constraints which are applied *only* if a key is present.
@@ -31,17 +43,8 @@ is treated as a sub-schema to the parent MappingConstraints.
 """
 
 
-def _validate_item(constraints: BaseConstraints, val: VT) -> VT:
-    return constraints.validate(val)
-
-
-def _validate_item_multi(constraints: Dict[Type, BaseConstraints], val: VT) -> VT:
-    validator = constraints.get(type(val))
-    return validator.validate(val) if validator else val
-
-
 def validate_pattern_constraints(
-    constraints: Dict[Pattern, BaseConstraints], key: str, val: VT
+    constraints: Dict[Pattern, "ConstraintsT"], key: str, val: VT
 ) -> VT:
     for pattern, const in constraints.items():
         if pattern.match(key):
@@ -49,9 +52,22 @@ def validate_pattern_constraints(
     return val
 
 
+MappedItemConstraints = Dict[Type, BaseConstraints]
+ItemValidator = Union[
+    Callable[[BaseConstraints, VT], VT], Callable[[MappedItemConstraints, VT], VT]
+]
+
+
+@dataclasses.dataclass
+class ItemValidatorNames:
+    item_validators_name: str
+    vals_validator_name: str
+    keys_validator_name: str
+
+
 @dataclasses.dataclass(frozen=True, repr=False)
 class MappingConstraints(BaseConstraints):
-    type: ClassVar[Type[Mapping]]
+    type: ClassVar = Mapping
     min_items: Optional[int] = None
     """The minimum number of items which must be present in this mapping."""
     max_items: Optional[int] = None
@@ -60,80 +76,99 @@ class MappingConstraints(BaseConstraints):
     """A frozenset of keys which must be present in the mapping."""
     key_pattern: Optional[Pattern] = None
     """A regex pattern for which all keys must match."""
-    items: FrozenDict[str, BaseConstraints] = dataclasses.field(
-        default_factory=FrozenDict
-    )
+    items: Optional[FrozenDict[Hashable, "ConstraintsT"]] = None
     """A mapping of constraints associated to specific keys."""
-    patterns: FrozenDict[Pattern, BaseConstraints] = dataclasses.field(
-        default_factory=FrozenDict
-    )
+    patterns: Optional[FrozenDict[Pattern, "ConstraintsT"]] = None
     """A mapping of constraints associated to any key which match the regex pattern."""
-    additional_items: Optional[Union[bool, BaseConstraints]] = None
-    """Whether items not defined as required are allowed.
+    values: Optional["ConstraintsT"] = None
+    """Whether values not defined as required are allowed.
 
-    May be a boolean, or more constraints which are applied to all additional items.
+    May be a boolean, or more constraints which are applied to all additional values.
     """
-    key_dependencies: FrozenDict[str, KeyDependency] = dataclasses.field(
-        default_factory=FrozenDict
-    )
+    keys: Optional["ConstraintsT"] = None
+    """Constraints to apply to any additional keys not explicitly defined."""
+    key_dependencies: Optional[FrozenDict[str, KeyDependency]] = None
     """A mapping of keys and their dependent restrictions if they are present."""
+    total: Optional[bool] = False
+    """Whether to consider this schema as the 'total' representation.
 
-    def _select_additional_validator(
-        self,
-    ) -> Tuple[
-        Union[Dict[str, BaseConstraints], BaseConstraints, None, bool],
-        Callable[[BaseConstraints, Any], Any],
-    ]:
-        addtl_constraints = self.additional_items
-        addtl_validator = _validate_item
-        if isinstance(self.additional_items, tuple):
-            addtl_constraints = {x.type: x for x in self.additional_items}
-            addtl_validator = _validate_item_multi
-        return addtl_constraints, addtl_validator
+    - If a mapping is ``total=True``, no additional keys/values are allowed and cannot be
+      defined.
+    - Conversely, if a mapping is ``total=False``, ``required_keys`` cannot not be
+      defined.
+    """
+
+    def _set_item_validator_items_loop_line(
+        self, loop: gen.Block, names: ItemValidatorNames
+    ):
+
+        ctx: Dict[str, Any] = {
+            names.item_validators_name: {
+                x: y.validate for x, y in self.items.items()  # type: ignore
+            }
+        }
+        with loop.b(f"if x in {names.item_validators_name}:", **ctx) as b:
+            b.l(f"rety = {names.item_validators_name}[x](y)")
+        if any((self.keys, self.values)):
+            with loop.b("else:") as b:
+                if self.keys and self.values:
+                    self._set_item_validator_keys_values_line(b, names)
+                elif self.keys:
+                    self._set_item_validator_keys_line(b, names)
+                elif self.values:
+                    self._set_item_validator_values_line(b, names)
+
+    def _set_item_validator_keys_values_line(
+        self, loop: gen.Block, names: ItemValidatorNames
+    ):
+        line = (
+            "retx, rety = "
+            f"{names.keys_validator_name}(x), "
+            f"{names.vals_validator_name}(y)"
+        )
+        ctx = {
+            names.keys_validator_name: self.keys.validate,  # type: ignore
+            names.vals_validator_name: self.values.validate,  # type: ignore
+        }
+        loop.l(line, **ctx)  # type: ignore
+
+    def _set_item_validator_keys_line(self, loop: gen.Block, names: ItemValidatorNames):
+        line = f"retx = {names.keys_validator_name}(x)"
+        ctx = {
+            names.keys_validator_name: self.keys.validate,  # type: ignore
+        }
+        loop.l(line, **ctx)  # type: ignore
+
+    def _set_item_validator_values_line(
+        self, loop: gen.Block, names: ItemValidatorNames
+    ):
+        line = f"rety = {names.vals_validator_name}(y)"
+        ctx = {
+            names.vals_validator_name: self.values.validate,  # type: ignore
+        }
+        loop.l(line, **ctx)  # type: ignore
 
     def _set_item_validator_loop_line(self, loop: gen.Block, func_name: str):
-        ctx: Dict[str, Any] = {}
-        line = ""
-        item_constr_name = f"{func_name}_items_validator"
-        addtl_constr_name = f"{func_name}_addtl_constr"
-        addtl_validator_name = f"{func_name}_addtl_validator"
-        if self.items and self.additional_items:
-            addtl_constraints, addtl_validator = self._select_additional_validator()
-            line = (
-                f"val[x] = {item_constr_name}[x].validate(y) "
-                f"if x in {item_constr_name} "
-                f"else {addtl_validator_name}({addtl_constr_name}, y)"
-            )
-            ctx.update(
-                **{
-                    item_constr_name: self.items,
-                    addtl_constr_name: addtl_constraints,
-                    addtl_validator_name: addtl_validator,
-                }
-            )
-        elif self.items:
-            line = (
-                f"val[x] = {item_constr_name}[x].validate(y) "
-                f"if x in {item_constr_name} else y"
-            )
-            ctx.update(**{item_constr_name: self.items})
-        elif self.additional_items:
-            addtl_constraints, addtl_validator = self._select_additional_validator()
-            line = f"val[x] = {addtl_validator_name}({addtl_constr_name}, y)"
-            ctx.update(
-                **{
-                    addtl_constr_name: addtl_constraints,
-                    addtl_validator_name: addtl_validator,
-                }
-            )
-        loop.l(line, level=None, **ctx)
+        names = ItemValidatorNames(
+            item_validators_name=f"{func_name}_items_validators",
+            vals_validator_name=f"{func_name}_vals_validator",
+            keys_validator_name=f"{func_name}_keys_validator",
+        )
+        if self.items:
+            self._set_item_validator_items_loop_line(loop, names)
+        elif self.keys and self.values:
+            self._set_item_validator_keys_values_line(loop, names)
+        elif self.keys:
+            self._set_item_validator_keys_line(loop, names)
+        elif self.values:
+            self._set_item_validator_values_line(loop, names)
 
     def _set_item_validator_pattern_constraints(self, loop: gen.Block, func_name: str):
         # Item constraints based upon key-pattern
         pattern_constr_name = f"{func_name}_pattern_constraints"
         if self.patterns:
             loop.l(
-                f"val[x] = validate_pattern_constraints({pattern_constr_name}, x, y)",
+                f"rety = validate_pattern_constraints({pattern_constr_name}, x, y)",
                 level=None,
                 **{
                     "validate_pattern_constraints": validate_pattern_constraints,
@@ -154,36 +189,29 @@ class MappingConstraints(BaseConstraints):
     def _create_item_validator(
         self, func_name: str, ns: dict = None
     ) -> Tuple[Optional[Callable], Optional[str]]:
-        if any(
-            (
-                self.items,
-                isinstance(self.additional_items, (BaseConstraints, tuple)),
-                self.patterns,
-                self.key_pattern,
-            )
-        ):
+        if any((self.items, self.patterns, self.key_pattern, self.keys, self.values,)):
             if ns is None:
                 ns = {}
             name = f"{func_name}_item_validator"
             with gen.Block(ns) as main:
                 with main.f(
-                    name,
-                    main.param("val", annotation=self.type),
-                    main.param("addtl", annotation=set),
+                    name, main.param("val"), main.param("addtl", annotation=set),
                 ) as f:
-                    f.l("valid = True")
+                    f.l("retval, valid = {}, True")
                     with f.b("for x, y in val.items():") as loop:
+                        loop.l("retx, rety = x, y")
                         # Basic item constraints.
                         self._set_item_validator_loop_line(loop, name)
                         # Key pattern and Item constraints based on pattern.
                         self._set_item_validator_pattern_constraints(loop, name)
+                        loop.l("retval[retx] = rety")
                     # Return the result of the validation
-                    f.l("return valid, val")
+                    f.l("return valid, retval")
             return main.compile(name=name), name
         return None, None
 
-    def _build_key_dependencies(self, checks: Checks, context: Context):
-        for key, dep in self.key_dependencies.items():
+    def _build_key_dependencies(self, checks: ChecksT, context: ContextT):
+        for key, dep in self.key_dependencies.items():  # type: ignore
             # If it's a collection, then we're just checking if another set of keys exist.
             if isinstance(dep, Collection) and not isinstance(
                 dep, (Mapping, str, bytes)
@@ -206,16 +234,21 @@ class MappingConstraints(BaseConstraints):
 
             checks.append(line)
 
-    def _build_validator(self, func: gen.Block) -> Tuple[Checks, Context]:
+    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
 
+        if self.total and (self.keys or self.values):
+            raise ConstraintSyntaxError(
+                f"A mapping may not be considered 'total' and allow additional "
+                f"keys/values: {self}"
+            )
         func.l(
             f"addtl = val.keys() - "
-            f"{(self.required_keys or set()) | self.items.keys()}"
+            f"{(self.required_keys or set()) | (self.items or {}).keys()}"
         )
         if {self.max_items, self.min_items} != {None, None}:
             func.l("size = len(val)")
 
-        context: Dict[str, Any] = {}
+        context: Dict[str, Any] = {"Mapping": Mapping}
         checks: List[str] = []
         if self.min_items is not None:
             checks.append(f"size >= {self.min_items}")
@@ -223,7 +256,7 @@ class MappingConstraints(BaseConstraints):
             checks.append(f"size <= {self.max_items}")
         if self.required_keys:
             checks.append(f"{{*val.keys()}}.issuperset({self.required_keys})")
-        if self.additional_items is False:
+        if self.total:
             checks.append("not addtl")
         if self.key_dependencies:
             self._build_key_dependencies(checks, context)
@@ -242,7 +275,7 @@ class MappingConstraints(BaseConstraints):
         return [], context
 
     @staticmethod
-    def _set_return(func: gen.Block, checks: Checks, context: Context):
+    def _set_return(func: gen.Block, checks: ChecksT, context: ContextT):
         func.l("return valid, val", **context)
 
     def for_schema(self, *, with_type: bool = False) -> dict:
@@ -254,19 +287,24 @@ class MappingConstraints(BaseConstraints):
                 {"pattern": self.key_pattern.pattern} if self.key_pattern else None
             ),
             patternProperties=(
-                {x: y.for_schema() for x, y in self.patterns.items()} or None
+                {x: y.for_schema() for x, y in self.patterns.items()}
+                if self.patterns
+                else None
             ),
             additionalProperties=(
-                self.additional_items.for_schema(with_type=True)
-                if isinstance(self.additional_items, BaseConstraints)
-                else self.additional_items
+                self.values.for_schema(with_type=True)
+                if self.values
+                else not self.total
             ),
             dependencies=(
                 {
-                    x: y.for_schema() if isinstance(y, BaseConstraints) else y
+                    x: y.for_schema(with_type=True)
+                    if isinstance(y, BaseConstraints)
+                    else y
                     for x, y in self.key_dependencies.items()
                 }
-                or None
+                if self.key_dependencies
+                else None
             ),
         )
         if with_type:
@@ -277,3 +315,11 @@ class MappingConstraints(BaseConstraints):
 @dataclasses.dataclass(frozen=True, repr=False)
 class DictConstraints(MappingConstraints):
     type: ClassVar[Type[dict]] = dict
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class ObjectConstraints(MappingConstraints):
+    type: Type = dataclasses.field(default=object)  # type: ignore
+    instancecheck: ClassVar[InstanceCheck] = InstanceCheck.IS
+    total: bool = True
+    coerce: bool = True

@@ -15,32 +15,18 @@ from typing import (
     Hashable,
     Set,
     FrozenSet,
+    TYPE_CHECKING,
 )
 
 from typic import gen, checks, util
 from typic.types.frozendict import FrozenDict
-from .common import BaseConstraints, Context, Checks
-from .error import ConstraintValueError, raise_exc
+from .common import BaseConstraints, ContextT, ChecksT
+
+if TYPE_CHECKING:  # pragma: nocover
+    from typic.constraints.factory import ConstraintsT  # noqa: F401
 
 Array = Union[FrozenSet, Set, List, Tuple]
 """The supported builtin types for defining restricted array-types."""
-
-
-def _validate_items_multi(
-    constraints: Dict[Type, BaseConstraints], val: Iterator[Any]
-) -> Iterator[Any]:
-    return (
-        constraints[type(x)].validate(x)
-        for x in val
-        if type(x) in constraints
-        or raise_exc(
-            ConstraintValueError(f"{x!r} is not one of type {(*constraints,)}")
-        )
-    )
-
-
-def _validate_items(constraints: BaseConstraints, val: Iterator[Any]) -> Iterator[Any]:
-    return (constraints.validate(x) for x in val)
 
 
 def unique_fast(
@@ -103,13 +89,6 @@ def unique(seq: Sequence, *, ret_type: Type[Union[list, tuple]] = list) -> Seque
         return unique_slow(seq, ret_type=ret_type)
 
 
-ItemConstraints = Union[BaseConstraints, Tuple[BaseConstraints]]
-"""Constraints for the items present in the constrained array.
-
-May be either a single constraint or a tuple of constraints.
-"""
-
-
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArrayConstraints(BaseConstraints):
     """Specific constraints pertaining to a sized, array-like type.
@@ -134,13 +113,13 @@ class ArrayConstraints(BaseConstraints):
     -----
     Rather than reject arrays which are not unique, we will simply make the array unique.
     """
-    items: Optional[Union[BaseConstraints, Tuple[BaseConstraints, ...]]] = None
+    values: Optional["ConstraintsT"] = None
     """The constraints for which the items in the array must adhere.
 
     This can be a single type-constraint, or a tuple of multiple constraints.
     """
 
-    def _build_validator(self, func: gen.Block) -> Tuple[Checks, Context]:
+    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
         # No need to sanity check the config.
         # Build the code.
         # Only make it unique if we have to. This preserves order as well.
@@ -157,32 +136,18 @@ class ArrayConstraints(BaseConstraints):
         if self.max_items is not None:
             asserts.append(f"size <= {self.max_items}")
         # Validate the items if necessary.
-        if self.items:
-            func.l(
-                f"val = {util.origin(self.type).__name__}(__validate(__item_c, val))"
-            )
-            if isinstance(self.items, tuple):
-                func.namespace.update(
-                    __validate=_validate_items_multi,
-                    __item_c={x.type: x for x in self.items},
-                )
-            else:
-                func.namespace.update(__validate=_validate_items, __item_c=self.items)
+        if self.values:
+            o = util.origin(self.type)
+            ctx = {"__item_validator": self.values.validate, o.__name__: o}
+            func.l(f"val = {o.__name__}((__item_validator(x) for x in val))", **ctx)
         return asserts, context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
-        items = None
-        if self.items:
-            items = (
-                {"anyOf": [x.for_schema(with_type=True) for x in self.items]}
-                if isinstance(self.items, tuple)
-                else self.items.for_schema(with_type=True)
-            )
         schema: Dict[str, Any] = dict(
             minItems=self.min_items,
             maxItems=self.max_items,
             uniqueItems=self.unique,
-            items=items,
+            items=self.values.for_schema(with_type=True) if self.values else None,
         )
         if with_type:
             schema["type"] = "array"
