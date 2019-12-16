@@ -1,4 +1,26 @@
-**v2.0.0b7**  
+**v2.0.0b8** Runtime Validation:
+
+This feature is inspired by the discussion found in #19. Taking
+advantage of "strict-mode", it's now possible to provide some runtime
+enforcement of Union types.
+
+Expand constraints scope for runtime validation:
+- Migrate Array/Mapping Constraints to more Pythonic type syntax.
+- Add `MultiConstraints` for Union types.
+- Add `TypeConstraints` for higher-level builtin types.
+- Add `typic.get_constraints` for generating constraints from a given
+  type.
+- Add `typic.Strict`, `typic.StrictStrT`, `strict` keyword to 
+  decorators, and `typic.strict_mode` flagging "strict-mode" at
+  run-time.
+- Add docs: strict-mode.rst, index.rst
+
+Also:
+- Fix bug coercing constrained types.
+- Fix ``checks.isoptionaltype`` to account for optionals nested in unions.
+- Improve coverage for mapping.py and fix some bugs
+
+**v2.0.0b7**
 1. #14: Improve TypedDict support: 
    - respect total=False flag on coercion & schema gen 
    - Proper support for typing.Optional in schema gen.
