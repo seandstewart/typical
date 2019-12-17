@@ -47,7 +47,7 @@ extensions = [
     # "sphinx_autodoc_typehints",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
-    "sphinx_sitemap",
+    # "sphinx_sitemap",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -79,13 +79,14 @@ html_theme_options = {
     "show_relbars": True,
     # "page_width": "75%",
 }
-html_baseurl = "https://typical.seandstewart.io/"
+html_baseurl = "https://typical-python.org/"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_favicon = "_static/favicon/favicon.ico"
+html_sitemap = "_static/sitemap.xml"
 
 # -- Extension configuration -------------------------------------------------
 # set_type_checking_flag = True

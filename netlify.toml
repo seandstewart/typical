@@ -6,5 +6,22 @@ restore_cwd_cache '.venv' 'python virtualenv' &&
 pip3 install -q poetry &&
 poetry config virtualenvs.in-project true &&
 poetry install &&
-sphinx-build docs docs/_build
+sphinx-build docs docs/_build &&
+cp docs/_static/sitemap.xml docs/_build/sitemap.xml
 """
+
+[[redirects]]
+from = "https://typical-python.seandstewart.io/*"
+to = "https://python-typical.org/:splat"
+
+[[redirects]]
+from = "https://typical.seandstewart.io/*"
+to = "https://python-typical.org/:splat"
+
+[[redirects]]
+from = "https://typical-python.org/*"
+to = "https://python-typical.org/:splat"
+
+[[redirects]]
+from = "https://typical-python.netlify.com/*"
+to = "https://python-typical.org/:splat"
