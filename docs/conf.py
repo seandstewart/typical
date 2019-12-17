@@ -79,7 +79,7 @@ html_theme_options = {
     "show_relbars": True,
     # "page_width": "75%",
 }
-html_baseurl = "https://seandstewart.github.io/typical/"
+html_baseurl = "https://typical.seandstewart.io/"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
