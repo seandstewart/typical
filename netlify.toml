@@ -7,21 +7,6 @@ pip3 install -q poetry &&
 poetry config virtualenvs.in-project true &&
 poetry install &&
 sphinx-build docs docs/_build &&
-cp docs/_static/sitemap.xml docs/_build/sitemap.xml
+cp docs/_static/sitemap.xml docs/_build/sitemap.xml &&
+cp docs/_redirects docs/_build/_redirects
 """
-
-[[redirects]]
-from = "https://typical-python.seandstewart.io/*"
-to = "https://python-typical.org/:splat"
-
-[[redirects]]
-from = "https://typical.seandstewart.io/*"
-to = "https://python-typical.org/:splat"
-
-[[redirects]]
-from = "https://typical-python.org/*"
-to = "https://python-typical.org/:splat"
-
-[[redirects]]
-from = "https://typical-python.netlify.com/*"
-to = "https://python-typical.org/:splat"
