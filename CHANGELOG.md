@@ -1,4 +1,13 @@
-**v2.0.0b8** Runtime Validation:
+**v2.0.0b10**  
+Bugfixes:
+- Properly handle Unions/MultiConstraints within arrays and dicts
+- Add coverage reports back to travis config
+
+Also:
+- Improve overall test coverage.
+ 
+**v2.0.0b8**  
+Runtime Validation:
 
 This feature is inspired by the discussion found in #19. Taking
 advantage of "strict-mode", it's now possible to provide some runtime

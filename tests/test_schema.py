@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from typing import List, Tuple, Set, Union, Mapping
+from typing import List, Tuple, Set, Union, Mapping, Dict
 
 import pytest
 
@@ -51,7 +51,7 @@ def test_typic_objects_schema(obj):
                 properties=typic.FrozenDict(
                     foo=typic.MultiSchemaField(
                         title="Foo",
-                        oneOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
                     )
                 ),
                 required=(),
@@ -69,7 +69,7 @@ def test_typic_objects_schema(obj):
         (
             Union[str, int],
             typic.MultiSchemaField(
-                oneOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
             ),
         ),
         (
@@ -130,6 +130,22 @@ def test_typic_objects_schema(obj):
                 definitions=typic.FrozenDict(),
             ),
         ),
+        (
+            Dict[str, Union[str, int]],
+            typic.ObjectSchemaField(
+                additionalProperties=MultiSchemaField(
+                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                )
+            ),
+        ),
+        (
+            Tuple[Union[str, int], ...],
+            typic.ArraySchemaField(
+                items=MultiSchemaField(
+                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                )
+            ),
+        ),
     ],
 )
 def test_typic_schema(obj, expected):
@@ -164,7 +180,7 @@ def test_typic_schema(obj, expected):
                 title=objects.FromDict.__name__,
                 properties={
                     "foo": {
-                        "oneOf": [{"type": "string"}, {"type": "null"}],
+                        "anyOf": [{"type": "string"}, {"type": "null"}],
                         "title": "Foo",
                     }
                 },

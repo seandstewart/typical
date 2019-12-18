@@ -13,6 +13,7 @@ from typing import (
     Generic,
     cast,
     Iterable,
+    Set,
 )
 
 import inflection  # type: ignore
@@ -79,12 +80,13 @@ class SchemaBuilder:
             # this is coming in from a constraint
             if isinstance(other, dict):
                 schema_type = other.pop("type", None)
-                # We assume here the user did the right thing and declared
-                # A constraint type that matches the subscripted type
-                if field:
-                    field = dataclasses.replace(field, **other)
-                else:
-                    field = get_field_type(schema_type)(**other)
+                field = field or get_field_type(schema_type)()
+                if isinstance(field, MultiSchemaField):
+                    for k in {"oneOf", "anyOf", "allOf"} & other.keys():
+                        other[k] = tuple(
+                            get_field_type(x.pop("type"))(**x) for x in other[k]
+                        )
+                field = dataclasses.replace(field, **other)
         constraints["additionalProperties"] = field
 
     def _handle_array(self, anno: "api.ResolvedAnnotation", constraints: dict):
@@ -93,13 +95,16 @@ class SchemaBuilder:
         if has_ellipsis:
             args = args[:-1]
         if "items" in constraints:
-            constraints["items"] = (
-                tuple(get_field_type(x.pop("type"))(**x) for x in constraints["items"])
-                if isinstance(constraints["items"], list)
-                else get_field_type(constraints["items"].pop("type"))(
-                    **constraints["items"]
-                )
-            )
+            items: dict = constraints["items"]
+            multi_keys: Set[str] = {"oneOf", "anyOf", "allOf"} & items.keys()
+            if multi_keys:
+                for k in multi_keys:
+                    items[k] = tuple(
+                        get_field_type(x.pop("type"))(**x) for x in items[k]
+                    )
+                    constraints["items"] = MultiSchemaField(**items)
+            else:
+                constraints["items"] = get_field_type(items.pop("type"))(**items)
         if args:
             constrs = set(self.get_field(api.coerce.resolve(x)) for x in args)
             items = constraints.get("items", ())
@@ -146,7 +151,7 @@ class SchemaBuilder:
         if use is Union:
             schema = MultiSchemaField(
                 title=self.defname(anno.annotation, name=name) if name else None,
-                oneOf=tuple(
+                anyOf=tuple(
                     self.get_field(api.coerce.resolve(x))
                     for x in get_args(anno.un_resolved)
                 ),
@@ -203,7 +208,7 @@ class SchemaBuilder:
 
     def build_schema(self, obj: Type, *, name: str = None) -> "ObjectSchemaField":
         """Build a valid JSON Schema, including nested schemas."""
-        if obj in self.__cache:
+        if obj in self.__cache:  # pragma: nocover
             return self.__cache[obj]
 
         annotations: Dict[str, api.ResolvedAnnotation] = api.annotations(obj)

@@ -16,3 +16,10 @@ exclude_lines =
     if __name__ == .__main__.:
 omit =
     setup.py
+    .venv*
+    *lib/python*
+    dist*
+    tests*
+    benchmark*
+    docs*
+    gen.py
