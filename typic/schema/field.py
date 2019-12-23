@@ -175,7 +175,7 @@ class BaseSchemaField:
         return self.__repr
 
     @cached_property
-    def __str(self) -> str:
+    def __str(self) -> str:  # pragma: nocover
         fields = [f"type={self.type.value!r}"]
         for f in dataclasses.fields(self):
             val = getattr(self, f.name)
@@ -183,7 +183,7 @@ class BaseSchemaField:
                 fields.append(f"{f.name}={val!r}")
         return f"({', '.join(fields)})"
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: nocover
         return self.__str
 
     @cached_property

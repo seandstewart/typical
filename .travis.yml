@@ -23,4 +23,7 @@ install:
   - poetry install -v
 
 script:
-  - pytest tests typic --doctest-modules --cov
+  - pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report xml
+
+after_success:
+  - codecov

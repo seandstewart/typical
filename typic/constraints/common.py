@@ -277,7 +277,7 @@ class MultiConstraints(__AbstractConstraints):
         return multi_validator
 
     def for_schema(self, *, with_type: bool = False) -> dict:
-        return dict(oneOf=[x.for_schema(with_type=with_type) for x in self.constraints])
+        return dict(anyOf=[x.for_schema(with_type=True) for x in self.constraints])
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
