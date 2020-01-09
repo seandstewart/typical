@@ -5,7 +5,8 @@ python:
   - "3.7"
   - "3.8"
   - "3.8-dev"
-  - "nightly"
+# Commenting out until upstream libraries are fixed for 3.9 breaking changes.
+#  - "nightly"
 
 stages:
   - linting

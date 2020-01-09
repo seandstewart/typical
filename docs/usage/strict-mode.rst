@@ -75,10 +75,6 @@ side-effect of coercion, the line between the two operations is not blurred. In 
 to operate with *validation-first*, you must change the mode of operation. This is not
 the case in other popular libraries.
 
-For instance, ``pydantic`` will coerce a ``float`` to an ``int``, but will raise an
-error if a ``str`` is passed to a field marked as ``datetime``. This behavior can be
-unpredictable and hard to grok.
-
 These are the paths to "validation" which ``typical`` will follow:
 
 Validate-by-Coerce
