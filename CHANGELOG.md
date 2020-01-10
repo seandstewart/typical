@@ -1,3 +1,11 @@
+**v2.0.0b11**  
+Bugfixes:
+- Fix handling of `typing.Any` in contraints & schema gen.
+
+Also:
+- #25: Remove now-inaccurate statement regarding pydantic in docs.
+
+
 **v2.0.0b10**  
 Bugfixes:
 - Properly handle Unions/MultiConstraints within arrays and dicts
