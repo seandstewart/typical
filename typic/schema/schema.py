@@ -139,7 +139,7 @@ class SchemaBuilder:
         use = getattr(anno.origin, "__parent__", anno.origin)
         # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaField
-        if use is anno.EMPTY:
+        if use in {Any, anno.EMPTY}:
             schema = UndeclaredSchemaField()
             self.__cache[anno] = schema
             return schema
