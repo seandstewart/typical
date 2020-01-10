@@ -4,6 +4,7 @@ import abc
 import dataclasses
 import enum
 import re
+from inspect import Signature
 from typing import (
     Callable,
     Any,
@@ -173,9 +174,14 @@ class BaseConstraints(__AbstractConstraints):
 
     def _compile_validator(self) -> ValidatorT:
         func_name = self._get_validator_name()
-        type_name = util.origin(self.type).__name__
+        origin = util.origin(self.type)
+        type_name = util.get_name(origin)
         with gen.Block() as main:
             with main.f(func_name, main.param("val")) as f:
+                # This is a signal that -*-anything can happen...-*-
+                if origin in {Any, Signature.empty}:
+                    f.l("return True, val")
+                    return main.compile(name=func_name)
                 # Short-circuit validation if the value isn't the correct type.
                 if self.instancecheck == InstanceCheck.IS:
                     line = f"if isinstance(val, {type_name}):"

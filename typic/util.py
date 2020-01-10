@@ -35,6 +35,7 @@ __all__ = (
     "safe_eval",
     "origin",
     "get_args",
+    "get_name",
     "resolve_supertype",
     "cached_property",
     "cached_signature",
@@ -180,6 +181,27 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
     return (
         *(x for x in getattr(annotation, "__args__", ()) if type(x) is not TypeVar),
     )
+
+
+@functools.lru_cache(maxsize=None)
+def get_name(obj: Type) -> str:
+    """Safely retrieve the name of either a standard object or a type annotation.
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Dict, Any
+    >>> T = TypeVar("T")
+    >>> typic.get_name(Dict)
+    'Dict'
+    >>> typic.get_name(Any)
+    'Any'
+    >>> typic.get_name(dict)
+    'dict'
+    """
+    if hasattr(obj, "_name"):
+        return obj._name
+    return obj.__name__
 
 
 @functools.lru_cache(maxsize=None)

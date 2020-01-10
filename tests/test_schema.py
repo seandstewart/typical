@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from typing import List, Tuple, Set, Union, Mapping, Dict
-
 import pytest
+
+from typing import List, Tuple, Set, Union, Mapping, Dict, Any
 
 import typic
 from typic.schema import (
@@ -32,6 +32,7 @@ def test_typic_objects_schema(obj):
         (set, typic.ArraySchemaField(uniqueItems=True)),
         (frozenset, typic.ArraySchemaField(uniqueItems=True, additionalItems=False)),
         (tuple, typic.ArraySchemaField(additionalItems=False)),
+        (Any, typic.UndeclaredSchemaField()),
         (List[str], typic.ArraySchemaField(items=typic.StrSchemaField())),
         (
             List[objects.LargeInt],

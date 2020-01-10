@@ -466,6 +466,20 @@ def test_enforce_strict_mode():
     coerce.STRICT = False
 
 
+def test_constrained_any():
+    strict_mode()
+
+    @typed
+    @dataclasses.dataclass
+    class Foo:
+        bar: typing.Any
+
+    assert Foo(1).bar == 1
+    assert Foo("bar").bar == "bar"
+
+    coerce.STRICT = False
+
+
 @pytest.mark.parametrize(
     argnames=("anno", "val"),
     argvalues=[
