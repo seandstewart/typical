@@ -100,7 +100,8 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+/site/*
+!/site/_redirects
 
 # mypy
 .mypy_cache/
