@@ -1,16 +1,14 @@
-``typical`` Constraints
-=======================
+# typical Constraints
+
 Constraints allow you to define "restricted" types for your data. This is similar to
 what you may see when defining your fields in JSON schema. In fact, we can (and do) use
 constraints to generate extended JSON schema type definitions.
 
-Usage
------
-You can define your "constrained type" by using the ``typic.constrained`` decorator on
+## Usage
+
+You can define your "constrained type" by using the `typic.constrained` decorator on
 a sub-class of the builtin Python type you want to restrict. This can be quite useful
 for restricting the type of data a callable is allowed to receive:
-
-.. code-block:: pycon
 
     >>> import typic
     >>>
@@ -36,7 +34,6 @@ for restricting the type of data a callable is allowed to receive:
     typic.constraints.error.ConstraintValueError: Given value <2> fails constraints: (type=int, ge=0, le=1)
 
 
-API
----
+## API
 
-.. autodecorator:: typic.constrained
+::: typic.constrained

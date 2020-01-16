@@ -1,60 +1,55 @@
-``typical`` Types
-=================
+# typical Types
 
-``typical`` provides a whole host of useful types for interacting with every-day
+`typical` provides a whole host of useful types for interacting with every-day
 web-oriented programming: secrets, emails, DSNs, URLs...
 
-Secrets
--------
+## Secrets
 
 Secrets are important aspects of day-to-day application development. However, most of
-the time these are poorly handled and not hidden from simple logging, etc. ``typical``
+the time these are poorly handled and not hidden from simple logging, etc. `typical`
 secret types allow you to have your verbose logging without fear of a security risk,
 while also making it easy to pass on your secrets (e.g. for authenticating via an
 external service).
 
-.. automodule:: typic.types.secret
-    :members:
+::: typic.types.secret
 
 
-FrozenDict
-----------
+## FrozenDict
+
 A hashable, immutable mapping is great for storing run-time configuration without fear
 of an irresponsible developer coming along and mutating your global state. (Yes, global
 state is evil, but it's often a bit necessary as well.)
 
-.. automodule:: typic.types.frozendict
-    :members:
-    :no-inherited-members:
+::: typic.types.frozendict
 
-URLs
-----
+
+## URLs
+
 Oh hey, *another* URL implementation. Yup, I re-invented the wheel. However, these
 types are super-powered: they're natively JSON-serializable, immutable, and
 initialization is *fast*.
 
-.. automodule:: typic.types.url
-    :members:
+::: typic.types.url
 
-DSNs
-----
+
+## DSNs
+
 DSNs are network addresses, but they have a slightly different standardized API.
 
-.. automodule:: typic.types.dsn
-    :members:
+::: typic.types.dsn
 
-Email
------
+
+## Email
+
 Probably the best implementation of an Email-type there is :snake:.
 
-.. automodule:: typic.types.email
-    :members:
+::: typic.types.email
 
 
-Path
-----
-This just provides a couple more strict Path objects, which inherit directly from
-:py:class:`pathlib.Path`.
+## Path
 
-.. automodule:: typic.types.path
-    :members:
+This just provides a couple more strict Path objects, which inherit
+directly from `pathlib.Path`.
+
+::: typic.types.path
+

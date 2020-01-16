@@ -5,7 +5,7 @@ import decimal
 import warnings
 from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
 
-from typic import gen, util
+from .. import gen, util
 from .common import BaseConstraints, ContextT, ChecksT
 from .error import ConstraintSyntaxError, ConstraintValueError
 

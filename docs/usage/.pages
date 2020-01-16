@@ -1,0 +1,5 @@
+arrange:
+  - quickstart.md
+  - examples.md
+  - strict-mode.md
+  - advanced.md

@@ -1,0 +1,8 @@
+# typical Coercer API
+
+`typical`'s core is built around a single callable class which is 
+initialized when the package is imported. You should never need to
+initialize your own class directly, and are encourage to not touch the
+internal API, but the documentation is provided here for completion.
+
+::: typic.coercer

@@ -1,15 +1,13 @@
-``typical`` Example
-===================
+# typical Example
 
-I could spend all day talking about the benefits of automatic, guaranteed coercion.
-Instead, I'll show you by building a simple web application with typical, ``ducks-api``.
+I could spend all day talking about the benefits of automatic, 
+guaranteed coercion. Instead, I'll show you by building a simple web
+application with typical, `ducks-api`.
 
-    Note: I'm using ``starlette`` here, but whatever you like is fine.
+!!! note   
+    I'm using `starlette` here, but whatever you like is fine.
 
 First, let's define some models:
-
-.. code-block:: python
-
 
     # ducks-api/models.py
     import dataclasses
@@ -40,7 +38,6 @@ First, let's define some models:
 
 Next, let's define a place to store our ducks
 
-.. code-block:: python
 
     # ducks-api/registry.py
     import uuid
@@ -82,8 +79,6 @@ Next, let's define a place to store our ducks
 
 
 Finally, let's build our web-service layer:
-
-.. code-block:: python
 
     # ducks-api/api.py
     from starlette.application import Starlette
@@ -147,20 +142,21 @@ Finally, let's build our web-service layer:
          )
 
 
-The handler layer is where we see ``typical`` really shine:
-    - At no point in the handler did we have to convert anything from the external
-      input into something our lower layer understands - it's done!
-    - And returning a JSON response was as easy as calling ``primitive()``.
+The handler layer is where we see `typical` really shine: - At no
+point in the handler did we have to convert anything from the external
+input into something our lower layer understands - it's done! - And
+returning a JSON response was as easy as calling `primitive()`.
 
 We also get the benefit of input validation:
-    - In ``get_duck``, if coercion to a UUID fails, we get a predictable
-      ``ValueError`` which can be reported back to the user.
-    - In ``list_ducks_by_type``, if coercion to DuckType fails, we get a predictable
-      ``ValueError`` which can be reported back to the user.
-    - In ``make_duck``, if fields are missing in the request body, we get a
-      ``TypeError`` and if any of those fields are invalid we get a ``ValueError``,
-      which we can, again, report directly back to the user.
+
+- In `get_duck`, if coercion to a UUID fails, we get a predictable
+  `ValueError` which can be reported back to the user.
+- In `list_ducks_by_type`, if coercion to DuckType fails, we get a
+  predictable `ValueError` which can be reported back to the user.
+- In `make_duck`, if fields are missing in the request body, we get a
+  `TypeError` and if any of those fields are invalid we get a
+  `ValueError`, which we can, again, report directly back to the user.
 
 
-All of this is provided by simply wrapping your annotated functions, methods, and/or
-classes with ``@typic.al``.
+All of this is provided by simply wrapping your annotated functions, 
+methods, and/or classes with `@typic.al`.

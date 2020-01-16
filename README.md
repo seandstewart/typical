@@ -53,7 +53,7 @@ Until now.
 
 Behold, the power of *Typical*:
 
-```python
+``python
 >>> import typic
 >>>
 >>> @typic.al
@@ -62,11 +62,11 @@ Behold, the power of *Typical*:
 ...
 >>> multi('2', '3')
 6
-```
+``
 
 Take it further...
 
-```python
+``python
 >>> import dataclasses
 >>> import enum
 >>> import typic
@@ -85,11 +85,11 @@ Take it further...
 >>> donald = Duck('white', 'Donald')
 >>> donald.type
 <DuckType.WHT: 'white'>
-```
+``
 
 This is all fine and dandy, but can we go... further? :thinking:
 
-```python
+``python
 >>> class DuckRegistry:
 ...     """A Registry for all the ducks"""
 ...     
@@ -121,7 +121,7 @@ Duck(type=<DuckType.WHT: 'white'>, name='Donald')
 Traceback (most recent call last):
  ...
 ValueError: 'goose' is not a valid DuckType
-```
+``
 
 ### What Just Happended Here?
 

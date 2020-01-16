@@ -121,12 +121,12 @@ class InstanceCheck(enum.IntEnum):
     """
 
     IS = 0
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is True``.
+    """Allows for short-circuiting validation if `isinstance(value, <type>) is True`.
 
     Otherwise, perform additional checks to see if we can treat this as valid.
     """
     NOT = 1
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is False``.
+    """Allows for short-circuiting validation if `isinstance(value, <type>) is False`.
 
     Otherwise, we must perform additional checks.
     """
@@ -157,7 +157,7 @@ class BaseConstraints(__AbstractConstraints):
     coerce: bool = False
     """Whether additional coercion should be done after validation.
 
-    Even in ``strict`` mode, we may still want to coerce after validation.
+    Even in `strict` mode, we may still want to coerce after validation.
     """
     VAL = "val"
     VALTNAME = "valtname"

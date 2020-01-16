@@ -153,7 +153,7 @@ class BaseSchemaField:
 
         Notes
         -----
-        If ``fastjsonschema`` is not installed, this will raise a ValueError.
+        If `fastjsonschema` is not installed, this will raise a ValueError.
 
         See Also
         --------
@@ -203,7 +203,7 @@ class NullSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class StrSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``string`` type.
+    """A JSON Schema Field for the `string` type.
 
     See Also
     --------
@@ -222,7 +222,7 @@ Number = Union[int, float, decimal.Decimal]
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class IntSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``integer`` type.
+    """A JSON Schema Field for the `integer` type.
 
     See Also
     --------
@@ -239,7 +239,7 @@ class IntSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class NumberSchemaField(IntSchemaField):
-    """A JSON Schema Field for the ``number`` type.
+    """A JSON Schema Field for the `number` type.
 
     See Also
     --------
@@ -251,7 +251,7 @@ class NumberSchemaField(IntSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class BooleanSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``boolean`` type.
+    """A JSON Schema Field for the `boolean` type.
 
     See Also
     --------
@@ -263,7 +263,7 @@ class BooleanSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class ObjectSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``object`` type.
+    """A JSON Schema Field for the `object` type.
 
     See Also
     --------
@@ -284,7 +284,7 @@ class ObjectSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArraySchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``array`` type.
+    """A JSON Schema Field for the `array` type.
 
     See Also
     --------

@@ -292,7 +292,7 @@ def wrap_cls(
 
     Notes
     -----
-    While ``Coercer.wrap`` will work with classes alone, it changes the signature of the
+    While `Coercer.wrap` will work with classes alone, it changes the signature of the
     object to a function, there-by breaking inheritance. This follows a similar pattern to
     :func:`dataclasses.dataclasses`, which executes the function when wrapped, preserving
     the signature of the target class.
@@ -618,24 +618,24 @@ def settings(
 ) -> Type[ObjectT]:
     """Create a typed class which sets its defaults from env vars.
 
-    The resolution order of values is ``default(s) -> env value(s) -> passed value(s)``.
+    The resolution order of values is `default(s) -> env value(s) -> passed value(s)`.
 
-    Settings instances are indistinguishable from other ``typical`` dataclasses at
+    Settings instances are indistinguishable from other `typical` dataclasses at
     run-time and are frozen by default. If you really want your settings to be mutable,
-    you may pass in ``frozen=False`` manually.
+    you may pass in `frozen=False` manually.
 
     Parameters
     ----------
     prefix
-        The prefix to strip from you env variables, i.e., ``APP_``
+        The prefix to strip from you env variables, i.e., `APP_`
     case_sensitive
-        Whether your variables are case-sensitive. Defaults to ``False``.
+        Whether your variables are case-sensitive. Defaults to `False`.
     frozen
-        Whether to generate a frozen dataclass. Defaults to ``True``
+        Whether to generate a frozen dataclass. Defaults to `True`
     aliases
         An optional mapping of potential aliases for your dataclass's fields.
-        ``{'other_foo': 'foo'}`` will locate the env var ``OTHER_FOO`` and place it
-        on the ``Bar.foo`` attribute.
+        `{'other_foo': 'foo'}` will locate the env var `OTHER_FOO` and place it
+        on the `Bar.foo` attribute.
 
     Notes
     -----

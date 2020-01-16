@@ -283,7 +283,7 @@ def cachedmethod(func: Callable[..., _T]) -> Callable[..., _T]:  # pragma: nocov
 
     Mimics some of the pure-Python implementation of :py:func:`functools.lru_cache`.
     Major differences are that it's un-bounded in size and no direct access to the cache.
-    It's also slower, being that it's pure-Python and the actual ``_lru_cache_wrapper``
+    It's also slower, being that it's pure-Python and the actual `_lru_cache_wrapper`
     is implemented in C.
     """
 

@@ -112,7 +112,7 @@ class EmailAddrInfo:
     def is_named(self) -> bool:
         """Whether or not this email is 'named' (or 'pretty')
 
-        i.e.: ``<Foo foo@bar.com>``
+        i.e.: `<Foo foo@bar.com>`
         """
         return bool(self.name)
 
@@ -141,8 +141,8 @@ class EmailAddrInfo:
 class Email(NetworkAddress):
     """An immutable email address. Supports 'pretty' and 'raw', i.e.:
 
-        ``Foo Bar <foo.bar@foobar.net>``
-        ``foo.bar@foobar.net``
+        `Foo Bar <foo.bar@foobar.net>`
+        `foo.bar@foobar.net`
 
     Detailed information about the email string can be found up via :py:attr:`Email.info`.
 

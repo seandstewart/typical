@@ -244,7 +244,7 @@ class SchemaBuilder:
     def all(self, primitive: bool = False) -> SchemaDefinitions:
         """Get all of the JSON Schema objects which have been defined.
 
-        ``typical`` maintains a register of all resolved schema definitions.
+        `typical` maintains a register of all resolved schema definitions.
         This method give high-level, immediate read access to that registry.
 
         Parameters

@@ -92,9 +92,9 @@ class MappingConstraints(BaseConstraints):
     total: Optional[bool] = False
     """Whether to consider this schema as the 'total' representation.
 
-    - If a mapping is ``total=True``, no additional keys/values are allowed and cannot be
+    - If a mapping is `total=True`, no additional keys/values are allowed and cannot be
       defined.
-    - Conversely, if a mapping is ``total=False``, ``required_keys`` cannot not be
+    - Conversely, if a mapping is `total=False`, `required_keys` cannot not be
       defined.
     """
     X = "x"

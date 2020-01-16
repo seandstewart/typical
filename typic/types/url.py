@@ -111,23 +111,23 @@ class NetAddrInfo:
     """
 
     scheme: str
-    """The net-address scheme, e.g., ``http``, ``tcp``, ``ssh``, etc."""
+    """The net-address scheme, e.g., `http`, `tcp`, `ssh`, etc."""
     auth: str
     """The user auth info."""
     password: SecretStr
     """The user's password."""
     host: str
-    """The host for this addres, e.g. ``0.0.0.0``, ``foobar.net``."""
+    """The host for this addres, e.g. `0.0.0.0`, `foobar.net`."""
     port: int
     """The port for this net-address"""
     path: str
     """The URI path."""
     qs: str
-    """The query-string, unparsed, e.g. ``?id=1&name=foo``"""
+    """The query-string, unparsed, e.g. `?id=1&name=foo`"""
     params: str
-    """The url parameters, unparsed, e.g. ``id=2;foo=bar``"""
+    """The url parameters, unparsed, e.g. `id=2;foo=bar`"""
     fragment: str
-    """The uri fragment, e.g. ``#some-page-anchor``"""
+    """The uri fragment, e.g. `#some-page-anchor`"""
     is_ip: bool = False
 
     PATTERN: ClassVar[Pattern] = NET_ADDR_PATTERN
@@ -213,7 +213,7 @@ class NetAddrInfo:
 
     @cached_property
     def is_absolute(self) -> bool:
-        """The opposite of ``is_relative``."""
+        """The opposite of `is_relative`."""
         return not self.is_relative
 
     @cached_property
@@ -251,7 +251,8 @@ class NetworkAddress(str):
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> net_addr = typic.NetworkAddress("http://foo.bar/bazz;foo=bar?buzz=1#loc")
     >>> net_addr.info.is_absolute
     True
@@ -323,7 +324,8 @@ class URL(NetworkAddress):
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> url = typic.URL("http://foo.bar/bazz")
     >>> more = url / 'foo' / 'bar'
     >>> more

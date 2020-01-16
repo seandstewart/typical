@@ -3,13 +3,13 @@
 import dataclasses
 from typing import ClassVar, Type, Pattern, Tuple, Optional, Union, Dict, Any, Text
 
-from typic import gen
+from .. import gen
 from .common import BaseConstraints, ContextT, ChecksT
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class TextConstraints(BaseConstraints):
-    """Specific constraints pertaining to text-like types (``AnyStr`` in Python).
+    """Specific constraints pertaining to text-like types (`AnyStr` in Python).
 
     Currently supports :py:class:`str` and :py:class:`bytes`.
 
