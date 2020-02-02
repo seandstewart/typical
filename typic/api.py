@@ -12,7 +12,6 @@ from typing import (
     Optional,
     Mapping,
     TypeVar,
-    Generic,
     cast,
     Iterable,
     Any,
@@ -33,7 +32,10 @@ from typic.coercer import (
 )
 from typic.strict import is_strict_mode, strict_mode
 from typic.util import origin, primitive
+from typic.schema.field import SchemaFieldT
+from typic.util import origin
 from typic.types import FrozenDict
+from typic.serde import SerdeFlags, Serde, SerializerT, _SERDE_FLAGS_ATTR
 
 __all__ = (
     "annotations",
@@ -57,6 +59,7 @@ __all__ = (
 )
 
 ObjectT = TypeVar("ObjectT")
+SchemaGenT = Callable[[ObjectT], SchemaFieldT]
 
 coerce: __TypeCoercer = __TypeCoercer()
 bind = coerce.bind
@@ -65,13 +68,18 @@ annotations = coerce.annotations
 schema = coerce.schema
 schemas = coerce.schema_builder.all
 
+
 _T = TypeVar("_T")
 
 
-class TypicObject(Generic[_T]):
+class TypicObjectT:
+    __serde__: Serde
+    __serde_settings__: SerdeFlags
+    schema: SchemaGenT
+    primitive: SerializerT
 
-    schema = classmethod(schema)
-    primitive = primitive
+
+WrappedObjectT = Union[Type[TypicObjectT], Type[ObjectT]]
 
 
 def wrap(
@@ -115,7 +123,8 @@ def wrap_cls(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = True,
-) -> Type[TypicObject[Type[ObjectT]]]:
+    serde: SerdeFlags = SerdeFlags(),
+) -> WrappedObjectT:
     """Wrap a class to automatically enforce type-coercion on init.
 
     Notes
@@ -135,12 +144,19 @@ def wrap_cls(
         Turn on "validator mode": e.g. validate incoming data rather than coerce.
     jsonschema
         Generate a JSON Schema entry for this object.
+    serde
+        Optional settings for serialization/deserialization
     """
 
-    def cls_wrapper(cls_: Type[ObjectT]) -> Type[TypicObject[Type[ObjectT]]]:
+    def cls_wrapper(cls_: Type[ObjectT]) -> WrappedObjectT:
         if jsonschema:
             cls_.schema = classmethod(coerce.schema)  # type: ignore
-        cls_.primitive = primitive  # type: ignore
+        if hasattr(cls_, _SERDE_FLAGS_ATTR):
+            nonlocal serde
+            serde = cls_.__serde_flags__  # type: ignore
+        cls_.__serde__ = Serde(cls_, serde)  # type: ignore
+        cls_.__serde_flags__ = serde  # type: ignore
+        cls_.primitive = cls_.__serde__.serializer  # type: ignore
 
         ann: Optional[Annotations] = None
         if not delay:
@@ -163,7 +179,7 @@ def wrap_cls(
 
             def __setattr_coerced__(self, name, value):
                 nonlocal ann
-                ann = annotations(type(self)) if ann is None else ann
+                ann = ann or annotations(type(self))
                 value = ann[name](value) if name in ann else value
                 _origsettergetter(self)(name, value)
 
@@ -171,7 +187,7 @@ def wrap_cls(
             cls_.__setattr__ = __setattr_coerced__  # type: ignore
         return cls_  # type: ignore
 
-    wrapped = cls_wrapper(klass)
+    wrapped: WrappedObjectT = cls_wrapper(klass)
     return wrapped
 
 

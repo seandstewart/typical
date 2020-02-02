@@ -29,7 +29,7 @@ from .field import (  # type: ignore
     UndeclaredSchemaField,
     ReadOnly,
     Ref,
-    SchemaField,
+    SchemaFieldT,
     WriteOnly,
     SCHEMA_FIELD_FORMATS,
     get_field_type,
@@ -72,7 +72,7 @@ class SchemaBuilder:
         doc = getattr(anno.annotation, "__doc__", None)
         if doc not in _IGNORE_DOCS:
             constraints["description"] = doc
-        field: Optional[SchemaField] = None
+        field: Optional[SchemaFieldT] = None
         if args:
             field = self.get_field(api.coerce.resolve(args[-1]))
         if "additionalProperties" in constraints:
@@ -122,7 +122,7 @@ class SchemaBuilder:
         ro: bool = None,
         wo: bool = None,
         name: str = None,
-    ) -> "SchemaField":
+    ) -> "SchemaFieldT":
         """Get a field definition for a JSON Schema."""
         if anno in self.__cache:
             return self.__cache[anno]
@@ -138,7 +138,7 @@ class SchemaBuilder:
         # `use` is the based annotation we will use for building the schema
         use = getattr(anno.origin, "__parent__", anno.origin)
         # If there's not a static annotation, short-circuit the rest of the checks.
-        schema: SchemaField
+        schema: SchemaFieldT
         if use in {Any, anno.EMPTY}:
             schema = UndeclaredSchemaField()
             self.__cache[anno] = schema
@@ -190,7 +190,7 @@ class SchemaBuilder:
                 self._handle_mapping(anno, constraints, name=name)
             elif use in {tuple, set, frozenset, list}:
                 self._handle_array(anno, constraints)
-            base: SchemaField = formats[use]
+            base: SchemaFieldT = formats[use]
             schema = dataclasses.replace(base, **constraints)
         else:
             schema = self.build_schema(use, name=self.defname(use, name=name))
@@ -289,7 +289,7 @@ class SchemaBuilder:
             ] = dataclasses.replace(schm, definitions=None)
         if primitive:
             definitions["definitions"] = {
-                x: y.asdict() if isinstance(y, ObjectSchemaField) else y
+                x: y.primitive() if isinstance(y, ObjectSchemaField) else y
                 for x, y in definitions["definitions"].items()
             }
         return definitions

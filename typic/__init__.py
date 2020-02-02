@@ -8,6 +8,7 @@ from .klass import klass
 from typic.schema import *
 from .types import *
 from .util import *
+from .serde import *
 
 # NOTE: This import must come *last*
 from .api import *

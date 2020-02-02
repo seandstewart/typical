@@ -3,19 +3,9 @@
 import ast
 import collections
 import dataclasses
-import datetime
-import decimal
-import enum
 import functools
 import inspect
-import ipaddress
-import pathlib
-import re
-import sys
-import uuid
-from collections.abc import Mapping as Mapping_abc, Collection as Collection_abc
 from threading import RLock
-from types import MappingProxyType
 from typing import (
     Tuple,
     Any,
@@ -27,7 +17,6 @@ from typing import (
     TypeVar,
     Callable,
     get_type_hints,
-    Union,
 )
 
 import typic.checks as checks
@@ -36,6 +25,7 @@ __all__ = (
     "cached_property",
     "cached_signature",
     "cached_type_hints",
+    "typed_dict_signature",
     "cachedmethod",
     "fastcachedmethod",
     "filtered_repr",
@@ -43,7 +33,6 @@ __all__ = (
     "get_name",
     "hexhash",
     "origin",
-    "primitive",
     "resolve_supertype",
     "safe_eval",
     "typed_dict_signature",
@@ -363,6 +352,7 @@ def fastcachedmethod(func):
     _fast_cached_method_wrapper.cache_clear = memo.clear
     _fast_cached_method_wrapper.cache_size = memo.__len__
     _fast_cached_method_wrapper.cache_view = lambda: MappingProxyType(memo)
+    _fast_cached_method_wrapper._cache = memo
 
     return _fast_cached_method_wrapper
 
@@ -408,135 +398,3 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
             for x, y in hints.items()
         )
     )
-
-
-DEFAULT_ENCODING = "utf-8"
-
-
-@functools.singledispatch
-def primitive(obj: Any) -> Any:
-    """A single-dispatch function for converting an object to its primitive equivalent.
-
-    Useful for encoding data to JSON.
-
-    Registration for custom types may be done by wrapping your handler with
-    `@primitive.register`
-
-    Examples
-    --------
-    >>> import typic
-    >>> import datetime
-    >>> import uuid
-    >>> import ipaddress
-    >>> import re
-    >>> import dataclasses
-    >>> typic.primitive("foo")
-    'foo'
-    >>> typic.primitive(("foo",))  # containers are converted to lists/dicts
-    ['foo']
-    >>> typic.primitive(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-    '1970-01-01T00:00:00+00:00'
-    >>> typic.primitive(b"foo")
-    'foo'
-    >>> typic.primitive(ipaddress.IPv4Address("0.0.0.0"))
-    '0.0.0.0'
-    >>> typic.primitive(re.compile("[0-9]"))
-    '[0-9]'
-    >>> typic.primitive(uuid.UUID(int=0))
-    '00000000-0000-0000-0000-000000000000'
-    >>> @dataclasses.dataclass
-    ... class Foo:
-    ...     bar: str = 'bar'
-    ...
-    >>> typic.primitive(Foo())
-    {'bar': 'bar'}
-    """
-    if isinstance(obj, enum.Enum):
-        obj = obj.value
-    return _primitive(obj)
-
-
-@functools.singledispatch
-def _primitive(obj: Any) -> Any:
-
-    # Common methods found in classes for dumping to dicts
-    if hasattr(obj, "asdict"):
-        return primitive(obj.asdict())
-    if hasattr(obj, "to_dict"):
-        return primitive(obj.to_dict())
-    # Dataclasses, duh.
-    if dataclasses.is_dataclass(obj):
-        return primitive(dataclasses.asdict(obj))
-    raise ValueError(f"Can't determine primitive from type {type(obj)!r}")
-
-
-IPvAnyType = Union[
-    ipaddress.IPv4Address,
-    ipaddress.IPv6Interface,
-    ipaddress.IPv4Network,
-    ipaddress.IPv6Address,
-    ipaddress.IPv6Interface,
-    ipaddress.IPv6Network,
-]
-
-
-@_primitive.register(str)  # type: ignore
-@_primitive.register(int)
-@_primitive.register(bool)
-@_primitive.register(float)
-@_primitive.register(type(None))
-def _(obj):
-    return obj
-
-
-@_primitive.register(dict)  # type: ignore
-@_primitive.register(Mapping_abc)
-@_primitive.register(MappingProxyType)
-def _(obj):
-    return {primitive(x): primitive(y) for x, y in obj.items()}
-
-
-@_primitive.register(list)  # type: ignore
-@_primitive.register(tuple)
-@_primitive.register(set)
-@_primitive.register(frozenset)
-@_primitive.register(Collection_abc)
-def _(obj):
-    return [primitive(x) for x in obj]
-
-
-@_primitive.register(bytes)  # type: ignore
-@_primitive.register(bytearray)
-def _(obj):
-    return obj.decode(DEFAULT_ENCODING)
-
-
-@_primitive.register(ipaddress.IPv4Address)  # type: ignore
-@_primitive.register(ipaddress.IPv4Interface)
-@_primitive.register(ipaddress.IPv4Network)
-@_primitive.register(ipaddress.IPv6Address)
-@_primitive.register(ipaddress.IPv6Interface)
-@_primitive.register(ipaddress.IPv6Network)
-@_primitive.register(pathlib.Path)
-@_primitive.register(uuid.UUID)
-def _(obj: Union[IPvAnyType, pathlib.Path, uuid.UUID]) -> str:
-    return str(obj)
-
-
-@_primitive.register(datetime.datetime)  # type: ignore
-@_primitive.register(datetime.date)
-@_primitive.register(datetime.time)
-def _(obj: Union[datetime.datetime, datetime.date, datetime.time]) -> str:
-    if isinstance(obj, (datetime.datetime, datetime.time)) and not obj.tzinfo:
-        return f"{obj.isoformat()}+00:00"
-    return obj.isoformat()
-
-
-@_primitive.register(re.Pattern)  # type: ignore
-def _(obj: re.Pattern) -> str:  # type: ignore
-    return obj.pattern
-
-
-@_primitive.register(decimal.Decimal)  # type: ignore
-def _(obj: decimal.Decimal) -> float:
-    return float(obj)

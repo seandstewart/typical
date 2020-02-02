@@ -9,11 +9,21 @@ import pathlib
 import re
 import uuid
 from decimal import Decimal
-from typing import Mapping, Type, Union, Optional, List, Any, Dict, Callable, Hashable
+from typing import (
+    Mapping,
+    Type,
+    Union,
+    Optional,
+    List,
+    Any,
+    Dict,
+    Callable,
+    Hashable,
+)
 
 from typic.checks import isoptionaltype, isbuiltintype, isconstrained, issubclass
 from typic.types import dsn, email, frozendict, path, secret, url
-from typic.util import origin, get_args, cached_signature
+from typic.util import origin, get_args, cached_signature, cached_type_hints
 from .array import (
     Array,
     FrozenSetConstraints,
@@ -140,7 +150,6 @@ def _resolve_params(**param: inspect.Parameter,) -> Mapping[str, ConstraintsT]:
         if anno in {Any, Ellipsis, p.empty}:
             continue
         if origin(anno) is Union:
-
             items[name] = _from_union(anno)
             continue
         items[name] = get_constraints(anno)
@@ -171,14 +180,20 @@ def _from_class(
     t: Type[VT], *, nullable: bool = False
 ) -> Union[ObjectConstraints, TypeConstraints]:
     try:
-        signature = cached_signature(t)
+        params: Dict[str, inspect.Parameter] = {**cached_signature(t).parameters}
+        hints = cached_type_hints(t)
+        for x in hints.keys() & params.keys():
+            p = params[x]
+            params[x] = inspect.Parameter(
+                p.name, p.kind, default=p.default, annotation=hints[x]
+            )
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable)
     items: Optional[
         frozendict.FrozenDict[Hashable, ConstraintsT]
-    ] = frozendict.FrozenDict(_resolve_params(**signature.parameters)) or None
+    ] = frozendict.FrozenDict(_resolve_params(**params)) or None
     total = getattr(t, "__total__", True)
-    keys = frozenset(signature.parameters.keys()) if total else frozenset({})
+    keys = frozenset(params.keys()) if total else frozenset({})
     return ObjectConstraints(
         type=t, nullable=nullable, required_keys=keys, items=items, total=total
     )

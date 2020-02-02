@@ -4,6 +4,7 @@ import dataclasses
 from typing import Type
 
 from typic.api import wrap_cls
+from .serde import SerdeFlags
 
 
 def make_typedclass(
@@ -18,6 +19,7 @@ def make_typedclass(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = False,
+    serde: SerdeFlags = None
 ):
     """A convenience function for generating a dataclass with type-coercion.
 
@@ -42,7 +44,13 @@ def make_typedclass(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
-    return wrap_cls(dcls, delay=delay, strict=strict, jsonschema=jsonschema)
+    return wrap_cls(
+        dcls,
+        delay=delay,
+        strict=strict,
+        jsonschema=jsonschema,
+        serde=serde or SerdeFlags(),
+    )
 
 
 def klass(
@@ -57,6 +65,7 @@ def klass(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = True,
+    serde: SerdeFlags = None
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
 
@@ -96,6 +105,7 @@ def klass(
             delay=delay,
             strict=strict,
             jsonschema=jsonschema,
+            serde=serde,
         )
 
     return typedclass_wrapper(_cls) if _cls else typedclass_wrapper

@@ -4,7 +4,12 @@ import dataclasses
 import datetime
 from typing import Optional, List
 
-from marshmallow import fields, Schema, validate as mvalidate, ValidationError
+from marshmallow import (
+    fields,
+    Schema,
+    validate as mvalidate,
+    UnmarshalResult,
+)
 
 
 class LocationSchema(Schema):
@@ -80,9 +85,8 @@ def initialize(**data):
 
 
 def validate(data):
-    try:
-        result = SCHEMA.load(data)
-    except ValidationError as err:
-        return False, err
+    result: UnmarshalResult = SCHEMA.load(data)
+    if result.errors:
+        return False, result.errors
 
-    return True, initialize(**result)
+    return True, initialize(**result.data)

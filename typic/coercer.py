@@ -140,7 +140,7 @@ class ResolvedAnnotation:
     """The "origin"-type of the annotation."""
     un_resolved: Any
     """The type annotation before resolving super-types."""
-    coercer: CoercerT
+    coercer: Optional[CoercerT]
     """The actual coercer for the annotation."""
     parameter: inspect.Parameter
     """The parameter this annotation refers to."""
@@ -150,7 +150,9 @@ class ResolvedAnnotation:
     """Whether to enforce the annotation, rather than coerce."""
 
     def __post_init__(self):
-        self.validate = self.constraints.validate
+        self.validate = lambda o: o
+        if self.constraints:
+            self.validate = self.constraints.validate
         self.coerce = self.coercer
         if (
             isinstance(self.constraints, const.TypeConstraints)
@@ -161,8 +163,11 @@ class ResolvedAnnotation:
         self._call = self.__caller
 
     @cached_property
-    def __caller(self):
-        __call = self.coerce
+    def __caller(self) -> Callable[[Any], ObjectT]:
+        __call = self.coerce or (lambda o: o)
+        if {self.validate, self.coerce} == {None, None}:
+            return __call
+
         if isinstance(self.constraints, const.TypeConstraints):
             if self.strict:
                 __call = self.validate
@@ -540,6 +545,8 @@ class TypeCoercer:
         parameter: Optional[inspect.Parameter] = None,
         is_optional: bool = None,
         is_strict: bool = None,
+        _constraints: bool = True,
+        _coercer: bool = True,
     ) -> ResolvedAnnotation:
         """Get a :py:class:`ResolvedAnnotation` from a type."""
         if parameter is None:
@@ -569,9 +576,9 @@ class TypeCoercer:
             args = get_args(use)
 
         # Build the coercer
-        coercer: CoercerT = self.get_coercer(
+        coercer: Optional[CoercerT] = self.get_coercer(
             use, default=parameter.default, is_optional=is_optional
-        )
+        ) if _coercer else None
         # Handle *args and **kwargs
         if parameter.kind == inspect.Parameter.VAR_POSITIONAL:
             __coerce = coercer
@@ -591,7 +598,9 @@ class TypeCoercer:
             un_resolved=annotation,
             coercer=coercer,
             parameter=parameter,
-            constraints=const.get_constraints(use, nullable=is_optional),
+            constraints=const.get_constraints(use, nullable=is_optional)
+            if _constraints
+            else None,
             strict=is_strict or self.STRICT,
         )
         return resolved
@@ -943,4 +952,4 @@ class TypeCoercer:
             setattr(obj, _SCHEMA_NAME, schema)
         except (AttributeError, TypeError):
             pass
-        return schema.asdict() if primitive else schema
+        return schema.primitive() if primitive else schema
