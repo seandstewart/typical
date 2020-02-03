@@ -1,0 +1,34 @@
+name: Flake8 and Tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - uses: dschep/install-poetry-action@v1.2
+    - name: Install dependencies
+      run: poetry install
+    - name: Lint with flake8
+      run: "poetry run flake8 ."
+    - name: Check Formate with Black
+      run: "poetry run black . --check"
+    - name: Static type-check with MyPy
+      run: "poetry run mypy ."
+    - name: Test with pytest
+      run: "pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report xml"
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
