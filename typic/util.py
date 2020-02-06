@@ -222,32 +222,26 @@ def resolve_supertype(annotation: Type[Any]) -> Any:
     return annotation
 
 
-try:
-    from functools import cached_property  # type: ignore
-except ImportError:
+class cached_property:  # type: ignore
+    def __init__(self, func):
+        self.func = func
+        self.__doc__ = func.__doc__
+        self.lock = RLock()
 
-    # The exact implementation in python 3.8 stdlib.
-    # pragma: nocover
-    class cached_property:  # type: ignore
-        def __init__(self, func):
-            self.func = func
-            self.__doc__ = func.__doc__
-            self.lock = RLock()
-
-        def __get__(self, instance, cls=None):
-            if instance is None:
-                return self
-            attrname = self.func.__name__
-            try:
-                cache = instance.__dict__
-            except AttributeError:  # objects with __slots__ have no __dict__
-                msg = f"No '__dict__' attribute on {type(instance).__name__!r} instance to cache {attrname!r} property."
-                raise TypeError(msg) from None
-            with self.lock:
-                # check if another thread filled cache while we awaited lock
-                if attrname not in cache:
-                    cache[attrname] = self.func(instance)
-            return cache[attrname]
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+        attrname = self.func.__name__
+        try:
+            cache = instance.__dict__
+        except AttributeError:  # objects with __slots__ have no __dict__
+            msg = f"No '__dict__' attribute on {type(instance).__name__!r} instance to cache {attrname!r} property."
+            raise TypeError(msg) from None
+        with self.lock:
+            # check if another thread filled cache while we awaited lock
+            if attrname not in cache:
+                cache[attrname] = self.func(instance)
+        return cache[attrname]
 
 
 # stolen from functools._HashedSeq

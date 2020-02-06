@@ -1,4 +1,4 @@
-Typical: Take Typing Further. :duck: 
+Typical: Take Typing Further. :duck:
 =====================================
 ![image](docs/_static/typical.png)
 
@@ -6,8 +6,8 @@ Typical: Take Typing Further. :duck:
 [![image](https://img.shields.io/pypi/l/typical.svg)](https://pypi.org/project/typical/)
 [![image](https://img.shields.io/pypi/pyversions/typical.svg)](https://pypi.org/project/typical/)
 [![image](https://img.shields.io/github/languages/code-size/seandstewart/typical.svg?style=flat)](https://github.com/seandstewart/typical)
-[![image](https://img.shields.io/travis/seandstewart/typical.svg)](https://travis-ci.org/seandstewart/typical)
-[![codecov](https://codecov.io/gh/seandstewart/typical/branch/master/graph/badge.svg)](https://codecov.io/gh/seandstewart/typical)
+![Test & Lint](https://github.com/seandstewart/typical/workflows/Test%20&%20Lint/badge.svg)
+[![Coverage](https://codecov.io/gh/seandstewart/typical/branch/master/graph/badge.svg)](https://codecov.io/gh/seandstewart/typical)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/982a0ced-bb7f-4391-87e8-1957071d2f66/deploy-status)](https://app.netlify.com/sites/typical-python/deploys)
 
@@ -15,7 +15,7 @@ Take Typing Further with Typical. Make your annotations work for you.
 
 ## Quickstart
 In order to install, simply `pip3 install typical` and annotate to your
-heart's content! :duck: 
+heart's content! :duck:
 
 Or, if you're building an application, you should use
 [Poetry](poetry.eustace.io): `poetry add typical`
@@ -34,11 +34,11 @@ See the full documentation
 In the world of web-services development, type-safety becomes necessary
 for the sanity of your code and your fellow developers. This is not to
 say that static-typing is the solution - When it comes to the external
-entrypoints to your code, not even a compiler is going to help you. 
+entrypoints to your code, not even a compiler is going to help you.
 
 With Python3, type annotations were introduced. With Python3.7, the
 library was completely re-written for performance and ease-of-use. Type
-annotations are here to stay and I couldn't be happier about it. 
+annotations are here to stay and I couldn't be happier about it.
 
 However, there is one place where annotations fall down. There is no
 provided path for ensuring the type-safety of your methods, functions,
@@ -87,7 +87,7 @@ Take it further...
 <DuckType.WHT: 'white'>
 ```
 
-This is all fine and dandy, but can we go... further? :thinking: 
+This is all fine and dandy, but can we go... further? :thinking:
 
 ```python
 >>> class DuckRegistry:
@@ -187,7 +187,7 @@ appropriate action.
 2.  Create a branch on Github for your issue or fork
     [the repository](https://github.com/seandstewart/que) on GitHub to
     start making your changes to the **master** branch.
-4.  Write a test which shows that the bug was fixed or that the 
+4.  Write a test which shows that the bug was fixed or that the
     feature works as expected.
 5.  Send a pull request and bug the maintainer until it gets merged
     and published. :)
