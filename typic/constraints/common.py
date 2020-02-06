@@ -71,7 +71,7 @@ class __AbstractConstraints(abc.ABC):
     def __str__(self) -> str:
         return self.__str
 
-    @property
+    @util.cached_property
     @abc.abstractmethod
     def validator(self) -> ValidatorT:  # pragma: nocover
         ...
@@ -227,8 +227,8 @@ class MultiConstraints(__AbstractConstraints):
         return any(x.nullable for x in self.constraints)
 
     @util.cached_property
-    def __str(self) -> str:
-        constraints = f"{tuple(str(c) for c in self.constraints)}"
+    def __str(self) -> str:  # type: ignore
+        constraints = f"({','.join((str(c) for c in self.constraints))})"
         return f"(constraints={constraints}, nullable={self.nullable})"
 
     def __str__(self) -> str:
@@ -245,7 +245,7 @@ class MultiConstraints(__AbstractConstraints):
             yield t
 
     @util.cached_property
-    def type(self) -> Tuple[Type, ...]:
+    def type(self) -> Tuple[Type, ...]:  # type: ignore
         return (*self.__type(),)
 
     @util.cached_property
