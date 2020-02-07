@@ -1,3 +1,13 @@
+**v2.0.0b12**  
+Bugfixes:
+- Coerce nested contrained values
+- Map `NetworkAddress` to a constraint factory
+- Properly support subclasses of builtins on coercion
+
+Improvements:
+- Improve management of strict-mode state
+- Add tests for type-constraints.
+
 **v2.0.0b11**  
 Bugfixes:
 - Fix handling of `typing.Any` in contraints & schema gen.
@@ -13,7 +23,7 @@ Bugfixes:
 
 Also:
 - Improve overall test coverage.
- 
+
 **v2.0.0b8**  
 Runtime Validation:
 
@@ -27,7 +37,7 @@ Expand constraints scope for runtime validation:
 - Add `TypeConstraints` for higher-level builtin types.
 - Add `typic.get_constraints` for generating constraints from a given
   type.
-- Add `typic.Strict`, `typic.StrictStrT`, `strict` keyword to 
+- Add `typic.Strict`, `typic.StrictStrT`, `strict` keyword to
   decorators, and `typic.strict_mode` flagging "strict-mode" at
   run-time.
 - Add docs: strict-mode.rst, index.rst
@@ -38,8 +48,8 @@ Also:
 - Improve coverage for mapping.py and fix some bugs
 
 **v2.0.0b7**
-1. #14: Improve TypedDict support: 
-   - respect total=False flag on coercion & schema gen 
+1. #14: Improve TypedDict support:
+   - respect total=False flag on coercion & schema gen
    - Proper support for typing.Optional in schema gen.
 2. #21: Properly handle enums:
    - Downgrade enums to their held values on calls to typic.primitive
@@ -70,12 +80,12 @@ New features include:
 5. ``typic.primitive`` for extracting a valid JSON-serializable
    primitive from just about anything. ``typical`` classes also have
    access to this as an instance method.
-   
+
 And so much more. Check out the documentation for details!
 
 **v1.10.0**
 1. Added the ability to resolve delayed annotations with a
-   module-level callable, i.e.:  
+   module-level callable, i.e.:
    ```python
    import typic
 
@@ -97,7 +107,7 @@ And so much more. Check out the documentation for details!
 
 **v1.9.0**
 1. Introducing `typic.bind`:
-   - An optimized version of `inspect.Signature.bind` which will also 
+   - An optimized version of `inspect.Signature.bind` which will also
      coerce inputs given.
 2. `typic.al` is now up to ~30% faster on wrapped callables.
 
@@ -107,7 +117,7 @@ And so much more. Check out the documentation for details!
 **v1.4.1**
 1. Fixed a nasty bug in wrapped classes that resulted in
    infinite recursion.
-   
+
 **v1.4.0**
 1. A new wrapper has been added to simplify dataclass usage:
 
@@ -119,7 +129,7 @@ And so much more. Check out the documentation for details!
         bar: str
     
     ```
-    is equivalent to 
+    is equivalent to
     ```python
     import dataclasses
     import typic
@@ -132,17 +142,17 @@ And so much more. Check out the documentation for details!
     ```
     All standard dataclass syntax is supported with
     `typic.klass`
-   
-**v1.3.2** 
+
+**v1.3.2**
 1. Resolution time is better than ever.
 2. Custom Unions are now supported via registering custom coercers with
    `typic.register`, as a result of raising the priority of
    user-registered coercers.
-   
+
 **v1.3.1_:
 1. Improved caching strategy and resolution times.
 
-**v1.3.0** 
+**v1.3.0**
 1. Custom coercers may now be registered, e.g.:
     ```python
     import typic
@@ -178,9 +188,9 @@ And so much more. Check out the documentation for details!
    -  Sometimes people are using a version of PyYAML that's older than
       5.1. We should support that.
 
-**v1.2.0** 
+**v1.2.0**
 1. Values set to annotated attributes are automagically resolved.
 
-**v1.1.0** 
+**v1.1.0**
 1. `typing.Optional` and `typing.ClassVar` are now supported.
 
