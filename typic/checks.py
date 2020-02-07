@@ -41,6 +41,7 @@ __all__ = (
     "BUILTIN_TYPES",
     "ObjectT",
     "isbuiltintype",
+    "isbuiltinsubtype",
     "isclassvartype",
     "iscollectiontype",
     "isconstrained",
@@ -108,6 +109,34 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
         util.resolve_supertype(obj) in BUILTIN_TYPES
         or util.resolve_supertype(type(obj)) in BUILTIN_TYPES
     )
+
+
+@functools.lru_cache(maxsize=None)
+def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
+    """Check whether the provided type is a subclass of a builtin-type.
+
+    Parameters
+    ----------
+    t
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import NewType, Mapping
+    >>> class SuperStr(str): ...
+    ...
+    >>> typic.isbuiltinsubtype(SuperStr)
+    True
+    >>> typic.isbuiltinsubtype(NewType("MyStr", SuperStr))
+    True
+    >>> class Foo: ...
+    ...
+    >>> typic.isbuiltintype(Foo)
+    False
+    >>> typic.isbuiltintype(Mapping)
+    False
+    """
+    return issubclass(util.resolve_supertype(t), (*BUILTIN_TYPES,))
 
 
 @functools.lru_cache(maxsize=None)

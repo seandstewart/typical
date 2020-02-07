@@ -15,6 +15,7 @@ from typing import (
     Generic,
     cast,
     Iterable,
+    Any,
 )
 
 import typic.constraints as c
@@ -30,6 +31,7 @@ from typic.coercer import (
     Strict,
     StrictStrT,
 )
+from typic.strict import is_strict_mode, strict_mode
 from typic.util import origin, primitive
 from typic.types import FrozenDict
 
@@ -70,42 +72,6 @@ class TypicObject(Generic[_T]):
 
     schema = classmethod(schema)
     primitive = primitive
-
-
-def strict_mode() -> bool:
-    """Turn on global ``strict`` mode.
-
-    All resolved annotations will validate their inputs against the generated constraints.
-    In some cases, coercion may still be used as the method for validation.
-    Additionally, post-validation coercion will occur for user-defined classes if needed.
-
-    Notes
-    -----
-    Global state is messy, but this is provided for convenience. Care must be taken
-    when manipulating global state in this way. If you intend to turn on global
-    ``strict`` mode, it should be done once, at the start of the application runtime,
-    before all annotations have been resolved.
-
-    You cannot toggle ``strict`` mode off once it is enabled during the runtime of an
-    application. This is intentional, to limit the potential for hazy or unclear state.
-
-    If you find yourself in a situation where you need ``strict`` mode for some cases,
-    but not others, you're encouraged to flag ``strict=True`` on the decorated
-    class/callable, or even make use of the :py:class:`~typic.api.Strict` annotation to
-    flag ``strict`` mode on individual fields.
-    """
-    coerce.STRICT = True
-    return coerce.STRICT
-
-
-def is_strict_mode() -> bool:
-    """Test whether we are currently in ``strict`` mode.
-
-    See Also
-    --------
-    :py:func:`strict_mode`
-    """
-    return coerce.STRICT
 
 
 def wrap(
@@ -304,6 +270,43 @@ def _get_maybe_multi_constraints(
     return cons
 
 
+def _handle_constraint_values(constraints, values, args):
+    vcons = _get_maybe_multi_constraints(values)
+    if vcons:
+        constraints["values"] = vcons
+        if not isinstance(values, tuple) or len(values) == 1:
+            args = (
+                values  # type: ignore
+                if isinstance(values, tuple)
+                else (values,)
+            )
+    return args
+
+
+def _handle_constraint_keys(constraints, args):
+    if "keys" in constraints:
+        ks = constraints["keys"]
+        kcons = _get_maybe_multi_constraints(ks)
+        if kcons:
+            constraints["keys"] = kcons
+        if not isinstance(ks, tuple) or len(ks) == 1:
+            args = (ks if isinstance(ks, tuple) else (ks,)) + args
+            if len(args) == 1:
+                args = args + (Any,)
+    if len(args) == 1:
+        args = (Any,) + args
+    for k in ("items", "patterns", "key_dependencies"):
+        if k in constraints:
+            f = {}
+            for n, c_ in constraints[k].items():
+                c__cons = _get_maybe_multi_constraints(c_)
+                if c__cons:
+                    f[n] = c__cons
+
+            constraints[k] = FrozenDict(f)
+    return args
+
+
 def constrained(
     _klass=None, *, values: Union[Type, Tuple[Type, ...]] = None, **constraints
 ):
@@ -370,33 +373,22 @@ def constrained(
     def constr_wrapper(cls_: Type[ObjectT]) -> Type[ObjectT]:
         nonlocal constraints
         nonlocal values
+        cdict = dict(cls_.__dict__)
+        cdict.pop("__dict__", None)
+        cdict.pop("__weakref__", None)
         constr_cls = _get_constraint_cls(cls_)
         if not constr_cls:
             raise TypeError(f"can't constrain type {cls_.__name__!r}")
 
+        args: Tuple[Type, ...] = ()
         if values and constr_cls.type in {list, dict, set, tuple, frozenset}:
-            vcons = _get_maybe_multi_constraints(values)
-            if vcons:
-                constraints["values"] = vcons
+            args = _handle_constraint_values(constraints, values, args)
         if constr_cls.type == dict:
-            if "keys" in constraints:
-                kcons = _get_maybe_multi_constraints(constraints["keys"])
-                if kcons:
-                    constraints["keys"] = kcons
-            for k in ("items", "patterns", "key_dependencies"):
-                if k in constraints:
-                    f = {}
-                    for n, c_ in constraints[k].items():
-                        c__cons = _get_maybe_multi_constraints(c_)
-                        if c__cons:
-                            f[n] = c__cons
-
-                    constraints[k] = FrozenDict(f)
+            args = _handle_constraint_keys(constraints, args)
+        if args:
+            cdict["__args__"] = args
 
         constraints_inst = constr_cls(**constraints)
-        cdict = dict(cls_.__dict__)
-        cdict.pop("__dict__", None)
-        cdict.pop("__weakref__", None)
         bases = inspect.getmro(cls_)
 
         def new(_new):

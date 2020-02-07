@@ -22,6 +22,7 @@ from typing import (
 )
 
 from typic import gen, util
+from typic.strict import STRICT
 from .error import ConstraintValueError
 
 
@@ -228,7 +229,7 @@ class MultiConstraints(__AbstractConstraints):
 
     @util.cached_property
     def __str(self) -> str:  # type: ignore
-        constraints = f"({','.join((str(c) for c in self.constraints))})"
+        constraints = f"({', '.join((str(c) for c in self.constraints))})"
         return f"(constraints={constraints}, nullable={self.nullable})"
 
     def __str__(self) -> str:
@@ -288,28 +289,59 @@ class MultiConstraints(__AbstractConstraints):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class TypeConstraints(__AbstractConstraints):
-    """A container for simple types. Validation is limited to instance checks."""
+    """A container for simple types. Validation is limited to instance checks.
+
+    Examples
+    --------
+    >>> import typic
+    >>> tc = typic.get_constraints(typic.AbsoluteURL)
+    >>> tc.validate("http://foo.bar")
+    'http://foo.bar'
+    >>> tc = typic.get_constraints(typic.AbsoluteURL, nullable=True)
+    >>> tc.validate(None)
+
+    >>>
+    """
 
     type: Type[Any]  # type: ignore
     """The type to check for."""
     nullable: bool = False
     """Whether this constraint can allow null values."""
-    coerce: bool = False
-    """Whether coercion can be used in lieu of validation.
 
-    There are a large number of types provided by the standard lib which are much more
-    strict than primitives. These can be relied upon to error out if given invalid inputs,
-    so we can signal upstream to use this method.
-    """
+    __str = util.cached_property(util.filtered_str)
+
+    def __str__(self) -> str:
+        return self.__str
+
+    @property
+    def coerce(self) -> bool:
+        """Whether coercion can be used in lieu of validation.
+
+        There are a large number of types provided by the standard lib which are much
+        more strict than primitives. These can be relied upon to error out if given
+        invalid inputs, so we can signal upstream to use this method.
+        """
+        return not STRICT
 
     @util.cached_property
     def validator(self) -> ValidatorT:
-        if self.nullable:
-            return lambda value: (
-                (value is None or isinstance(value, self.type)),
-                value,
-            )
-        return lambda value: (isinstance(value, self.type), value)
+        ns = dict(__t=self.type, VT=VT)
+        func_name = "validate"
+        with gen.Block(ns) as main:
+            with main.f(func_name, main.param("value", annotation="VT")) as f:
+                # Standard instancecheck is default.
+                check = "isinstance(value, __t)"
+                retval = "value"
+                # This is just a pass-through, the coercer does the real work.
+                if self.coerce:
+                    check = "True"
+                # Have to allow nulls if its nullable.
+                elif self.nullable:
+                    check = "(value is None or isinstance(value, __t))"
+                f.l(f"{gen.Keyword.RET} {check}, {retval}")
+
+        validator: ValidatorT = main.compile(name=func_name, ns=ns)
+        return validator
 
     def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
         return {}
