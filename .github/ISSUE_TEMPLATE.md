@@ -1,4 +1,4 @@
-* transit-chem version:
+* typical version:
 * Python version:
 * Operating System:
 
