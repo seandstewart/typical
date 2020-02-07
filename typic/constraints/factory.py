@@ -148,7 +148,7 @@ def _resolve_params(**param: inspect.Parameter,) -> Mapping[str, ConstraintsT]:
 
 
 def _from_strict_type(t: Type[VT], *, nullable: bool = False) -> TypeConstraints:
-    return TypeConstraints(t, nullable=nullable, coerce=True)
+    return TypeConstraints(t, nullable=nullable)
 
 
 def _from_union(t: Type[VT], *, nullable: bool = False) -> ConstraintsT:
@@ -198,6 +198,7 @@ _CONSTRAINT_BUILDER_HANDLERS: Mapping[Type[Any], Callable] = {
     datetime.datetime: _from_strict_type,
     datetime.date: _from_strict_type,
     datetime.time: _from_strict_type,
+    url.NetworkAddress: _from_strict_type,
     url.URL: _from_strict_type,
     url.AbsoluteURL: _from_strict_type,
     url.RelativeURL: _from_strict_type,

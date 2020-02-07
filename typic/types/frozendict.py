@@ -68,7 +68,7 @@ class FrozenDict(Generic[KT, VT], dict):
     ):
         super().__init__(
             {
-                x: y if __hashgetter(y) else self._freeze(y)
+                x: y if __hashgetter(y) else freeze(y)
                 for x, y in {**(dict(__obj or {})), **kwargs}.items()
             }
         )
@@ -78,23 +78,6 @@ class FrozenDict(Generic[KT, VT], dict):
 
     def __deepcopy__(self, memodict: dict = None) -> "FrozenDict":
         return type(self)({x: copy.deepcopy(y, memodict) for x, y in self.items()})
-
-    @classmethod
-    def _freeze(
-        cls, o: Any, *, __hashgetter=_hashgetter
-    ) -> Union["FrozenDict", Hashable]:
-        if __hashgetter(o):
-            return o
-
-        if isinstance(o, set):
-            return frozenset(o)
-
-        if isinstance(o, Mapping):
-            return cls(
-                {x: y if __hashgetter(y) else cls._freeze(y) for x, y in o.items()}
-            )
-
-        return (*(x if __hashgetter(x) else cls._freeze(x) for x in o),)
 
     @cached_property
     def __hash(self) -> int:
@@ -147,3 +130,18 @@ class FrozenDict(Generic[KT, VT], dict):
         {'foo': ('bar',), 'bazz': 'blah'}
         """
         return type(self)({**self, **(other or {}), **kwargs})
+
+
+def freeze(o: Any, *, __hashgetter=_hashgetter) -> Union[FrozenDict, Hashable]:
+    if __hashgetter(o):
+        return o
+
+    if isinstance(o, set):
+        return frozenset(o)
+
+    if isinstance(o, Mapping):
+        return FrozenDict(
+            {x: y if __hashgetter(y) else freeze(y) for x, y in o.items()}
+        )
+
+    return (*(x if __hashgetter(x) else freeze(x) for x in o),)

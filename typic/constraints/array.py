@@ -19,7 +19,7 @@ from typing import (
 )
 
 from typic import gen, checks, util
-from typic.types.frozendict import FrozenDict
+from typic.types.frozendict import freeze
 from .common import BaseConstraints, ContextT, ChecksT
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -63,7 +63,7 @@ def _get_hash(obj: Any):
         return hash(obj)
     if dataclasses.is_dataclass(obj):
         obj = dataclasses.asdict(obj)
-    return hash(FrozenDict._freeze(obj))
+    return hash(freeze(obj))
 
 
 def _unique_slow(seq: Sequence, seen: set) -> Iterator[Any]:

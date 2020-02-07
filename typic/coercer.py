@@ -32,6 +32,7 @@ from pendulum import parse as dateparse
 
 import typic.schema as s
 from typic import checks, constraints as const, gen
+from typic.strict import STRICT as _STRICT, StrictModeT
 from typic.util import (
     safe_eval,
     resolve_supertype,
@@ -144,12 +145,17 @@ class ResolvedAnnotation:
     """The parameter this annotation refers to."""
     constraints: Optional[const.ConstraintsT]
     """Type restrictions, if any."""
-    strict: bool = False
+    strict: StrictModeT = False
     """Whether to enforce the annotation, rather than coerce."""
 
     def __post_init__(self):
         self.validate = self.constraints.validate
         self.coerce = self.coercer
+        if (
+            isinstance(self.constraints, const.TypeConstraints)
+            and self.constraints.coerce
+        ):
+            self.validate = self.coerce
 
         self._call = self.__caller
 
@@ -157,13 +163,13 @@ class ResolvedAnnotation:
     def __caller(self):
         __call = self.coerce
         if isinstance(self.constraints, const.TypeConstraints):
-            if self.strict and not self.constraints.coerce:
+            if self.strict:
                 __call = self.validate
         else:
-            if self.strict and self.constraints.coerce:
+            if self.strict and self.constraints and self.constraints.coerce:
 
-                def __call(val: Any) -> ObjectT:
-                    return self.coerce(self.validate(val))
+                def __call(val: Any, *, __c=self.coerce, __v=self.validate) -> ObjectT:
+                    return __c(__v(val))
 
             elif self.strict:
                 __call = self.validate
@@ -265,7 +271,7 @@ class TypeCoercer:
     {'foo': 'bar'}
     """
 
-    STRICT: bool = False
+    STRICT = _STRICT
     DEFAULT_BYTE_ENCODING = "utf-8"
     UNRESOLVABLE = frozenset(
         (
@@ -339,21 +345,16 @@ class TypeCoercer:
 
     @staticmethod
     def _build_builtin_coercer(func: gen.Block, origin: Type, anno_name: str):
-        if issubclass(origin, Collection) and origin not in {str, bytes}:
+        if issubclass(origin, Collection) and not issubclass(origin, (str, bytes)):
             with func.b("if isinstance(val, (str, bytes)):") as b:
                 b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
-        if origin is bytes:
+        if issubclass(origin, bytes):
             with func.b("if isinstance(val, str):") as b:
                 b.l(f"val = {anno_name}(val, encoding='utf-8')")
-            with func.b("else:") as b:
-                b.l(f"val = {anno_name}(val)")
-        elif origin is str:
+        elif issubclass(origin, str):
             with func.b("if isinstance(val, bytes):") as b:
                 b.l("val = val.decode('utf-8')")
-            with func.b("else:") as b:
-                b.l(f"val = {anno_name}(val)")
-        else:
-            func.l(f"val = {anno_name}(val)")
+        func.l(f"val = {anno_name}(val)")
 
     @staticmethod
     def _build_pattern_coercer(func: gen.Block, anno_name: str):
@@ -481,9 +482,7 @@ class TypeCoercer:
                         )
                     elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
                         self._build_typedtuple_coercer(func, anno_name)
-                    elif not args and checks.issubclass(
-                        origin, (*checks.BUILTIN_TYPES,)
-                    ):
+                    elif not args and checks.isbuiltinsubtype(origin):
                         self._build_builtin_coercer(func, origin, anno_name)
                     elif checks.ismappingtype(origin):
                         args = cast(Tuple[Type, Type], args)

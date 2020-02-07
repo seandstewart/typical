@@ -447,9 +447,11 @@ def test_bad_constraint_class():
 
 
 def test_strict_mode():
+    assert not is_strict_mode()
     strict_mode()
     assert is_strict_mode()
-    coerce.STRICT = False
+    coerce.STRICT._unstrict_mode()
+    assert not is_strict_mode()
 
 
 def test_enforce_strict_mode():
@@ -463,7 +465,7 @@ def test_enforce_strict_mode():
     with pytest.raises(ConstraintValueError):
         Foo(1)
 
-    coerce.STRICT = False
+    coerce.STRICT._unstrict_mode()
 
 
 def test_constrained_any():
@@ -477,7 +479,7 @@ def test_constrained_any():
     assert Foo(1).bar == 1
     assert Foo("bar").bar == "bar"
 
-    coerce.STRICT = False
+    coerce.STRICT._unstrict_mode()
 
 
 @pytest.mark.parametrize(
@@ -517,3 +519,29 @@ def test_strict_anno_fails(anno, val):
 )
 def test_strict_anno_passes(anno, val):
     assert coerce(val, anno) == val
+
+
+@constrained(values=NetworkAddress)
+class Addresses(list):
+    ...
+
+
+@constrained(values=NetworkAddress)
+class AddresseMap(dict):
+    ...
+
+
+@pytest.mark.parametrize(
+    argnames=("anno", "val", "expected"),
+    argvalues=[
+        (Addresses, {"tcp://foo"}, Addresses((NetworkAddress("tcp://foo"),)),),
+        (
+            AddresseMap,
+            {"foo": "tcp://foo"},
+            AddresseMap(foo=NetworkAddress("tcp://foo")),
+        ),
+    ],
+)
+def test_coerce_nested_constrained(anno, val, expected):
+    c = coerce(val, anno)
+    assert c == expected

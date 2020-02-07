@@ -113,12 +113,16 @@ def _check_generics(hint: Any):
 
 
 def filtered_repr(self) -> str:
+    return f"{type(self).__name__}{filtered_str(self)}"
+
+
+def filtered_str(self) -> str:
     fields = []
     for f in dataclasses.fields(self):
         val = getattr(self, f.name)
         if (val or val in {False, 0}) and f.repr:
             fields.append(f"{f.name}={val!r}")
-    return f"{type(self).__name__}({', '.join(fields)})"
+    return f"({', '.join(fields)})"
 
 
 @functools.lru_cache(maxsize=None)
