@@ -7,6 +7,12 @@ class _Strict:
     def __bool__(self) -> bool:
         return self.__STRICT
 
+    def __str__(self):  # pragma: nocover
+        return str(self.__STRICT)
+
+    def __repr__(self):  # pragma: nocover
+        return f"<strict-mode={self.__STRICT}>"
+
     def is_strict_mode(self) -> bool:
         return self.__STRICT
 

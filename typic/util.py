@@ -11,6 +11,7 @@ import inspect
 import ipaddress
 import pathlib
 import re
+import sys
 import uuid
 from collections.abc import Mapping as Mapping_abc, Collection as Collection_abc
 from threading import RLock
@@ -32,19 +33,20 @@ from typing import (
 import typic.checks as checks
 
 __all__ = (
-    "safe_eval",
-    "origin",
-    "get_args",
-    "get_name",
-    "resolve_supertype",
     "cached_property",
     "cached_signature",
     "cached_type_hints",
-    "typed_dict_signature",
-    "filtered_repr",
-    "primitive",
     "cachedmethod",
     "fastcachedmethod",
+    "filtered_repr",
+    "get_args",
+    "get_name",
+    "hexhash",
+    "origin",
+    "primitive",
+    "resolve_supertype",
+    "safe_eval",
+    "typed_dict_signature",
 )
 
 
@@ -72,6 +74,10 @@ GENERIC_TYPE_MAP = {
     Hashable: str,
     collections.abc.Hashable: str,
 }
+
+
+def hexhash(*args, __order=sys.byteorder, **kwargs) -> str:
+    return hash(f"{args}{kwargs}").to_bytes(8, __order, signed=True).hex()
 
 
 @functools.lru_cache(maxsize=2000, typed=True)
@@ -238,8 +244,12 @@ class cached_property:  # type: ignore
         attrname = self.func.__name__
         try:
             cache = instance.__dict__
-        except AttributeError:  # objects with __slots__ have no __dict__
-            msg = f"No '__dict__' attribute on {type(instance).__name__!r} instance to cache {attrname!r} property."
+        # objects with __slots__ have no __dict__
+        except AttributeError:  # pragma: nocover
+            msg = (
+                f"No '__dict__' attribute on {type(instance).__name__!r} "
+                f"instance to cache {attrname!r} property."
+            )
             raise TypeError(msg) from None
         with self.lock:
             # check if another thread filled cache while we awaited lock
@@ -351,6 +361,8 @@ def fastcachedmethod(func):
         return memoget(arg)
 
     _fast_cached_method_wrapper.cache_clear = memo.clear
+    _fast_cached_method_wrapper.cache_size = memo.__len__
+    _fast_cached_method_wrapper.cache_view = lambda: MappingProxyType(memo)
 
     return _fast_cached_method_wrapper
 

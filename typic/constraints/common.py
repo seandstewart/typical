@@ -3,7 +3,6 @@
 import abc
 import dataclasses
 import enum
-import re
 from inspect import Signature
 from typing import (
     Callable,
@@ -71,6 +70,9 @@ class __AbstractConstraints(abc.ABC):
 
     def __str__(self) -> str:
         return self.__str
+
+    def _get_validator_name(self) -> str:
+        return f"validator_{util.hexhash(self)}"
 
     @util.cached_property
     @abc.abstractmethod
@@ -160,9 +162,6 @@ class BaseConstraints(__AbstractConstraints):
         self, func: gen.Block
     ) -> Tuple[ChecksT, ContextT]:  # pragma: nocover
         raise NotImplementedError
-
-    def _get_validator_name(self) -> str:
-        return re.sub(r"\W+", "_", f"validator_{self}")
 
     @staticmethod
     def _set_return(func: gen.Block, checks: ChecksT, context: ContextT):
@@ -326,7 +325,7 @@ class TypeConstraints(__AbstractConstraints):
     @util.cached_property
     def validator(self) -> ValidatorT:
         ns = dict(__t=self.type, VT=VT)
-        func_name = "validate"
+        func_name = self._get_validator_name()
         with gen.Block(ns) as main:
             with main.f(func_name, main.param("value", annotation="VT")) as f:
                 # Standard instancecheck is default.
