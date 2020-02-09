@@ -1,3 +1,14 @@
+**v2.0.0b13**  
+Bugfixes:
+- Fix regex pattern coercion
+- Fix setattr locator
+
+Improvements:
+- Faster & simpler name creation for generated code
+- Improved tracebacks and debuging for generated code
+- More tests & improved coverage
+- Remove unused code-paths
+
 **v2.0.0b12**  
 Bugfixes:
 - Coerce nested contrained values
