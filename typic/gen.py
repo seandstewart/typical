@@ -3,7 +3,9 @@
 import dataclasses
 import enum
 import inspect
+import linecache
 import pathlib
+import uuid
 from typing import List, Union, Type, Tuple, Optional
 
 import typic
@@ -119,22 +121,63 @@ class Block:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    @staticmethod
+    def _generate_unique_filename(func_name):
+        """Create a "filename" suitable for a function being generated.
+
+        Notes
+        -----
+        Taken aproximately from `attrs`.
+
+        See Also
+        --------
+        https://github.com/python-attrs/attrs/blob/8c00f755f9d91c06fbdd9a20e24d2c4663e6339d/src/attr/_make.py#L1066
+        """
+        unique_id = uuid.uuid4()
+        extra = ""
+        count = 1
+
+        while True:
+            unique_filename = f"<typical generated {func_name}{extra}>"
+            # To handle concurrency we essentially "reserve" our spot in
+            # the linecache with a dummy line.  The caller can then
+            # set this value correctly.
+            cache_line = (1, None, (str(unique_id),), unique_filename)
+            if linecache.cache.setdefault(unique_filename, cache_line) == cache_line:
+                return unique_filename
+
+            # Looks like this spot is taken. Try again.
+            count += 1
+            extra = f"-{count}"
+
+    def _add_to_linecache(self, fname, code):
+        linecache.cache[fname] = (
+            len(self.body),
+            None,
+            code.splitlines(True),
+            fname,
+        )
+
     def render(self) -> str:
         block = "".join(x.render() for x in self.body)
         return f"{block}" if block else ""
 
     def compile(self, *, name: str, ns: dict = None):
         ns = {} if ns is None else ns
+        fname = self._generate_unique_filename(func_name=name)
         self.namespace.update(ns)
         code = self.render()
-        exec(code, self.namespace, ns)
-        target = ns[name]
+        bytecode = compile(code, fname, "exec")
+        eval(bytecode, self.namespace, self.namespace)
+        target = self.namespace[name]
         target.__raw__ = code
+        self._add_to_linecache(fname, code)
         return target
 
 
+# This isn't used or tested. It's just here for API completion.
 @dataclasses.dataclass
-class Module:
+class Module:  # pragma: nocover
     namespace: dict = dataclasses.field(init=False, default_factory=dict)
     body: Block = dataclasses.field(init=False)
 

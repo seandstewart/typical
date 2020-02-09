@@ -42,6 +42,7 @@ from typic.util import (
     cached_type_hints,
     cached_property,
     cachedmethod,
+    hexhash,
 )
 
 _ORIG_SETTER_NAME = "__setattr_original__"
@@ -325,7 +326,7 @@ class TypeCoercer:
 
     @staticmethod
     def _get_coercer_name(annotation, default, optional: bool = None) -> str:
-        return re.sub(r"\W+", "_", f"coerce_{annotation}_{default}_{optional}")
+        return f"coercer_{hexhash(annotation, default, optional=optional)}"
 
     @staticmethod
     def _build_date_coercer(func: gen.Block, origin: Type, anno_name: str):
@@ -358,8 +359,8 @@ class TypeCoercer:
 
     @staticmethod
     def _build_pattern_coercer(func: gen.Block, anno_name: str):
-        with func.b(f"if not isinstance(val, {anno_name}):"):
-            func.l("val = __re_compile(val)", __re_compile=re.compile)
+        with func.b(f"if not isinstance(val, {anno_name}):") as b:
+            b.l("val = __re_compile(val)", __re_compile=re.compile)
 
     @staticmethod
     def _build_fromdict_coercer(func: gen.Block, anno_name: str):
@@ -394,8 +395,8 @@ class TypeCoercer:
         self, func: gen.Block, args: Tuple[Type, Type], anno_name: str
     ):
         key_type, item_type = args
-        key_coercer = self.get_coercer(key_type)
-        item_coercer = self.get_coercer(item_type)
+        key_coercer = self.resolve(key_type)
+        item_coercer = self.resolve(item_type)
         kc_name = f"{anno_name}_key_coercer"
         it_name = f"{anno_name}_item_coercer"
         with func.b("if isinstance(val, (str, bytes)):") as b:
@@ -411,7 +412,7 @@ class TypeCoercer:
         self, func: gen.Block, args: Tuple[Type, ...], anno_name: str
     ):
         item_type = args[0]
-        item_coercer = self.get_coercer(item_type)
+        item_coercer = self.resolve(item_type)
         it_name = f"{anno_name}_item_coercer"
         with func.b("if isinstance(val, (str, bytes)):") as b:
             b.l("_, val = safe_eval(val)", safe_eval=safe_eval)
@@ -451,14 +452,11 @@ class TypeCoercer:
         # Resolve NewTypes into their annotation. Recursive.
         resolved = resolve_supertype(annotation)
         args = get_args(resolved)
-        # Get the "origin" of the annotation. This will be a builtin for native types.
+        # Get the "origin" of the annotation.
+        # For natives and their typing.* equivs, this will be a builtin type.
+        # For SpecialForms (Union, mainly) this will be the un-subscripted type.
         # For custom types or classes, this will be the same as the annotation.
         origin = get_origin(resolved)
-        if is_optional is None and checks.isoptionaltype(resolved):
-            coercer = self._build_coercer(args[0], default=default, is_optional=True)
-            self._coercer_cache[func_name] = coercer
-            return coercer
-
         optional = is_optional or False
         anno_name = f"{func_name}_anno"
         ns = {anno_name: origin}

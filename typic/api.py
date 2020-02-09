@@ -184,7 +184,7 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
                 _ORIG_SETTER_NAME if hasattr(base, _ORIG_SETTER_NAME) else "__setattr__"
             )
             setter = getattr(base, name, None)
-            if setter.__name__ == "__setattr_coerced__":
+            if setter.__name__ != "__setattr_coerced__":
                 break
     return setter
 

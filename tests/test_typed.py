@@ -96,6 +96,7 @@ def test_isbuiltintype(obj: typing.Any):
         (FooNum, "bar"),
         (Data, Data("bar!")),
         (NetworkAddress, "localhost"),
+        (typing.Pattern, r"\w+"),
     ],
 )
 def test_coerce_simple(annotation, value):
@@ -344,7 +345,7 @@ def test_register():
         return set(MyCustomType.__args__).issuperset(args)
 
     coerce.register(MyCustomClass, ismycustomclass)
-    assert (ismycustomclass, MyCustomClass) in coerce._user_coercers
+    assert coerce.get_coercer(MyCustomType) is MyCustomClass
 
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])
