@@ -1,3 +1,8 @@
+**v2.0.0b15**  
+Bugfixes:
+- Fix issue resolving serializer for Enums which are
+  ClassVars/ReadOnly.
+
 **v2.0.0b14**  
 Features:
 - Introducing `SerdeProtocol` for fast, dynamic serialization &
