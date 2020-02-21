@@ -4,8 +4,8 @@
 from . import types, constraints
 from .checks import *
 from .constraints import *
-from .klass import klass
-from typic.schema import *
+from .ext.schema import *
+from .klass import klass, field
 from .types import *
 from .util import *
 

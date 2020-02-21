@@ -3,7 +3,7 @@
 
 Strict Mode
 -----------
-``strict`` mode turns ``typical`` into a run-time *enforcer*, not just coercer. What
+``strict`` mode turns ``typical`` into a run-time *enforcer*, not just deserializer. What
 does this mean? Simply put, if the input does not meet the constraints of the provided
 type, an error will be raised. There are three different levels of ``strict`` mode
 enforcement:

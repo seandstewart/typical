@@ -9,6 +9,6 @@ directly.
    constraints
    gen
    schema
-   coercer
+   serde
    klass
    api

@@ -82,7 +82,7 @@ def initialize(**data):
 def validate(data):
     try:
         result = SCHEMA.load(data)
-    except ValidationError as err:
-        return False, err
+        return True, initialize(**result)
 
-    return True, initialize(**result)
+    except ValidationError as err:
+        return False, err.messages

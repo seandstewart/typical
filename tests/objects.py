@@ -63,6 +63,8 @@ class FooNum(str, enum.Enum):
 
 
 class Class:
+    var: str
+
     def __init__(self, var: str):
         self.var = var
 

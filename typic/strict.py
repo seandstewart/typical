@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Generic, TypeVar
 
 
 class _Strict:
@@ -49,7 +49,15 @@ class _Strict:
         return self.__STRICT
 
 
+_T = TypeVar("_T")
+
+
+class Strict(Generic[_T]):
+    pass
+
+
+StrictStrT = Strict[str]
 StrictModeT = Union[bool, _Strict]
-STRICT = _Strict()
-is_strict_mode = STRICT.is_strict_mode
-strict_mode = STRICT.strict_mode
+STRICT_MODE = _Strict()
+is_strict_mode = STRICT_MODE.is_strict_mode
+strict_mode = STRICT_MODE.strict_mode

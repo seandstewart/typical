@@ -9,7 +9,7 @@ Helpers
 ``typical`` also provides a variety of high-level helpers that make interacting with
 types a breeze:
 
-.. autofunction:: typic.coerce
+.. autofunction:: typic.transmute
     :noindex:
 
 .. autofunction:: typic.primitive
@@ -24,7 +24,11 @@ types a breeze:
 .. autofunction:: typic.schemas
     :noindex:
 
-.. autofunction:: typic.annotations
+.. autofunction:: typic.protocol
+    :noindex:
+
+
+.. autofunction:: typic.protocols
     :noindex:
 
 
@@ -32,7 +36,11 @@ Classes
 -------
 There are a few high-level classes that may be interacted with.
 
-.. autoclass:: typic.ResolvedAnnotation
+.. autoclass:: typic.Annotation
+    :members:
+    :noindex:
+
+.. autoclass:: typic.SerdeProtocol
     :members:
     :noindex:
 
@@ -42,8 +50,8 @@ There are a few high-level classes that may be interacted with.
 
 
 
-Delayed Annotation Resolution
------------------------------
+Delayed Protocol Resolution
+---------------------------
 Sometimes you define a class that depends upon another class or type which isn't defined
 quite yet. This can cause issues resolving your annotation for coercion. In those
 cases, we provide a simple ``delay`` parameter and a ``typic.resolve()`` function.
@@ -88,8 +96,8 @@ cases, we provide a simple ``delay`` parameter and a ``typic.resolve()`` functio
 
 
 
-Custom Type Coercers
---------------------
+Custom Type Deserializers
+-------------------------
 Typic does everything it can to figure out how to initialize your custom classes
 without much input from you. If you feel the need to control the initialization of your
 ``typic.al`` class, you can do so in one of two ways:
@@ -118,7 +126,7 @@ without much input from you. If you feel the need to control the initialization 
     functionally unnecessary unless you're mutating said data in some way.
 
 
-2. Register a custom type coercer for your class:
+2. Register a custom type deserializer for your class:
 
 
 .. code-block:: python
@@ -165,7 +173,7 @@ without much input from you. If you feel the need to control the initialization 
 
 
     @typic.al
-    def foo_coercer(val: dict):
+    def foo_deserializer(val: dict):
         type = val.pop("type", None)
         if type:
             cls = FooType.select(type)
@@ -173,19 +181,64 @@ without much input from you. If you feel the need to control the initialization 
         raise ValueError(f"Can't determine FooType from {val}")
 
 
-    # register your coercer with a function to detect if an annotation is valid
-    typic.register(foo_coercer, isfootype)
+    # register your deserializer with a function to detect if an annotation is valid
+    typic.register(foo_deserializer, isfootype)
     # resolve your annotations
     typic.resolve()
 
 
 
-Manual Coercion
----------------
+Customizing your Ser/Des Protocol
+---------------------------------
+``typical`` provides a path for you to customize *how* your data is transmuted into
+your custom classes, and how it is dumped back to its primitive form. It all starts
+with this class:
+
+.. autoclass:: typic.SerdeFlags
+    :members:
+    :noindex:
+
+
+The simplest method for customizing your protocol is via :py:func:`typic.klass`:
+
+.. doctest::
+
+    >>> import typic
+    >>>
+    >>> @typic.klass
+    >>> class Foo:
+    ...    bar: str = typic.field(name="Bar")
+    ...    exc: str = typic.field(exclude=True)
+    ...
+    >>> foo = Foo("bar", "exc")
+    >>> foo.primitive()
+    {'Bar': 'bar'}
+
+
+For more power, you can manually assign the ``__serde_flags__`` attribute on any class:
+
+.. doctest::
+
+    >>> class Foo:
+    ...     __serde_flags__ = typic.SerdeFlags(fields=("bar", "prop"))
+    ...     prop: int
+    ...     bar: str = ""
+    ...
+    ...     @property
+    ...     def prop(self) -> int:
+    ...         return 0
+    ...
+    >>> proto = typic.protocol(Foo)
+    >>> proto.primitive(Foo())
+    {'prop': 0, 'bar': ''}
+
+
+Manual Ser/Des
+--------------
 If, for some reason, you don't like all the magic and you want to have manual control
 over when and how you coerce your types, ``typical`` still has your back with its
 high-level API. Instead of wrapping your functions or classes, you can call
-:py:func:`typic.coerce` when and where you want.
+:py:func:`typic.transmute` & :py:func:`typic.primitive` when and where you want.
 
 
 .. code-block:: python
@@ -217,10 +270,12 @@ Voila! Let's pop into an interpreter to see this in action:
     >>> from .foo import some_function_without_magic, Foo
     >>>
     >>> data = "bar"
-    >>> some_function_without_magic(typic.coerce(data, Foo))
+    >>> some_function_without_magic(typic.transmute(Foo, data))
     Foo(bar='bar')
-    >>> some_function_without_magic(typic.coerce('{"bar": 1}', Foo))
+    >>> some_function_without_magic(typic.transmute(Foo, '{"bar": 1}'))
     Foo(bar='1')
+    >>> typic.primitive(Foo(bar="bar"))
+    {'bar': 'bar'}
 
 
 .. note::
@@ -229,3 +284,34 @@ Voila! Let's pop into an interpreter to see this in action:
     where-ever possible. Otherwise, you will take a warm-up hit in performance while
     ``typical`` works to figure out how to coerce your stuff the first time anything
     like this is called.
+
+
+You can also retrieve a ser/des protocol for nearly any type, including your own:
+
+.. doctest::
+
+    >>> import typic
+    >>> str_proto: typic.SerdeProtocol = typic.protocol(str, is_strict=True)
+    >>> str_proto.transmute(1)
+    Traceback (most recent call last):
+      ...
+    typic.constraints.error.ConstraintValueError: Given value <1> fails constraints: (type=str, nullable=False, coerce=False)
+
+
+.. doctest::
+
+    >>> import typic
+    >>> import dataclasses
+    >>> @dataclasses.dataclass
+    ... class Foo:
+    ...     bar: str
+    ...
+    >>> foo_proto: typic.SerdeProtocol = typic.protocol(Foo)
+    >>> foo_proto.transmute({"bar": "foo"})
+    Foo(bar='foo')
+    >>> foo_proto.transmute("foo")
+    Foo(bar='foo')
+    >>> foo_proto.primitive(Foo("foo"))
+    {'bar': 'foo'}
+
+

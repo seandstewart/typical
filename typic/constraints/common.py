@@ -21,7 +21,7 @@ from typing import (
 )
 
 from typic import gen, util
-from typic.strict import STRICT
+from typic.strict import STRICT_MODE
 from .error import ConstraintValueError
 
 
@@ -320,7 +320,7 @@ class TypeConstraints(__AbstractConstraints):
         more strict than primitives. These can be relied upon to error out if given
         invalid inputs, so we can signal upstream to use this method.
         """
-        return not STRICT
+        return not STRICT_MODE
 
     @util.cached_property
     def validator(self) -> ValidatorT:

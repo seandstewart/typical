@@ -2,12 +2,12 @@
 # -*- coding: UTF-8 -*-
 import copy
 from operator import attrgetter
-from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic
+from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic, FrozenSet
 from collections.abc import Hashable
 
 from typic.util import cached_property
 
-__all__ = ("FrozenDict",)
+__all__ = ("FrozenDict", "freeze")
 
 KT = TypeVar("KT")  # Key type.
 VT = TypeVar("VT", covariant=True)  # Value type.
@@ -132,7 +132,10 @@ class FrozenDict(Generic[KT, VT], dict):
         return type(self)({**self, **(other or {}), **kwargs})
 
 
-def freeze(o: Any, *, __hashgetter=_hashgetter) -> Union[FrozenDict, Hashable]:
+FrozenT = Union[FrozenDict, Hashable, Tuple, FrozenSet, None]
+
+
+def freeze(o: Any, *, __hashgetter=_hashgetter) -> FrozenT:
     if __hashgetter(o):
         return o
 

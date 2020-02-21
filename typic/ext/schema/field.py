@@ -20,16 +20,14 @@ from typing import (
     Tuple,
     Type,
     Pattern,
-    Generic,
-    TypeVar,
     AnyStr,
     Optional,
-    Dict,
     Text,
 )
 
-from typic.checks import isbuiltintype
-from typic.util import filtered_repr, cached_property, origin, primitive
+from typic.serde.common import SerdeFlags
+from typic.serde.resolver import resolver
+from typic.util import filtered_repr, cached_property
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
@@ -42,30 +40,14 @@ __all__ = (
     "NumberSchemaField",
     "NullSchemaField",
     "ObjectSchemaField",
-    "ReadOnly",
     "Ref",
-    "SchemaField",
+    "SchemaFieldT",
     "SchemaType",
     "StringFormat",
     "StrSchemaField",
     "UndeclaredSchemaField",
-    "WriteOnly",
     "get_field_type",
 )
-
-T = TypeVar("T")
-
-
-class ReadOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be read-only."""
-
-    pass
-
-
-class WriteOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be write-only."""
-
-    pass
 
 
 class SchemaType(str, enum.Enum):
@@ -92,12 +74,12 @@ class Ref:
     Usually for directing a validator to another schema definition.
     """
 
+    __serde_flags__ = SerdeFlags(fields={"ref": "$ref"})
+
     ref: str
 
-    def asdict(self) -> dict:  # pragma: nocover
-        return {"$ref": self.ref}
-
-    primitive = primitive
+    def primitive(self):
+        return resolver.primitive(self)
 
 
 class StringFormat(str, enum.Enum):
@@ -120,40 +102,11 @@ class StringFormat(str, enum.Enum):
     IPV6 = "ipv6"
 
 
-def schema_asdict(obj: "BaseSchemaField") -> dict:
-    """Recursively output a SchemaField object as a dict."""
-    formats = SCHEMA_FIELD_FORMATS
-    if isinstance(obj, Ref):
-        return obj.asdict()
-    if isinstance(obj, BaseSchemaField):
-        final: Dict[str, Any] = {}
-        if obj.type is not NotImplemented:
-            final = {"type": obj.type.value}
-
-        f: dataclasses.Field
-        for f in dataclasses.fields(obj):
-            val = getattr(obj, f.name)
-            if val is None:
-                continue
-            if isinstance(val, (BaseSchemaField, Ref)):
-                val = val.asdict()
-            elif isinstance(val, Mapping):
-                val = {x: schema_asdict(y) for x, y in val.items()}
-            elif isinstance(val, Collection) and not isinstance(val, (str, bytes)):
-                val = [schema_asdict(x) for x in val]
-            else:
-                val = dataclasses._asdict_inner(val, dict_factory=dict)  # type: ignore
-            final[f.name] = val
-    elif origin(obj) in formats:
-        final = formats[origin(obj)]
-    else:
-        final = obj if isbuiltintype(type(obj)) else ObjectSchemaField().asdict()
-    return final
-
-
 @dataclasses.dataclass(frozen=True, repr=False)
 class BaseSchemaField:
     """The base JSON Schema Field."""
+
+    __serde_flags__ = SerdeFlags(omit=(None, NotImplemented))
 
     type: ClassVar[SchemaType] = NotImplemented
     format: Optional[str] = None
@@ -166,8 +119,8 @@ class BaseSchemaField:
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
 
-    asdict = schema_asdict
-    primitive = primitive
+    def primitive(self):
+        return resolver.primitive(self)
 
     __repr = cached_property(filtered_repr)
 
@@ -199,7 +152,7 @@ class BaseSchemaField:
         `fastjsonschema <https://horejsek.github.io/python-fastjsonschema/>`_
         """
         if fastjsonschema:
-            return fastjsonschema.compile(self.asdict())
+            return fastjsonschema.compile(self.primitive())
         raise RuntimeError(
             "Can't compile validator, 'fastjsonschema' is not installed."
         )
@@ -230,9 +183,9 @@ class UndeclaredSchemaField(BaseSchemaField):
 class MultiSchemaField(BaseSchemaField):
     """A schema field which supports multiple types."""
 
-    anyOf: Optional[Tuple["SchemaField", ...]] = None
-    allOf: Optional[Tuple["SchemaField", ...]] = None
-    oneOf: Optional[Tuple["SchemaField", ...]] = None
+    anyOf: Optional[Tuple["SchemaFieldT", ...]] = None
+    allOf: Optional[Tuple["SchemaFieldT", ...]] = None
+    oneOf: Optional[Tuple["SchemaFieldT", ...]] = None
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -300,9 +253,6 @@ class BooleanSchemaField(BaseSchemaField):
     type = SchemaType.BOOL
 
 
-NestedSchemaField = Union[Collection["SchemaField"], "SchemaField"]
-
-
 @dataclasses.dataclass(frozen=True, repr=False)
 class ObjectSchemaField(BaseSchemaField):
     """A JSON Schema Field for the ``object`` type.
@@ -313,15 +263,15 @@ class ObjectSchemaField(BaseSchemaField):
     """
 
     type = SchemaType.OBJ
-    properties: Optional[Mapping[str, Union["SchemaField", "Ref"]]] = None
-    additionalProperties: Optional[Union[bool, NestedSchemaField]] = None
+    properties: Optional[Mapping[str, Any]] = None
+    additionalProperties: Optional[Union[bool, Any]] = None
     maxProperties: Optional[int] = None
     minProperties: Optional[int] = None
     required: Optional[Collection] = None
     propertyNames: Optional[Mapping[str, Pattern]] = None
-    patternProperties: Optional[Mapping[Pattern, "SchemaField"]] = None
-    dependencies: Optional[Mapping[str, Union[Tuple[str], "ObjectSchemaField"]]] = None
-    definitions: Optional[frozendict.FrozenDict[str, "ObjectSchemaField"]] = None
+    patternProperties: Optional[Mapping[Pattern, Any]] = None
+    dependencies: Optional[Mapping[str, Union[Tuple[str], Any]]] = None
+    definitions: Optional[frozendict.FrozenDict[str, Any]] = None
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -334,15 +284,15 @@ class ArraySchemaField(BaseSchemaField):
     """
 
     type = SchemaType.ARR
-    items: Optional[NestedSchemaField] = None
-    contains: Optional[NestedSchemaField] = None
+    items: Optional[Any] = None
+    contains: Optional[Any] = None
     additionalItems: Optional[bool] = None
     minItems: Optional[int] = None
     maxItems: Optional[int] = None
     uniqueItems: Optional[bool] = None
 
 
-SchemaField = Union[
+SchemaFieldT = Union[
     StrSchemaField,
     IntSchemaField,
     NumberSchemaField,
@@ -356,7 +306,7 @@ SchemaField = Union[
 """A type-alias for the defined JSON Schema Fields."""
 
 
-TYPE_TO_FIELD: Mapping[SchemaType, Type[SchemaField]] = {
+TYPE_TO_FIELD: Mapping[SchemaType, Type[SchemaFieldT]] = {
     SchemaType.ARR: ArraySchemaField,
     SchemaType.BOOL: BooleanSchemaField,
     SchemaType.INT: IntSchemaField,
@@ -366,7 +316,7 @@ TYPE_TO_FIELD: Mapping[SchemaType, Type[SchemaField]] = {
 }
 
 
-def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaField]:
+def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]:
     if type is None:
         return MultiSchemaField
     if type is NotImplemented:
@@ -374,7 +324,7 @@ def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaField]:
     return TYPE_TO_FIELD[type]
 
 
-SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaField] = frozendict.FrozenDict(
+SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.FrozenDict(
     {
         str: StrSchemaField(),
         AnyStr: StrSchemaField(),

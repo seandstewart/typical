@@ -4,6 +4,9 @@ import functools
 import inspect
 import dataclasses
 import os
+from collections import deque
+from operator import attrgetter
+from types import FunctionType, MethodType
 from typing import (
     Union,
     Callable,
@@ -12,66 +15,98 @@ from typing import (
     Optional,
     Mapping,
     TypeVar,
-    Generic,
     cast,
     Iterable,
     Any,
+    Deque,
 )
 
 import typic.constraints as c
 from typic.checks import issubclass, ishashable
-from typic.coercer import (
-    TypeCoercer as __TypeCoercer,
-    _TO_RESOLVE,
-    _ORIG_SETTER_NAME,
-    _origsettergetter,
-    BoundArguments,
-    ResolvedAnnotation,
-    Annotations,
-    Strict,
-    StrictStrT,
+from typic.serde.binder import BoundArguments
+from typic.serde.common import (
+    Annotation,
+    SerdeFlags,
+    SerializerT,
+    SerdeProtocol,
+    ProtocolsT,
+    DeserializerT,
 )
-from typic.strict import is_strict_mode, strict_mode
-from typic.util import origin, primitive
+from typic.common import (
+    ORIG_SETTER_NAME,
+    SCHEMA_NAME,
+    SERDE_FLAGS_ATTR,
+    Case,
+    ReadOnly,
+    WriteOnly,
+)
+from typic.serde.resolver import resolver
+from typic.strict import is_strict_mode, strict_mode, Strict, StrictStrT
+from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
+from typic.util import origin
 from typic.types import FrozenDict
 
 __all__ = (
+    "Annotation",
     "annotations",
     "bind",
+    "BoundArguments",
+    "Case",
     "coerce",
+    "constrained",
     "is_strict_mode",
+    "primitive",
+    "protocol",
+    "protocols",
+    "ReadOnly",
     "register",
     "resolve",
+    "resolver",
     "settings",
     "schema",
     "schemas",
+    "SerdeFlags",
+    "SerdeProtocol",
+    "Strict",
     "strict_mode",
+    "StrictStrT",
+    "transmute",
     "typed",
     "wrap",
     "wrap_cls",
-    "constrained",
-    "BoundArguments",
-    "ResolvedAnnotation",
-    "Strict",
-    "StrictStrT",
+    "WriteOnly",
 )
 
 ObjectT = TypeVar("ObjectT")
+SchemaGenT = Callable[[Type[ObjectT]], SchemaFieldT]
+_TO_RESOLVE: Deque[Union[Type["WrappedObjectT"], Callable]] = deque()
 
-coerce: __TypeCoercer = __TypeCoercer()
-bind = coerce.bind
-register = coerce.register
-annotations = coerce.annotations
-schema = coerce.schema
-schemas = coerce.schema_builder.all
+
+transmute = resolver.transmute
+bind = resolver.bind
+register = resolver.des.register
+primitive = resolver.primitive
+schemas = schema_builder.all
+protocols = resolver.protocols
+protocol = resolver.resolve
+
+# TBDeprecated
+coerce = resolver.coerce_value
+annotations = resolver.protocols
+
 
 _T = TypeVar("_T")
 
 
-class TypicObject(Generic[_T]):
+class TypicObjectT:
+    __serde__: SerdeProtocol
+    __serde_flags__: SerdeFlags
+    schema: SchemaGenT
+    primitive: SerializerT
+    transmute: DeserializerT
 
-    schema = classmethod(schema)
-    primitive = primitive
+
+WrappedObjectT = Union[TypicObjectT, ObjectT]
 
 
 def wrap(
@@ -94,19 +129,20 @@ def wrap(
     :py:meth:`inspect.Signature.bind`
     """
     if not delay:
-        coerce.annotations(func)
+        protocols(func)
     else:
         _TO_RESOLVE.append(func)
 
     @functools.wraps(func)
     def func_wrapper(*args, **kwargs) -> _T:
-        bound = coerce.bind(func, *args, strict=strict, **kwargs)
+        bound = bind(func, *args, strict=strict, **kwargs)
         return bound.eval()
 
     return func_wrapper
 
 
 _sentinel = object()
+_origsettergetter = attrgetter(ORIG_SETTER_NAME)
 
 
 def wrap_cls(
@@ -115,7 +151,8 @@ def wrap_cls(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = True,
-) -> Type[TypicObject[Type[ObjectT]]]:
+    serde: SerdeFlags = SerdeFlags(),
+) -> Type[WrappedObjectT]:
     """Wrap a class to automatically enforce type-coercion on init.
 
     Notes
@@ -135,20 +172,13 @@ def wrap_cls(
         Turn on "validator mode": e.g. validate incoming data rather than coerce.
     jsonschema
         Generate a JSON Schema entry for this object.
+    serde
+        Optional settings for serialization/deserialization
     """
 
-    def cls_wrapper(cls_: Type[ObjectT]) -> Type[TypicObject[Type[ObjectT]]]:
-        if jsonschema:
-            cls_.schema = classmethod(coerce.schema)  # type: ignore
-        cls_.primitive = primitive  # type: ignore
-
-        ann: Optional[Annotations] = None
-        if not delay:
-            ann = coerce.annotations(cls_, strict=strict)
-            if jsonschema:
-                schema(cls_)
-        else:
-            _TO_RESOLVE.append(cls_)
+    def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT]:
+        nonlocal serde
+        protos: Optional[ProtocolsT] = None
         # Frozen dataclasses don't use the native setattr
         # So we wrap the init. This should be fine,
         # just slower :(
@@ -162,16 +192,34 @@ def wrap_cls(
         else:
 
             def __setattr_coerced__(self, name, value):
-                nonlocal ann
-                ann = annotations(type(self)) if ann is None else ann
-                value = ann[name](value) if name in ann else value
+                nonlocal protos
+                protos = protos or protocols(type(self))
+                value = protos[name](value) if name in protos else value
                 _origsettergetter(self)(name, value)
 
-            setattr(cls_, _ORIG_SETTER_NAME, _get_setter(cls_))
+            setattr(cls_, ORIG_SETTER_NAME, _get_setter(cls_))
             cls_.__setattr__ = __setattr_coerced__  # type: ignore
+
+        cls = cast(Type[WrappedObjectT], cls_)
+        if jsonschema:
+            cls.schema = classmethod(schema)
+        if hasattr(cls, SERDE_FLAGS_ATTR):
+            serde = cls.__serde_flags__
+        cls.__serde_flags__ = serde
+
+        if not delay:
+            protos = protocols(cls, strict=strict)
+            resolved: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
+            cls.__serde__ = resolved
+            cls.transmute = staticmethod(resolved.transmute)
+            cls.primitive = resolved.primitive
+            if jsonschema:
+                schema(cls_)
+        else:
+            _TO_RESOLVE.append(cls)
         return cls_  # type: ignore
 
-    wrapped = cls_wrapper(klass)
+    wrapped: Type[WrappedObjectT] = cls_wrapper(klass)
     return wrapped
 
 
@@ -181,7 +229,7 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
     if setter.__name__ == "__setattr_coerced__":
         for base in bases:
             name = (
-                _ORIG_SETTER_NAME if hasattr(base, _ORIG_SETTER_NAME) else "__setattr__"
+                ORIG_SETTER_NAME if hasattr(base, ORIG_SETTER_NAME) else "__setattr__"
             )
             setter = getattr(base, name, None)
             if setter.__name__ != "__setattr_coerced__":
@@ -238,6 +286,10 @@ def resolve():
         annotations(obj)
         if inspect.isclass(obj):
             schema(obj)
+            resolved: SerdeProtocol = resolver.resolve(obj)
+            obj.__serde__ = resolved  # type: ignore
+            obj.transmute = staticmethod(resolved.transmute)
+            obj.primitive = resolved.primitive
 
 
 _CONSTRAINT_TYPE_MAP = {
@@ -541,3 +593,41 @@ def settings(
         return cls
 
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper
+
+
+@functools.lru_cache(maxsize=None)
+def schema(obj: Type[ObjectT], *, primitive: bool = False) -> ObjectSchemaField:
+    """Get a JSON schema for object for the given object.
+
+    Parameters
+    ----------
+    obj
+        The class for which you wish to generate a JSON schema
+    primitive
+        Whether to return an instance of :py:class:`typic.schema.ObjectSchemaField` or
+        a "primitive" (dict object).
+
+    Examples
+    --------
+    >>> import typic
+    >>>
+    >>> @typic.klass
+    ... class Foo:
+    ...     bar: str
+    ...
+    >>> typic.schema(Foo)
+    ObjectSchemaField(title='Foo', description='Foo(bar: str)', properties={'bar': StrSchemaField()}, additionalProperties=False, required=('bar',))
+    >>> typic.schema(Foo, primitive=True)
+    {'type': 'object', 'title': 'Foo', 'description': 'Foo(bar: str)', 'properties': {'bar': {'type': 'string'}}, 'additionalProperties': False, 'required': ['bar'], 'definitions': {}}
+
+    """
+    if obj in {FunctionType, MethodType}:
+        raise ValueError("Cannot build schema for function or method.")
+
+    annotation = resolver.resolve(obj)
+    schm = schema_builder.get_field(annotation)
+    try:
+        setattr(obj, SCHEMA_NAME, schm)
+    except (AttributeError, TypeError):
+        pass
+    return schm.primitive() if primitive else schm

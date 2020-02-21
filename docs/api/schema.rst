@@ -8,13 +8,13 @@ functions.
 
 Fields
 ------
-.. automodule:: typic.schema.field
+.. automodule:: typic.ext.schema.field
     :members:
     :undoc-members:
 
 
 Schema Builder
 --------------
-.. automodule:: typic.schema.schema
+.. automodule:: typic.ext.schema.schema
     :members:
     :undoc-members:
