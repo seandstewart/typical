@@ -202,8 +202,10 @@ class SerFactory:
         func.l(f"{gen.Keyword.RET} {line}", fields_ser=fields_ser)
 
     def _compile_enum_serializer(self, annotation: "Annotation",) -> SerializerT:
-        origin: Type[enum.Enum] = cast(Type[enum.Enum], annotation.origin)
-        ts = {*(type(x.value) for x in origin)}
+        origin: Type[enum.Enum] = cast(
+            Type[enum.Enum], util.origin(annotation.resolved)
+        )
+        ts = {type(x.value) for x in origin}
         # If we can predict a single type the return the serializer for that
         if len(ts) == 1:
             t = ts.pop()
