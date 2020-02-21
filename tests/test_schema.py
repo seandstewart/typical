@@ -5,7 +5,8 @@ import pytest
 from typing import List, Tuple, Set, Union, Mapping, Dict, Any
 
 import typic
-from typic.schema import (
+import typic.common
+from typic.ext.schema import (
     MultiSchemaField,
     UndeclaredSchemaField,
     get_field_type,
@@ -64,9 +65,9 @@ def test_typic_objects_schema(obj):
             objects.LargeInt,
             typic.IntSchemaField(**objects.LargeInt.__constraints__.for_schema()),
         ),
-        (typic.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
+        (typic.common.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
         (Final[str], typic.StrSchemaField(readOnly=True)),
-        (typic.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
+        (typic.common.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
         (
             Union[str, int],
             typic.MultiSchemaField(
@@ -211,3 +212,7 @@ def test_typic_schema_primitive(obj, expected):
 )
 def test_get_field_type(type, expected):
     assert get_field_type(type) is expected
+
+
+def test_ref_primitive():
+    assert typic.Ref("foo").primitive() == {"$ref": "foo"}

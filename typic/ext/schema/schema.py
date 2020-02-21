@@ -18,7 +18,9 @@ from typing import (
 
 import inflection  # type: ignore
 
-from typic import api
+from ...common import ReadOnly, WriteOnly
+from typic.serde.resolver import resolver
+from ...serde.common import SerdeProtocol, Annotation
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.types.frozendict import FrozenDict
@@ -27,10 +29,8 @@ from .field import (  # type: ignore
     MultiSchemaField,
     ObjectSchemaField,
     UndeclaredSchemaField,
-    ReadOnly,
     Ref,
     SchemaFieldT,
-    WriteOnly,
     SCHEMA_FIELD_FORMATS,
     get_field_type,
     SchemaType,
@@ -38,7 +38,7 @@ from .field import (  # type: ignore
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
 
-__all__ = ("SchemaBuilder", "SchemaDefinitions")
+__all__ = ("SchemaBuilder", "SchemaDefinitions", "builder")
 
 
 class SchemaDefinitions(TypedDict):
@@ -64,17 +64,15 @@ class SchemaBuilder:
     def __init__(self):
         self.__cache = {}
 
-    def _handle_mapping(
-        self, anno: "api.ResolvedAnnotation", constraints: dict, *, name: str = None
-    ):
-        args = get_args(anno.annotation)
+    def _handle_mapping(self, anno: Annotation, constraints: dict, *, name: str = None):
+        args = anno.args
         constraints["title"] = self.defname(anno.annotation, name=name)
         doc = getattr(anno.annotation, "__doc__", None)
         if doc not in _IGNORE_DOCS:
             constraints["description"] = doc
         field: Optional[SchemaFieldT] = None
         if args:
-            field = self.get_field(api.coerce.resolve(args[-1]))
+            field = self.get_field(resolver.resolve(args[-1]))
         if "additionalProperties" in constraints:
             other = constraints["additionalProperties"]
             # this is coming in from a constraint
@@ -89,8 +87,8 @@ class SchemaBuilder:
                 field = dataclasses.replace(field, **other)
         constraints["additionalProperties"] = field
 
-    def _handle_array(self, anno: "api.ResolvedAnnotation", constraints: dict):
-        args = get_args(anno.annotation)
+    def _handle_array(self, anno: Annotation, constraints: dict):
+        args = anno.args
         has_ellipsis = args[-1] is Ellipsis if args else False
         if has_ellipsis:
             args = args[:-1]
@@ -106,7 +104,7 @@ class SchemaBuilder:
             else:
                 constraints["items"] = get_field_type(items.pop("type"))(**items)
         if args:
-            constrs = set(self.get_field(api.coerce.resolve(x)) for x in args)
+            constrs = set(self.get_field(resolver.resolve(x)) for x in args)
             items = constraints.get("items", ())
             constrs = constrs | ({*items} if isinstance(items, Iterable) else {items})
             constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
@@ -117,22 +115,21 @@ class SchemaBuilder:
 
     def get_field(
         self,
-        anno: "api.ResolvedAnnotation",
+        protocol: SerdeProtocol,
         *,
         ro: bool = None,
         wo: bool = None,
         name: str = None,
     ) -> "SchemaFieldT":
         """Get a field definition for a JSON Schema."""
+        anno = protocol.annotation
         if anno in self.__cache:
             return self.__cache[anno]
         # Get the default value
         # `None` gets filtered out down the line. this is okay.
         # If a field isn't required an empty default is functionally the same
         # as a default to None for the JSON schema.
-        default = (
-            None if anno.parameter.default is anno.EMPTY else anno.parameter.default
-        )
+        default = anno.parameter.default if anno.has_default else None
         # Get known schemas mapped to Python types.
         formats = SCHEMA_FIELD_FORMATS
         # `use` is the based annotation we will use for building the schema
@@ -152,7 +149,7 @@ class SchemaBuilder:
             schema = MultiSchemaField(
                 title=self.defname(anno.annotation, name=name) if name else None,
                 anyOf=tuple(
-                    self.get_field(api.coerce.resolve(x))
+                    self.get_field(resolver.resolve(x))
                     for x in get_args(anno.un_resolved)
                 ),
             )
@@ -182,7 +179,9 @@ class SchemaBuilder:
 
         # If we've got a base object, use it
         if use in formats:
-            constraints = anno.constraints.for_schema() if anno.constraints else {}
+            constraints = (
+                protocol.constraints.for_schema() if protocol.constraints else {}
+            )
             constraints.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
             # `use` should always be a dict if the annotation is a Mapping,
             # thanks to `origin()` & `resolve()`.
@@ -211,13 +210,13 @@ class SchemaBuilder:
         if obj in self.__cache:  # pragma: nocover
             return self.__cache[obj]
 
-        annotations: Dict[str, api.ResolvedAnnotation] = api.annotations(obj)
+        protocols: Dict[str, SerdeProtocol] = resolver.protocols(obj)
         definitions: Dict[str, Any] = {}
         properties: Dict[str, Any] = {}
         required: List[str] = []
         total: bool = getattr(obj, "__total__", True)
-        for nm, annotation in annotations.items():
-            field = self.get_field(annotation, name=nm)
+        for nm, protocol in protocols.items():
+            field = self.get_field(protocol, name=nm)
             # If we received an object schema,
             # figure out a name and inherit the definitions.
             if isinstance(field, ObjectSchemaField):
@@ -229,7 +228,7 @@ class SchemaBuilder:
             else:
                 properties[nm] = field
             # Check for required field(s)
-            if annotation.parameter.default is annotation.EMPTY:
+            if not protocol.annotation.has_default:
                 required.append(nm)
         schema = ObjectSchemaField(
             title=name or self.defname(obj),
@@ -293,3 +292,6 @@ class SchemaBuilder:
                 for x, y in definitions["definitions"].items()
             }
         return definitions
+
+
+builder = SchemaBuilder()

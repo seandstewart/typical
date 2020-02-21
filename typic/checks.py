@@ -18,7 +18,10 @@ from typing import (
 )
 
 import typic
+import typic.common
 import typic.util as util
+import typic.strict as strict
+
 from typic.compat import Final
 
 ObjectT = TypeVar("ObjectT")
@@ -187,7 +190,7 @@ def isreadonly(obj: Type[ObjectT]) -> bool:
     >>> typic.isreadonly(NewType("Foo", typic.ReadOnly[str]))
     True
     """
-    return util.origin(obj) is typic.ReadOnly
+    return util.origin(obj) is typic.common.ReadOnly
 
 
 @functools.lru_cache(maxsize=None)
@@ -224,7 +227,7 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
     >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
     True
     """
-    return util.origin(obj) is typic.WriteOnly
+    return util.origin(obj) is typic.common.WriteOnly
 
 
 @functools.lru_cache(maxsize=None)
@@ -244,7 +247,7 @@ def isstrict(obj: Type[ObjectT]) -> bool:
     >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
     True
     """
-    return util.origin(obj) is typic.Strict
+    return util.origin(obj) is strict.Strict
 
 
 @functools.lru_cache(maxsize=None)

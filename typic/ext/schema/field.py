@@ -20,14 +20,13 @@ from typing import (
     Tuple,
     Type,
     Pattern,
-    Generic,
-    TypeVar,
     AnyStr,
     Optional,
     Text,
 )
 
-from typic.serde import primitive, SerdeFlags
+from typic.serde.common import SerdeFlags
+from typic.serde.resolver import resolver
 from typic.util import filtered_repr, cached_property
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
@@ -41,30 +40,14 @@ __all__ = (
     "NumberSchemaField",
     "NullSchemaField",
     "ObjectSchemaField",
-    "ReadOnly",
     "Ref",
     "SchemaFieldT",
     "SchemaType",
     "StringFormat",
     "StrSchemaField",
     "UndeclaredSchemaField",
-    "WriteOnly",
     "get_field_type",
 )
-
-T = TypeVar("T")
-
-
-class ReadOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be read-only."""
-
-    pass
-
-
-class WriteOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be write-only."""
-
-    pass
 
 
 class SchemaType(str, enum.Enum):
@@ -95,7 +78,8 @@ class Ref:
 
     ref: str
 
-    primitive = primitive
+    def primitive(self):
+        return resolver.primitive(self)
 
 
 class StringFormat(str, enum.Enum):
@@ -135,7 +119,8 @@ class BaseSchemaField:
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
 
-    primitive = primitive
+    def primitive(self):
+        return resolver.primitive(self)
 
     __repr = cached_property(filtered_repr)
 

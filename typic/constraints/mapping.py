@@ -241,10 +241,11 @@ class MappingConstraints(BaseConstraints):
                 f"A mapping may not be considered 'total' and allow additional "
                 f"keys/values: {self}"
             )
-        func.l(
-            f"addtl = val.keys() - "
-            f"{(self.required_keys or set()) | (self.items or {}).keys()}"
-        )
+        defined_keys = (self.required_keys or set()) | (self.items or {}).keys()
+        if defined_keys:
+            func.l(f"addtl = val.keys() - {defined_keys}")
+        else:
+            func.l(f"addtl = val.keys()")
         if {self.max_items, self.min_items} != {None, None}:
             func.l("size = len(val)")
 

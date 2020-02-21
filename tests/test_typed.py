@@ -49,6 +49,8 @@ from typic.api import (
     coerce,
     typed,
     resolve,
+    register,
+    resolver,
     wrap,
     wrap_cls,
     constrained,
@@ -342,10 +344,10 @@ def test_register():
 
     def ismycustomclass(obj) -> bool:
         args = set(getattr(obj, "__args__", [obj]))
-        return set(MyCustomType.__args__).issuperset(args)
+        return args.issubset({*MyCustomType.__args__})
 
-    coerce.register(MyCustomClass, ismycustomclass)
-    assert coerce.get_coercer(MyCustomType) is MyCustomClass
+    register(MyCustomClass, ismycustomclass)
+    assert resolver.resolve(MyCustomType).deserializer is MyCustomClass
 
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])
@@ -416,7 +418,6 @@ def test_cast_constrained(type, value, expected):
         (ShortStr, "fooooo"),
         (LargeInt, 500),
         (LargeIntDict, {"foo": 1}),
-        (LargeIntDict, {1: 1001}),
         (LargeIntDict, {"fooooo": 1001}),
         (ItemizedValuedDict, {"foo": 1}),
         (ItemizedDict, {"foo": 1}),
@@ -451,7 +452,7 @@ def test_strict_mode():
     assert not is_strict_mode()
     strict_mode()
     assert is_strict_mode()
-    coerce.STRICT._unstrict_mode()
+    resolver.STRICT._unstrict_mode()
     assert not is_strict_mode()
 
 
@@ -466,7 +467,7 @@ def test_enforce_strict_mode():
     with pytest.raises(ConstraintValueError):
         Foo(1)
 
-    coerce.STRICT._unstrict_mode()
+    resolver.STRICT._unstrict_mode()
 
 
 def test_constrained_any():
@@ -480,7 +481,7 @@ def test_constrained_any():
     assert Foo(1).bar == 1
     assert Foo("bar").bar == "bar"
 
-    coerce.STRICT._unstrict_mode()
+    resolver.STRICT._unstrict_mode()
 
 
 @pytest.mark.parametrize(

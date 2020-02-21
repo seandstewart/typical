@@ -11,6 +11,8 @@ from typing import ClassVar, Optional, Dict, TypeVar, Generic
 import pytest
 
 import typic
+import typic.api
+import typic.common
 from tests import objects
 
 
@@ -23,7 +25,7 @@ class FieldMapp:
 
 @typic.klass
 class Camel:
-    __serde_flags__ = typic.SerdeFlags(case=typic.Case.CAMEL)
+    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
 
     foo_bar: str = "bar"
 
@@ -42,6 +44,14 @@ class Omit:
 
     bar: str = "foo"
     foo: str = "bar"
+
+
+class SubStr(str):
+    ...
+
+
+class SubURL(typic.URL):
+    ...
 
 
 @pytest.mark.parametrize(
@@ -84,11 +94,16 @@ class Omit:
             {objects.FooNum.bar: objects.Forward(objects.FooNum.bar)},
             {"bar": {"foo": "bar"}},
         ),
+        (typic.URL("foo"), "foo"),
+        ([typic.URL("foo")], ["foo"]),
+        (SubStr("foo"), "foo"),
+        (SubURL("foo"), "foo"),
     ],
 )
 def test_primitive(obj, expected):
     primitive = typic.primitive(obj)
     assert primitive == expected
+    assert isinstance(primitive, type(expected))
 
 
 class MultiNum(enum.Enum):
@@ -101,11 +116,19 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typic.SerdeFlags(fields=("foo_bar",), case=typic.Case.CAMEL)
+    __serde_flags__ = typic.SerdeFlags(
+        fields=("foo_bar",), case=typic.common.Case.CAMEL
+    )
 
 
 class SerDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(fields=("foo_bar",), case=typic.Case.CAMEL)
+    __serde_flags__ = typic.SerdeFlags(
+        fields=("foo_bar",), case=typic.common.Case.CAMEL
+    )
+
+
+class CaseDict(Dict):
+    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
 
 
 @pytest.mark.parametrize(
@@ -123,11 +146,12 @@ class SerDict(Dict):
         ),
         (GenDict[str, int], {"foo_bar": 2}, {"fooBar": 2},),
         (SerDict, {"foo_bar": 2}, {"fooBar": 2},),
+        (CaseDict, {"foo_bar": 2}, {"fooBar": 2},),
     ],
 )
 def test_serde_serializer(t, obj, prim):
-    s = typic.Serde(t)
-    assert s.serializer(obj) == prim
+    r = typic.resolver.resolve(t)
+    assert r.primitive(obj) == prim
 
 
 @pytest.mark.parametrize(
@@ -148,5 +172,5 @@ def test_serde_serializer(t, obj, prim):
     ],
 )
 def test_serde_deserializer(t, obj, prim):
-    s = typic.Serde(t)
-    assert s.deserializer(prim) == obj
+    r = typic.resolver.resolve(t)
+    assert r.deserializer(prim) == obj
