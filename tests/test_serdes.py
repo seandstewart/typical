@@ -46,6 +46,11 @@ class Omit:
     foo: str = "bar"
 
 
+@typic.klass
+class ClassVarEnum:
+    foo: ClassVar[objects.FooNum] = objects.FooNum.bar
+
+
 class SubStr(str):
     ...
 
@@ -98,6 +103,7 @@ class SubURL(typic.URL):
         ([typic.URL("foo")], ["foo"]),
         (SubStr("foo"), "foo"),
         (SubURL("foo"), "foo"),
+        (ClassVarEnum(), {"foo": objects.FooNum.bar.value}),
     ],
 )
 def test_primitive(obj, expected):
