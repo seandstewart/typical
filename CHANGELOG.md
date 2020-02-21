@@ -1,3 +1,11 @@
+**v2.0.0b14**  
+Features:
+- Introducing `SerdeProtocol` for fast, dynamic serialization &
+  deserialization. See [the docs](https://python-typical.org/usage/advanced).
+
+Improvements:
+- Re-organized for better maintainability and modularization.
+
 **v2.0.0b13**  
 Bugfixes:
 - Fix regex pattern coercion
@@ -5,7 +13,7 @@ Bugfixes:
 
 Improvements:
 - Faster & simpler name creation for generated code
-- Improved tracebacks and debuging for generated code
+- Improved tracebacks and debugging for generated code
 - More tests & improved coverage
 - Remove unused code-paths
 
