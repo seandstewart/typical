@@ -51,7 +51,7 @@ _SCHEMA_NAME = "__json_schema__"
 
 
 class DesFactory:
-    """A callable class for `des`erialzing values.
+    """A callable class for ``des``erialzing values.
 
     Checks for:
 
@@ -125,7 +125,7 @@ class DesFactory:
     def _build_date_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
-        origin = get_origin(annotation.annotation)
+        origin = get_origin(annotation.resolved)
         if issubclass(origin, datetime.datetime):
             with func.b(f"if isinstance({self.VNAME}, datetime.date):") as b:
                 b.l(
@@ -159,7 +159,7 @@ class DesFactory:
     def _build_builtin_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
-        origin = get_origin(annotation.annotation)
+        origin = get_origin(annotation.resolved)
         if issubclass(origin, Collection) and not issubclass(origin, (str, bytes)):
             self._add_eval(func)
         if issubclass(origin, bytes):
@@ -204,7 +204,7 @@ class DesFactory:
 
         fields_deser = {
             x: self.resolver.resolve(
-                y.annotation,
+                y.resolved,
                 flags=annotation.serde.flags,
                 name=x,
                 parameter=y.parameter,
@@ -322,7 +322,7 @@ class DesFactory:
         # For SpecialForms (Union, mainly) this will be the un-subscripted type.
         # For custom types or classes, this will be the same as the annotation.
         anno_name = f"{func_name}_anno"
-        origin = get_origin(annotation.annotation)
+        origin = get_origin(annotation.resolved)
         ns = {anno_name: origin, **annotation.serde.asdict()}
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
@@ -423,7 +423,7 @@ class DesFactory:
             return self.__DES_CACHE[key]
         deserializer: Optional[DeserializerT] = None
         for check, des in self.__USER_DESS:
-            if check(annotation.annotation):
+            if check(annotation.resolved):
                 deserializer = des
                 break
         if not deserializer:

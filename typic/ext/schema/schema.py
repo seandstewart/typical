@@ -66,8 +66,8 @@ class SchemaBuilder:
 
     def _handle_mapping(self, anno: Annotation, constraints: dict, *, name: str = None):
         args = anno.args
-        constraints["title"] = self.defname(anno.annotation, name=name)
-        doc = getattr(anno.annotation, "__doc__", None)
+        constraints["title"] = self.defname(anno.resolved, name=name)
+        doc = getattr(anno.resolved, "__doc__", None)
         if doc not in _IGNORE_DOCS:
             constraints["description"] = doc
         field: Optional[SchemaFieldT] = None
@@ -147,7 +147,7 @@ class SchemaBuilder:
         # We don't care about syntactic sugar if it's functionally the same.
         if use is Union:
             schema = MultiSchemaField(
-                title=self.defname(anno.annotation, name=name) if name else None,
+                title=self.defname(anno.resolved, name=name) if name else None,
                 anyOf=tuple(
                     self.get_field(resolver.resolve(x))
                     for x in get_args(anno.un_resolved)
@@ -160,7 +160,7 @@ class SchemaBuilder:
         if use in {ReadOnly, WriteOnly, Final}:
             ro = (use in {ReadOnly, Final}) or None
             wo = (use is WriteOnly) or None
-            use = origin(anno.annotation)
+            use = origin(anno.resolved)
             use = getattr(use, "__parent__", use)
 
         # Check for an enumeration

@@ -137,7 +137,7 @@ class SerFactory:
     def _build_dict_serializer(self, func: gen.Block, annotation: "Annotation"):
         # Check for args
         kser, vser = None, None
-        args = util.get_args(annotation.annotation)
+        args = util.get_args(annotation.resolved)
         if args:
             kt, vt = args
             ktr: "Annotation" = self.resolver.annotation(
@@ -255,12 +255,12 @@ class SerFactory:
             return self._serializer_cache[func_name]
 
         serializer: SerializerT
-        origin = util.origin(annotation.annotation)
+        origin = util.origin(annotation.resolved)
         # Lazy shortcut for messy paths (Union, Any, ...)
         if origin in self._DYNAMIC or not annotation.static:
             serializer = self.resolver.primitive
         # Enums are special
-        elif checks.isenumtype(annotation.annotation):
+        elif checks.isenumtype(annotation.resolved):
             serializer = self._compile_enum_serializer(annotation)
         # Primitives don't require further processing.
         elif origin in self._PRIMITIVES:

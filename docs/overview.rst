@@ -68,9 +68,9 @@ Philosophy
     - Python embraces the builtin type-system and work with it rather than against it.
     - There should be one -- and preferably only one -- way to do things. ``typical``
       follows a predictable waterfall when resolving your type annotation into an
-      actionable coercer for run-time that covers about 99% of cases.
+      actionable deserializer for run-time that covers about 99% of cases.
     - In the instances where this isn't sufficient, ``typical`` provides a simple
-      mechanism for providing your own coercer(s).
+      mechanism for providing your own deserializer(s).
 
 **Performance Matters**
     - It's not good enough to be correct if your application slows to a crawl. There's

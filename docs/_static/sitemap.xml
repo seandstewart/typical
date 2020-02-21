@@ -103,7 +103,7 @@
   <priority>0.80</priority>
 </url>
 <url>
-  <loc>https://typical-python.org/api/coercer</loc>
+  <loc>https://typical-python.org/api/serde</loc>
   <lastmod>2019-12-17T19:36:29+00:00</lastmod>
   <priority>0.80</priority>
 </url>
@@ -148,7 +148,7 @@
   <priority>0.64</priority>
 </url>
 <url>
-  <loc>https://typical-python.org/_modules/typic/coercer</loc>
+  <loc>https://typical-python.org/_modules/typic/serde</loc>
   <lastmod>2019-12-17T19:36:29+00:00</lastmod>
   <priority>0.64</priority>
 </url>

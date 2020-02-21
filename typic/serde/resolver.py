@@ -267,7 +267,7 @@ class Resolver:
         )
 
         return Annotation(
-            annotation=use,
+            resolved=use,
             origin=orig,
             un_resolved=annotation,
             parameter=parameter,
@@ -290,7 +290,40 @@ class Resolver:
         _des: bool = True,
         _ser: bool = True,
     ) -> SerdeProtocol:
-        """Get a :py:class:`ResolvedAnnotation` from a type."""
+        """Get a :py:class:`SerdeProtocol` from a given annotation or type.
+
+        Parameters
+        ----------
+        annotation
+            The class or callable object you wish to extract resolved annotations from.
+
+        Other Parameters
+        ----------------
+        flags : (optional)
+            An instance of :py:class:`SerdeFlags`
+        name : (optional)
+            An name, such as an attribute or parameter name.
+        parameter: (optional)
+            The parameter associated to this annotation, if any.
+        is_optional: (optional)
+            Whether to allow null values.
+        is_strict: (optional)
+            Whether to apply strict validation to any input for this annotation.
+
+        Examples
+        --------
+        >>> import typic
+        >>>
+        >>> @typic.klass
+        ... class Foo:
+        ...     bar: str
+        ...
+        >>> protocol = typic.protocol(Foo)
+
+        See Also
+        --------
+        :py:class:`SerdeProtocol`
+        """
         # Extract the meta-data.
         anno = self.annotation(
             annotation=annotation,
@@ -303,7 +336,7 @@ class Resolver:
         # Build the deserializer
         deserializer, validator, constraints = None, None, None
         if _des:
-            constraints = const.get_constraints(anno.annotation, nullable=anno.optional)
+            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
             deserializer, validator = self.des.factory(anno, constraints)
         # Build the serializer
         serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
@@ -321,7 +354,7 @@ class Resolver:
 
     @util.cachedmethod
     def protocols(self, obj, *, strict: bool = False) -> ProtocolsT:
-        """Get a mapping of param/attr name -> :py:class:`ResolvedAnnotation`
+        """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 
         Parameters
         ----------
@@ -338,11 +371,11 @@ class Resolver:
         ... class Foo:
         ...     bar: str
         ...
-        >>> annotations = typic.protocols(Foo)
+        >>> protocols = typic.protocols(Foo)
 
         See Also
         --------
-        :py:class:`ResolvedAnnotation`
+        :py:class:`SerdeProtocol`
         """
 
         if not any(

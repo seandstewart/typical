@@ -115,12 +115,19 @@ class SerdeConfig:
 
 @dataclasses.dataclass(unsafe_hash=True)
 class Annotation:
+    """The resolved, actionable annotation for a given annotation."""
+
     EMPTY = EMPTY
 
-    annotation: Any
+    resolved: Any
     """The type annotation used to build the coercer."""
     origin: Type
-    """The "origin"-type of the annotation."""
+    """The "origin"-type of the original annotation.
+
+    Notes
+    -----
+    This is not necessarily the "origin"-type of the ``annotation`` attribute.
+    """
     un_resolved: Any
     """The type annotation before resolving super-types."""
     parameter: inspect.Parameter
@@ -134,6 +141,7 @@ class Annotation:
     serde: SerdeConfig = dataclasses.field(default_factory=SerdeConfig)
     """The configuration for serializing and deserializing the given type."""
     constraints: Optional["const.ConstraintsT"] = None
+    """Type restriction configuration, if any."""
 
     @property
     def has_default(self) -> bool:
@@ -143,19 +151,12 @@ class Annotation:
     @property
     def args(self) -> Tuple[Any, ...]:
         """What types are subscripted to this annotation, if any."""
-        return util.get_args(self.annotation)
+        return util.get_args(self.resolved)
 
 
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
-    """An actionable run-time annotation.
-
-    For the case of ``typical``, a "resolved annotation" is one in which we have located:
-        - Whether there is a deserializer function
-        - Whether there is a serializer function
-        - Whether there is a default value
-        - The kind of parameter (if this annotation refers to a parameter)
-    """
+    """An actionable run-time serialization & deserialization protocol for a type."""
 
     annotation: Annotation
     """The target annotation and various meta-data."""

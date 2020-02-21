@@ -25,6 +25,7 @@ import typic.constraints as c
 from typic.checks import issubclass, ishashable
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
+    Annotation,
     SerdeFlags,
     SerializerT,
     SerdeProtocol,
@@ -46,6 +47,7 @@ from typic.util import origin
 from typic.types import FrozenDict
 
 __all__ = (
+    "Annotation",
     "annotations",
     "bind",
     "BoundArguments",
@@ -54,6 +56,7 @@ __all__ = (
     "constrained",
     "is_strict_mode",
     "primitive",
+    "protocol",
     "protocols",
     "ReadOnly",
     "register",
@@ -62,10 +65,11 @@ __all__ = (
     "settings",
     "schema",
     "schemas",
+    "SerdeFlags",
+    "SerdeProtocol",
     "Strict",
     "strict_mode",
     "StrictStrT",
-    "SerdeFlags",
     "transmute",
     "typed",
     "wrap",
