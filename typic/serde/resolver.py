@@ -86,7 +86,11 @@ class Resolver:
         return self.transmute(annotation, value)
 
     def seen(self, t: Type) -> bool:
-        return t in self.__seen or hasattr(t, ORIG_SETTER_NAME)
+        return (
+            t in self.__seen
+            or hasattr(t, ORIG_SETTER_NAME)
+            or not getattr(t, "__delayed__", True)
+        )
 
     def primitive(self, obj: Any) -> Any:
         """A method for converting an object to its primitive equivalent.

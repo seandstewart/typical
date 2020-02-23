@@ -24,7 +24,7 @@ from pendulum import parse as dateparse
 
 from typic import checks, gen, constraints as const
 from typic.strict import STRICT_MODE
-from typic.util import safe_eval, hexhash, origin as get_origin
+from typic.util import safe_eval, hexhash, origin as get_origin, cached_issubclass
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
 
@@ -86,6 +86,7 @@ class DesFactory:
         )
     )
     VNAME = "val"
+    VTYPE = "vtype"
     __DES_CACHE: Dict[str, Tuple[DeserializerT, "const.ValidatorT"]] = {}
     __USER_DESS: DeserializerRegistryT = deque()
 
@@ -127,7 +128,7 @@ class DesFactory:
     ):
         origin = get_origin(annotation.resolved)
         if issubclass(origin, datetime.datetime):
-            with func.b(f"if isinstance({self.VNAME}, datetime.date):") as b:
+            with func.b(f"if issubclass({self.VTYPE}, datetime.date):") as b:
                 b.l(
                     f"{self.VNAME} = "
                     f"{anno_name}("
@@ -137,23 +138,24 @@ class DesFactory:
                     datetime=datetime,
                 )
         elif issubclass(origin, datetime.date):
-            with func.b(f"if isinstance({self.VNAME}, datetime.datetime):") as b:
+            with func.b(f"if issubclass({self.VTYPE}, datetime.datetime):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.date()", datetime=datetime)
-        with func.b(f"elif isinstance({self.VNAME}, (int, float)):") as b:
+        with func.b(f"elif issubclass({self.VTYPE}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
-        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+        with func.b(f"elif issubclass({self.VTYPE}, (str, bytes)):") as b:
             b.l(f"{self.VNAME} = dateparse({self.VNAME})", dateparse=dateparse)
 
     def _add_eval(self, func: gen.Block):
         func.l(
             f"_, {self.VNAME} = __eval({self.VNAME}) "
-            f"if isinstance({self.VNAME}, (str, bytes)) "
+            f"if issubclass({self.VTYPE}, (str, bytes)) "
             f"else (False, {self.VNAME})",
             __eval=safe_eval,
         )
+        func.l(f"{self.VTYPE} = type({self.VNAME})")
 
-    def _add_instance_check(self, func: gen.Block, anno_name: str):
-        with func.b(f"if isinstance({self.VNAME}, {anno_name}):") as b:
+    def _add_subclass_check(self, func: gen.Block, anno_name: str):
+        with func.b(f"if issubclass({self.VTYPE}, {anno_name}):") as b:
             b.l(f"{gen.Keyword.RET} {self.VNAME}")
 
     def _build_builtin_des(
@@ -163,13 +165,13 @@ class DesFactory:
         if issubclass(origin, Collection) and not issubclass(origin, (str, bytes)):
             self._add_eval(func)
         if issubclass(origin, bytes):
-            with func.b(f"if isinstance({self.VNAME}, str):") as b:
+            with func.b(f"if issubclass({self.VTYPE}, str):") as b:
                 b.l(
                     f"{self.VNAME} = {anno_name}("
                     f"{self.VNAME}, encoding={DEFAULT_ENCODING!r})"
                 )
         elif issubclass(origin, str):
-            with func.b(f"if isinstance({self.VNAME}, (bytes, bytearray)):") as b:
+            with func.b(f"if issubclass({self.VTYPE}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
         if issubclass(origin, Mapping) and annotation.serde.fields_in:
             line = f"{anno_name}({{fields_in[x]: y for x, y in {self.VNAME}.items()}})"
@@ -180,13 +182,13 @@ class DesFactory:
     def _build_pattern_des(self, func: gen.Block, anno_name: str):
         func.l(
             f"{self.VNAME} = {self.VNAME} "
-            f"if isinstance({self.VNAME}, {anno_name}) "
+            f"if issubclass({self.VTYPE}, {anno_name}) "
             f"else __re_compile({self.VNAME})",
             __re_compile=re.compile,
         )
 
     def _build_fromdict_des(self, func: gen.Block, anno_name: str):
-        self._add_instance_check(func, anno_name)
+        self._add_subclass_check(func, anno_name)
         self._add_eval(func)
         func.l(f"{self.VNAME} = {anno_name}.from_dict({self.VNAME})")
 
@@ -205,12 +207,12 @@ class DesFactory:
         fields_deser = {
             x: self.resolver.resolve(
                 y.resolved,
-                flags=annotation.serde.flags,
+                flags=y.serde.flags,
                 name=x,
                 parameter=y.parameter,
                 is_optional=y.optional,
                 is_strict=y.strict,
-            )
+            ).transmute
             for x, y in annotation.serde.fields.items()
         }
         x = "fields_in[x]"
@@ -223,13 +225,13 @@ class DesFactory:
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
         self._add_eval(func)
-        with func.b(f"if isinstance({self.VNAME}, Mapping):", Mapping=Mapping) as b:
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
             if annotation.serde.fields:
                 self._build_typeddict_des(b, anno_name, annotation, eval=False)
             else:
                 b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
         with func.b(
-            f"elif isinstance({self.VNAME}, (list, set, frozenset, tuple)):"
+            f"elif issubclass({self.VTYPE}, (list, set, frozenset, tuple)):"
         ) as b:
             if annotation.serde.fields:
                 b.l(
@@ -294,16 +296,17 @@ class DesFactory:
     def _build_generic_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
-        self._add_instance_check(func, anno_name)
+        self._add_subclass_check(func, anno_name)
         self._add_eval(func)
-        with func.b(f"if isinstance({self.VNAME}, Mapping):", Mapping=Mapping) as b:
-            x = "fields_in[x]"
-            y = f"{self.VNAME}[x]"
-            b.l(
-                f"{self.VNAME} = "
-                f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
-            )
-            if not self.resolver.seen(annotation.un_resolved):
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
+            if annotation.serde.fields_in != annotation.serde.fields_out:
+                x = "fields_in[x]"
+                y = f"{self.VNAME}[x]"
+                b.l(
+                    f"{self.VNAME} = "
+                    f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
+                )
+            if not self.resolver.seen(annotation.resolved):
                 b.l(
                     f"bound = __bind({anno_name}, **{self.VNAME})",
                     __bind=self.resolver.bind,
@@ -323,9 +326,14 @@ class DesFactory:
         # For custom types or classes, this will be the same as the annotation.
         anno_name = f"{func_name}_anno"
         origin = get_origin(annotation.resolved)
-        ns = {anno_name: origin, **annotation.serde.asdict()}
+        ns = {
+            anno_name: origin,
+            "issubclass": cached_issubclass,
+            **annotation.serde.asdict(),
+        }
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
+                func.l(f"{self.VTYPE} = type({self.VNAME})")
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, annotation)
                     if checks.isdatetype(origin):

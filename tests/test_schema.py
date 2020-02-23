@@ -19,6 +19,8 @@ from tests import objects
     argnames=("obj",), argvalues=[(x,) for x in objects.TYPIC_OBJECTS]
 )
 def test_typic_objects_schema(obj):
+    if hasattr(obj, "resolve"):
+        obj.resolve()
     assert obj.schema() is typic.schema(obj)
 
 
