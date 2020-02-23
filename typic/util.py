@@ -19,11 +19,13 @@ from typing import (
     TypeVar,
     Callable,
     get_type_hints,
+    Union,
 )
 
 import typic.checks as checks
 
 __all__ = (
+    "cached_issubclass",
     "cached_property",
     "cached_signature",
     "cached_type_hints",
@@ -366,7 +368,7 @@ def cached_signature(obj: Callable) -> inspect.Signature:
     Building the function signature is notoriously slow, but we can be safe that the
     signature won't change at runtime, so we cache the result.
 
-    We also provide a little magic so that we can introspect the new :py:class:`TypedDict`
+    We also provide a little magic so that we can introspect :py:class:`TypedDict`
     """
     return (
         typed_dict_signature(obj) if checks.istypeddict(obj) else inspect.signature(obj)
@@ -380,6 +382,12 @@ def cached_type_hints(obj: Callable) -> dict:
     We don't want to go through the process of resolving type-hints every time.
     """
     return get_type_hints(obj)
+
+
+@functools.lru_cache(maxsize=None)
+def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
+    """A cached result of :py:func:`issubclass`."""
+    return issubclass(st, t)
 
 
 def typed_dict_signature(obj: Callable) -> inspect.Signature:

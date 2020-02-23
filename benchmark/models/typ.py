@@ -59,6 +59,6 @@ class Model:
 
 def validate(data):
     try:
-        return True, Model.transmute(data)
+        return True, Model(**data)
     except (TypeError, ValueError) as err:
         return False, err

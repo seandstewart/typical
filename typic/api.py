@@ -4,7 +4,6 @@ import functools
 import inspect
 import dataclasses
 import os
-from collections import deque
 from operator import attrgetter
 from types import FunctionType, MethodType
 from typing import (
@@ -18,7 +17,8 @@ from typing import (
     cast,
     Iterable,
     Any,
-    Deque,
+    Dict,
+    Set,
 )
 
 import typic.constraints as c
@@ -39,9 +39,18 @@ from typic.common import (
     Case,
     ReadOnly,
     WriteOnly,
+    SERDE_ATTR,
+    TYPIC_ANNOS_NAME,
 )
 from typic.serde.resolver import resolver
-from typic.strict import is_strict_mode, strict_mode, Strict, StrictStrT
+from typic.strict import (
+    is_strict_mode,
+    strict_mode,
+    Strict,
+    StrictStrT,
+    STRICT_MODE,
+    StrictModeT,
+)
 from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
 from typic.util import origin
 from typic.types import FrozenDict
@@ -79,7 +88,7 @@ __all__ = (
 
 ObjectT = TypeVar("ObjectT")
 SchemaGenT = Callable[[Type[ObjectT]], SchemaFieldT]
-_TO_RESOLVE: Deque[Union[Type["WrappedObjectT"], Callable]] = deque()
+_TO_RESOLVE: Set[Union[Type["WrappedObjectT"], Callable]] = set()
 
 
 transmute = resolver.transmute
@@ -101,16 +110,20 @@ _T = TypeVar("_T")
 class TypicObjectT:
     __serde__: SerdeProtocol
     __serde_flags__: SerdeFlags
+    __serde_protocols__: ProtocolsT
+    __settattr_original__: Callable[["WrappedObjectT", str, Any], None]
+    __typic_resolved__: bool
     schema: SchemaGenT
     primitive: SerializerT
     transmute: DeserializerT
+    validate: "c.ValidatorT"
 
 
 WrappedObjectT = Union[TypicObjectT, ObjectT]
 
 
 def wrap(
-    func: Callable[..., _T], *, delay: bool = False, strict: bool = False
+    func: Callable[..., _T], *, delay: bool = False, strict: StrictModeT = STRICT_MODE
 ) -> Callable[..., _T]:
     """Wrap a callable to automatically enforce type-coercion.
 
@@ -131,7 +144,7 @@ def wrap(
     if not delay:
         protocols(func)
     else:
-        _TO_RESOLVE.append(func)
+        _TO_RESOLVE.add(func)
 
     @functools.wraps(func)
     def func_wrapper(*args, **kwargs) -> _T:
@@ -145,11 +158,120 @@ _sentinel = object()
 _origsettergetter = attrgetter(ORIG_SETTER_NAME)
 
 
+def _bind_proto(cls, proto: SerdeProtocol):
+    for n, attr in (
+        (SERDE_ATTR, proto),
+        ("primitive", proto.primitive),
+        ("transmute", staticmethod(proto.transmute)),
+        ("validate", staticmethod(proto.transmute)),
+    ):
+        setattr(cls, n, attr)
+
+
+@functools.lru_cache(maxsize=None)
+def _resolve_class(
+    cls: Type[ObjectT],
+    *,
+    strict: StrictModeT = STRICT_MODE,
+    jsonschema: bool = True,
+    serde: SerdeFlags = None,
+) -> Type[WrappedObjectT]:
+    # Build the namespace for the new class
+    protos = protocols(cls, strict=strict)
+    serde = getattr(cls, SERDE_FLAGS_ATTR, (serde or SerdeFlags()))
+    ns: Dict[str, Any] = {
+        SERDE_FLAGS_ATTR: serde,
+        TYPIC_ANNOS_NAME: protos,
+    }
+    if jsonschema:
+        ns["schema"] = classmethod(schema)
+        schema(cls)
+
+    # Frozen dataclasses don't use the native setattr
+    # So we wrap the init. This should be fine,
+    # just slower :(
+    if getattr(getattr(cls, "__dataclass_params__", None), "frozen", False):
+        ns["__init__"] = wrap(cls.__init__, strict=strict)
+    # The faster way - create a new setattr that applies the protocol for a given attr
+    else:
+
+        def __setattr_coerced__(self: WrappedObjectT, name, value, *, __protos=protos):
+            value = __protos[name](value) if name in protos else value
+            _origsettergetter(self)(name, value)
+
+        ns.update(
+            **{"__setattr__": __setattr_coerced__, ORIG_SETTER_NAME: _get_setter(cls)}
+        )
+
+    bases = inspect.getmro(cls)
+    cdict = dict(cls.__dict__)
+    cdict.pop("__dict__", None)
+    cdict.pop("__weakref__", None)
+    cdict.update(ns)
+    # Create the new class
+    kls: Type[WrappedObjectT] = type(cls.__name__, bases, cdict)
+    # Get the protocol
+    proto: SerdeProtocol = resolver.resolve(kls, is_strict=strict)
+    # Bind it to the new class
+    _bind_proto(kls, proto)
+    # Track resolution state.
+    setattr(kls, "__typic_resolved__", True)
+    return kls
+
+
+def _delay_resolve_class(
+    cls_: Type[ObjectT],
+    *,
+    strict: StrictModeT = STRICT_MODE,
+    jsonschema: bool = True,
+    serde: SerdeFlags = None,
+):
+    # This class ain't resolved yet.
+    setattr(cls_, "__typic_resolved__", False)
+
+    # Create a classmethod for delayed resolution.
+    def _resolve(cls):
+        if not cls.__typic_resolved__:
+            _cls = _resolve_class(
+                cls_, strict=strict, jsonschema=jsonschema, serde=serde
+            )
+            _bind_proto(cls, _cls.__serde__)
+            if hasattr(_cls, ORIG_SETTER_NAME):
+                setattr(cls, "__setattr__", _cls.__setattr__)
+                setattr(cls, ORIG_SETTER_NAME, getattr(_cls, ORIG_SETTER_NAME))
+            else:
+                setattr(cls, "__init__", _cls.__init__)
+            if jsonschema:
+                setattr(cls, "schema", classmethod(schema))
+                schema(cls)
+            if cls in _TO_RESOLVE:
+                _TO_RESOLVE.remove(cls)
+        cls.__typic_resolved__ = True
+
+    setattr(cls_, "resolve", classmethod(_resolve))
+
+    # Allow users to delay until first init
+    # This adds some extra cost on init that
+    # It's not too much but something to consider
+    def init(_init):
+        @functools.wraps(_init)
+        def __delayed_init(*args, **kwargs):
+            cls_.resolve()
+            _init(*args, **kwargs)
+
+        return __delayed_init
+
+    setattr(cls_, "__init__", init(cls_.__init__))
+
+    # Add the cls to the stack of those to resolve
+    _TO_RESOLVE.add(cls_)
+
+
 def wrap_cls(
     klass: Type[ObjectT],
     *,
     delay: bool = False,
-    strict: bool = False,
+    strict: StrictModeT = STRICT_MODE,
     jsonschema: bool = True,
     serde: SerdeFlags = SerdeFlags(),
 ) -> Type[WrappedObjectT]:
@@ -177,47 +299,14 @@ def wrap_cls(
     """
 
     def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT]:
-        nonlocal serde
-        protos: Optional[ProtocolsT] = None
-        # Frozen dataclasses don't use the native setattr
-        # So we wrap the init. This should be fine,
-        # just slower :(
-        if (
-            hasattr(cls_, "__dataclass_params__")
-            and cls_.__dataclass_params__.frozen  # type: ignore
-        ):
-            cls_.__init__ = wrap(  # type: ignore
-                cls_.__init__, delay=delay, strict=strict
+        setattr(cls_, "__delayed__", delay)
+        if delay:
+            _delay_resolve_class(
+                cls_, strict=strict, jsonschema=jsonschema, serde=serde
             )
-        else:
+            return cast(Type[WrappedObjectT], cls_)
 
-            def __setattr_coerced__(self, name, value):
-                nonlocal protos
-                protos = protos or protocols(type(self))
-                value = protos[name](value) if name in protos else value
-                _origsettergetter(self)(name, value)
-
-            setattr(cls_, ORIG_SETTER_NAME, _get_setter(cls_))
-            cls_.__setattr__ = __setattr_coerced__  # type: ignore
-
-        cls = cast(Type[WrappedObjectT], cls_)
-        if jsonschema:
-            cls.schema = classmethod(schema)
-        if hasattr(cls, SERDE_FLAGS_ATTR):
-            serde = cls.__serde_flags__
-        cls.__serde_flags__ = serde
-
-        if not delay:
-            protos = protocols(cls, strict=strict)
-            resolved: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
-            cls.__serde__ = resolved
-            cls.transmute = staticmethod(resolved.transmute)
-            cls.primitive = resolved.primitive
-            if jsonschema:
-                schema(cls_)
-        else:
-            _TO_RESOLVE.append(cls)
-        return cls_  # type: ignore
+        return _resolve_class(cls_, strict=strict, jsonschema=jsonschema, serde=serde)
 
     wrapped: Type[WrappedObjectT] = cls_wrapper(klass)
     return wrapped
@@ -283,13 +372,9 @@ def resolve():
     """
     while _TO_RESOLVE:
         obj = _TO_RESOLVE.pop()
-        annotations(obj)
+        protocols(obj)
         if inspect.isclass(obj):
-            schema(obj)
-            resolved: SerdeProtocol = resolver.resolve(obj)
-            obj.__serde__ = resolved  # type: ignore
-            obj.transmute = staticmethod(resolved.transmute)
-            obj.primitive = resolved.primitive
+            obj.resolve()
 
 
 _CONSTRAINT_TYPE_MAP = {
