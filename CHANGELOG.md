@@ -1,3 +1,16 @@
+**v2.0.0b16**  
+Optimizations:
+- api.py: Wrapper for typed classes now produces faster setattr method
+- api.py: Delayed typed classes are now slightly slower on init, but
+  still within an optimal range.
+- resolver.py: Fix checks for `Resolver.seen`
+- des.py: Use `Annotation.resolved` when checking if class has been
+  "seen"
+- des.py: Use cached subclass check in lieu of instance check.
+
+Extras:
+- Add `validate` method to wrapped classes.
+
 **v2.0.0b15**  
 Bugfixes:
 - Fix issue resolving serializer for Enums which are
