@@ -270,7 +270,7 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     >>> typic.isdatetype(NewType("Foo", datetime.datetime))
     True
     """
-    return util.origin(obj) in {datetime.datetime, datetime.date}
+    return _issubclass(util.origin(obj), (datetime.datetime, datetime.date))
 
 
 _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
