@@ -32,6 +32,7 @@ inflection = "^0.3.1"
 typing-extensions = {version = "^3.7", python = "~3.7"}
 fastjsonschema = {version = "^2.14", optional = true}
 pendulum = "^2.0"
+mypy = "^0.761"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^2.2"
@@ -47,7 +48,7 @@ djangorestframework = "^3.10"
 pydantic = {version = "^1.0", extras = ["email"]}
 django = "^2.2"
 sphinx-sitemap = "^1.0"
-mypy = {version = "^0.750.0", allow-prereleases = true}
+mypy = {version = "^0.761.0", allow-prereleases = true}
 flake8 = "^3.7.9"
 
 [tool.poetry.extras]

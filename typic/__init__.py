@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 # flake8: noqa
-from . import types, constraints
+from . import types, constraints, mypy
 from .checks import *
 from .constraints import *
 from .ext.schema import *
