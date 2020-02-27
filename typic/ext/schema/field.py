@@ -25,6 +25,8 @@ from typing import (
     Text,
 )
 
+import pendulum
+
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
 from typic.util import filtered_repr, cached_property
@@ -342,7 +344,9 @@ SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.Fro
         frozendict.FrozenDict: ObjectSchemaField(),
         decimal.Decimal: NumberSchemaField(),
         datetime.datetime: StrSchemaField(format=StringFormat.DTIME),
+        pendulum.DateTime: StrSchemaField(format=StringFormat.DTIME),
         datetime.date: StrSchemaField(format=StringFormat.DATE),
+        pendulum.Date: StrSchemaField(format=StringFormat.DATE),
         datetime.time: StrSchemaField(format=StringFormat.TIME),
         url.URL: StrSchemaField(format=StringFormat.URI),
         url.AbsoluteURL: StrSchemaField(format=StringFormat.URI),
