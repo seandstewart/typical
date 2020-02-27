@@ -1,3 +1,9 @@
+**v2.0.0b17**  
+Bugfixes:
+- Fix handling of datetime subclasses.
+- Use `transmute` internally instead of `coerce`
+- Add `py.typed` to help mypy out.
+
 **v2.0.0b16**  
 Optimizations:
 - api.py: Wrapper for typed classes now produces faster setattr method
