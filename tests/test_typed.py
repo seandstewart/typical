@@ -4,6 +4,7 @@ import inspect
 import typing
 from operator import attrgetter
 
+import pendulum
 import pytest
 
 from tests.objects import (
@@ -46,7 +47,7 @@ from tests.objects import (
     ShortKeyDict,
 )
 from typic.api import (
-    coerce,
+    transmute,
     typed,
     resolve,
     register,
@@ -86,6 +87,7 @@ def test_isbuiltintype(obj: typing.Any):
         (float, 1),
         (bool, 1),
         (datetime.datetime, "1970-01-01"),
+        (pendulum.DateTime, "1970-01-01"),
         (datetime.datetime, 0),
         (datetime.date, "1970-01-01"),
         (datetime.date, 0),
@@ -101,15 +103,15 @@ def test_isbuiltintype(obj: typing.Any):
         (typing.Pattern, r"\w+"),
     ],
 )
-def test_coerce_simple(annotation, value):
-    coerced = coerce(value, annotation)
-    assert isinstance(coerced, annotation)
+def test_transmute_simple(annotation, value):
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation)
 
 
 @pytest.mark.parametrize(argnames=("annotation", "value"), argvalues=[(UserID, "1")])
-def test_coerce_newtype(annotation, value):
-    coerced = coerce(value, annotation)
-    assert isinstance(coerced, annotation.__supertype__)
+def test_transmute_newtype(annotation, value):
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation.__supertype__)
 
 
 @pytest.mark.parametrize(
@@ -121,14 +123,14 @@ def test_coerce_newtype(annotation, value):
         (TDictPartial, "{}", {}),
     ],
 )
-def test_coerce_collection_metas(annotation, value, expected):
-    coerced = coerce(value, annotation)
-    assert coerced == expected
+def test_transmute_collection_metas(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
 
 
 def test_default_none():
-    coerced = coerce({}, DefaultNone)
-    assert coerced.none is None
+    transmuted = transmute(DefaultNone, {})
+    assert transmuted.none is None
 
 
 @pytest.mark.parametrize(
@@ -167,8 +169,8 @@ def test_get_args(annotation, args):
         (typing.ClassVar[str], 1, "1"),
     ],
 )
-def test_coerce_supscripted(annotation, value, expected):
-    assert coerce(value, annotation) == expected
+def test_transmute_supscripted(annotation, value, expected):
+    assert transmute(annotation, value) == expected
 
 
 @pytest.mark.parametrize(
@@ -196,11 +198,11 @@ def test_coerce_supscripted(annotation, value, expected):
         (typing.Collection[NestedFromDict], ["{'data': {'foo': 'bar!'}}"]),
     ],
 )
-def test_coerce_collections_subscripted(annotation, value):
+def test_transmute_collections_subscripted(annotation, value):
     arg = annotation.__args__[0]
-    coerced = coerce(value, annotation)
-    assert isinstance(coerced, annotation.__origin__) and all(
-        isinstance(x, arg) for x in coerced
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation.__origin__) and all(
+        isinstance(x, arg) for x in transmuted
     )
 
 
@@ -224,19 +226,19 @@ def test_coerce_collections_subscripted(annotation, value):
         (DateDict, '{"1970": "foo"}'),
     ],
 )
-def test_coerce_mapping_subscripted(annotation, value):
+def test_transmute_mapping_subscripted(annotation, value):
     annotation = resolve_supertype(annotation)
     key_arg, value_arg = annotation.__args__
-    coerced = coerce(value, annotation)
-    assert isinstance(coerced, annotation.__origin__)
-    assert all(isinstance(x, key_arg) for x in coerced.keys())
-    assert all(isinstance(x, value_arg) for x in coerced.values())
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation.__origin__)
+    assert all(isinstance(x, key_arg) for x in transmuted.keys())
+    assert all(isinstance(x, value_arg) for x in transmuted.values())
 
 
-def test_coerce_nested_sequence():
-    coerced = coerce({"datum": [{"foo": "bar"}]}, NestedSeq)
-    assert isinstance(coerced, NestedSeq)
-    assert all(isinstance(x, Data) for x in coerced.datum)
+def test_transmute_nested_sequence():
+    transmuted = transmute(NestedSeq, {"datum": [{"foo": "bar"}]})
+    assert isinstance(transmuted, NestedSeq)
+    assert all(isinstance(x, Data) for x in transmuted.datum)
 
 
 @pytest.mark.parametrize(
@@ -351,12 +353,12 @@ def test_register():
 
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])
-def test_no_coercer(val):
+def test_no_transmuter(val):
     class NoCoercer:
         def __init__(self, x):
             self.x = x
 
-    assert coerce(val, NoCoercer).x == val
+    assert transmute(NoCoercer, val).x == val
 
 
 def test_typic_klass():
@@ -431,7 +433,7 @@ def test_cast_constrained(type, value, expected):
 )
 def test_cast_constrained_invalid(type, value):
     with pytest.raises(ConstraintValueError):
-        coerce(value, type)
+        transmute(type, value)
 
 
 def test_typic_klass_constrained():
@@ -501,7 +503,7 @@ def test_constrained_any():
 )
 def test_strict_anno_fails(anno, val):
     with pytest.raises(ConstraintValueError):
-        coerce(val, anno)
+        transmute(anno, val)
 
 
 @pytest.mark.parametrize(
@@ -520,7 +522,7 @@ def test_strict_anno_fails(anno, val):
     ],
 )
 def test_strict_anno_passes(anno, val):
-    assert coerce(val, anno) == val
+    assert transmute(anno, val) == val
 
 
 @constrained(values=NetworkAddress)
@@ -544,6 +546,6 @@ class AddresseMap(dict):
         ),
     ],
 )
-def test_coerce_nested_constrained(anno, val, expected):
-    c = coerce(val, anno)
+def test_transmute_nested_constrained(anno, val, expected):
+    c = transmute(anno, val)
     assert c == expected

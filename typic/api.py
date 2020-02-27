@@ -579,7 +579,7 @@ def _resolve_from_env(
     for k in env.keys() & names:
         name = aliases.get(k, k)
         attr, typ = fields[name]
-        val = coerce(env[k], typ)
+        val = transmute(typ, env[k])
         use_factory = not ishashable(val)
         field = getattr(cls, attr, sentinel)
         if not isinstance(field, dataclasses.Field):
