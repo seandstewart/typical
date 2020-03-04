@@ -201,7 +201,7 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     --------
     >>> import typic
     >>> from typing import NewType
-    >>> from typing_extensions import Final
+    >>> from typic.compat import Final
     >>> typic.isfinal(Final[str])
     True
     >>> typic.isfinal(NewType("Foo", Final[str]))
@@ -537,7 +537,7 @@ def istypeddict(obj: Type[ObjectT]) -> bool:
     Examples
     --------
     >>> import typic
-    >>> from typing_extensions import TypedDict
+    >>> from typic.compat import TypedDict
     >>>
     >>> class FooMap(TypedDict):
     ...     bar: str

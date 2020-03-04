@@ -1,6 +1,7 @@
-import pdb
 from typing import Optional, Callable, List, Union
+from typing_extensions import Final
 
+from mypy.semanal import SemanticAnalyzer
 from mypy.semanal_shared import set_callable_name
 from mypy.typeops import TypingType
 
@@ -18,15 +19,16 @@ from mypy.nodes import (
     FuncBase,
     SymbolNode,
     ARG_POS,
+    ARG_NAMED_OPT,
 )
-from mypy.plugin import ClassDefContext, Plugin, MethodContext, FunctionContext
+from mypy.plugin import ClassDefContext, Plugin, MethodContext
 from mypy.plugins.common import _get_decorator_bool_argument
 from mypy.types import (
     Type,
     TypeVarDef,
     TypeVarType,
-    get_proper_type,
     AnyType,
+    TypeOfAny,
     CallableType,
     TypeType,
 )
@@ -41,7 +43,7 @@ typic_class_maker_decorators = {
     "typic.klass.klass",
     "typic.settings",
     "typic.api.settings",
-}
+}  # type: Final
 
 typic_class_maker = "typic.api.wrap_cls"
 
@@ -50,11 +52,22 @@ typic_methods = {
     "transmute",
     "validate",
     "schema",
-}
+}  # type: Final
+
+SELF_TVAR_NAME = "_TT"
 
 
 def typic_method_callback(ctx: MethodContext) -> Type:
     return ctx.default_return_type
+
+
+def plugin(version: str) -> "TypingType[Plugin]":
+    """
+    `version` is the mypy version string
+    We might want to use this to print a warning if the mypy version being used is
+    newer, or especially older, than we expect (or need).
+    """
+    return TypicPlugin
 
 
 class TypicPlugin(Plugin):
@@ -82,77 +95,94 @@ class TypicTransformer:
 
     def transform(self) -> None:
         self.dclass.transform()
+        self._add_self_tvar_expr(self._ctx)
         jsonschema = _get_decorator_bool_argument(self._ctx, "jsonschema", True)
-        # if jsonschema:
-        #     self.add_schema_method()
+        if jsonschema:
+            self.add_schema_method()
         self.add_primitive_method()
         self.add_transmute_method()
         self.add_validate_method()
 
     @staticmethod
-    def _get_typevar(ctx, name: str):
-        obj_type = ctx.api.named_type("__builtins__.object")
-        self_tvar_name = "T"
-        fullname = name + "." + self_tvar_name
-        tvd = TypeVarDef(self_tvar_name, fullname, -1, [], obj_type)
-        self_tvar_expr = TypeVarExpr(self_tvar_name, fullname, [], obj_type)
-        ctx.cls.info.names[self_tvar_name] = SymbolTableNode(MDEF, self_tvar_expr)
-        tvar_type = TypeVarType(tvd)
-        return tvar_type, tvd
+    def _get_tvar_name(name: str, info) -> str:
+        return f"{info.fullname}.{name}"
 
-    def _get_self_type(self) -> TypeVarType:
-        ctx = self._ctx
-        return self._get_typevar(ctx, ctx.cls.fullname)
+    def _get_tvar_self_name(self) -> str:
+        return self._get_tvar_name(SELF_TVAR_NAME, self._ctx.cls.info)
+
+    def _add_tvar_expr(self, name: str, ctx):
+        info = ctx.cls.info
+        obj_type = ctx.api.named_type("__builtins__.object")
+        self_tvar_expr = TypeVarExpr(
+            name, self._get_tvar_name(name, info), [], obj_type
+        )
+        info.names[name] = SymbolTableNode(MDEF, self_tvar_expr)
+
+    def _add_self_tvar_expr(self, ctx):
+        self._add_tvar_expr(SELF_TVAR_NAME, ctx)
+
+    def _get_tvar_def(self, name: str, ctx):
+        obj_type = ctx.api.named_type("__builtins__.object")
+        return TypeVarDef(
+            SELF_TVAR_NAME, self._get_tvar_name(name, ctx.cls.info), -1, [], obj_type
+        )
 
     def add_schema_method(self):
         ctx = self._ctx
-        return_type = get_proper_type(
-            ctx.api.lookup_fully_qualified("typic.SchemaFieldT").type
+        api: SemanticAnalyzer = ctx.api
+        return_type_info: SymbolTableNode = api.lookup_fully_qualified(
+            "typic.SchemaReturnT"
         )
-        self_type, tvar_def = self._get_self_type()
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        arg_type = api.named_type("__builtins__.bool")
+        arg = Argument(Var("primitive", arg_type), arg_type, None, ARG_NAMED_OPT)
         add_method(
             ctx,
             "schema",
-            args=[],
-            return_type=return_type,
-            self_type=self_type,
-            tvar_def=tvar_def,
+            args=[arg],
+            return_type=return_type_info.node.target,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
             is_classmethod=True,
         )
 
     def add_primitive_method(self):
         ctx = self._ctx
-        self_type, tvar_def = self._get_self_type()
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         add_method(
             ctx,
             "primitive",
             args=[],
-            return_type=AnyType,
-            self_type=self_type,
-            tvar_def=tvar_def,
+            return_type=AnyType(TypeOfAny.unannotated),
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
         )
 
     def add_validate_method(self):
         ctx = self._ctx
-        self_type, tvar_def = self._get_self_type()
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        arg_type = AnyType(TypeOfAny.explicit)
+        arg = Argument(Var("obj", arg_type), arg_type, None, ARG_POS)
         add_method(
             ctx,
             "validate",
-            args=[Argument(Var("obj", self_type), self_type)],
-            return_type=self_type,
-            tvar_def=tvar_def,
+            args=[arg],
+            return_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
             is_staticmethod=True,
         )
 
     def add_transmute_method(self):
         ctx = self._ctx
-        return_type, tvar_def = self._get_typevar(ctx, ctx.cls.fullname)
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        arg_type = AnyType(TypeOfAny.explicit)
+        arg = Argument(Var("obj", arg_type), arg_type, None, ARG_POS)
         add_method(
             ctx,
-            "validate",
-            args=[Argument(Var("obj", AnyType), AnyType)],
-            return_type=return_type,
-            tvar_def=tvar_def,
+            "transmute",
+            args=[arg],
+            return_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
             is_staticmethod=True,
         )
 
@@ -160,15 +190,6 @@ class TypicTransformer:
 def typic_klass_maker_callback(ctx: ClassDefContext) -> None:
     transformer = TypicTransformer(ctx)
     transformer.transform()
-
-
-def plugin(version: str) -> "TypingType[Plugin]":
-    """
-    `version` is the mypy version string
-    We might want to use this to print a warning if the mypy version being used is
-    newer, or especially older, than we expect (or need).
-    """
-    return TypicPlugin
 
 
 def add_method(
@@ -200,8 +221,8 @@ def add_method(
         first = [
             Argument(Var("_cls"), TypeType.make_normalized(self_type), None, ARG_POS)
         ]
-    # elif is_staticmethod:
-    #     first = []
+    elif is_staticmethod:
+        first = []
     else:
         self_type = self_type or fill_typevars(info)
         first = [Argument(Var("self"), self_type, None, ARG_POS)]

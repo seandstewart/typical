@@ -1,0 +1,1 @@
+11: error: Too few arguments for "Klass"  [call-arg]

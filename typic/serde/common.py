@@ -14,10 +14,9 @@ from typing import (
     cast,
 )
 
-from typing_extensions import TypedDict
-
 from typic import strict as st, util, constraints as const
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
+from typic.compat import TypedDict
 from typic.types import freeze
 
 

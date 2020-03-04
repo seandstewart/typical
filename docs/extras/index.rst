@@ -12,3 +12,4 @@ your life easier.
     schema
     checks
     utilities
+    mypy

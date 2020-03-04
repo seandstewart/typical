@@ -19,6 +19,7 @@ from typing import (
     Any,
     Dict,
     Set,
+    List,
 )
 
 import typic.constraints as c
@@ -74,6 +75,7 @@ __all__ = (
     "settings",
     "schema",
     "schemas",
+    "SchemaReturnT",
     "SerdeFlags",
     "SerdeProtocol",
     "Strict",
@@ -579,7 +581,7 @@ def _resolve_from_env(
     for k in env.keys() & names:
         name = aliases.get(k, k)
         attr, typ = fields[name]
-        val = coerce(env[k], typ)
+        val = transmute(typ, env[k])
         use_factory = not ishashable(val)
         field = getattr(cls, attr, sentinel)
         if not isinstance(field, dataclasses.Field):
@@ -680,8 +682,13 @@ def settings(
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper
 
 
+PrimitiveT = Union[Dict, List, str, int, bool]
+SchemaPrimitiveT = Dict[str, PrimitiveT]
+SchemaReturnT = Union[SchemaPrimitiveT, ObjectSchemaField]
+
+
 @functools.lru_cache(maxsize=None)
-def schema(obj: Type[ObjectT], *, primitive: bool = False) -> ObjectSchemaField:
+def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
     """Get a JSON schema for object for the given object.
 
     Parameters
@@ -715,4 +722,4 @@ def schema(obj: Type[ObjectT], *, primitive: bool = False) -> ObjectSchemaField:
         setattr(obj, SCHEMA_NAME, schm)
     except (AttributeError, TypeError):
         pass
-    return schm.primitive() if primitive else schm
+    return cast(SchemaReturnT, schm.primitive() if primitive else schm)
