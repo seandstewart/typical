@@ -18,9 +18,9 @@ from typing import (
 
 import inflection  # type: ignore
 
-from ...common import ReadOnly, WriteOnly
+from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
-from ...serde.common import SerdeProtocol, Annotation
+from typic.serde.common import SerdeProtocol, Annotation
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.types.frozendict import FrozenDict
