@@ -1,3 +1,8 @@
+**v2.0.0b19**  
+Features:
+- MyPy support. [See the docs](https://python-typical.org/extras/mypy) for more
+  information.
+
 **v2.0.0b17**  
 Bugfixes:
 - Fix handling of datetime subclasses.
