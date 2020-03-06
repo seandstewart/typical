@@ -2,16 +2,7 @@ import dataclasses
 import inspect
 import warnings
 from operator import attrgetter, methodcaller
-from typing import (
-    Mapping,
-    Any,
-    Type,
-    Optional,
-    ClassVar,
-    Tuple,
-    Iterable,
-    cast,
-)
+from typing import Mapping, Any, Type, Optional, ClassVar, Tuple, Iterable, cast, Union
 
 from typic import checks, constraints as const, util, strict as st
 from .common import (
@@ -72,11 +63,33 @@ class Resolver:
             The provided annotation for determining the coercion
         """
         resolved: SerdeProtocol = self.resolve(annotation)
-        coerced: ObjectT = resolved(value)
+        transmuted: ObjectT = resolved(value)
 
-        return coerced
+        return transmuted
 
-    def coerce_value(self, value: Any, annotation: Type[ObjectT]) -> ObjectT:
+    def validate(
+        self, annotation: Type[ObjectT], value: Any, *, transmute: bool = False
+    ) -> Union[ObjectT, Any]:
+        """Validate an input against the type-constraints for the given annotation.
+
+        Parameters
+        ----------
+        annotation
+            The type or annotation to validate against
+        value
+            The value to check
+        transmute: (kw-only)
+            Whether to transmute the value to the annotation after validation
+        """
+        resolved: SerdeProtocol = self.resolve(annotation)
+        value = resolved.validate(value)
+        if transmute:
+            return resolved.transmute(value)
+        return value
+
+    def coerce_value(
+        self, value: Any, annotation: Type[ObjectT]
+    ) -> ObjectT:  # pragma: nocover
         warnings.warn(
             "'typic.coerce' has been deprecated and will be removed in a future "
             "version. Use 'typic.transmute' instead.",

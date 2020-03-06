@@ -88,15 +88,15 @@ class NumberConstraints(BaseConstraints):
         checks: List[str] = []
         context: Dict[str, Any] = {}
         if self.gt is not None:
-            checks.append(f"val > {self.gt}")
+            checks.append(f"{self.VAL} > {self.gt}")
         if self.ge is not None:
-            checks.append(f"val >= {self.ge}")
+            checks.append(f"{self.VAL} >= {self.ge}")
         if self.lt is not None:
-            checks.append(f"val < {self.lt}")
+            checks.append(f"{self.VAL} < {self.lt}")
         if self.le is not None:
-            checks.append(f"val <= {self.le}")
+            checks.append(f"{self.VAL} <= {self.le}")
         if self.mul is not None:
-            checks.append(f"val % {self.mul} == 0")
+            checks.append(f"{self.VAL} % {self.mul} == 0")
 
         if util.origin(self.type) is decimal.Decimal:
             max_digits, decimal_places = (
@@ -107,14 +107,15 @@ class NumberConstraints(BaseConstraints):
             if {max_digits, decimal_places} != {None, None}:
                 # Update the global namespace for the validator
                 # Add setup/sanity checks for decimals.
-                func.l("val = decimal.Decimal(val)")
+                func.l(f"{self.VAL} = decimal.Decimal({self.VAL})")
                 with func.b(
-                    "if val.is_infinite():", ConstraintValueError=ConstraintValueError
+                    f"if {self.VAL}.is_infinite():",
+                    ConstraintValueError=ConstraintValueError,
                 ) as b:
                     b.l(
                         "raise ConstraintValueError('Cannot validate infinite values.')"
                     )
-                func.l("tup = val.as_tuple()")
+                func.l(f"tup = {self.VAL}.as_tuple()")
                 func.l(
                     "whole, digits, decimals = _get_digits(tup)",
                     _get_digits=_get_digits,
@@ -127,14 +128,16 @@ class NumberConstraints(BaseConstraints):
                 if decimal_places is not None and max_digits is not None:
                     if max_digits < decimal_places:
                         msg = (
-                            f"Contraint <decimal_places={decimal_places!r}> should never be "
-                            f"greater than Constraint <max_digits={max_digits!r}>"
+                            f"Contraint <decimal_places={decimal_places!r}> "
+                            f"should never be greater than "
+                            f"Constraint <max_digits={max_digits!r}>"
                         )
                         raise ConstraintSyntaxError(msg) from None
                     elif max_digits == decimal_places:
                         msg = (
                             f"Contraint <decimal_places={decimal_places!r}> equals "
-                            f"Constraint <max_digits={max_digits!r}>. This may be unintentional. "
+                            f"Constraint <max_digits={max_digits!r}>. "
+                            f"This may be unintentional. "
                             "Only partial numbers < '1.0' will be allowed."
                         )
                         warnings.warn(msg)

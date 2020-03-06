@@ -124,10 +124,10 @@ class ArrayConstraints(BaseConstraints):
         # Build the code.
         # Only make it unique if we have to. This preserves order as well.
         if self.unique is True and util.origin(self.type) not in {set, frozenset}:
-            func.l("val = __unique(val)", __unique=unique)
+            func.l(f"{self.VAL} = __unique({self.VAL})", __unique=unique)
         # Only get the size if we have to.
         if {self.max_items, self.min_items} != {None, None}:
-            func.l("size = len(val)")
+            func.l(f"size = len({self.VAL})")
         # Get the validation checks and context
         asserts: List[str] = []
         context: Dict[str, Any] = {}
@@ -138,8 +138,16 @@ class ArrayConstraints(BaseConstraints):
         # Validate the items if necessary.
         if self.values:
             o = util.origin(self.type)
-            ctx = {"__item_validator": self.values.validate, o.__name__: o}
-            func.l(f"val = {o.__name__}((__item_validator(x) for x in val))", **ctx)
+            itval = "__item_validator"
+            ctx = {itval: self.values.validate, o.__name__: o}
+            field = f"'.'.join(({self.VALTNAME}, str(i)))"
+            func.l(
+                f"{self.VAL} = "
+                f"{o.__name__}("
+                f"({itval}(x, field={field}) for i, x in enumerate({self.VAL}))"
+                f")",
+                **ctx,
+            )
         return asserts, context
 
     def for_schema(self, *, with_type: bool = False) -> dict:

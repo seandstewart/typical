@@ -45,7 +45,8 @@ class NestedFromDict:
 
     @classmethod
     def from_dict(cls, dikt: typing.Mapping):
-        return cls(**dikt)
+        data = Data(**dikt["data"])
+        return cls(data)
 
 
 @dataclasses.dataclass

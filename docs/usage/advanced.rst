@@ -32,6 +32,10 @@ types a breeze:
     :noindex:
 
 
+.. autofunction:: typic.validate
+    :noindex:
+
+
 Classes
 -------
 There are a few high-level classes that may be interacted with.

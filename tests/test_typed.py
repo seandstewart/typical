@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import inspect
+import re
 import typing
 from operator import attrgetter
 
@@ -59,6 +60,7 @@ from typic.api import (
     is_strict_mode,
     StrictStrT,
     Strict,
+    validate,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
@@ -72,40 +74,48 @@ def test_isbuiltintype(obj: typing.Any):
 
 
 @pytest.mark.parametrize(
-    argnames=("annotation", "value"),
+    argnames=("annotation", "value", "expected"),
     argvalues=[
-        (dict, [("foo", "bar")]),
-        (typing.Dict, [("foo", "bar")]),
-        (list, set()),
-        (typing.List, set()),
-        (set, list()),
-        (typing.Set, list()),
-        (tuple, list()),
-        (typing.Tuple, list()),
-        (str, 1),
-        (typing.Text, 1),
-        (float, 1),
-        (bool, 1),
-        (datetime.datetime, "1970-01-01"),
-        (pendulum.DateTime, "1970-01-01"),
-        (datetime.datetime, 0),
-        (datetime.date, "1970-01-01"),
-        (datetime.date, 0),
-        (datetime.datetime, datetime.date(1980, 1, 1)),
-        (datetime.date, datetime.datetime(1980, 1, 1)),
-        (FromDict, {"foo": "bar!"}),
-        (Data, {"foo": "bar!"}),
-        (Nested, {"data": {"foo": "bar!"}}),
-        (NestedFromDict, {"data": {"foo": "bar!"}}),
-        (FooNum, "bar"),
-        (Data, Data("bar!")),
-        (NetworkAddress, "localhost"),
-        (typing.Pattern, r"\w+"),
+        (dict, [("foo", "bar")], {"foo": "bar"}),
+        (typing.Dict, [("foo", "bar")], {"foo": "bar"}),
+        (list, set(), []),
+        (typing.List, set(), []),
+        (set, list(), set()),
+        (typing.Set, list(), set()),
+        (tuple, list(), ()),
+        (typing.Tuple, list(), ()),
+        (str, 1, "1"),
+        (typing.Text, 1, "1"),
+        (float, 1, 1.0),
+        (bool, 1, True),
+        (bool, "1", True),
+        (bool, "true", True),
+        (bool, "True", True),
+        (bool, "false", False),
+        (bool, "False", False),
+        (bool, "0", False),
+        (bool, 0, False),
+        (datetime.datetime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
+        (pendulum.DateTime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
+        (datetime.datetime, 0, datetime.datetime.fromtimestamp(0)),
+        (datetime.date, "1970-01-01", pendulum.date(1970, 1, 1)),
+        (datetime.date, 0, datetime.date.fromtimestamp(0)),
+        (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
+        (datetime.date, datetime.datetime(1980, 1, 1), datetime.date(1980, 1, 1)),
+        (FromDict, {"foo": "bar!"}, FromDict("bar!")),
+        (Data, {"foo": "bar!"}, Data("bar!")),
+        (Nested, {"data": {"foo": "bar!"}}, Nested(Data("bar!"))),
+        (NestedFromDict, {"data": {"foo": "bar!"}}, NestedFromDict(Data("bar!"))),
+        (FooNum, "bar", FooNum.bar),
+        (Data, Data("bar!"), Data("bar!"),),
+        (NetworkAddress, "localhost", NetworkAddress("localhost")),
+        (typing.Pattern, r"\w+", re.compile(r"\w+")),
     ],
 )
-def test_transmute_simple(annotation, value):
+def test_transmute_simple(annotation, value, expected):
     transmuted = transmute(annotation, value)
     assert isinstance(transmuted, annotation)
+    assert transmuted == expected
 
 
 @pytest.mark.parametrize(argnames=("annotation", "value"), argvalues=[(UserID, "1")])
@@ -549,3 +559,20 @@ class AddresseMap(dict):
 def test_transmute_nested_constrained(anno, val, expected):
     c = transmute(anno, val)
     assert c == expected
+
+
+def test_validate():
+    v = {"var": "foo"}
+    c = validate(Typic, v)
+    assert c == v
+
+
+def test_validate_transmute():
+    v = {"var": "foo"}
+    c = validate(Typic, v, transmute=True)
+    assert c == Typic(**v)
+
+
+def test_validate_invalid():
+    with pytest.raises(ConstraintValueError):
+        validate(Typic, {"var": 1})
