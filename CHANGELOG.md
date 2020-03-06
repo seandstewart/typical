@@ -1,3 +1,13 @@
+**v2.0.0b20**
+Bugfixes:
+- Fix regression when transmuting booleans.
+
+Improvements:
+- More informative error messaging for Contraints.
+- Parametrizing symbols for Contraints code-gen.
+- Add high-level `typic.validate` to public API. 
+  [Docs](https://python-typical.org/usage/advanced#helpers)
+
 **v2.0.0b19**  
 Features:
 - MyPy support. [See the docs](https://python-typical.org/extras/mypy) for more
