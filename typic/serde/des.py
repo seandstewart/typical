@@ -67,9 +67,9 @@ class DesFactory:
     Examples
     --------
     >>> import typic
-    >>> typic.coerce("foo", bytes)
+    >>> typic.transmute(bytes, "foo")
     b'foo'
-    >>> typic.coerce("{'foo': 'bar'}", dict)
+    >>> typic.transmute(dict, "{'foo': 'bar'}")
     {'foo': 'bar'}
     """
 
@@ -143,7 +143,12 @@ class DesFactory:
         with func.b(f"elif issubclass({self.VTYPE}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
         with func.b(f"elif issubclass({self.VTYPE}, (str, bytes)):") as b:
-            b.l(f"{self.VNAME} = dateparse({self.VNAME})", dateparse=dateparse)
+            line = f"{self.VNAME} = dateparse({self.VNAME})"
+            # We do the negative assertion here because all datetime objects are
+            # subclasses of date.
+            if not issubclass(origin, datetime.datetime):
+                line = f"{line}.date()"
+            b.l(line, dateparse=dateparse)
 
     def _add_eval(self, func: gen.Block):
         func.l(
@@ -162,19 +167,26 @@ class DesFactory:
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
         origin = get_origin(annotation.resolved)
-        if issubclass(origin, Collection) and not issubclass(origin, (str, bytes)):
+        # We should try and evaluate inputs for anything that isn't a subclass of str.
+        if issubclass(origin, (Collection, bool, int)) and not issubclass(
+            origin, (str, bytes)
+        ):
             self._add_eval(func)
+        # Encode for bytes
         if issubclass(origin, bytes):
             with func.b(f"if issubclass({self.VTYPE}, str):") as b:
                 b.l(
                     f"{self.VNAME} = {anno_name}("
                     f"{self.VNAME}, encoding={DEFAULT_ENCODING!r})"
                 )
+        # Decode for str
         elif issubclass(origin, str):
             with func.b(f"if issubclass({self.VTYPE}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
+        # Translate fields for a mapping
         if issubclass(origin, Mapping) and annotation.serde.fields_in:
             line = f"{anno_name}({{fields_in[x]: y for x, y in {self.VNAME}.items()}})"
+        # Coerce to the target type.
         else:
             line = f"{anno_name}({self.VNAME})"
         func.l(f"{self.VNAME} = {line}")

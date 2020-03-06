@@ -23,7 +23,7 @@ from typing import (
 )
 
 import typic.constraints as c
-from typic.checks import issubclass, ishashable
+from typic.checks import issubclass, ishashable, isfrozendataclass
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
     Annotation,
@@ -83,6 +83,7 @@ __all__ = (
     "StrictStrT",
     "transmute",
     "typed",
+    "validate",
     "wrap",
     "wrap_cls",
     "WriteOnly",
@@ -94,6 +95,7 @@ _TO_RESOLVE: Set[Union[Type["WrappedObjectT"], Callable]] = set()
 
 
 transmute = resolver.transmute
+validate = resolver.validate
 bind = resolver.bind
 register = resolver.des.register
 primitive = resolver.primitive
@@ -192,7 +194,7 @@ def _resolve_class(
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine,
     # just slower :(
-    if getattr(getattr(cls, "__dataclass_params__", None), "frozen", False):
+    if isfrozendataclass(cls):
         ns["__init__"] = wrap(cls.__init__, strict=strict)
     # The faster way - create a new setattr that applies the protocol for a given attr
     else:

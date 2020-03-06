@@ -405,6 +405,12 @@ def isfromdictclass(obj: Type[ObjectT]) -> bool:
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
 
+@functools.lru_cache(maxsize=None)
+def isfrozendataclass(obj: Type[ObjectT]) -> bool:
+    """Test whether this is a dataclass and whether it's frozen."""
+    return getattr(getattr(obj, "__dataclass_params__", None), "frozen", False)
+
+
 _isinstance = isinstance
 
 
