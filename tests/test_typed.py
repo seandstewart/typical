@@ -561,18 +561,23 @@ def test_transmute_nested_constrained(anno, val, expected):
     assert c == expected
 
 
-def test_validate():
-    v = {"var": "foo"}
-    c = validate(Typic, v)
-    assert c == v
+@pytest.mark.parametrize(
+    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})]
+)
+def test_validate(t, v):
+    assert validate(t, v) == v
 
 
-def test_validate_transmute():
-    v = {"var": "foo"}
-    c = validate(Typic, v, transmute=True)
-    assert c == Typic(**v)
+@pytest.mark.parametrize(
+    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})]
+)
+def test_validate_transmute(t, v):
+    assert validate(t, v, transmute=True) == t(**v)
 
 
-def test_validate_invalid():
+@pytest.mark.parametrize(
+    argnames="t, v", argvalues=[(Typic, {"var": 1}), (TDict, {"a": ""})]
+)
+def test_validate_invalid(t, v):
     with pytest.raises(ConstraintValueError):
-        validate(Typic, {"var": 1})
+        validate(t, v)

@@ -210,7 +210,7 @@ class MappingConstraints(BaseConstraints):
                 with main.f(
                     name, main.param(self.VAL), main.param("addtl", annotation=set),
                 ) as f:
-                    f.l(f"{self.VALTNAME} = {util.get_name(self.type)!r}")
+                    f.l(f"{self.VALTNAME} = {self.type_name!r}")
                     f.l(f"{self.RETVAL}, valid = {{}}, True")
                     with f.b(f"for {self.X}, {self.Y} in {self.VAL}.items():") as loop:
                         loop.l(f"{self.RETX}, {self.RETY} = {self.X}, {self.Y}")
@@ -340,3 +340,13 @@ class ObjectConstraints(MappingConstraints):
     instancecheck: ClassVar[InstanceCheck] = InstanceCheck.IS
     total: bool = True
     coerce: bool = True
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class TypedDictConstraints(ObjectConstraints):
+    instancecheck: ClassVar[InstanceCheck] = InstanceCheck.NOT
+    ttype: Type = dict
+
+    @util.cached_property
+    def type_name(self):
+        return util.get_name(self.ttype)

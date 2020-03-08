@@ -103,7 +103,7 @@ class Block:
 
     def cls(
         self, name: str, *, base: str = None, decorator: str = None, **context
-    ) -> "Block":
+    ) -> "Block":  # pragma: nocover
         decl = f"{Keyword.CLS} {name}"
         if base:
             decl = f"{decl}({base})"

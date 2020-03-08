@@ -58,10 +58,7 @@ class __AbstractConstraints(abc.ABC):
 
     @util.cached_property
     def __str(self) -> str:
-        typename = (
-            self.type._name if hasattr(self.type, "_name") else self.type.__name__
-        )
-        fields = [f"type={typename}"]
+        fields = [f"type={self.type_name}"]
         for f in dataclasses.fields(self):
             val = getattr(self, f.name)
             if (val or val in {False, 0}) and f.repr:
@@ -70,6 +67,10 @@ class __AbstractConstraints(abc.ABC):
 
     def __str__(self) -> str:
         return self.__str
+
+    @util.cached_property
+    def type_name(self) -> str:
+        return util.get_name(self.type)
 
     def _get_validator_name(self) -> str:
         return f"validator_{util.hexhash(self)}"
@@ -177,7 +178,7 @@ class BaseConstraints(__AbstractConstraints):
     def _compile_validator(self) -> ValidatorT:
         func_name = self._get_validator_name()
         origin = util.origin(self.type)
-        type_name = util.get_name(origin)
+        type_name = self.type_name
         with gen.Block() as main:
             with main.f(func_name, main.param(self.VAL)) as f:
                 # This is a signal that -*-anything can happen...-*-

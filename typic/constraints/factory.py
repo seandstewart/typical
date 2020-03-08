@@ -21,7 +21,13 @@ from typing import (
     Hashable,
 )
 
-from typic.checks import isoptionaltype, isbuiltintype, isconstrained, issubclass
+from typic.checks import (
+    isoptionaltype,
+    isbuiltintype,
+    isconstrained,
+    issubclass,
+    istypeddict,
+)
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import origin, get_args, cached_signature, cached_type_hints
 from .array import (
@@ -32,7 +38,12 @@ from .array import (
     TupleContraints,
 )
 from .common import MultiConstraints, TypeConstraints, VT
-from .mapping import MappingConstraints, DictConstraints, ObjectConstraints
+from .mapping import (
+    MappingConstraints,
+    DictConstraints,
+    ObjectConstraints,
+    TypedDictConstraints,
+)
 from .number import (
     IntContraints,
     FloatContraints,
@@ -178,7 +189,7 @@ def _from_union(t: Type[VT], *, nullable: bool = False) -> ConstraintsT:
 
 def _from_class(
     t: Type[VT], *, nullable: bool = False
-) -> Union[ObjectConstraints, TypeConstraints]:
+) -> Union[ObjectConstraints, TypeConstraints, MappingConstraints]:
     try:
         params: Dict[str, inspect.Parameter] = {**cached_signature(t).parameters}
         hints = cached_type_hints(t)
@@ -194,9 +205,14 @@ def _from_class(
     ] = frozendict.FrozenDict(_resolve_params(**params)) or None
     total = getattr(t, "__total__", True)
     keys = frozenset(params.keys()) if total else frozenset({})
-    return ObjectConstraints(
+    kwargs = dict(
         type=t, nullable=nullable, required_keys=keys, items=items, total=total
     )
+    cls = ObjectConstraints
+    if istypeddict(t):
+        cls = TypedDictConstraints
+        kwargs.update(type=dict, ttype=t)
+    return cls(**kwargs)
 
 
 _CONSTRAINT_BUILDER_HANDLERS: Mapping[Type[Any], Callable] = {
