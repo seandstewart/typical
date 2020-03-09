@@ -1,3 +1,7 @@
+**v2.0.0b21**
+Bugfixes:
+- Fix TypedDict validation.
+
 **v2.0.0b20**
 Bugfixes:
 - Fix regression when transmuting booleans.
