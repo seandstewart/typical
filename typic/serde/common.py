@@ -12,6 +12,7 @@ from typing import (
     Dict,
     Iterable,
     cast,
+    TypeVar,
 )
 
 from typic import strict as st, util, constraints as const
@@ -19,6 +20,7 @@ from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict
 from typic.ext import json
 from typic.types import freeze
+from .translator import translator
 
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
@@ -27,6 +29,8 @@ SerializerT = Union[Callable[[Any, bool], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
+TranslatorT = Callable[[Any], Any]
+"""The signature of a type translator."""
 FieldSerializersT = Mapping[str, SerializerT]
 """A mapping of field names to their serializer functions."""
 FieldDeserializersT = Mapping[str, DeserializerT]
@@ -113,6 +117,9 @@ class SerdeConfig:
         )
 
 
+_T = TypeVar("_T")
+
+
 @dataclasses.dataclass(unsafe_hash=True)
 class Annotation:
     """The resolved, actionable annotation for a given annotation."""
@@ -153,6 +160,11 @@ class Annotation:
         """What types are subscripted to this annotation, if any."""
         return util.get_args(self.resolved)
 
+    def translator(self, target: Type[_T]) -> TranslatorT:
+        """A factory for translating from this type to another."""
+        t = translator.factory(self, target)
+        return t
+
 
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
@@ -191,9 +203,17 @@ class SerdeProtocol:
 
         self.tojson = _json
 
+        def translate(
+            val: Any, target: Type[_T], *, __factory=self.annotation.translator
+        ) -> _T:
+            trans = __factory(target)
+            return trans(val)
+
+        self.translate = translate
+
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)
 
 
-ProtocolsT = Dict[str, SerdeProtocol]
+SerdeProtocolsT = Dict[str, SerdeProtocol]
 """A mapping of attr/param name to :py:class:`SerdeProtocol`."""

@@ -30,8 +30,9 @@ from typic.serde.common import (
     SerdeFlags,
     SerializerT,
     SerdeProtocol,
-    ProtocolsT,
+    SerdeProtocolsT,
     DeserializerT,
+    TranslatorT,
 )
 from typic.common import (
     ORIG_SETTER_NAME,
@@ -83,6 +84,7 @@ __all__ = (
     "strict_mode",
     "StrictStrT",
     "transmute",
+    "translate",
     "typed",
     "validate",
     "wrap",
@@ -96,6 +98,7 @@ _TO_RESOLVE: Set[Union[Type["WrappedObjectT"], Callable]] = set()
 
 
 transmute = resolver.transmute
+translate = resolver.translate
 validate = resolver.validate
 bind = resolver.bind
 register = resolver.des.register
@@ -116,12 +119,13 @@ _T = TypeVar("_T")
 class TypicObjectT:
     __serde__: SerdeProtocol
     __serde_flags__: SerdeFlags
-    __serde_protocols__: ProtocolsT
+    __serde_protocols__: SerdeProtocolsT
     __settattr_original__: Callable[["WrappedObjectT", str, Any], None]
     __typic_resolved__: bool
     schema: SchemaGenT
     primitive: SerializerT
     transmute: DeserializerT
+    translate: TranslatorT
     validate: "c.ValidatorT"
     json: Callable[..., str]
 
@@ -172,6 +176,7 @@ def _bind_proto(cls, proto: SerdeProtocol):
         ("tojson", proto.tojson),
         ("transmute", staticmethod(proto.transmute)),
         ("validate", staticmethod(proto.transmute)),
+        ("translate", proto.translate),
     ):
         setattr(cls, n, attr)
 
