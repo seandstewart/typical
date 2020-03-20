@@ -29,9 +29,10 @@ exclude = ["tests", "docs", "docsrc", "benchmark"]
 [tool.poetry.dependencies]
 python = "^3.7"
 inflection = "^0.3.1"
+pendulum = "^2.0"
 typing-extensions = {version = "^3.7", python = "~3.7"}
 fastjsonschema = {version = "^2.14", optional = true}
-pendulum = "^2.0"
+ujson = {version = "^2.0.2", optional = true}
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^2.2"
@@ -49,9 +50,11 @@ django = "^2.2"
 sphinx-sitemap = "^1.0"
 flake8 = "^3.7.9"
 mypy = "^0.761"
+ujson = "^2.0.2"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
+json = ["ujson"]
 
 [build-system]
 requires = ["poetry>=0.12"]

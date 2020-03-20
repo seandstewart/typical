@@ -17,12 +17,13 @@ from typing import (
 from typic import strict as st, util, constraints as const
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict
+from typic.ext import json
 from typic.types import freeze
 
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
 """Specify types or values which you wish to omit from the output."""
-SerializerT = Callable[[Any], Any]
+SerializerT = Union[Callable[[Any, bool], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
@@ -175,7 +176,20 @@ class SerdeProtocol:
         self.validate = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
         self.transmute = self.deserialize
-        self.primitive = self.serializer or (lambda o: o)
+        self.primitive = self.serializer or (lambda o, lazy=False: o)
+
+        def _json(
+            val: ObjectT,
+            *,
+            indent: int = 0,
+            ensure_ascii: bool = False,
+            __prim=self.primitive,
+        ) -> str:
+            return json.dumps(
+                __prim(val, lazy=True), indent=indent, ensure_ascii=ensure_ascii
+            )
+
+        self.tojson = _json
 
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)
