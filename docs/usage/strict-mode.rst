@@ -23,9 +23,10 @@ enforcement:
 .. doctest::
 
     >>> import typic
+    >>> from typing import Tuple
     >>>
     >>> @typic.al(strict=True)
-    ... def add(*num: int) -> int:
+    ... ddef add(*num: Tuple[int, ...]) -> int:
     ...     return sum(num)
     ...
     >>> add(1, "2")
