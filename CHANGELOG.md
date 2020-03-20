@@ -1,8 +1,17 @@
-**v2.0.0b21**
+**v2.0.0b22**  
+Features:
+- Optional lazy evaluation of fields when serializing with typic.primitive 
+  or MyObj.primitive
+- New high-level typic.tojson and MyObj.tojson methods for fast, easy serialization.
+  [Docs](https://python-typical.org/usage/advanced#helpers)
+- New json extra for automatically installing typical's json serializer of choice.
+
+
+**v2.0.0b21**  
 Bugfixes:
 - Fix TypedDict validation.
 
-**v2.0.0b20**
+**v2.0.0b20**  
 Bugfixes:
 - Fix regression when transmuting booleans.
 
