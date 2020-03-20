@@ -61,14 +61,6 @@ pytz = ">=2015.7"
 
 [[package]]
 category = "dev"
-description = "Backport of shutil.which from Python 3.3"
-name = "backports.shutil-which"
-optional = false
-python-versions = "*"
-version = "3.5.2"
-
-[[package]]
-category = "dev"
 description = "The uncompromising code formatter."
 name = "black"
 optional = false
@@ -122,6 +114,7 @@ version = "7.1.1"
 [[package]]
 category = "dev"
 description = "Cross-platform colored terminal text."
+marker = "sys_platform == \"win32\""
 name = "colorama"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
@@ -902,34 +895,11 @@ testing = ["pytest (>=4.0.0,<6)", "coverage (>=4.5.1,<6)", "pytest-mock (>=2.0.0
 
 [[package]]
 category = "dev"
-description = "Python's vmprof client"
-name = "vmprof"
-optional = false
-python-versions = "*"
-version = "0.4.15"
-
-[package.dependencies]
-"backports.shutil_which" = "*"
-colorama = "*"
-pytz = "*"
-requests = "*"
-six = "*"
-
-[[package]]
-category = "dev"
 description = "Measures number of Terminal column cells of wide-character codes"
 name = "wcwidth"
 optional = false
 python-versions = "*"
 version = "0.1.8"
-
-[[package]]
-category = "dev"
-description = "Yet Another Python Profiler"
-name = "yappi"
-optional = false
-python-versions = "*"
-version = "1.2.3"
 
 [[package]]
 category = "dev"
@@ -949,7 +919,7 @@ json = ["ujson"]
 schema = ["fastjsonschema"]
 
 [metadata]
-content-hash = "97a6741c3ccaef56364bb4bb9590f66c7af16af66757ff96e7d7487876bf864c"
+content-hash = "bd641625b5483fafcaf62de18b8710988f316a2a80859c5da7c5df23187813ab"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -976,10 +946,6 @@ attrs = [
 babel = [
     {file = "Babel-2.8.0-py2.py3-none-any.whl", hash = "sha256:d670ea0b10f8b723672d3a6abeb87b565b244da220d76b4dba1b66269ec152d4"},
     {file = "Babel-2.8.0.tar.gz", hash = "sha256:1aac2ae2d0d8ea368fa90906567f5c08463d98ade155c0c4bfedd6a0f7160e38"},
-]
-"backports.shutil-which" = [
-    {file = "backports.shutil_which-3.5.2-py2.py3-none-any.whl", hash = "sha256:dc627fb2bc40f8ad7e012d7d9a59ed0cb1b74a9510ed936b3f9358b7ac6d4d31"},
-    {file = "backports.shutil_which-3.5.2.tar.gz", hash = "sha256:fe39f567cbe4fad89e8ac4dbeb23f87ef80f7fe8e829669d0221ecdb0437c133"},
 ]
 black = [
     {file = "black-19.10b0-py36-none-any.whl", hash = "sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b"},
@@ -1417,29 +1383,9 @@ virtualenv = [
     {file = "virtualenv-20.0.13-py2.py3-none-any.whl", hash = "sha256:87831f1070534b636fea2241dd66f3afe37ac9041bcca6d0af3215cdcfbf7d82"},
     {file = "virtualenv-20.0.13.tar.gz", hash = "sha256:f3128d882383c503003130389bf892856341c1da12c881ae24d6358c82561b55"},
 ]
-vmprof = [
-    {file = "vmprof-0.4.15-cp27-cp27m-macosx_10_10_x86_64.whl", hash = "sha256:09e3a6b1e584967bcc06406bd04e9a484a61734c49a32e3fab79595605981265"},
-    {file = "vmprof-0.4.15-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:419b47d3867b289e454d34a2ddbe05028961f795fe5e6f105b09f293a8f7326d"},
-    {file = "vmprof-0.4.15-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:0ce3cffa060bed61aced485caacf675d273bab5706884740ec4e350885cd66fe"},
-    {file = "vmprof-0.4.15-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:36781e29b79de366fe1019d0a866968db0418541f4e32e503d06f5253b92b8ae"},
-    {file = "vmprof-0.4.15-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:8733a0e19110e870516842192ce5787a3a5a3b26a57eba91dda5fe677fee667c"},
-    {file = "vmprof-0.4.15-cp34-cp34m-macosx_10_10_x86_64.whl", hash = "sha256:53f8838ca9aef15d4b8ce6f19d37b1d867e8c15000d4aea2b4842091a9aece23"},
-    {file = "vmprof-0.4.15-cp34-cp34m-manylinux1_i686.whl", hash = "sha256:c9f017809f8f70c864962c86e3f07bc7d3baec1f3cc9071ef4658acbc11126f6"},
-    {file = "vmprof-0.4.15-cp34-cp34m-manylinux1_x86_64.whl", hash = "sha256:84c7311f7d11273ab7673f562cb9d8738e031fe9899f3449fb29b28912502674"},
-    {file = "vmprof-0.4.15-cp35-cp35m-macosx_10_10_x86_64.whl", hash = "sha256:f5bbf926338c2759858d7ce258270cc2df902571522da3e26415c541124be706"},
-    {file = "vmprof-0.4.15-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:6b07e300b52e18b07daf3df09b217c87ccc2c641d609ee386547bf8d511e85c6"},
-    {file = "vmprof-0.4.15-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:6608b50df4e44ee691acd9746761b1ab5e914d7d209e02fd7f935fbad2f5d125"},
-    {file = "vmprof-0.4.15-cp36-cp36m-macosx_10_10_x86_64.whl", hash = "sha256:1f40b27d64a25a338ba5c4ce7f3c774124aec861b97da345206502cbbb7c5d7b"},
-    {file = "vmprof-0.4.15-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:927e3a58261e7bc1559226696991772bee596c3a950b6811a773a6131c303e5a"},
-    {file = "vmprof-0.4.15-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:921bd840e1fec6eea842e76498d64d130e0d98ab59be745a36187b557ae6c787"},
-    {file = "vmprof-0.4.15.tar.gz", hash = "sha256:a2d872a40196404386d1e0d960e97b37c86c3f72a4f9d5a2b5f9ca1adaff5b62"},
-]
 wcwidth = [
     {file = "wcwidth-0.1.8-py2.py3-none-any.whl", hash = "sha256:8fd29383f539be45b20bd4df0dc29c20ba48654a41e661925e612311e9f3c603"},
     {file = "wcwidth-0.1.8.tar.gz", hash = "sha256:f28b3e8a6483e5d49e7f8949ac1a78314e740333ae305b4ba5defd3e74fb37a8"},
-]
-yappi = [
-    {file = "yappi-1.2.3.tar.gz", hash = "sha256:b8db9bc607610d6da4e27e87ec828ebddec4bdaac89ca07ebfe9a153b0641580"},
 ]
 zipp = [
     {file = "zipp-3.1.0-py3-none-any.whl", hash = "sha256:aa36550ff0c0b7ef7fa639055d797116ee891440eac1a56f378e2d3179e0320b"},
