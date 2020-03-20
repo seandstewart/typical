@@ -11,7 +11,7 @@ try:
     dumps = ujson.dumps  # type: ignore
     loads = ujson.loads
 
-except ImportError:
+except ImportError:  # pragma: nocover
     import json
     from typic.serde.resolver import resolver
 
