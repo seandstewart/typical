@@ -1,4 +1,5 @@
 import dataclasses
+import functools
 import inspect
 import warnings
 from operator import attrgetter, methodcaller
@@ -105,13 +106,40 @@ class Resolver:
             or not getattr(t, "__delayed__", True)
         )
 
-    def primitive(self, obj: Any) -> Any:
+    @functools.lru_cache(maxsize=None)
+    def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
+        if hasattr(t, SERDE_ATTR):
+            return getattr(t, SERDE_ATTR)
+        for name, caller in self._DICT_FACTORY_METHODS:
+            if hasattr(t, name):
+
+                def serializer(
+                    val, lazy: bool = False, *, __prim=self.primitive, __call=caller
+                ):
+                    return {
+                        __prim(x): __prim(y, lazy=lazy) for x, y in __call(val).items()
+                    }
+
+                return SerdeProtocol(
+                    self.annotation(t),
+                    deserializer=None,
+                    serializer=serializer,
+                    constraints=None,
+                    validator=None,
+                )
+
+        if checks.ismappingtype(t):
+            t = Mapping[Any, Any]
+        elif checks.iscollectiontype(t) and not issubclass(t, (str, bytes, bytearray)):
+            t = Iterable[Any]
+        settings = getattr(t, SERDE_FLAGS_ATTR, None)
+        serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
+        return serde
+
+    def primitive(self, obj: Any, lazy: bool = False) -> Any:
         """A method for converting an object to its primitive equivalent.
 
         Useful for encoding data to JSON.
-
-        Registration for custom types may be done by wrapping your handler with
-        `@primitive.register`
 
         Examples
         --------
@@ -142,24 +170,63 @@ class Resolver:
         >>> typic.primitive(Foo())
         {'bar': 'bar'}
         """
-        if hasattr(obj, SERDE_ATTR):
-            return obj.__serde__.serializer(obj)
-        for name, caller in self._DICT_FACTORY_METHODS:
-            if hasattr(obj, name):
-                return {
-                    self.primitive(x): self.primitive(y) for x, y in caller(obj).items()
-                }
         t = type(obj)
         if checks.isenumtype(t):
             obj = obj.value
             t = type(obj)
-        if checks.ismappingtype(t):
-            t = Mapping[Any, Any]
-        elif checks.iscollectiontype(t) and not issubclass(t, (str, bytes, bytearray)):
-            t = Iterable[Any]
-        settings = getattr(t, SERDE_FLAGS_ATTR, None)
-        serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
-        return serde.primitive(obj)
+        proto: SerdeProtocol = self._get_serializer_proto(t)
+        return proto.primitive(obj, lazy=lazy)
+
+    def tojson(self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False) -> str:
+        """A method for dumping any object to a valid JSON string.
+
+        Notes
+        -----
+        If `ujson` is installed, we will default to that library for the final
+        encoding, which can result in massive performance gains over the standard `json`
+        library.
+
+        Examples
+        --------
+        >>> import typic
+        >>> import datetime
+        >>> import uuid
+        >>> import ipaddress
+        >>> import re
+        >>> import dataclasses
+        >>> import enum
+        >>> typic.tojson("foo")
+        '"foo"'
+        >>> typic.tojson(("foo",))
+        '["foo"]'
+        >>> typic.tojson(datetime.datetime(1970, 1, 1))  # note that we assume UTC
+        '"1970-01-01T00:00:00+00:00"'
+        >>> typic.tojson(b"foo")
+        '"foo"'
+        >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
+        '"0.0.0.0"'
+        >>> typic.tojson(re.compile("[0-9]"))
+        '"[0-9]"'
+        >>> typic.tojson(uuid.UUID(int=0))
+        '"00000000-0000-0000-0000-000000000000"'
+        >>> @dataclasses.dataclass
+        ... class Foo:
+        ...     bar: str = 'bar'
+        ...
+        >>> typic.tojson(Foo())
+        '{"bar":"bar"}'
+        >>> class Enum(enum.Enum):
+        ...     FOO = "foo"
+        ...
+        >>> typic.tojson(Enum.FOO)
+        '"foo"'
+        """
+        t = type(obj)
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = type(obj)
+        proto: SerdeProtocol = self._get_serializer_proto(t)
+        return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii)
 
     @staticmethod
     def _get_params(origin: Type) -> Mapping[str, inspect.Parameter]:
@@ -172,7 +239,7 @@ class Resolver:
             params = {}
         return params
 
-    @util.cachedmethod
+    @functools.lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
             flags = getattr(origin, SERDE_FLAGS_ATTR)
@@ -294,7 +361,7 @@ class Resolver:
             serde=serde,
         )
 
-    @util.cachedmethod
+    @functools.lru_cache(maxsize=None)
     def resolve(
         self,
         annotation: Type[ObjectT],
@@ -369,7 +436,7 @@ class Resolver:
         self.__seen.add(annotation)
         return resolved
 
-    @util.cachedmethod
+    @functools.lru_cache(maxsize=None)
     def protocols(self, obj, *, strict: bool = False) -> ProtocolsT:
         """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 

@@ -23,6 +23,7 @@ from typing import (
 )
 
 import typic.checks as checks
+from typic.ext import json
 
 __all__ = (
     "cached_issubclass",
@@ -42,20 +43,6 @@ __all__ = (
     "typed_dict_signature",
 )
 
-
-def _get_loader():  # pragma: nocover
-    try:
-        import ujson
-
-        return ujson.loads
-
-    except ImportError:  # pragma: nocover
-        import json
-
-        return json.loads
-
-
-load = _get_loader()
 
 GENERIC_TYPE_MAP = {
     collections.abc.Sequence: list,
@@ -100,7 +87,7 @@ def safe_eval(string: str) -> Tuple[bool, Any]:
         result, processed = ast.literal_eval(string), True
     except (TypeError, ValueError, SyntaxError):
         try:
-            result, processed = load(string), True
+            result, processed = json.loads(string), True
         except (TypeError, ValueError, SyntaxError):
             result, processed = string, False
 
@@ -252,7 +239,7 @@ class cached_property:  # type: ignore
 
 
 # stolen from functools._HashedSeq
-class __HashedSeq(list):
+class __HashedSeq(list):  # pragma: nocover
 
     __slots__ = "hashvalue"
 
@@ -273,7 +260,7 @@ def _make_key(
     fasttypes=frozenset({int, str}),
     type=type,
     len=len,
-):
+):  # pragma: nocover
     key = args
     if kwds:
         key += kwd_mark
@@ -287,7 +274,7 @@ def _make_key(
 _T = TypeVar("_T")
 
 
-def cachedmethod(func: Callable[..., _T]) -> Callable[..., _T]:
+def cachedmethod(func: Callable[..., _T]) -> Callable[..., _T]:  # pragma: nocover
     """Thread-safe caching of the result of an instance method.
 
     Mimics some of the pure-Python implementation of :py:func:`functools.lru_cache`.

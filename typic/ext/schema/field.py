@@ -27,6 +27,7 @@ from typing import (
 
 import pendulum
 
+from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
 from typic.util import filtered_repr, cached_property
@@ -121,8 +122,13 @@ class BaseSchemaField:
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
 
-    def primitive(self):
-        return resolver.primitive(self)
+    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
+        return resolver.primitive(self, lazy=lazy)
+
+    def json(self, *, indent: int = 0, ensure_ascii: bool = False) -> str:
+        return dumps(
+            self.primitive(lazy=True), indent=indent, ensure_ascii=ensure_ascii
+        )
 
     __repr = cached_property(filtered_repr)
 

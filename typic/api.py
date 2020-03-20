@@ -65,6 +65,7 @@ __all__ = (
     "coerce",
     "constrained",
     "is_strict_mode",
+    "tojson",
     "primitive",
     "protocol",
     "protocols",
@@ -102,6 +103,7 @@ primitive = resolver.primitive
 schemas = schema_builder.all
 protocols = resolver.protocols
 protocol = resolver.resolve
+tojson = resolver.tojson
 
 # TBDeprecated
 coerce = resolver.coerce_value
@@ -121,6 +123,7 @@ class TypicObjectT:
     primitive: SerializerT
     transmute: DeserializerT
     validate: "c.ValidatorT"
+    json: Callable[..., str]
 
 
 WrappedObjectT = Union[TypicObjectT, ObjectT]
@@ -166,6 +169,7 @@ def _bind_proto(cls, proto: SerdeProtocol):
     for n, attr in (
         (SERDE_ATTR, proto),
         ("primitive", proto.primitive),
+        ("tojson", proto.tojson),
         ("transmute", staticmethod(proto.transmute)),
         ("validate", staticmethod(proto.transmute)),
     ):

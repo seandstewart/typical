@@ -52,6 +52,7 @@ typic_methods = {
     "transmute",
     "validate",
     "schema",
+    "tojson",
 }  # type: Final
 
 SELF_TVAR_NAME = "_TT"
@@ -102,6 +103,7 @@ class TypicTransformer:
         self.add_primitive_method()
         self.add_transmute_method()
         self.add_validate_method()
+        self.add_json_method()
 
     @staticmethod
     def _get_tvar_name(name: str, info) -> str:
@@ -149,11 +151,32 @@ class TypicTransformer:
     def add_primitive_method(self):
         ctx = self._ctx
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        arg = Argument(Var("lazy", bool_type), bool_type, None, ARG_NAMED_OPT)
         add_method(
             ctx,
             "primitive",
-            args=[],
+            args=[arg],
             return_type=AnyType(TypeOfAny.unannotated),
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
+    def add_json_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        int_type = ctx.api.named_type("__builtins__.int")
+        str_type = ctx.api.named_type("__builtins__.str")
+        indent = Argument(Var("indent", int_type), int_type, None, ARG_NAMED_OPT)
+        ensure = Argument(
+            Var("ensure_ascii", bool_type), bool_type, None, ARG_NAMED_OPT
+        )
+        add_method(
+            ctx,
+            "tojson",
+            args=[indent, ensure],
+            return_type=str_type,
             self_type=TypeVarType(self_tvar_def),
             tvar_def=self_tvar_def,
         )

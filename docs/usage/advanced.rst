@@ -36,6 +36,10 @@ types a breeze:
     :noindex:
 
 
+.. autofunction:: typic.tojson
+    :noindex:
+
+
 Classes
 -------
 There are a few high-level classes that may be interacted with.
@@ -217,6 +221,8 @@ The simplest method for customizing your protocol is via :py:func:`typic.klass`:
     >>> foo = Foo("bar", "exc")
     >>> foo.primitive()
     {'Bar': 'bar'}
+    >>> foo.tojson()
+    '{"Bar":"bar"}'
 
 
 For more power, you can manually assign the ``__serde_flags__`` attribute on any class:
@@ -317,5 +323,5 @@ You can also retrieve a ser/des protocol for nearly any type, including your own
     Foo(bar='foo')
     >>> foo_proto.primitive(Foo("foo"))
     {'bar': 'foo'}
-
-
+    >>> foo_proto.tojson(Foo("foo"))
+    '{"bar":"foo"}'
