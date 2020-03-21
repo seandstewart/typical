@@ -377,20 +377,30 @@ class DesFactory:
         self.__DES_CACHE[func_name] = deserializer
         return deserializer
 
-    def _check_varargs(self, anno: "Annotation", des: DeserializerT,) -> DeserializerT:
+    def _check_varargs(
+        self, anno: "Annotation", des: DeserializerT, validator: "const.ValidatorT"
+    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         if anno.parameter.kind == VAR_POSITIONAL:
             __des = des
+            __validator = validator
 
             def des(__val, *, __des=__des):
                 return (*(__des(x) for x in __val),)
 
+            def validator(__val, *, __validator=__validator):
+                return (*(__validator(x) for x in __val),)
+
         elif anno.parameter.kind == VAR_KEYWORD:
             __des = des
+            __validator = validator
 
             def des(__val, *, __des=__des):
                 return {x: __des(y) for x, y in __val.items()}
 
-        return des
+            def validator(__val, *, __validator=__validator):
+                return {x: __validator(y) for x, y in __val.items()}
+
+        return des, validator
 
     def _finalize_validator(
         self, des: DeserializerT, constr: Optional["const.ConstraintsT"],
@@ -412,10 +422,10 @@ class DesFactory:
         des: DeserializerT,
         constr: Optional["const.ConstraintsT"],
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
-        # Handle *args and **kwargs
-        des = self._check_varargs(anno, des)
         # Determine how to run in "strict-mode"
         validator = self._finalize_validator(des, constr)
+        # Handle *args and **kwargs
+        des, validator = self._check_varargs(anno, des, validator)
         # If we have type constraints, only validate if we're in strict mode.
         if isinstance(constr, const.TypeConstraints):
             if anno.strict:
