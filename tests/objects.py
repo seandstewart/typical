@@ -115,6 +115,11 @@ def varargs(*args: Data, **kwargs: Data):
     return args + tuple(kwargs.values())
 
 
+@typic.al(strict=True)
+def strictvaradd(*args: int, **kwargs: int):
+    return sum(args) + sum(kwargs.values())
+
+
 class Method:
     def math(self, a: int) -> int:
         return a * a

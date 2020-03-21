@@ -46,6 +46,7 @@ from tests.objects import (
     ItemizedKeyedDict,
     ItemizedKeyedValuedDict,
     ShortKeyDict,
+    strictvaradd,
 )
 from typic.api import (
     transmute,
@@ -533,6 +534,27 @@ def test_strict_anno_fails(anno, val):
 )
 def test_strict_anno_passes(anno, val):
     assert transmute(anno, val) == val
+
+
+@pytest.mark.parametrize(
+    argnames=("func", "args", "kwargs"),
+    argvalues=[
+        (strictvaradd, ("1", 2), {"foo": 3}),
+        (strictvaradd, (1, None), {"foo": 3}),
+        (strictvaradd, (1, 2), {"foo": b"4"}),
+    ],
+)
+def test_strict_varargs_fails(func, args, kwargs):
+    with pytest.raises(ConstraintValueError):
+        func(*args, **kwargs)
+
+
+@pytest.mark.parametrize(
+    argnames=("func", "args", "kwargs", "expected"),
+    argvalues=[(strictvaradd, (1, 2), {"foo": 3}, 6)],
+)
+def test_strict_varargs_passes(func, args, kwargs, expected):
+    assert func(*args, **kwargs) == expected
 
 
 @constrained(values=NetworkAddress)
