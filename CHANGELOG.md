@@ -1,3 +1,7 @@
+**v2.0.0b23**
+Bugfixes:
+- Proper validation of varargs in Strict-Mode (#45)
+
 **v2.0.0b22**  
 Features:
 - Optional lazy evaluation of fields when serializing with typic.primitive 
