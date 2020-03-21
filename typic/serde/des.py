@@ -326,8 +326,16 @@ class DesFactory:
                 b.l(f"{self.VNAME} = bound.eval()")
             else:
                 b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})")
-        with func.b("else:") as b:
+        with func.b(
+            f"elif isbuiltinsubtype({self.VTYPE}):",
+            isbuiltinsubtype=checks.isbuiltinsubtype,
+        ) as b:
             b.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+        with func.b("else:") as b:
+            b.l(
+                f"{self.VNAME} = tr({self.VNAME}, {anno_name})",
+                tr=self.resolver.translate,
+            )
 
     def _build_des(self, annotation: "Annotation",) -> Callable:
         func_name = self._get_des_name(annotation)

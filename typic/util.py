@@ -29,8 +29,8 @@ __all__ = (
     "cached_issubclass",
     "cached_property",
     "cached_signature",
+    "cached_simple_attributes",
     "cached_type_hints",
-    "typed_dict_signature",
     "cachedmethod",
     "fastcachedmethod",
     "filtered_repr",
@@ -40,8 +40,12 @@ __all__ = (
     "origin",
     "resolve_supertype",
     "safe_eval",
+    "safe_get_params",
+    "simple_attributes",
     "typed_dict_signature",
 )
+
+from typic.compat import SQLAMetaData
 
 
 GENERIC_TYPE_MAP = {
@@ -377,6 +381,21 @@ def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
     return issubclass(st, t)
 
 
+def simple_attributes(t: Type) -> Tuple[str, ...]:
+    """Extract all public, static data-attributes for a given type."""
+    return (
+        *(
+            x
+            for x, y in inspect.getmembers(t, predicate=checks.issimpleattribute)
+            if not x.startswith("_") and not isinstance(y, SQLAMetaData)
+        ),
+    )
+
+
+cached_simple_attributes = functools.lru_cache(maxsize=None)(simple_attributes)
+"""A cached result of :py:func:`simple_attributes`."""
+
+
 def typed_dict_signature(obj: Callable) -> inspect.Signature:
     """A little faker for getting the "signature" of a :py:class:`TypedDict`.
 
@@ -395,3 +414,15 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
             for x, y in hints.items()
         )
     )
+
+
+@functools.lru_cache(maxsize=None)
+def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
+    params: Mapping[str, inspect.Parameter]
+    try:
+        if issubclass(obj, Mapping) and not checks.istypeddict(origin):
+            return {}
+        params = cached_signature(obj).parameters
+    except (ValueError, TypeError):  # pragma: nocover
+        params = {}
+    return params

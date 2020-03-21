@@ -51,6 +51,8 @@ sphinx-sitemap = "^1.0"
 flake8 = "^3.7.9"
 mypy = "^0.761"
 ujson = "^2.0.2"
+sqlalchemy = "^1.3.13"
+sqlalchemy-stubs = "^0.3"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]

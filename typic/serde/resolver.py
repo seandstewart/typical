@@ -3,17 +3,20 @@ import functools
 import inspect
 import warnings
 from operator import attrgetter, methodcaller
-from typing import Mapping, Any, Type, Optional, ClassVar, Tuple, Iterable, cast, Union
+from typing import (
+    Mapping,
+    Any,
+    Type,
+    Optional,
+    ClassVar,
+    Tuple,
+    Iterable,
+    cast,
+    Union,
+    TypeVar,
+)
 
 from typic import checks, constraints as const, util, strict as st
-from .common import (
-    SerializerT,
-    SerdeFlags,
-    SerdeConfig,
-    Annotation,
-    SerdeProtocol,
-    ProtocolsT,
-)
 from typic.common import (
     EMPTY,
     ORIG_SETTER_NAME,
@@ -24,10 +27,21 @@ from typic.common import (
     Case,
     ReadOnly,
 )
+from typic.strict import StrictModeT
+from .binder import Binder
+from .common import (
+    SerializerT,
+    SerdeFlags,
+    SerdeConfig,
+    Annotation,
+    SerdeProtocol,
+    SerdeProtocolsT,
+)
 from .des import DesFactory
 from .ser import SerFactory
-from .binder import Binder
-from ..strict import StrictModeT
+
+
+_T = TypeVar("_T")
 
 
 class Resolver:
@@ -47,7 +61,7 @@ class Resolver:
         self.bind = self.binder.bind
 
     def transmute(self, annotation: Type[ObjectT], value: Any) -> ObjectT:
-        """Convert the given value to the given annotation, if possible.
+        """Convert a given value `into` the target annotation.
 
         Checks for:
             - :class:`datetime.date`
@@ -58,15 +72,36 @@ class Resolver:
 
         Parameters
         ----------
-        value :
-            The value to be transmuted
         annotation :
             The provided annotation for determining the coercion
+        value :
+            The value to be transmuted
         """
         resolved: SerdeProtocol = self.resolve(annotation)
         transmuted: ObjectT = resolved(value)
 
         return transmuted
+
+    def translate(self, value: ObjectT, target: Type[_T]) -> _T:
+        """Translate an instance `from` its type `to` a target type.
+
+        Notes
+        -----
+        This provides a functional interface for translating one custom class
+        instance to another custom class. This should not be confused with
+        :py:func:`typic.transmute`, which is generally a more powerful functional
+        interface for conversion between types, but this is provided as for
+        api-completeness with the object-api.
+
+        Parameters
+        ----------
+        value
+            The higher-order class instance to translate.
+        target
+            The higher-order class to translate into.
+        """
+        resolved: SerdeProtocol = self.resolve(type(value))
+        return resolved.translate(value, target)
 
     def validate(
         self, annotation: Type[ObjectT], value: Any, *, transmute: bool = False
@@ -228,23 +263,12 @@ class Resolver:
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii)
 
-    @staticmethod
-    def _get_params(origin: Type) -> Mapping[str, inspect.Parameter]:
-        params: Mapping[str, inspect.Parameter]
-        try:
-            if issubclass(origin, Mapping) and not checks.istypeddict(origin):
-                return {}
-            params = util.cached_signature(origin).parameters
-        except (ValueError, TypeError):  # pragma: nocover
-            params = {}
-        return params
-
     @functools.lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
             flags = getattr(origin, SERDE_FLAGS_ATTR)
         # Get all the annotated fields
-        params = self._get_params(origin)
+        params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
         fields = {
             x: self.annotation(y, flags=flags)
@@ -437,7 +461,7 @@ class Resolver:
         return resolved
 
     @functools.lru_cache(maxsize=None)
-    def protocols(self, obj, *, strict: bool = False) -> ProtocolsT:
+    def protocols(self, obj, *, strict: bool = False) -> SerdeProtocolsT:
         """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 
         Parameters

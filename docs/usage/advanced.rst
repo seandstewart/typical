@@ -40,6 +40,10 @@ types a breeze:
     :noindex:
 
 
+.. autofunction:: typic.translate
+    :noindex:
+
+
 Classes
 -------
 There are a few high-level classes that may be interacted with.

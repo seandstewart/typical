@@ -9,7 +9,15 @@ try:
 except ImportError:
     from typing import TypedDict  # type: ignore
 
+import inflection
 import typic
+import pydantic
+import sqlalchemy
+from sqlalchemy.ext.declarative import declarative_base
+
+
+def get_id(x) -> str:
+    return inflection.underscore(str(x))
 
 
 @dataclasses.dataclass
@@ -220,6 +228,26 @@ class NTup(typing.NamedTuple):
 
 
 ntup = collections.namedtuple("ntup", ["a"])
+
+
+Base = declarative_base()
+
+
+class Alchemy(Base):
+    __tablename__ = "alchemy"
+    id = sqlalchemy.Column(sqlalchemy.BigInteger, primary_key=True, autoincrement=True)
+    bar = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
+
+
+class Pydantic(pydantic.BaseModel):
+    bar: str
+    id: typing.Optional[int] = None
+
+
+@typic.klass
+class Typical:
+    bar: str
+    id: typing.Optional[typic.ReadOnly[int]] = None
 
 
 TYPIC_OBJECTS = [

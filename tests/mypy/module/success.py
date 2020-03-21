@@ -6,6 +6,11 @@ class Klass:
     attr: str
 
 
+class Other:
+    def __init__(self, attr: str):
+        self.attr = attr
+
+
 if __name__ == "__main__":
 
     Klass(attr="foo")
@@ -21,3 +26,4 @@ if __name__ == "__main__":
     k: Klass = typic.transmute(Klass, "foo")
     v = typic.validate(Klass, {"attr": "foo"})
     j: str = typic.tojson(Klass("foo"))
+    o: Other = Klass("foo").translate(Other)

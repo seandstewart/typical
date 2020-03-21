@@ -104,6 +104,7 @@ class TypicTransformer:
         self.add_transmute_method()
         self.add_validate_method()
         self.add_json_method()
+        self.add_translate_method()
 
     @staticmethod
     def _get_tvar_name(name: str, info) -> str:
@@ -209,6 +210,21 @@ class TypicTransformer:
             is_staticmethod=True,
         )
 
+    def add_translate_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        r_type = AnyType(TypeOfAny.explicit)
+        arg_type = TypeType(r_type)
+        arg = Argument(Var("target", arg_type), arg_type, None, ARG_POS)
+        add_method(
+            ctx,
+            "translate",
+            args=[arg],
+            return_type=r_type,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
 
 def typic_klass_maker_callback(ctx: ClassDefContext) -> None:
     transformer = TypicTransformer(ctx)
@@ -268,7 +284,7 @@ def add_method(
     func.info = info
     func.type = set_callable_name(signature, func)
     func.is_class = is_classmethod
-    # func.is_static = is_staticmethod
+    func.is_static = is_staticmethod
     func._fullname = get_fullname(info) + "." + name
     func.line = info.line
 

@@ -29,14 +29,14 @@ from ..common import (
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver  # noqa: F401
-    from .common import SerdeProtocol, ProtocolsT  # noqa: F401
+    from .common import SerdeProtocol, SerdeProtocolsT  # noqa: F401
 
 
 @dataclasses.dataclass(frozen=True)
 class BoundArguments:
     obj: Union[Type, Callable]
     """The object we "bound" the input to."""
-    annotations: "ProtocolsT"
+    annotations: "SerdeProtocolsT"
     """A mapping of the resolved annotations."""
     parameters: Mapping[str, inspect.Parameter]
     """A mapping of the parameters."""
@@ -106,7 +106,7 @@ class Binder:
         self,
         arguments: Dict[str, Any],
         params: Deque[inspect.Parameter],
-        annos: "ProtocolsT",
+        annos: "SerdeProtocolsT",
         args: Deque[Any],
         kwargs: Dict[str, Any],
     ) -> Tuple[str, ...]:
@@ -215,7 +215,7 @@ class Binder:
     def _bind_input(
         self,
         obj: Union[Type, Callable],
-        annos: "ProtocolsT",
+        annos: "SerdeProtocolsT",
         params: Mapping[str, inspect.Parameter],
         args: Iterable[Any],
         kwargs: Dict[str, Any],

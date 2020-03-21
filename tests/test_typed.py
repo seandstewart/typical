@@ -47,6 +47,10 @@ from tests.objects import (
     ItemizedKeyedValuedDict,
     ShortKeyDict,
     strictvaradd,
+    Alchemy,
+    Pydantic,
+    Typical,
+    get_id,
 )
 from typic.api import (
     transmute,
@@ -62,6 +66,7 @@ from typic.api import (
     StrictStrT,
     Strict,
     validate,
+    translate,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
@@ -111,7 +116,11 @@ def test_isbuiltintype(obj: typing.Any):
         (Data, Data("bar!"), Data("bar!"),),
         (NetworkAddress, "localhost", NetworkAddress("localhost")),
         (typing.Pattern, r"\w+", re.compile(r"\w+")),
+        (Data, FromDict("bar!"), Data("bar!")),
+        (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
+        (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
     ],
+    ids=get_id,
 )
 def test_transmute_simple(annotation, value, expected):
     transmuted = transmute(annotation, value)
@@ -133,6 +142,7 @@ def test_transmute_newtype(annotation, value):
         (ntup, '{"a": "2"}', ntup("2")),
         (TDictPartial, "{}", {}),
     ],
+    ids=get_id,
 )
 def test_transmute_collection_metas(annotation, value, expected):
     transmuted = transmute(annotation, value)
@@ -151,6 +161,7 @@ def test_default_none():
         (typing.ClassVar, typing.ClassVar),
         (typing.List[str], list),
     ],
+    ids=get_id,
 )
 def test_get_origin(annotation, origin):
     assert get_origin(annotation) is origin
@@ -167,6 +178,7 @@ T = typing.TypeVar("T")
         (typing.List[str], (str,)),
         (typing.Optional[str], (str, type(None))),
     ],
+    ids=get_id,
 )
 def test_get_args(annotation, args):
     assert get_args(annotation) == args
@@ -179,6 +191,7 @@ def test_get_args(annotation, args):
         (typing.Optional[str], None, None),
         (typing.ClassVar[str], 1, "1"),
     ],
+    ids=get_id,
 )
 def test_transmute_supscripted(annotation, value, expected):
     assert transmute(annotation, value) == expected
@@ -208,6 +221,7 @@ def test_transmute_supscripted(annotation, value, expected):
         (typing.Collection[NestedFromDict], [{"data": {"foo": "bar!"}}]),
         (typing.Collection[NestedFromDict], ["{'data': {'foo': 'bar!'}}"]),
     ],
+    ids=get_id,
 )
 def test_transmute_collections_subscripted(annotation, value):
     arg = annotation.__args__[0]
@@ -236,6 +250,7 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.Dict[bytes, NestedFromDict], {0: "{'data': {'foo': 'bar!'}}"}),
         (DateDict, '{"1970": "foo"}'),
     ],
+    ids=get_id,
 )
 def test_transmute_mapping_subscripted(annotation, value):
     annotation = resolve_supertype(annotation)
@@ -264,6 +279,7 @@ def test_wrap_callable(func, input, type):
 @pytest.mark.parametrize(
     argnames=("klass", "var", "type"),
     argvalues=[(Class, "var", str), (Data, "foo", str)],
+    ids=get_id,
 )
 def test_wrap_class(klass, var, type):
     Wrapped = wrap_cls(klass)
@@ -282,6 +298,7 @@ def test_wrap_class(klass, var, type):
         (Forward, "bar", attrgetter("foo"), FooNum, inspect.isclass),
         (Frozen, "0", attrgetter("var"), bool, inspect.isclass),
     ],
+    ids=get_id,
 )
 def test_typed(obj, input, getter, type, check):
     wrapped = typed(obj)
@@ -307,6 +324,7 @@ def test_ensure_invalid():
             lambda res: all(isinstance(x, Data) for x in res),
         )
     ],
+    ids=get_id,
 )
 def test_typed_varargs(func, args, kwargs, check):
     wrapped = typed(func)
@@ -323,6 +341,7 @@ def test_typed_varargs(func, args, kwargs, check):
         (DateDict, dict),
         (UserID, int),
     ],
+    ids=get_id,
 )
 def test_get_origin_returns_origin(annotation, origin):
     detected = get_origin(annotation)
@@ -338,6 +357,7 @@ def test_eval_invalid():
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "value", "type"),
     argvalues=[(typed(Data)("foo"), "foo", 1, str), (typed(NoParams)(), "var", 1, str)],
+    ids=get_id,
 )
 def test_setattr(instance, attr, value, type):
     setattr(instance, attr, value)
@@ -365,11 +385,11 @@ def test_register():
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])
 def test_no_transmuter(val):
-    class NoCoercer:
+    class NoTransmuter:
         def __init__(self, x):
             self.x = x
 
-    assert transmute(NoCoercer, val).x == val
+    assert transmute(NoTransmuter, val).x == val
 
 
 def test_typic_klass():
@@ -396,6 +416,7 @@ def test_typic_frozen():
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "type"),
     argvalues=[(KlassVar(), "var", str), (KlassVarSubscripted(), "var", str)],
+    ids=get_id,
 )
 def test_classvar(instance, attr, type):
     setattr(instance, attr, 1)
@@ -420,6 +441,7 @@ def test_typic_resolve():
         (LargeIntDict, [("foo", 1001)], {"foo": 1001}),
         (ShortKeyDict, {"foo": ""}, {"foo": ""}),
     ],
+    ids=get_id,
 )
 def test_cast_constrained(type, value, expected):
     assert type(value) == expected
@@ -441,6 +463,7 @@ def test_cast_constrained(type, value, expected):
         (ItemizedKeyedDict, {"foooooooo": "blah"}),
         (ShortKeyDict, {"fooooooo": "blah"}),
     ],
+    ids=get_id,
 )
 def test_cast_constrained_invalid(type, value):
     with pytest.raises(ConstraintValueError):
@@ -511,6 +534,7 @@ def test_constrained_any():
         (Strict[typing.Union[str, int]], None),
         (StrictStrT, b""),
     ],
+    ids=get_id,
 )
 def test_strict_anno_fails(anno, val):
     with pytest.raises(ConstraintValueError):
@@ -531,6 +555,7 @@ def test_strict_anno_fails(anno, val):
         (Strict[typing.Union[str, int]], "foo"),
         (StrictStrT, "foo"),
     ],
+    ids=get_id,
 )
 def test_strict_anno_passes(anno, val):
     assert transmute(anno, val) == val
@@ -543,6 +568,7 @@ def test_strict_anno_passes(anno, val):
         (strictvaradd, (1, None), {"foo": 3}),
         (strictvaradd, (1, 2), {"foo": b"4"}),
     ],
+    ids=get_id,
 )
 def test_strict_varargs_fails(func, args, kwargs):
     with pytest.raises(ConstraintValueError):
@@ -552,6 +578,7 @@ def test_strict_varargs_fails(func, args, kwargs):
 @pytest.mark.parametrize(
     argnames=("func", "args", "kwargs", "expected"),
     argvalues=[(strictvaradd, (1, 2), {"foo": 3}, 6)],
+    ids=get_id,
 )
 def test_strict_varargs_passes(func, args, kwargs, expected):
     assert func(*args, **kwargs) == expected
@@ -577,6 +604,7 @@ class AddresseMap(dict):
             AddresseMap(foo=NetworkAddress("tcp://foo")),
         ),
     ],
+    ids=get_id,
 )
 def test_transmute_nested_constrained(anno, val, expected):
     c = transmute(anno, val)
@@ -584,22 +612,50 @@ def test_transmute_nested_constrained(anno, val, expected):
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})]
+    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})], ids=get_id,
 )
 def test_validate(t, v):
     assert validate(t, v) == v
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})]
+    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})], ids=get_id,
 )
 def test_validate_transmute(t, v):
     assert validate(t, v, transmute=True) == t(**v)
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": 1}), (TDict, {"a": ""})]
+    argnames="t, v", argvalues=[(Typic, {"var": 1}), (TDict, {"a": ""})], ids=get_id,
 )
 def test_validate_invalid(t, v):
     with pytest.raises(ConstraintValueError):
         validate(t, v)
+
+
+@pytest.mark.parametrize(argnames="target", argvalues=[Alchemy, Pydantic, Typical])
+@pytest.mark.parametrize(
+    argnames="value",
+    argvalues=[Alchemy(bar="bar"), Pydantic(bar="bar"), Typical(bar="bar")],
+    ids=get_id,
+)
+def test_translate(target, value):
+    t = translate(value, target)
+    assert isinstance(t, target)
+
+
+class Cls:
+    ...
+
+
+@pytest.mark.parametrize(
+    argnames="target,value,exc",
+    argvalues=[
+        (Typic, Alchemy(bar="bar"), ValueError),
+        (Cls, Alchemy(bar="bar"), TypeError),
+    ],
+    ids=get_id,
+)
+def test_translate_error(target, value, exc):
+    with pytest.raises(exc):
+        translate(value, target)

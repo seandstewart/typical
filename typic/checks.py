@@ -52,6 +52,7 @@ __all__ = (
     "isenumtype",
     "isfinal",
     "isfromdictclass",
+    "isfrozendataclass",
     "ishashable",
     "isinstance",
     "ismappingtype",
@@ -602,3 +603,14 @@ def isnamedtuple(obj: Type[ObjectT]) -> bool:
     True
     """
     return inspect.isclass(obj) and issubclass(obj, tuple) and hasattr(obj, "_fields")
+
+
+def isproperty(obj) -> bool:
+    return type(obj).__name__ in {"property", "cached_property"}
+
+
+_ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)
+
+
+def issimpleattribute(v) -> bool:
+    return not any(c(v) for c in _ATTR_CHECKS)
