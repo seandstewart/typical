@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import copy
-from operator import attrgetter
-from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic, FrozenSet
 from collections.abc import Hashable
-
-from typic.util import cached_property
+from operator import attrgetter
+from typing import Union, Tuple, List, Any, TypeVar, Mapping, FrozenSet
 
 __all__ = ("FrozenDict", "freeze")
 
@@ -15,7 +12,7 @@ VT = TypeVar("VT", covariant=True)  # Value type.
 _hashgetter = attrgetter("__hash__")
 
 
-class FrozenDict(Generic[KT, VT], dict):
+class FrozenDict(dict):
     """An immutable, hashable mapping.
 
     This inherits directly from the builtin :py:class:`dict`.
@@ -72,16 +69,13 @@ class FrozenDict(Generic[KT, VT], dict):
                 for x, y in {**(dict(__obj or {})), **kwargs}.items()
             }
         )
+        self.__hash = hash(frozenset(self.items()))
 
     def __copy__(self) -> "FrozenDict":
         return type(self)({**self})
 
     def __deepcopy__(self, memodict: dict = None) -> "FrozenDict":
         return type(self)({x: copy.deepcopy(y, memodict) for x, y in self.items()})
-
-    @cached_property
-    def __hash(self) -> int:
-        return hash(frozenset(self.items()))
 
     def __hash__(self) -> int:  # type: ignore
         return self.__hash

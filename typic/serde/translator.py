@@ -12,7 +12,7 @@ from typic.util import (
 )
 
 if TYPE_CHECKING:
-    from .common import Annotation, TranslatorT
+    from .obj import Annotation, TranslatorT
 
 
 class TranslatorTypeError(TypeError):

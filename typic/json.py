@@ -1,4 +1,3 @@
-import functools
 from typing import Callable, Any, AnyStr
 
 dumps: Callable[..., AnyStr]
@@ -13,7 +12,6 @@ try:
 
 except ImportError:  # pragma: nocover
     import json
-    from typic.serde.resolver import resolver
 
-    dumps = functools.partial(json.dumps, default=resolver.primitive)  # type: ignore
+    dumps = json.dumps  # type: ignore
     loads = json.loads

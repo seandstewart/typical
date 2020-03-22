@@ -63,11 +63,10 @@ from typic.api import (
     constrained,
     strict_mode,
     is_strict_mode,
-    StrictStrT,
-    Strict,
     validate,
     translate,
 )
+from typic.generics import Strict, StrictStrT
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
@@ -288,24 +287,23 @@ def test_wrap_class(klass, var, type):
 
 
 @pytest.mark.parametrize(
-    argnames=("obj", "input", "getter", "type", "check"),
+    argnames=("obj", "input", "getter", "type"),
     argvalues=[
-        (func, "1", None, int, inspect.isfunction),
-        (optional, 1, None, str, inspect.isfunction),
-        (optional, None, None, type(None), inspect.isfunction),
-        (Data, 1, attrgetter("foo"), str, inspect.isclass),
-        (DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
-        (Forward, "bar", attrgetter("foo"), FooNum, inspect.isclass),
-        (Frozen, "0", attrgetter("var"), bool, inspect.isclass),
+        (func, "1", None, int),
+        (optional, 1, None, str),
+        (optional, None, None, type(None)),
+        (Data, 1, attrgetter("foo"), str),
+        (DefaultNone, None, attrgetter("none"), type(None)),
+        (Forward, "bar", attrgetter("foo"), FooNum),
+        (Frozen, "0", attrgetter("var"), bool),
     ],
     ids=get_id,
 )
-def test_typed(obj, input, getter, type, check):
+def test_typed(obj, input, getter, type):
     wrapped = typed(obj)
     result = wrapped(input)
     if getter:
         result = getter(result)
-    assert check(wrapped)
     assert isinstance(result, type)
 
 
@@ -377,10 +375,10 @@ def test_register():
 
     def ismycustomclass(obj) -> bool:
         args = set(getattr(obj, "__args__", [obj]))
-        return args.issubset({*MyCustomType.__args__})
+        return args.issubset({MyCustomClass, MyOtherCustomClass})
 
     register(MyCustomClass, ismycustomclass)
-    assert resolver.resolve(MyCustomType).deserializer is MyCustomClass
+    assert resolver.resolve(MyCustomType).deserializer is MyCustomClass  # type: ignore
 
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])

@@ -25,11 +25,11 @@ from typic.common import (
     TYPIC_ANNOS_NAME,
     ObjectT,
     Case,
-    ReadOnly,
 )
 from typic.strict import StrictModeT
 from .binder import Binder
-from .common import (
+from .des import DesFactory
+from .obj import (
     SerializerT,
     SerdeFlags,
     SerdeConfig,
@@ -37,9 +37,8 @@ from .common import (
     SerdeProtocol,
     SerdeProtocolsT,
 )
-from .des import DesFactory
 from .ser import SerFactory
-
+from ..generics import ReadOnly
 
 _T = TypeVar("_T")
 

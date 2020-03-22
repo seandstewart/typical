@@ -1,9 +1,10 @@
 repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.750
-    hooks:
-      - id: mypy
-        exclude: '.*tests/.*|.*docs/.*'
+#  - repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v0.770
+#    hooks:
+#      - id: mypy
+#        exclude: '.*docs/.*'
+#        additional_dependencies: ["typical==2.0.0b23"]
   - repo: https://github.com/ambv/black
     rev: 19.10b0
     hooks:

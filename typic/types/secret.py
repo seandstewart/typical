@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 from typing import Sized, Union
 
 __all__ = ("SecretMixin", "SecretStr", "SecretBytes")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import enum
 import functools
 import inspect
@@ -28,29 +27,29 @@ from typic.checks import (
     issubclass,
     istypeddict,
 )
-from typic.types import dsn, email, frozendict, path, secret, url
+from typic.types import networking, frozendict, path, secret
 from typic.util import origin, get_args, cached_signature, cached_type_hints
-from .array import (
+from .array.obj import (
     Array,
-    FrozenSetConstraints,
     ListContraints,
-    SetContraints,
     TupleContraints,
+    SetContraints,
+    FrozenSetConstraints,
 )
 from .common import MultiConstraints, TypeConstraints, VT
-from .mapping import (
+from .mapping.obj import (
     MappingConstraints,
     DictConstraints,
     ObjectConstraints,
     TypedDictConstraints,
 )
-from .number import (
+from .number.obj import (
     IntContraints,
     FloatContraints,
     DecimalContraints,
     Number,
 )
-from .text import BytesConstraints, StrConstraints
+from .text.obj import BytesConstraints, StrConstraints
 
 
 ConstraintsT = Union[
@@ -200,9 +199,9 @@ def _from_class(
             )
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable)
-    items: Optional[
-        frozendict.FrozenDict[Hashable, ConstraintsT]
-    ] = frozendict.FrozenDict(_resolve_params(**params)) or None
+    items: Optional[Mapping[Hashable, ConstraintsT]] = frozendict.FrozenDict(
+        _resolve_params(**params)
+    ) or None
     total = getattr(t, "__total__", True)
     keys = frozenset(params.keys()) if total else frozenset({})
     kwargs = dict(
@@ -229,17 +228,17 @@ _CONSTRAINT_BUILDER_HANDLERS: Mapping[Type[Any], Callable] = {
     datetime.datetime: _from_strict_type,
     datetime.date: _from_strict_type,
     datetime.time: _from_strict_type,
-    url.NetworkAddress: _from_strict_type,
-    url.URL: _from_strict_type,
-    url.AbsoluteURL: _from_strict_type,
-    url.RelativeURL: _from_strict_type,
-    dsn.DSN: _from_strict_type,
+    networking.NetworkAddress: _from_strict_type,
+    networking.URL: _from_strict_type,
+    networking.AbsoluteURL: _from_strict_type,
+    networking.RelativeURL: _from_strict_type,
+    networking.DSN: _from_strict_type,
     pathlib.Path: _from_strict_type,
     path.FilePath: _from_strict_type,
     path.DirectoryPath: _from_strict_type,
     path.PathType: _from_strict_type,
-    url.HostName: _from_strict_type,
-    email.Email: _from_strict_type,
+    networking.HostName: _from_strict_type,
+    networking.Email: _from_strict_type,
     secret.SecretStr: _from_strict_type,
     secret.SecretBytes: _from_strict_type,
     uuid.UUID: _from_strict_type,

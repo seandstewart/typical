@@ -1,27 +1,35 @@
 import os
-import sys
 
 ext_modules = None
-if (
-    not any(arg in sys.argv for arg in ["clean", "check"])
-    and "SKIP_CYTHON" not in os.environ
-):
+NO_CYTHON = bool(int(os.getenv("NO_CYTHON", "0")))
+CYTHON_TRACE = bool(int(os.getenv("CYTHON_TRACE", "0")))
+CYTHON_NTHREADS = int(os.getenv("CYTHON_NTHREADS", "0"))
+
+if not NO_CYTHON:
     try:
         from Cython.Build import cythonize
-    except ImportError:
-        pass
-    else:
+
         # For cython test coverage install with `make build-cython-trace`
         compiler_directives = {}
-        if "CYTHON_TRACE" in sys.argv:
-            compiler_directives["linetrace"] = True
+        if CYTHON_TRACE:
+            compiler_directives["linetrace"] = CYTHON_TRACE
         os.environ["CFLAGS"] = "-O3"
         ext_modules = cythonize(
-            ["typic/*.py", "typic/*/*.py"],
-            nthreads=int(os.getenv("CYTHON_NTHREADS", 0)),
+            ["typic/*.py", "typic/*/*.py", "typic/*/*/*.py"],
+            exclude=[
+                "typic/generics.py",
+                "typic/gen.py",
+                "typic/obj.py",
+                "typic/*/obj.py",
+                "typic/*/*/obj.py",
+            ],
+            nthreads=CYTHON_NTHREADS,
             language_level=3,
             compiler_directives=compiler_directives,
         )
+
+    except ImportError:
+        pass
 
 
 def build(setup_kwargs):

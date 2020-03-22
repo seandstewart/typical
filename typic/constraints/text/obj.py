@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import dataclasses
-from typing import ClassVar, Type, Pattern, Tuple, Optional, Union, Dict, Any, Text
+from typing import ClassVar, Type, Pattern, Optional, Union, Text
 
-from typic import gen
-from .common import BaseConstraints, ContextT, ChecksT
+from .builder import _build_validator
+from ..common import BaseConstraints
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -20,6 +19,7 @@ class TextConstraints(BaseConstraints):
 
     type: ClassVar[Type[Union[str, bytes]]]
     """The supported text-types."""
+    builder = _build_validator
     strip_whitespace: Optional[bool] = None
     """Whether to strip any whitespace from the input."""
     min_length: Optional[int] = None
@@ -30,27 +30,6 @@ class TextConstraints(BaseConstraints):
     """Whether to cut off characters after the defined length."""
     regex: Optional[Pattern[Text]] = None
     """A regex pattern which the input must match."""
-
-    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
-        # Set up the local env.
-        if self.curtail_length is not None:
-            func.l(f"{self.VAL} = {self.VAL}[:{self.curtail_length}]")
-        if self.strip_whitespace:
-            func.l(f"{self.VAL} = {self.VAL}.strip()")
-        if {self.min_length, self.max_length} != {None, None}:
-            func.l(f"size = len({self.VAL})")
-        # Build the validation.
-        checks = []
-        context: Dict[str, Any] = {}
-        if self.max_length is not None:
-            checks.append(f"size <= {self.max_length}")
-        if self.min_length is not None:
-            checks.append(f"size >= {self.min_length}")
-        if self.regex is not None:
-            context.update(__pattern=self.regex)
-            checks.append(f"__pattern.match({self.VAL})")
-
-        return checks, context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema = dict(

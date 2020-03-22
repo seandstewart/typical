@@ -38,7 +38,7 @@ from typing import (
 
 from typic import util, checks, gen, types
 from typic.common import DEFAULT_ENCODING
-from .common import SerializerT, SerdeConfig, Annotation
+from .obj import SerializerT, SerdeConfig, Annotation
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
@@ -63,6 +63,7 @@ def make_class_serdict(annotation: "Annotation", fields: Mapping[str, Serializer
     return type(name, bases, ns)
 
 
+# noinspection PyArgumentList
 class ClassFieldSerDict(dict):
     instance: Any
     lazy: bool
@@ -142,6 +143,7 @@ def make_kv_serdict(annotation: "Annotation", kser: SerializerT, vser: Serialize
     return type(name, bases, ns)
 
 
+# noinspection PyArgumentList
 class KVSerDict(dict):
     kser: SerializerT
     vser: SerializerT
@@ -249,6 +251,7 @@ class SerList(list):
         return super().__iter__()
 
     def __getitem__(self, item):  # pragma: nocover
+        # noinspection PyStatementEffect
         [*self.__process_iter__()]
         return super().__getitem__(item)
 

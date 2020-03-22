@@ -1,0 +1,107 @@
+name: Test & Lint (Full)
+
+on:
+  push:
+    branches:
+      - master
+      - v2beta-cython
+  pull_request:
+
+jobs:
+  pure-python:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+
+    - name: Install Poetry
+      uses: Gr1N/setup-poetry@v1
+
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ~/.virtualenvs
+        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+
+    - name: Set Poetry config
+      run: |
+        poetry config virtualenvs.in-project false
+        poetry config virtualenvs.path ~/.virtualenvs
+
+    - name: Install Dependencies
+      run: make no-cython
+
+    - name: Lint, Style, Type-check
+      run: |
+        poetry run flake8 typic
+        poetry run black typic tests --check
+        poetry run mypy typic
+
+    - name: Test with pytest
+      run: poetry run pytest tests typic --doctest-modules --cov
+
+  cython:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+
+    - name: Install Poetry
+      uses: Gr1N/setup-poetry@v1
+
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ~/.virtualenvs
+        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+
+    - name: Set Poetry config
+      run: |
+        poetry config virtualenvs.in-project false
+        poetry config virtualenvs.path ~/.virtualenvs
+
+    - name: Install Dependencies
+      run: make trace
+
+    - name: Lint, Style, Type-check
+      run: |
+        poetry run flake8 typic
+        poetry run black typic tests --check
+        poetry run mypy typic
+
+    - name: Test with pytest
+      run: poetry run pytest tests typic --doctest-modules
+      env:
+        PY_IGNORE_IMPORTMISMATCH: 1

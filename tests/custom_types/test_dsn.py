@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import json
 from urllib.parse import quote
 
 import pytest
 
-from typic.types import dsn
+from typic.types.networking import dsn
 
 DSN_RAW = "mysql://foo:bar@foobar.net:3306/db"
 DSN = dsn.DSN(DSN_RAW)

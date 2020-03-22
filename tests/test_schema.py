@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import pytest
 
 from typing import List, Tuple, Set, Union, Mapping, Dict, Any
 
 import typic
 import typic.common
+import typic.generics
 from typic.ext.schema import (
     MultiSchemaField,
     UndeclaredSchemaField,
@@ -65,11 +65,13 @@ def test_typic_objects_schema(obj):
         ),
         (
             objects.LargeInt,
-            typic.IntSchemaField(**objects.LargeInt.__constraints__.for_schema()),
+            typic.IntSchemaField(
+                **objects.LargeInt.__constraints__.for_schema()  # type: ignore
+            ),
         ),
-        (typic.common.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
+        (typic.generics.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
         (Final[str], typic.StrSchemaField(readOnly=True)),
-        (typic.common.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
+        (typic.generics.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
         (
             Union[str, int],
             typic.MultiSchemaField(
@@ -196,7 +198,10 @@ def test_typic_schema(obj, expected):
         ),
         (
             objects.LargeInt,
-            dict(type="integer", **objects.LargeInt.__constraints__.for_schema()),
+            dict(
+                type="integer",
+                **objects.LargeInt.__constraints__.for_schema()  # type: ignore
+            ),
         ),
     ],
 )

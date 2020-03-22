@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import dataclasses
 import enum
 import inspect
 import linecache
 import pathlib
 import uuid
-from typing import List, Union, Type, Tuple, Optional
+from typing import List, Union, Type, Tuple, Optional, Dict, Any
 
 import typic
 
@@ -40,7 +39,7 @@ class Line:
 
 @dataclasses.dataclass
 class Block:
-    namespace: dict = dataclasses.field(default_factory=dict)
+    namespace: Dict[str, Any] = dataclasses.field(default_factory=dict)
     body: List[Union[Line, "Block"]] = dataclasses.field(default_factory=list)
     level: int = 0
     name: Optional[str] = None

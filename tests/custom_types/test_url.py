@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import json
 from urllib.parse import quote
 
 import pytest
 
-from typic.types import url
+from typic.types.networking import url
 
 OREL = "/path;attr=value?query=string#frag"
 REL = f"www.foo.bar{OREL}"

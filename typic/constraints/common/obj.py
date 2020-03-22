@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import abc
 import dataclasses
-import enum
-from inspect import Signature
 from typing import (
-    Callable,
     Any,
     ClassVar,
     Type,
     Tuple,
-    List,
     Dict,
     TypeVar,
     Union,
@@ -22,26 +17,26 @@ from typing import (
 
 from typic import gen, util
 from typic.strict import STRICT_MODE
+from .compiler import (
+    VT,
+    ValidatorT,
+    _compile_validator,
+    InstanceCheck,
+    _get_validator_name,
+    _set_return,
+)
 from .error import ConstraintValueError
-
 
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
-
 
 __all__ = (
     "BaseConstraints",
     "MultiConstraints",
     "TypeConstraints",
-    "ValidatorT",
 )
 
-VT = TypeVar("VT")
-"""A generic type-var for values passed to a validator."""
-ValidatorT = Callable[[VT], Tuple[bool, VT]]
-"""The expected signature of a value validator."""
-ChecksT = List[str]
-ContextT = Dict[str, Any]
+
 _T = TypeVar("_T")
 
 
@@ -71,9 +66,6 @@ class __AbstractConstraints(abc.ABC):
     @util.cached_property
     def type_name(self) -> str:
         return util.get_name(self.type)
-
-    def _get_validator_name(self) -> str:
-        return f"validator_{util.hexhash(self)}"
 
     @util.cached_property
     @abc.abstractmethod
@@ -112,26 +104,6 @@ class __AbstractConstraints(abc.ABC):
         ...
 
 
-class InstanceCheck(enum.IntEnum):
-    """Flags for instance check methods.
-
-    See Also
-    --------
-    :py:class:`~typic.constraints.mapping.MappingConstraints`
-    """
-
-    IS = 0
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is True``.
-
-    Otherwise, perform additional checks to see if we can treat this as valid.
-    """
-    NOT = 1
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is False``.
-
-    Otherwise, we must perform additional checks.
-    """
-
-
 @dataclasses.dataclass(frozen=True, repr=False)  # type: ignore
 class BaseConstraints(__AbstractConstraints):
     """A base constraints object. Shouldn't be used directly.
@@ -162,51 +134,8 @@ class BaseConstraints(__AbstractConstraints):
     VAL = "val"
     VALTNAME = "valtname"
 
-    def _build_validator(
-        self, func: gen.Block
-    ) -> Tuple[ChecksT, ContextT]:  # pragma: nocover
-        raise NotImplementedError
-
-    def _set_return(self, func: gen.Block, checks: ChecksT, context: ContextT):
-        if checks:
-            check = " and ".join(checks)
-            func.l(f"valid = {check}", **context)
-            func.l(f"return valid, {self.VAL}")
-        else:
-            func.l(f"return True, {self.VAL}", **context)
-
-    def _compile_validator(self) -> ValidatorT:
-        func_name = self._get_validator_name()
-        origin = util.origin(self.type)
-        type_name = self.type_name
-        with gen.Block() as main:
-            with main.f(func_name, main.param(self.VAL)) as f:
-                # This is a signal that -*-anything can happen...-*-
-                if origin in {Any, Signature.empty}:
-                    f.l(f"return True, {self.VAL}")
-                    return main.compile(name=func_name)
-                f.l(f"{self.VALTNAME} = {type_name!r}")
-                # Short-circuit validation if the value isn't the correct type.
-                if self.instancecheck == InstanceCheck.IS:
-                    line = f"if isinstance({self.VAL}, {type_name}):"
-                    if self.nullable:
-                        line = (
-                            f"if {self.VAL} is None "
-                            f"or isinstance({self.VAL}, {type_name}):"
-                        )
-                    with f.b(line, **{type_name: self.type}) as b:  # type: ignore
-                        b.l(f"return True, {self.VAL}")
-                else:
-                    if self.nullable:
-                        with f.b(f"if {self.VAL} is None:") as b:
-                            b.l(f"return True, {self.VAL}")
-                    line = f"if not isinstance(val, {type_name}):"
-                    with f.b(line, **{type_name: self.type}) as b:  # type: ignore
-                        b.l(f"return False, {self.VAL}")
-                checks, context = self._build_validator(f)
-                # Write the line.
-                self._set_return(func=f, checks=checks, context=context)
-        return main.compile(name=func_name)
+    builder = NotImplemented
+    _returner = _set_return
 
     @util.cached_property
     def validator(self) -> ValidatorT:
@@ -218,8 +147,7 @@ class BaseConstraints(__AbstractConstraints):
         that the validator performs are the checks that were set. There is no
         computation time wasted on deciding whether or not to perform a validation.
         """
-        validator = self._compile_validator()
-        return validator
+        return _compile_validator(self)
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -332,7 +260,7 @@ class TypeConstraints(__AbstractConstraints):
     @util.cached_property
     def validator(self) -> ValidatorT:
         ns = dict(__t=self.type, VT=VT)
-        func_name = self._get_validator_name()
+        func_name = _get_validator_name(self)
         with gen.Block(ns) as main:
             with main.f(func_name, main.param("value", annotation="VT")) as f:
                 # Standard instancecheck is default.

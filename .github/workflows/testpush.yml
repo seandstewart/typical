@@ -1,13 +1,14 @@
-name: Test & Lint
+name: Test & Lint (Push)
 
 on: [push]
 
 jobs:
-  build:
+  pure-python:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.7, 3.8]
 
     steps:
@@ -22,16 +23,16 @@ jobs:
       run: python -c "import sys; print(sys.version)"
 
     - name: Install Poetry
-      uses: dschep/install-poetry-action@v1.2
+      uses: Gr1N/setup-poetry@v1
 
     - name: Cache Poetry virtualenv
       uses: actions/cache@v1
       id: cache
       with:
         path: ~/.virtualenvs
-        key: poetry-${{ hashFiles('**/poetry.lock') }}
+        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          poetry-${{ hashFiles('**/poetry.lock') }}
+          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
@@ -39,19 +40,16 @@ jobs:
         poetry config virtualenvs.path ~/.virtualenvs
 
     - name: Install Dependencies
-      run: poetry install
+      run: make no-cython
 
-    - name: Lint with flake8
-      run: "poetry run flake8 ."
-
-    - name: Check Formatting with Black
-      run: "poetry run black . --check"
-
-    - name: Static type-check with MyPy
-      run: "poetry run mypy typic --ignore-missing-imports"
+    - name: Lint, Style, Type-check
+      run: |
+        poetry run flake8 typic
+        poetry run black typic tests --check
+        poetry run mypy typic
 
     - name: Test with pytest
-      run: "poetry run pytest tests typic --doctest-modules --cov --cov-report xml"
+      run: poetry run pytest tests typic --doctest-modules --cov --cov-report xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1

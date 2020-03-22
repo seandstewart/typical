@@ -1,14 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import copy
 import dataclasses
-import datetime
 import decimal
 import enum
-import ipaddress
-import pathlib
-import re
-import uuid
 from typing import (
     ClassVar,
     Collection,
@@ -18,20 +12,14 @@ from typing import (
     Union,
     Callable,
     Tuple,
-    Type,
     Pattern,
-    AnyStr,
     Optional,
-    Text,
 )
 
-import pendulum
-
-from typic.ext.json import dumps
-from typic.serde.common import SerdeFlags
+from typic.json import dumps
+from typic.serde.obj import SerdeFlags
 from typic.serde.resolver import resolver
 from typic.util import filtered_repr, cached_property
-from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
 __all__ = (
@@ -49,7 +37,6 @@ __all__ = (
     "StringFormat",
     "StrSchemaField",
     "UndeclaredSchemaField",
-    "get_field_type",
 )
 
 
@@ -120,7 +107,7 @@ class BaseSchemaField:
     examples: Optional[List[Any]] = None
     readOnly: Optional[bool] = None
     writeOnly: Optional[bool] = None
-    extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
+    extensions: Optional[Tuple[Mapping[str, Any], ...]] = None
 
     def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
         return resolver.primitive(self, lazy=lazy)
@@ -279,7 +266,7 @@ class ObjectSchemaField(BaseSchemaField):
     propertyNames: Optional[Mapping[str, Pattern]] = None
     patternProperties: Optional[Mapping[Pattern, Any]] = None
     dependencies: Optional[Mapping[str, Union[Tuple[str], Any]]] = None
-    definitions: Optional[frozendict.FrozenDict[str, Any]] = None
+    definitions: Optional[Mapping[str, Any]] = None
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -312,64 +299,3 @@ SchemaFieldT = Union[
     NullSchemaField,
 ]
 """A type-alias for the defined JSON Schema Fields."""
-
-
-TYPE_TO_FIELD: Mapping[SchemaType, Type[SchemaFieldT]] = {
-    SchemaType.ARR: ArraySchemaField,
-    SchemaType.BOOL: BooleanSchemaField,
-    SchemaType.INT: IntSchemaField,
-    SchemaType.NUM: NumberSchemaField,
-    SchemaType.OBJ: ObjectSchemaField,
-    SchemaType.STR: StrSchemaField,
-}
-
-
-def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]:
-    if type is None:
-        return MultiSchemaField
-    if type is NotImplemented:
-        return UndeclaredSchemaField
-    return TYPE_TO_FIELD[type]
-
-
-SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.FrozenDict(
-    {
-        str: StrSchemaField(),
-        AnyStr: StrSchemaField(),
-        Text: StrSchemaField(),
-        bytes: StrSchemaField(),
-        int: IntSchemaField(),
-        bool: BooleanSchemaField(),
-        float: NumberSchemaField(),
-        list: ArraySchemaField(),
-        set: ArraySchemaField(uniqueItems=True),
-        tuple: ArraySchemaField(additionalItems=False),
-        frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
-        dict: ObjectSchemaField(),
-        object: UndeclaredSchemaField(),
-        frozendict.FrozenDict: ObjectSchemaField(),
-        decimal.Decimal: NumberSchemaField(),
-        datetime.datetime: StrSchemaField(format=StringFormat.DTIME),
-        pendulum.DateTime: StrSchemaField(format=StringFormat.DTIME),
-        datetime.date: StrSchemaField(format=StringFormat.DATE),
-        pendulum.Date: StrSchemaField(format=StringFormat.DATE),
-        datetime.time: StrSchemaField(format=StringFormat.TIME),
-        url.URL: StrSchemaField(format=StringFormat.URI),
-        url.AbsoluteURL: StrSchemaField(format=StringFormat.URI),
-        url.RelativeURL: StrSchemaField(format=StringFormat.URI),
-        dsn.DSN: StrSchemaField(format=StringFormat.URI),
-        pathlib.Path: StrSchemaField(format=StringFormat.URI),
-        path.FilePath: StrSchemaField(format=StringFormat.URI),
-        path.DirectoryPath: StrSchemaField(format=StringFormat.URI),
-        path.PathType: StrSchemaField(format=StringFormat.URI),
-        url.HostName: StrSchemaField(format=StringFormat.HNAME),
-        email.Email: StrSchemaField(format=StringFormat.EMAIL),
-        secret.SecretStr: StrSchemaField(),
-        secret.SecretBytes: StrSchemaField(),
-        uuid.UUID: StrSchemaField(format=StringFormat.UUID),
-        re.Pattern: StrSchemaField(format=StringFormat.RE),  # type: ignore
-        ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
-        ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
-        type(None): NullSchemaField(),
-    }
-)

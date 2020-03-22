@@ -1,7 +1,7 @@
 import pytest
 
 from typic.constraints.common import TypeConstraints
-from typic.constraints.error import ConstraintValueError
+from typic.constraints.common.error import ConstraintValueError
 from typic.strict import STRICT_MODE
 
 

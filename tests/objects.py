@@ -4,6 +4,8 @@ import datetime
 import enum
 import typing
 
+import typic.generics
+
 try:
     from typing_extensions import TypedDict
 except ImportError:
@@ -233,7 +235,7 @@ ntup = collections.namedtuple("ntup", ["a"])
 Base = declarative_base()
 
 
-class Alchemy(Base):
+class Alchemy(Base):  # type: ignore
     __tablename__ = "alchemy"
     id = sqlalchemy.Column(sqlalchemy.BigInteger, primary_key=True, autoincrement=True)
     bar = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
@@ -247,7 +249,7 @@ class Pydantic(pydantic.BaseModel):
 @typic.klass
 class Typical:
     bar: str
-    id: typing.Optional[typic.ReadOnly[int]] = None
+    id: typing.Optional[typic.generics.ReadOnly[int]] = None
 
 
 TYPIC_OBJECTS = [

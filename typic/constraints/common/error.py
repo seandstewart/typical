@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-
-
 class ConstraintSyntaxError(SyntaxError):
     """A generic error indicating an improperly defined constraint."""
 

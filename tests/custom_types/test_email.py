@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import json
 from urllib.parse import quote
 
 import pytest
 
-from typic.types import email
+from typic.types.networking import email
 
 EMAIL_RAW = "foo.bar@foobar.net"
 EMAIL = email.Email(EMAIL_RAW)

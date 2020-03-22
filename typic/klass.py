@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import dataclasses
 from types import MappingProxyType
 from typing import (
@@ -17,7 +16,7 @@ from typing import (
 
 from typic.api import wrap_cls, ObjectT
 from typic.types import freeze
-from .serde.common import SerdeFlags
+from .serde.obj import SerdeFlags
 
 _field_slots: Tuple[str, ...] = cast(Tuple[str, ...], dataclasses.Field.__slots__) + (
     "exclude",

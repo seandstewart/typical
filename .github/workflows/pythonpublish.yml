@@ -5,17 +5,66 @@ on:
     types: [created]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+
+  build-wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python-${{ matrix.python-version }} (Platform ${{ matrix.os }})
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry (Platform ${{ matrix.os }})
+        uses: Gr1N/setup-poetry@v1
+      - name: Build ${{ matrix.os }} binaries
+        run: poetry build
+      - name: Store dist artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: typical-dist
+          path: dist
+
+  build-sdist:
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - uses: dschep/install-poetry-action@v1.2
-    - name: Build and publish
-      run: poetry publish -u $PYPI_USERNAME -p $PYPI_PASSWORD --build
+    - name: Install Poetry
+      uses: Gr1N/setup-poetry@v1
+    - name: Build sdist
+      run: poetry build -f sdist
+      env:
+        NO_CYTHON: 1
+    - name: Store dist artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: typical-dist
+        path: dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-wheels, build-sdist]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Download distribution artifact
+      uses: actions/download-artifact@master
+      with:
+        name: typical-dist
+        path: dist
+    - name: Install Poetry
+      uses: Gr1N/setup-poetry@v1
+    - name: Publish to PyPI
+      run: poetry publish -u $PYPI_USERNAME -p $PYPI_PASSWORD
       env:
         PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}

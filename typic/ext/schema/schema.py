@@ -1,7 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import dataclasses
+import datetime
+import decimal
 import enum
+import ipaddress
+import pathlib
+import re
+import uuid
 from typing import (
     Union,
     Type,
@@ -12,33 +17,102 @@ from typing import (
     List,
     Generic,
     cast,
-    Iterable,
     Set,
+    AnyStr,
+    Text,
+    Tuple,
+    MutableMapping,
 )
 
 import inflection  # type: ignore
+import pendulum
 
-from typic.common import ReadOnly, WriteOnly
-from typic.serde.resolver import resolver
-from typic.serde.common import SerdeProtocol, Annotation
 from typic.compat import Final, TypedDict
-from typic.util import get_args, origin
+from typic.generics import ReadOnly, WriteOnly
+from typic.serde.obj import SerdeProtocol, Annotation
+from typic.serde.resolver import resolver
+from typic.types import networking, secret, path
 from typic.types.frozendict import FrozenDict
-
-from .field import (  # type: ignore
+from typic.util import get_args, origin
+from .obj import (  # type: ignore
     MultiSchemaField,
     ObjectSchemaField,
     UndeclaredSchemaField,
     Ref,
     SchemaFieldT,
-    SCHEMA_FIELD_FORMATS,
-    get_field_type,
     SchemaType,
+    ArraySchemaField,
+    BooleanSchemaField,
+    IntSchemaField,
+    NumberSchemaField,
+    StrSchemaField,
+    StringFormat,
+    NullSchemaField,
 )
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
 
-__all__ = ("SchemaBuilder", "SchemaDefinitions", "builder")
+__all__ = ("SchemaBuilder", "SchemaDefinitions", "builder", "get_field_type")
+
+TYPE_TO_FIELD: Mapping[SchemaType, Type[SchemaFieldT]] = {
+    SchemaType.ARR: ArraySchemaField,
+    SchemaType.BOOL: BooleanSchemaField,
+    SchemaType.INT: IntSchemaField,
+    SchemaType.NUM: NumberSchemaField,
+    SchemaType.OBJ: ObjectSchemaField,
+    SchemaType.STR: StrSchemaField,
+}
+
+
+def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]:
+    if type is None:
+        return MultiSchemaField
+    if type is NotImplemented:
+        return UndeclaredSchemaField
+    return TYPE_TO_FIELD[type]
+
+
+SCHEMA_FIELD_FORMATS: Mapping[type, SchemaFieldT] = FrozenDict(
+    {
+        str: StrSchemaField(),
+        AnyStr: StrSchemaField(),
+        Text: StrSchemaField(),
+        bytes: StrSchemaField(),
+        int: IntSchemaField(),
+        bool: BooleanSchemaField(),
+        float: NumberSchemaField(),
+        list: ArraySchemaField(),
+        set: ArraySchemaField(uniqueItems=True),
+        tuple: ArraySchemaField(additionalItems=False),
+        frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
+        dict: ObjectSchemaField(),
+        object: UndeclaredSchemaField(),
+        FrozenDict: ObjectSchemaField(),
+        decimal.Decimal: NumberSchemaField(),
+        datetime.datetime: StrSchemaField(format=StringFormat.DTIME),
+        pendulum.DateTime: StrSchemaField(format=StringFormat.DTIME),
+        datetime.date: StrSchemaField(format=StringFormat.DATE),
+        pendulum.Date: StrSchemaField(format=StringFormat.DATE),
+        datetime.time: StrSchemaField(format=StringFormat.TIME),
+        networking.URL: StrSchemaField(format=StringFormat.URI),
+        networking.AbsoluteURL: StrSchemaField(format=StringFormat.URI),
+        networking.RelativeURL: StrSchemaField(format=StringFormat.URI),
+        networking.DSN: StrSchemaField(format=StringFormat.URI),
+        pathlib.Path: StrSchemaField(format=StringFormat.URI),
+        path.FilePath: StrSchemaField(format=StringFormat.URI),
+        path.DirectoryPath: StrSchemaField(format=StringFormat.URI),
+        path.PathType: StrSchemaField(format=StringFormat.URI),
+        networking.HostName: StrSchemaField(format=StringFormat.HNAME),
+        networking.Email: StrSchemaField(format=StringFormat.EMAIL),
+        secret.SecretStr: StrSchemaField(),
+        secret.SecretBytes: StrSchemaField(),
+        uuid.UUID: StrSchemaField(format=StringFormat.UUID),
+        re.Pattern: StrSchemaField(format=StringFormat.RE),  # type: ignore
+        ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
+        ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
+        type(None): NullSchemaField(),
+    }
+)
 
 
 class SchemaDefinitions(TypedDict):
@@ -64,12 +138,14 @@ class SchemaBuilder:
     def __init__(self):
         self.__cache = {}
 
-    def _handle_mapping(self, anno: Annotation, constraints: dict, *, name: str = None):
+    def _handle_mapping(
+        self, anno: Annotation, constraints: dict, fields: dict, *, name: str = None
+    ):
         args = anno.args
-        constraints["title"] = self.defname(anno.resolved, name=name)
+        fields["title"] = self.defname(anno.resolved, name=name)
         doc = getattr(anno.resolved, "__doc__", None)
         if doc not in _IGNORE_DOCS:
-            constraints["description"] = doc
+            fields["description"] = doc
         field: Optional[SchemaFieldT] = None
         if args:
             field = self.get_field(resolver.resolve(args[-1]))
@@ -85,33 +161,40 @@ class SchemaBuilder:
                             get_field_type(x.pop("type"))(**x) for x in other[k]
                         )
                 field = dataclasses.replace(field, **other)
-        constraints["additionalProperties"] = field
+        fields["additionalProperties"] = field
 
-    def _handle_array(self, anno: Annotation, constraints: dict):
+    def _handle_array(self, anno: Annotation, constraints: dict, fields: dict):
         args = anno.args
         has_ellipsis = args[-1] is Ellipsis if args else False
         if has_ellipsis:
             args = args[:-1]
+        items: Optional["SchemaFieldT"] = None
         if "items" in constraints:
-            items: dict = constraints["items"]
-            multi_keys: Set[str] = {"oneOf", "anyOf", "allOf"} & items.keys()
+            citems = constraints["items"]
+            multi_keys: Set[str] = {"oneOf", "anyOf", "allOf"} & citems.keys()
             if multi_keys:
-                for k in multi_keys:
-                    items[k] = tuple(
-                        get_field_type(x.pop("type"))(**x) for x in items[k]
+                items_fields: MutableMapping[str, Optional[Tuple]] = dict.fromkeys(
+                    multi_keys
+                )
+                k: str
+                for k in items_fields:
+                    items_fields[k] = (
+                        *(get_field_type(x.pop("type"))(**x) for x in citems[k]),
                     )
-                    constraints["items"] = MultiSchemaField(**items)
+                items = MultiSchemaField(**items_fields)
             else:
-                constraints["items"] = get_field_type(items.pop("type"))(**items)
+                items = get_field_type(citems.pop("type"))(**citems)
         if args:
-            constrs = set(self.get_field(resolver.resolve(x)) for x in args)
-            items = constraints.get("items", ())
-            constrs = constrs | ({*items} if isinstance(items, Iterable) else {items})
-            constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
+            constrs = {*(self.get_field(resolver.resolve(x)) for x in args)}
+            if items:
+                constrs.add(items)
+            fields["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
             if anno.origin in {tuple, frozenset}:
-                constraints["additionalItems"] = False if not has_ellipsis else None
+                fields["additionalItems"] = False if not has_ellipsis else None
             if anno.origin in {set, frozenset}:
-                constraints["uniqueItems"] = True
+                fields["uniqueItems"] = True
+        elif items:
+            fields["items"] = items
 
     def get_field(
         self,
@@ -179,18 +262,26 @@ class SchemaBuilder:
 
         # If we've got a base object, use it
         if use in formats:
-            constraints = (
+            constraints: dict = (
                 protocol.constraints.for_schema() if protocol.constraints else {}
             )
-            constraints.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
+            fields: dict = {
+                "enum": enum_,
+                "default": default,
+                "readOnly": ro,
+                "writeOnly": wo,
+            }
             # `use` should always be a dict if the annotation is a Mapping,
             # thanks to `origin()` & `resolve()`.
             if use is dict:
-                self._handle_mapping(anno, constraints, name=name)
+                self._handle_mapping(anno, constraints, fields, name=name)
             elif use in {tuple, set, frozenset, list}:
-                self._handle_array(anno, constraints)
+                self._handle_array(anno, constraints, fields)
+            fields.update(
+                {x: constraints[x] for x in constraints.keys() - fields.keys()}
+            )
             base: SchemaFieldT = formats[use]
-            schema = dataclasses.replace(base, **constraints)
+            schema = dataclasses.replace(base, **fields)
         else:
             schema = self.build_schema(use, name=self.defname(use, name=name))
 

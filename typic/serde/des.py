@@ -23,10 +23,10 @@ from typing import (
 from pendulum import parse as dateparse
 
 from typic import checks, gen, constraints as const
+from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from typic.strict import STRICT_MODE
 from typic.util import safe_eval, hexhash, origin as get_origin, cached_issubclass
-from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
-from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
+from .obj import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver

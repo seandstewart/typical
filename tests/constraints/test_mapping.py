@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import dataclasses
 import re
 from typing import Type
@@ -15,7 +14,7 @@ from typic.constraints import (
 )
 from typic.types import FrozenDict
 
-EMPTY = {}
+EMPTY: dict = {}
 FOO = {"foo": 1}
 BAR = {"bar": 2}
 FOOBAR = {"foo": 1, "bar": 2}

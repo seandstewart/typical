@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 import ast
 import collections
 import dataclasses
@@ -23,7 +22,7 @@ from typing import (
 )
 
 import typic.checks as checks
-from typic.ext import json
+import typic.json as json
 
 __all__ = (
     "cached_issubclass",
