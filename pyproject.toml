@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.0b23"
+version = "2.0.0rc1"
 description = "Typical: Take Typing Further."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -23,8 +23,9 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-include = ["README.md", "LICENSE"]
-exclude = ["tests", "docs", "docsrc", "benchmark"]
+include = ["README.md", "LICENSE", "typic/py.typed"]
+exclude = ["tests", "docs", "benchmark"]
+build = "build.py"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -53,11 +54,12 @@ mypy = "^0.761"
 ujson = "^2.0.2"
 sqlalchemy = "^1.3.13"
 sqlalchemy-stubs = "^0.3"
+Cython = "^0.29.15"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
 json = ["ujson"]
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=0.12", "Cython>=0.29.15"]
 build-backend = "poetry.masonry.api"
