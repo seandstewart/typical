@@ -1,3 +1,9 @@
+**v2.0.0b24**
+Features:
+- Lazy serialization for faster JSON serialization of containers.
+- `tojson` method and high-level functional equivalent. 
+  [Docs](https://python-typical.org/usage/advanced)
+
 **v2.0.0b23**
 Bugfixes:
 - Proper validation of varargs in Strict-Mode (#45)
