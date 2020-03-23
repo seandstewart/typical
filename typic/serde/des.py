@@ -128,14 +128,29 @@ class DesFactory:
     ):
         origin = get_origin(annotation.resolved)
         if issubclass(origin, datetime.datetime):
-            with func.b(f"if issubclass({self.VTYPE}, datetime.date):") as b:
+            with func.b(f"if issubclass({self.VTYPE}, datetime):") as b:
+                b.l(
+                    f"{self.VNAME} = "
+                    f"{anno_name}("
+                    f"{self.VNAME}.year, "
+                    f"{self.VNAME}.month, "
+                    f"{self.VNAME}.day,"
+                    f"{self.VNAME}.hour,"
+                    f"{self.VNAME}.minute,"
+                    f"{self.VNAME}.second,"
+                    f"{self.VNAME}.microsecond,"
+                    f"{self.VNAME}.tzinfo,"
+                    f")",
+                    datetime=datetime.datetime,
+                )
+            with func.b(f"elif issubclass({self.VTYPE}, date):") as b:
                 b.l(
                     f"{self.VNAME} = "
                     f"{anno_name}("
                     f"{self.VNAME}.year, "
                     f"{self.VNAME}.month, "
                     f"{self.VNAME}.day)",
-                    datetime=datetime,
+                    date=datetime.date,
                 )
         elif issubclass(origin, datetime.date):
             with func.b(f"if issubclass({self.VTYPE}, datetime.datetime):") as b:
