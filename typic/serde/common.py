@@ -196,9 +196,13 @@ class SerdeProtocol:
             indent: int = 0,
             ensure_ascii: bool = False,
             __prim=self.primitive,
+            **kwargs,
         ) -> str:
             return json.dumps(
-                __prim(val, lazy=True), indent=indent, ensure_ascii=ensure_ascii
+                __prim(val, lazy=True),
+                indent=indent,
+                ensure_ascii=ensure_ascii,
+                **kwargs,
             )
 
         self.tojson = _json

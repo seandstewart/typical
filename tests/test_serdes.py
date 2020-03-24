@@ -4,9 +4,10 @@ import datetime
 import decimal
 import enum
 import ipaddress
+import json
 import re
 from types import MappingProxyType
-from typing import ClassVar, Optional, Dict, TypeVar, Generic
+from typing import ClassVar, Optional, Dict, TypeVar, Generic, List
 
 import pytest
 
@@ -180,3 +181,33 @@ def test_serde_serializer(t, obj, prim):
 def test_serde_deserializer(t, obj, prim):
     r = typic.resolver.resolve(t)
     assert r.deserializer(prim) == obj
+
+
+@typic.klass
+class Foo:
+    bar: str
+    id: typic.ReadOnly[int] = None
+
+
+@typic.klass
+class Bar:
+    foos: List[Foo]
+
+
+@pytest.mark.parametrize(
+    argnames=("obj", "expected"),
+    argvalues=[
+        (None, "null"),
+        (MultiNum.INT, "1"),
+        (MultiNum.STR, '"str"'),
+        ({objects.FooNum.bar: objects.Typic(var="foo")}, '{"bar":{"var":"foo"}}',),
+        ([typic.URL("foo")], '["foo"]'),
+        (Omit(), '{"bar":"foo"}'),
+        (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
+    ],
+)
+def test_tojson(obj, expected):
+    native = (
+        json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
+    )
+    assert typic.tojson(obj) == native == expected

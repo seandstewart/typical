@@ -212,7 +212,9 @@ class Resolver:
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.primitive(obj, lazy=lazy)
 
-    def tojson(self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False) -> str:
+    def tojson(
+        self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
+    ) -> str:
         """A method for dumping any object to a valid JSON string.
 
         Notes
@@ -261,7 +263,7 @@ class Resolver:
             obj = obj.value
             t = type(obj)
         proto: SerdeProtocol = self._get_serializer_proto(t)
-        return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii)
+        return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
     @functools.lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
@@ -270,8 +272,8 @@ class Resolver:
         # Get all the annotated fields
         params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
-        fields = {
-            x: self.annotation(y, flags=flags)
+        fields: Mapping[str, Annotation] = {
+            x: self.annotation(y, flags=flags, default=getattr(origin, x, EMPTY))
             for x, y in util.cached_type_hints(origin).items()
         }
         # Filter out any annotations which aren't part of the object's signature.
@@ -294,12 +296,14 @@ class Resolver:
         # Omit fields with explicitly omitted types & flag values to omit at dump
         value_omissions: Tuple[Any, ...] = ()
         if omit:
-            type_omissions = {o for o in omit if checks._type_check(o)}
+            type_omissions = {
+                o for o in omit if checks._type_check(o) or o is NotImplemented
+            }
             value_omissions = (*(o for o in omit if o not in type_omissions),)
             fields_out = {
                 x: y
                 for x, y in fields_out.items()
-                if fields[x].origin not in type_omissions
+                if not {fields[x].origin, fields[x].parameter.default} & type_omissions
             }
         fields_in = {y: x for x, y in fields_out.items()}
         if params:
@@ -325,6 +329,7 @@ class Resolver:
         is_optional: bool = None,
         is_strict: StrictModeT = None,
         flags: "SerdeFlags" = None,
+        default: Any = EMPTY,
     ) -> Annotation:
         """Get a :py:class:`Annotation` for this type.
 
@@ -339,6 +344,7 @@ class Resolver:
                 name or "_",
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 annotation=annotation,
+                default=default,
             )
         # Check for the super-type
         non_super = util.resolve_supertype(annotation)

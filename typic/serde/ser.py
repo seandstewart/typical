@@ -7,7 +7,6 @@ import ipaddress
 import pathlib
 import re
 import uuid
-from collections import deque
 from collections.abc import (
     Mapping as Mapping_abc,
     Collection as Collection_abc,
@@ -32,7 +31,6 @@ from typing import (
     ItemsView,
     KeysView,
     ValuesView,
-    Deque,
     Dict,
 )
 
@@ -63,6 +61,14 @@ def make_class_serdict(annotation: "Annotation", fields: Mapping[str, Serializer
     return type(name, bases, ns)
 
 
+class _Unprocessed:
+    def __repr__(self):
+        return "<unprocessed>"
+
+
+Unprocessed = _Unprocessed()
+
+
 class ClassFieldSerDict(dict):
     instance: Any
     lazy: bool
@@ -70,55 +76,44 @@ class ClassFieldSerDict(dict):
     fields: Mapping[str, SerializerT]
     fields_out: Mapping[str, str]
     omit: Iterable[Any]
-    _unprocessed: Deque[str]
 
     def __init__(self, instance: Any, lazy: bool = False):
-        super().__init__({})
-        self._unprocessed = deque(self.fields_out)
         self.instance = instance
         self.lazy = lazy
+        super().__init__(((x, Unprocessed) for x in self.fields_out))
 
     def __hash__(self):  # pragma: nocover
         h = getattr(self.instance, "__hash__", None)
         return h() if h else None
 
-    def __process_iter__(self):
-        _up = self._unprocessed
-        _uppop = self._unprocessed.popleft
-        _f = self.fields
-        _fget = _f.__getitem__
-        _foutget = self.fields_out.__getitem__
-        _omit = self.omit
-        _inst = self.instance
-        _gettersget = self.getters.__getitem__
-        _lazy = self.lazy
-        setitem = super().__setitem__
-        while _up:
-            name = _uppop()
-            getter = _gettersget(name)
-            value = getter(_inst)
-            if value in _omit:
-                continue
-            ser = _fget(name)
-            name = _foutget(name)
-            setitem(name, ser(value, lazy=_lazy))
-            yield name
-
     def __iter__(self):
-        yield from super().__iter__()
-        if self._unprocessed:
-            yield from self.__process_iter__()
+        removals = {}
+        pop = self.pop
+        omits = self.omit
+        fieldsoutget = self.fields_out.get
+        for k in super().__iter__():
+            v = self[k]
+            if v in omits:
+                removals[k] = None
+                continue
+            newk = fieldsoutget(k, k)
+            if newk != k:
+                removals[k] = newk
+                k = newk
+            yield k
+        for k, newk in removals.items():
+            v = pop(k)
+            if newk is not None:
+                self[newk] = v
 
     def __getitem__(self, item):
-        if item in self._unprocessed:  # pragma: nocover
-            ser = self.fields[item]
-            getter = self.getters[item]
-            v = ser(getter(self.instance), lazy=self.lazy)
-            self._unprocessed.remove(item)
-            item = self.fields_out.get(item, item)
-            self[item] = v
-            return v
-        return super().__getitem__(item)
+        value = super().__getitem__(item)
+        if value is Unprocessed:
+            raw = self.getters[item](self.instance)
+            serialized = self.fields[item](raw, lazy=self.lazy)
+            self[item] = serialized
+            return serialized
+        return value
 
     def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
         return ItemsView(self)  # type: ignore
@@ -147,46 +142,40 @@ class KVSerDict(dict):
     vser: SerializerT
     lazy: bool
     omit: Iterable[Any]
-    _unprocessed: Dict[str, Any]
 
     def __init__(self, seq=None, *, lazy: bool = False, **kwargs):
-        super().__init__({})
-        self._unprocessed = {**(seq or {}), **kwargs}
+        self._unprocessed = dict(seq, **kwargs)
+        super().__init__(((k, Unprocessed) for k in self._unprocessed))
         self.lazy = lazy
 
-    def __process_iter__(self):
-        _up = self._unprocessed
+    def __iter__(self):
         _kser = self.kser
-        _vser = self.vser
+        _unproc = self._unprocessed
+        _unprocpop = _unproc.pop
         _omit = self.omit
-        _lazy = self.lazy
-        popitem = self._unprocessed.popitem
-        setitem = super().__setitem__
-        while _up:
-            k, v = popitem()
-            if v in _omit:
+        pop = self.pop
+        removals = {}
+        for k in super().__iter__():
+            if self[k] in _omit:
+                removals[k] = None
                 continue
-            k, v = _kser(k), _vser(v, lazy=_lazy)
-            setitem(k, v)
-            yield k
+            newk = _kser(k)
+            if newk != k:
+                removals[k] = newk
+                _unproc[newk] = _unprocpop(k)
+            yield newk
+        for k, newk in removals.items():
+            v = pop(k)
+            if newk is not None:
+                self[newk] = v
 
     def __getitem__(self, item) -> VT:
-        if item in self._unprocessed:  # pragma: nocover
-            item, v = (
-                self.kser(item),  # type: ignore
-                self.vser(self._unprocessed.pop(item), lazy=self.lazy),  # type: ignore
-            )
-            self[item] = v
-            return v
-        return super().__getitem__(item)
-
-    def __setitem__(self, key, value):  # pragma: nocover
-        self._unprocessed[key] = value
-
-    def __iter__(self):
-        yield from super().__iter__()
-        if self._unprocessed:
-            yield from self.__process_iter__()
+        value = super().__getitem__(item)
+        if value is Unprocessed:
+            newv = self.vser(self._unprocessed[item], lazy=self.lazy)  # type: ignore
+            self[item] = newv
+            return newv
+        return value
 
     def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
         return ItemsView(self)  # type: ignore
@@ -213,47 +202,11 @@ class SerList(list):
     serializer: SerializerT
     omit: Iterable[Any]
     lazy: bool
-    _unprocessed: Deque[Any]
 
     def __init__(self, seq=(), *, lazy: bool = False):
         self.lazy = lazy
-        self._unprocessed = deque(seq)
-        super().__init__(seq)
-
-    def __process_iter__(self):
-        _up = self._unprocessed
-        _uppop = _up.popleft
-        _s = self.serializer
-        _omit = self.omit
-        _lazy = self.lazy
-        setitem = super().__setitem__
-        ix = 0
-        remove = super().remove
-        removals = set()
-        remadd = removals.add
-        while _up:
-            v = _uppop()
-            if v in _omit:
-                remadd(v)
-                continue
-            v = _s(v, lazy=_lazy)
-            setitem(ix, v)
-            yield v
-            ix += 1
-        for v in removals:
-            remove(v)
-
-    def __iter__(self):
-        if self._unprocessed:
-            return self.__process_iter__()
-        return super().__iter__()
-
-    def __getitem__(self, item):  # pragma: nocover
-        [*self.__process_iter__()]
-        return super().__getitem__(item)
-
-    def __len__(self):
-        return len(self._unprocessed) + super().__len__()
+        ser = self.serializer
+        super().__init__((ser(x, lazy=lazy) for x in seq))  # type: ignore
 
     def __setitem__(self, key, value):  # pragma: nocover
         super().__setitem__(key, self.serializer(value, lazy=self.lazy))
@@ -351,8 +304,7 @@ class SerFactory:
             serlist_name = serlist.__name__
 
             ns = {serlist_name: serlist, arg_ser_name: arg_ser}
-            func.l(f"l = {serlist_name}(o, lazy=lazy)")
-            line = f"l if lazy else [*l]"
+            line = f"{serlist_name}(o, lazy=lazy)"
 
         if annotation.optional:
             line = f"o if o is None else ({line})"

@@ -73,6 +73,8 @@ from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress
 
+NOW = datetime.datetime.now(datetime.timezone.utc)
+
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
 def test_isbuiltintype(obj: typing.Any):
@@ -104,6 +106,8 @@ def test_isbuiltintype(obj: typing.Any):
         (datetime.datetime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
         (pendulum.DateTime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
         (datetime.datetime, 0, datetime.datetime.fromtimestamp(0)),
+        (datetime.datetime, NOW, NOW),
+        (pendulum.DateTime, NOW, NOW),
         (datetime.date, "1970-01-01", pendulum.date(1970, 1, 1)),
         (datetime.date, 0, datetime.date.fromtimestamp(0)),
         (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
