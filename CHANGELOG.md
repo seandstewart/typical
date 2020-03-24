@@ -1,3 +1,11 @@
+**v2.0.0rc1**  
+Bugfixes:  
+- Fix time truncation when transmuting datetimes
+- Fix nested serialization of mappings, lists & serialization with standard json lib.
+
+Improvements:  
+- Allow passing keyword args to downstream JSON encoder in tojson()
+
 **v2.0.0b24**
 Features:
 - Lazy serialization for faster JSON serialization of containers.
