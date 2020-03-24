@@ -29,9 +29,9 @@ jobs:
       id: cache
       with:
         path: ~/.virtualenvs
-        key: poetry-${{ hashFiles('**/poetry.lock') }}
+        key: poetry-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
-          poetry-${{ hashFiles('**/poetry.lock') }}
+          poetry-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
     - name: Set Poetry config
       run: |
@@ -58,6 +58,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
-        flags: unittests
+        flags: unittests,${{ matrix.python-version }}
         name: codecov-umbrella
-        fail_ci_if_error: true
+        fail_ci_if_error: false
