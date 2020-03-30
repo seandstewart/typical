@@ -1,14 +1,14 @@
-# typical Strict Mode
+# Validation, Parsing, and Coercion
 
 ## Strict Mode
 
-`strict` mode turns `typical` into a run-time *enforcer*, not just coercer. What
-does this mean? Simply put, if the input does not meet the constraints of the provided
-type, an error will be raised. There are three different levels of `strict` mode
-enforcement:
+`strict` mode turns `typical` into a run-time *enforcer*, not just
+coercer. What does this mean? Simply put, if the input does not meet
+the constraints of the provided type, an error will be raised. There
+are three different levels of `strict` mode enforcement:
 
-1. *Global* 
-2. *Namespaced* 
+1. *Global*
+2. *Namespaced*
 3. *Annotation*
 
 `Global` is the easiest to turn on, but has its drawbacks:
@@ -31,7 +31,7 @@ enforcement:
 
 
 
-`Annotation` is enforced at the type-hint level. This is the 
+`Annotation` is enforced at the type-hint level. This is the
 recommended method for strict-mode enforcement:
 
     >>> import typic
@@ -98,7 +98,7 @@ types this behavior does not change in strict-mode:
     typic.types.url.NetworkAddressValueError: '' is not a valid network address.
 
 
-### Coerce-then-Validate 
+### Coerce-then-Validate
 
 The given value will be coerced and then validated against any
 additional constraints. This can be activated for primitive types by

@@ -1,12 +1,11 @@
 [build]
-publish = "docs/_build/"
+publish = "site/"
 command = """
 restore_home_cache ".cache" "pip cache" &&
 restore_cwd_cache '.venv' 'python virtualenv' &&
 pip3 install -q poetry &&
 poetry config virtualenvs.in-project true &&
 poetry install &&
-sphinx-build docs docs/_build &&
-cp docs/_static/sitemap.xml docs/_build/sitemap.xml &&
-cp docs/_redirects docs/_build/_redirects
+mkdocs build &&
+cp mkdocs/_redirects site/_redirects
 """

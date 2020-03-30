@@ -70,8 +70,21 @@ class SchemaType(str, enum.Enum):
     NULL = "null"
 
 
+class _Serializable:
+    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
+        return resolver.primitive(self, lazy=lazy)
+
+    def tojson(self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs) -> str:
+        return dumps(
+            self.primitive(lazy=True),
+            indent=indent,
+            ensure_ascii=ensure_ascii,
+            **kwargs,
+        )
+
+
 @dataclasses.dataclass(frozen=True)
-class Ref:
+class Ref(_Serializable):
     """A JSON Schema ref (pointer).
 
     Usually for directing a validator to another schema definition.
@@ -80,9 +93,6 @@ class Ref:
     __serde_flags__ = SerdeFlags(fields={"ref": "$ref"})
 
     ref: str
-
-    def primitive(self):
-        return resolver.primitive(self)
 
 
 class StringFormat(str, enum.Enum):
@@ -106,7 +116,7 @@ class StringFormat(str, enum.Enum):
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
-class BaseSchemaField:
+class BaseSchemaField(_Serializable):
     """The base JSON Schema Field."""
 
     __serde_flags__ = SerdeFlags(omit=(None, NotImplemented))
@@ -121,14 +131,6 @@ class BaseSchemaField:
     readOnly: Optional[bool] = None
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
-
-    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
-        return resolver.primitive(self, lazy=lazy)
-
-    def json(self, *, indent: int = 0, ensure_ascii: bool = False) -> str:
-        return dumps(
-            self.primitive(lazy=True), indent=indent, ensure_ascii=ensure_ascii
-        )
 
     __repr = cached_property(filtered_repr)
 

@@ -1,0 +1,9 @@
+# These rules will change if you change your site’s custom domains or HTTPS settings
+
+# Redirect domain aliases to primary domain
+https://typical-python.seandstewart.io/* https://python-typical.org/:splat 301!
+https://typical.seandstewart.io/* https://python-typical.org/:splat 301!
+https://typical-python.org/* https://python-typical.org/:splat 301!
+
+# Optional: Redirect default Netlify subdomain to primary domain
+https://typical-python.netlify.com/* https://python-typical.org/:splat 301!

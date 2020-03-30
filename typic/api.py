@@ -127,7 +127,7 @@ class TypicObjectT:
     transmute: DeserializerT
     translate: TranslatorT
     validate: "c.ValidatorT"
-    json: Callable[..., str]
+    tojson: Callable[..., str]
 
 
 WrappedObjectT = Union[TypicObjectT, ObjectT]
@@ -175,7 +175,7 @@ def _bind_proto(cls, proto: SerdeProtocol):
         ("primitive", proto.primitive),
         ("tojson", proto.tojson),
         ("transmute", staticmethod(proto.transmute)),
-        ("validate", staticmethod(proto.transmute)),
+        ("validate", staticmethod(proto.validate)),
         ("translate", proto.translate),
     ):
         setattr(cls, n, attr)

@@ -176,6 +176,7 @@ class Block:
 
 
 # This isn't used or tested. It's just here for API completion.
+# Perhaps an optimization could be to allow users to pre-compile their protocols.
 @dataclasses.dataclass
 class Module:  # pragma: nocover
     namespace: dict = dataclasses.field(init=False, default_factory=dict)

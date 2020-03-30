@@ -20,6 +20,11 @@ from typing import (
     Callable,
     get_type_hints,
     Union,
+    MutableMapping,
+    MutableSequence,
+    Iterable,
+    AbstractSet,
+    MutableSet,
 )
 
 import typic.checks as checks
@@ -49,12 +54,22 @@ from typic.compat import SQLAMetaData
 
 
 GENERIC_TYPE_MAP = {
-    collections.abc.Sequence: list,
     Sequence: list,
-    collections.abc.Collection: list,
+    MutableSequence: list,
+    collections.abc.Sequence: list,
+    collections.abc.MutableSequence: list,
     Collection: list,
+    collections.abc.Collection: list,
+    Iterable: list,
+    collections.abc.Iterable: list,
+    AbstractSet: set,
+    MutableSet: set,
+    collections.abc.Set: set,
+    collections.abc.MutableSet: set,
     Mapping: dict,
+    MutableMapping: dict,
     collections.abc.Mapping: dict,
+    collections.abc.MutableMapping: dict,
     Hashable: str,
     collections.abc.Hashable: str,
 }

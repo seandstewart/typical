@@ -51,11 +51,15 @@ KVPairT = Tuple[KT, VT]
 def make_class_serdict(annotation: "Annotation", fields: Mapping[str, SerializerT]):
     name = f"{util.get_name(annotation.origin)}SerDict"
     bases = (ClassFieldSerDict,)
+    getters = annotation.serde.fields_getters
+    if annotation.serde.fields_out:
+        fout = annotation.serde.fields_out
+        getters = {y: getters[x] for x, y in fout.items()}
+        fields = {y: fields[x] for x, y in fout.items()}
     ns = dict(
         lazy=False,
-        getters=annotation.serde.fields_getters,
+        getters=getters,
         fields=fields,
-        fields_out=annotation.serde.fields_out,
         omit=(*annotation.serde.omit_values,),
     )
     return type(name, bases, ns)
@@ -69,48 +73,51 @@ class _Unprocessed:
 Unprocessed = _Unprocessed()
 
 
+class _Omit:
+    def __repr__(self):
+        return "<omit>"
+
+
+Omit = _Omit()
+
+
 class ClassFieldSerDict(dict):
     instance: Any
     lazy: bool
     getters: Mapping[str, Callable[[str], Any]]
     fields: Mapping[str, SerializerT]
-    fields_out: Mapping[str, str]
     omit: Iterable[Any]
 
     def __init__(self, instance: Any, lazy: bool = False):
         self.instance = instance
         self.lazy = lazy
-        super().__init__(((x, Unprocessed) for x in self.fields_out))
+        super().__init__(((x, Unprocessed) for x in self.fields))
 
     def __hash__(self):  # pragma: nocover
         h = getattr(self.instance, "__hash__", None)
         return h() if h else None
 
     def __iter__(self):
-        removals = {}
+        removals = set()
+        remadd = removals.add
         pop = self.pop
-        omits = self.omit
-        fieldsoutget = self.fields_out.get
         for k in super().__iter__():
             v = self[k]
-            if v in omits:
-                removals[k] = None
+            if v is Omit:
+                remadd(k)
                 continue
-            newk = fieldsoutget(k, k)
-            if newk != k:
-                removals[k] = newk
-                k = newk
             yield k
-        for k, newk in removals.items():
-            v = pop(k)
-            if newk is not None:
-                self[newk] = v
+        for rk in removals:
+            pop(rk)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Union[VT, _Omit]:
         value = super().__getitem__(item)
         if value is Unprocessed:
             raw = self.getters[item](self.instance)
-            serialized = self.fields[item](raw, lazy=self.lazy)
+            if raw in self.omit:
+                serialized = Omit
+            else:
+                serialized = self.fields[item](raw, lazy=self.lazy)  # type: ignore
             self[item] = serialized
             return serialized
         return value
@@ -144,33 +151,29 @@ class KVSerDict(dict):
     omit: Iterable[Any]
 
     def __init__(self, seq=None, *, lazy: bool = False, **kwargs):
-        self._unprocessed = dict(seq, **kwargs)
+        kser = self.kser
+        self._unprocessed = {
+            kser(k): v for k, v in dict(seq, **kwargs).items()  # type: ignore
+        }
         super().__init__(((k, Unprocessed) for k in self._unprocessed))
         self.lazy = lazy
 
     def __iter__(self):
-        _kser = self.kser
-        _unproc = self._unprocessed
-        _unprocpop = _unproc.pop
-        _omit = self.omit
         pop = self.pop
-        removals = {}
+        removals = set()
+        remadd = removals.add
         for k in super().__iter__():
-            if self[k] in _omit:
-                removals[k] = None
+            if self[k] is Omit:
+                remadd(k)
                 continue
-            newk = _kser(k)
-            if newk != k:
-                removals[k] = newk
-                _unproc[newk] = _unprocpop(k)
-            yield newk
-        for k, newk in removals.items():
-            v = pop(k)
-            if newk is not None:
-                self[newk] = v
+            yield k
+        for rk in removals:
+            pop(rk)
 
-    def __getitem__(self, item) -> VT:
+    def __getitem__(self, item) -> Union[VT, _Omit]:
         value = super().__getitem__(item)
+        if value in self.omit:
+            return Omit
         if value is Unprocessed:
             newv = self.vser(self._unprocessed[item], lazy=self.lazy)  # type: ignore
             self[item] = newv

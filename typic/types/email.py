@@ -6,12 +6,18 @@ from typing import ClassVar, Pattern, Match, Optional
 from urllib.parse import quote
 
 from typic.util import cached_property
-from .url import NetworkAddress, PRIVATE_HOSTS, INTERNAL_HOSTS, INTERNAL_IP_PATTERN
+from .url import (
+    NetworkAddress,
+    PRIVATE_HOSTS,
+    INTERNAL_HOSTS,
+    INTERNAL_IP_PATTERN,
+    NetworkAddressValueError,
+)
 
 __all__ = ("Email", "EmailAddrInfo", "EMAIL_PATTERN", "EmailValueError")
 
 
-class EmailValueError(ValueError):
+class EmailValueError(NetworkAddressValueError):
     """A generic error for when we've received an invalid value for an email."""
 
     pass

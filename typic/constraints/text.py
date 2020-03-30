@@ -54,6 +54,7 @@ class TextConstraints(BaseConstraints):
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema = dict(
+            title=self.name,
             minLength=self.min_length,
             maxLength=self.max_length,
             pattern=self.regex.pattern if self.regex else None,

@@ -252,7 +252,7 @@ class NetworkAddress(str):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> net_addr = typic.NetworkAddress("http://foo.bar/bazz;foo=bar?buzz=1#loc")
     >>> net_addr.info.is_absolute
     True
@@ -325,7 +325,7 @@ class URL(NetworkAddress):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> url = typic.URL("http://foo.bar/bazz")
     >>> more = url / 'foo' / 'bar'
     >>> more
@@ -357,7 +357,7 @@ import typic
         other_info: NetAddrInfo = cls(other).info  # type: ignore
         self_info: NetAddrInfo = self.info  # type: ignore
         other = (other_info.path or parse.urlparse(other).path or "").lstrip("/")
-        other = f"{self_info.path or ''}/{other}"
+        other = f"{self_info.path.rstrip('/') or ''}/{other}"
         return cls(parse.urljoin(self_info.base, other))  # type: ignore
 
     def __truediv__(self, other) -> "URL":

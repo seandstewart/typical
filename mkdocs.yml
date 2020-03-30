@@ -4,23 +4,20 @@ copyright: "Copyright &copy; 2019 - 2020 Sean Stewart"
 site_url: https://python-typical.org
 repo_url: https://github.com/seandstewart/typical
 repo_name: seandstewart/typical
+docs_dir: mkdocs
 theme:
   name: "material"
-  favicon: "img/favicon/favicon.ico"
-  logo: "img/favicon/favicon-32x32.png"
+  favicon: "static/favicon/favicon.ico"
+  logo: "static/favicon/favicon-32x32.png"
   palette:
     primary: "indigo"
     accent: "amber"
   font:
     text: "IBM Plex Serif"
     code: "IBM Plex Mono"
-  feature:
-    tabs: true
 plugins:
+  - search
   - awesome-pages
-  - mkdocstrings:
-      watch:
-        - "typic"
 markdown_extensions:
   - toc:
       permalink: "#"
@@ -29,6 +26,8 @@ markdown_extensions:
   - footnotes
   - codehilite
   - pymdownx.arithmatex
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
   - pymdownx.betterem:
       smart_enable: all
   - pymdownx.caret
@@ -36,11 +35,9 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.emoji:
       emoji_generator: !!python/name:pymdownx.emoji.to_svg
-  - pymdownx.inlinehilite
   - pymdownx.magiclink
   - pymdownx.mark
   - pymdownx.smartsymbols
-  - pymdownx.superfences
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde

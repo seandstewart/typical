@@ -12,7 +12,6 @@ from typing import (
     List,
     Generic,
     cast,
-    Iterable,
     Set,
 )
 
@@ -34,6 +33,7 @@ from .field import (  # type: ignore
     SCHEMA_FIELD_FORMATS,
     get_field_type,
     SchemaType,
+    ArraySchemaField,
 )
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
@@ -92,7 +92,14 @@ class SchemaBuilder:
         has_ellipsis = args[-1] is Ellipsis if args else False
         if has_ellipsis:
             args = args[:-1]
-        if "items" in constraints:
+        if args:
+            constrs = set(self.get_field(resolver.resolve(x)) for x in args)
+            constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
+            if anno.origin in {tuple, frozenset}:
+                constraints["additionalItems"] = False if not has_ellipsis else None
+            if anno.origin in {set, frozenset}:
+                constraints["uniqueItems"] = True
+        elif "items" in constraints:
             items: dict = constraints["items"]
             multi_keys: Set[str] = {"oneOf", "anyOf", "allOf"} & items.keys()
             if multi_keys:
@@ -103,15 +110,6 @@ class SchemaBuilder:
                     constraints["items"] = MultiSchemaField(**items)
             else:
                 constraints["items"] = get_field_type(items.pop("type"))(**items)
-        if args:
-            constrs = set(self.get_field(resolver.resolve(x)) for x in args)
-            items = constraints.get("items", ())
-            constrs = constrs | ({*items} if isinstance(items, Iterable) else {items})
-            constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
-            if anno.origin in {tuple, frozenset}:
-                constraints["additionalItems"] = False if not has_ellipsis else None
-            if anno.origin in {set, frozenset}:
-                constraints["uniqueItems"] = True
 
     def get_field(
         self,
@@ -141,7 +139,7 @@ class SchemaBuilder:
             self.__cache[anno] = schema
             return schema
 
-        # Unions are `oneOf`, get a new field for each arg and return.
+        # Unions are `anyOf`, get a new field for each arg and return.
         # {'type': ['string', 'integer']} ==
         #   {'oneOf': [{'type': 'string'}, {'type': 'integer'}]}
         # We don't care about syntactic sugar if it's functionally the same.
@@ -198,6 +196,49 @@ class SchemaBuilder:
         return schema
 
     @staticmethod
+    def _flatten_object_definitions(
+        definitions: Dict[str, Any], field: ObjectSchemaField
+    ):
+        definitions.update(**(field.definitions or {}))  # type: ignore
+        field = dataclasses.replace(field, definitions=None)
+        definitions[field.title] = field  # type: ignore
+        return Ref(f"#/definitions/{field.title}")
+
+    def _flatten_array_definitions(
+        self, definitions: Dict[str, Any], field: ArraySchemaField
+    ):
+        replace = {}
+        for field_name in ("items", "contains", "additionalItems"):
+            it = getattr(field, field_name)
+            if isinstance(it, ObjectSchemaField):
+                ref = self._flatten_object_definitions(definitions, it)
+                replace[field_name] = ref
+        return dataclasses.replace(field, **replace) if replace else field
+
+    def _flatten_multi_definitions(
+        self, definitions: Dict[str, Any], field: MultiSchemaField
+    ) -> MultiSchemaField:
+        replace = {}
+        for field_name in ("anyOf", "allOf", "oneOf"):
+            it = getattr(field, field_name)
+            if it:
+                flattened = []
+                for f in it:
+                    nf = self._flatten_definitions(definitions, f)
+                    flattened.append(nf)
+                replace[field_name] = (*flattened,)
+        return dataclasses.replace(field, **replace) if replace else field
+
+    def _flatten_definitions(self, definitions: Dict[str, Any], field: SchemaFieldT):
+        if isinstance(field, ObjectSchemaField):
+            return self._flatten_object_definitions(definitions, field)
+        elif isinstance(field, ArraySchemaField):
+            return self._flatten_array_definitions(definitions, field)
+        elif isinstance(field, MultiSchemaField):
+            return self._flatten_multi_definitions(definitions, field)
+        return field
+
+    @staticmethod
     def defname(obj, name: str = None) -> Optional[str]:
         """Get the definition name for an object."""
         defname = name or getattr(obj, "__name__", None)
@@ -219,14 +260,8 @@ class SchemaBuilder:
             field = self.get_field(protocol, name=nm)
             # If we received an object schema,
             # figure out a name and inherit the definitions.
-            if isinstance(field, ObjectSchemaField):
-                definitions.update(**(field.definitions or {}))  # type: ignore
-                field = dataclasses.replace(field, definitions=None)
-                definitions[field.title] = field  # type: ignore
-                properties[nm] = Ref(f"#/definitions/{field.title}")
-            # Otherwise just add as a property with the attr name
-            else:
-                properties[nm] = field
+            flattened = self._flatten_definitions(definitions, field)
+            properties[nm] = flattened
             # Check for required field(s)
             if not protocol.annotation.has_default:
                 required.append(nm)

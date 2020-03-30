@@ -21,7 +21,7 @@ from typing import (
 )
 
 from typic import gen, util
-from typic.types.frozendict import FrozenDict
+from typic.types.frozendict import FrozenDict, freeze
 from .common import (
     BaseConstraints,
     ContextT,
@@ -296,10 +296,17 @@ class MappingConstraints(BaseConstraints):
         func.l(f"return valid, {self.VAL}", **context)
 
     def for_schema(self, *, with_type: bool = False) -> dict:
+        props = (
+            freeze({x: y.for_schema() for x, y in self.items.items()})
+            if self.items
+            else None
+        )
         schema: Dict[str, Any] = dict(
+            title=self.name,
             minProperties=self.min_items,
             maxProperties=self.max_items,
             required=tuple(self.required_keys) or None,
+            properties=props,
             propertyNames=(
                 {"pattern": self.key_pattern.pattern} if self.key_pattern else None
             ),

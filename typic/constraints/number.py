@@ -147,6 +147,7 @@ class NumberConstraints(BaseConstraints):
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Union[None, Number, str]] = dict(
+            title=self.name,
             multipleOf=self.mul,
             minimum=self.ge,
             maximum=self.le,
