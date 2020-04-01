@@ -155,7 +155,9 @@ class DSNInfo:
         )
 
 
-DSNInfo.__slots__ = ("__dict__",) + tuple(_.name for _ in dataclasses.fields(DSNInfo))
+# Deepcopy is broken for frozen dataclasses with slots.
+# https://github.com/python/cpython/pull/17254
+# DSNInfo.__slots__ = tuple(_.name for _ in dataclasses.fields(DSNInfo))
 
 
 class DSN(NetworkAddress):

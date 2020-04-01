@@ -233,9 +233,11 @@ class NetAddrInfo:
         )
 
 
-NetAddrInfo.__slots__ = ("__dict__",) + tuple(
-    _.name for _ in dataclasses.fields(NetAddrInfo)
-)
+# Deepcopy is broken for frozen dataclasses with slots.
+# https://github.com/python/cpython/pull/17254
+# NetAddrInfo.__slots__ = tuple(
+#     _.name for _ in dataclasses.fields(NetAddrInfo)
+# )
 
 
 class NetworkAddress(str):
@@ -287,10 +289,11 @@ class NetworkAddress(str):
     JSON-serializable.
     """
 
-    def __init__(self, value):
-        super().__init__()
+    def __new__(cls, *args, **kwargs):
+        v = super().__new__(cls, *args, **kwargs)
         # Initialize the info so we get validation immediately.
-        self.info
+        v.info
+        return v
 
     def __setattr__(self, key, value):
         raise AttributeError(
@@ -375,12 +378,11 @@ class AbsoluteURL(URL):
     :py:class:`URL`
     """
 
-    def __init__(self, value):
-        super().__init__(value)
-        if self.info.is_relative:
-            raise AbsoluteURLValueError(
-                f"<{value!r}> is not an absolute URL."
-            ) from None
+    def __new__(cls, *args, **kwargs):
+        v = super().__new__(cls, *args, **kwargs)
+        if v.info.is_relative:
+            raise AbsoluteURLValueError(f"<{v!r}> is not an absolute URL.") from None
+        return v
 
 
 class RelativeURLValueError(URLValueError):
@@ -395,10 +397,11 @@ class RelativeURL(URL):
     :py:class:`URL`
     """
 
-    def __init__(self, value):
-        super().__init__(value)
-        if self.info.is_absolute:
-            raise RelativeURLValueError(f"<{value!r}> is not a relative URL.") from None
+    def __new__(cls, *args, **kwargs):
+        v = super().__new__(cls, *args, **kwargs)
+        if v.info.is_absolute:
+            raise RelativeURLValueError(f"<{v!r}> is not a relative URL.") from None
+        return v
 
 
 class HostNameValueError(NetworkAddressValueError):
@@ -419,9 +422,8 @@ class HostName(NetworkAddress):
     JSON-serializable.
     """
 
-    def __init__(self, value):
-        super().__init__(value)
-        if not self.info.host or any(
-            (self.info.scheme, self.info.auth, self.info.relative)
-        ):
-            raise HostNameValueError(f"<{value!r}> is not a hostname.") from None
+    def __new__(cls, *args, **kwargs):
+        v = super().__new__(cls, *args, **kwargs)
+        if not v.info.host or any((v.info.scheme, v.info.auth, v.info.relative)):
+            raise HostNameValueError(f"<{v!r}> is not a hostname.") from None
+        return v

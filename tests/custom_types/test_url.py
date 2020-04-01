@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import json
+import copy
 from urllib.parse import quote
 
 import pytest
@@ -66,6 +67,18 @@ def test_net_address_attrs(addr, name, expected):
 )
 def test_default_port(value: url.NetworkAddress):
     assert value.info.is_default_port
+
+
+@pytest.mark.parametrize(
+    argnames=("value",), argvalues=[(_abs,), (_rel,), (_orel,), (_dotl,)]
+)
+@pytest.mark.parametrize(
+    argnames=("copier",),
+    argvalues=[(copy.copy,), (copy.deepcopy,)],
+    ids=lambda x: x.__qualname__,
+)
+def test_copying(value: url.NetworkAddress, copier):
+    assert copier(value) == value
 
 
 @pytest.mark.parametrize(argnames=("value",), argvalues=[(_rel,), (_orel,), (_dotl,)])

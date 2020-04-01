@@ -1,15 +1,19 @@
+**v2.0.0rc2**
+Patch:
+- Remove slots from frozen dataclasses for the time-being (See [cPython](https://github.com/python/cpython/pull/17254))
+
 **v2.0.0rc1**  
-Bugfixes:  
+Bugfixes:
 - Fix time truncation when transmuting datetimes
 - Fix nested serialization of mappings, lists & serialization with standard json lib.
 
-Improvements:  
+Improvements:
 - Allow passing keyword args to downstream JSON encoder in tojson()
 
 **v2.0.0b24**
 Features:
 - Lazy serialization for faster JSON serialization of containers.
-- `tojson` method and high-level functional equivalent. 
+- `tojson` method and high-level functional equivalent.
   [Docs](https://python-typical.org/usage/advanced)
 
 **v2.0.0b23**
@@ -18,7 +22,7 @@ Bugfixes:
 
 **v2.0.0b22**  
 Features:
-- Optional lazy evaluation of fields when serializing with typic.primitive 
+- Optional lazy evaluation of fields when serializing with typic.primitive
   or MyObj.primitive
 - New high-level typic.tojson and MyObj.tojson methods for fast, easy serialization.
   [Docs](https://python-typical.org/usage/advanced#helpers)
@@ -36,7 +40,7 @@ Bugfixes:
 Improvements:
 - More informative error messaging for Contraints.
 - Parametrizing symbols for Contraints code-gen.
-- Add high-level `typic.validate` to public API. 
+- Add high-level `typic.validate` to public API.
   [Docs](https://python-typical.org/usage/advanced#helpers)
 
 **v2.0.0b19**  
