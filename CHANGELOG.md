@@ -1,6 +1,7 @@
 **v2.0.0rc2**
 Patch:
 - Remove slots from frozen dataclasses for the time-being (See [cPython](https://github.com/python/cpython/pull/17254))
+- Fix `ext.json` module for when `ujson` isn't present.
 
 **v2.0.0rc1**  
 Bugfixes:
