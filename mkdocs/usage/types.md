@@ -467,37 +467,193 @@ and methods:
 >     ```
 
 ### `AbsoluteURL(URL)`
+> An *AbsoluteURL* is a URL which *must* have a `scheme` and `host`.
+>
+> ??? example "Working with AbsoluteURLs"
+>
+>     ```python
+>     import typic
+>     
+>     pep484 = typic.AbsoluteURL("https://www.python.org/dev/peps/pep-0484/")
+>     print(pep484)
+>     #> https://www.python.org/dev/peps/pep-0484/
+>     
+>     typic.AbsoluteURL("/dev/peps/pep-0484/")
+>     #> Traceback (most recent call last):
+>     #>   ...
+>     #> typic.types.url.AbsoluteURLValueError: <'/foo'> is not an absolute URL.
+>     ```
 
 ### `RelativeURL(URL)`
+> A *RelativeURL* is a URL which *must not* have a `scheme` and
+> `host`.
+>
+> ??? example "Working with RelativeURLs"
+>
+>     ```python
+>     import typic
+>     
+>     pep484 = typic.RelativeURL("/dev/peps/pep-0484/")
+>     print(pep484)
+>     #> /dev/peps/pep-0484/
+>     
+>     typic.RelativeURL("https://www.python.org/dev/peps/pep-0484/")
+>     #> Traceback (most recent call last):
+>     #>   ...
+>     #> typic.types.url.RelativeURLValueError: <'https://www.python.org/dev/peps/pep-0484/'> is not a relative URL.
+>     ```
+
 
 ### `HostName(URL)`
+> A *HostName* is a URL which *must only* have a `host`.
+>
+> ??? example "Working with RelativeURLs"
+>
+>     ```python
+>     import typic
+>     
+>     python = typic.HostName("www.python.org")
+>     print(python)
+>     #> www.python.org
+>     
+>     typic.HostName("https://www.python.org/dev/peps/pep-0484/")
+>     #> Traceback (most recent call last):
+>     #>   ...
+>     #> typic.types.url.HostNameValueError: <'https://www.python.org/dev/peps/pep-0484/'> is not a hostname.
+>     ```
+
+!!! note
+
+    The following network address types have their own `info` 
+    implementations and validation.
 
 ### `DSN(NetworkAddress)`
+> A D(ata)S(ource)N(ame) string. This is essentially a URL, but the
+> api is already well-defined with different attributes than a
+> standard URL.
+>
+> ??? example "Working with DSNs"
+>
+>     ```python
+>     
+>     import typic
+>     dsn = typic.DSN("postgresql://user:secret@localhost:5432/mydb")
+>     print(dsn)
+>     #> 'postgresql://user:secret@localhost:5432/mydb'
+>     print(dsn.info.host)
+>     #> 'localhost'
+>     print(dsn.info.is_private)
+>     #> True
+>     print(dsn.info.is_default_port)
+>     #> True
+>     print(dsn.info.username)
+>     #> 'user'
+>     print(dsn.info.password)   # This has been converted to a secret :)
+>     #> ******
+>     print(dsn.info.name)
+>     #> '/mydb'
+>     print(dsn.info.driver)
+>     #> 'postgresql'
+>     print(typic.tojson([dsn]))
+>     #> '["postgresql://user:secret@localhost:5432/mydb"]'
+>     ```
 
 ### `Email(NetworkAddress)`
-
+> We all know what an Email is!
+>
+> ??? example "Working with Emails"
+>
+>     ```python
+>     import typic
+>     
+>     email = typic.Email("Foo Bar <foo.bar@foobar.net>")
+>     print(email)
+>     #> Foo Bar <foo.bar@foobar.net>
+>     print(email.info.host)
+>     #> foobar.net
+>     email.info.is_named
+>     #> True
+>     typic.tojson([email])
+>     #> '["Foo Bar <foo.bar@foobar.net>"]'
+>     ```
 
 ## Paths
-These are subclasses of `pathlib.Path` which provide a little extra
-validation on initialization.
+`typical` provides two subclasses of
+[`pathlib.Path`](https://docs.python.org/3/library/pathlib.html):
+
+1. `FilePath`
+    - A Path object which must point to a file.
+2. `DirectoryPath`
+    - A Path object which must point ot a directory.
 
 !!! important ""
 
     Due to the implementation of Paths, these subclasses require that 
     a path exists in order for the validation to be successful.
 
-### AbsolutePath
-
-### RelativePath
-
-
 ## Miscellaneous
 
 ### FrozenDict
-A hashable, immutable dictionary. This inherits directly from Python's
-`dict` builtin and is natively JSON serializable.
+> A hashable, immutable dictionary. This inherits directly from
+> Python's `dict` builtin and is natively JSON serializable.
+>
+> ??? example "Working with FrozenDict"
+>
+>     ```python
+> 
+>     import typic
+>     
+>     fdict = typic.FrozenDict({"foo": ["bar"]})
+>     typic.ishashable(fdict)
+>     #> True
+>     
+>     fdict["foo"]
+>     #> ('bar',)
+>     
+>     new = fdict.mutate({"bazz": "buzz"}, bazz="blah")
+>     print(new)
+>     #> {'foo': ('bar',), 'bazz': 'blah'}
+>     
+>     fdict.update(foo=["car"])
+>     #> Traceback (most recent call last):
+>     #> ...
+>     #> TypeError: attempting to mutate immutable type 'FrozenDict'
+>     
+>     del fdict["foo"]
+>     #> Traceback (most recent call last):
+>     #> ...
+>     #> TypeError: attempting to mutate immutable type 'FrozenDict'
+>     
+>     fdict.pop("foo")
+>     #> Traceback (most recent call last):
+>     #> ...
+>     #> TypeError: attempting to mutate immutable type 'FrozenDict'
+>     
+>     fdict.clear()
+>     #> Traceback (most recent call last):
+>     #> ...
+>     #> TypeError: attempting to mutate immutable type 'FrozenDict'
+>     ```
 
 ### SecretStr & SecretBytes
-A subclass of `str` (or `bytes`, respectively) which masks its value
-on repr. Secrets can be accessed with the `.value` attribute.
-
+> A subclass of `str` (or `bytes`, respectively) which masks its value
+> on repr. Secrets can be accessed with the `.value` attribute.
+>
+> ??? example "Working with Secrets"
+>
+>     ```python
+>     import typic
+>     
+>     mysecret = typic.SecretStr("The Ring is in Frodo's pocket.")
+>     print(mysecret)
+>     #> ******************************
+>     
+>     print(mysecret.secret)
+>     #> The Ring is in Frodo's pocket.
+>     
+>     print(f"{mysecret}")
+>     #> '******************************'
+>     
+>     typic.tojson([mysecret])
+>     #> '["The Ring is in Frodo\\'s pocket."]'
+>     ```
