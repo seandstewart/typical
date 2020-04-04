@@ -5,7 +5,7 @@ import decimal
 import warnings
 from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
 
-from typic import gen, util
+from .. import gen, util
 from .common import BaseConstraints, ContextT, ChecksT
 from .error import ConstraintSyntaxError, ConstraintValueError
 
@@ -147,6 +147,7 @@ class NumberConstraints(BaseConstraints):
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Union[None, Number, str]] = dict(
+            title=self.name,
             multipleOf=self.mul,
             minimum=self.ge,
             maximum=self.le,

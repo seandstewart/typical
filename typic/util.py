@@ -20,6 +20,11 @@ from typing import (
     Callable,
     get_type_hints,
     Union,
+    MutableMapping,
+    MutableSequence,
+    Iterable,
+    AbstractSet,
+    MutableSet,
 )
 
 import typic.checks as checks
@@ -49,12 +54,22 @@ from typic.compat import SQLAMetaData
 
 
 GENERIC_TYPE_MAP = {
-    collections.abc.Sequence: list,
     Sequence: list,
-    collections.abc.Collection: list,
+    MutableSequence: list,
+    collections.abc.Sequence: list,
+    collections.abc.MutableSequence: list,
     Collection: list,
+    collections.abc.Collection: list,
+    Iterable: list,
+    collections.abc.Iterable: list,
+    AbstractSet: set,
+    MutableSet: set,
+    collections.abc.Set: set,
+    collections.abc.MutableSet: set,
     Mapping: dict,
+    MutableMapping: dict,
     collections.abc.Mapping: dict,
+    collections.abc.MutableMapping: dict,
     Hashable: str,
     collections.abc.Hashable: str,
 }
@@ -283,7 +298,7 @@ def cachedmethod(func: Callable[..., _T]) -> Callable[..., _T]:  # pragma: nocov
 
     Mimics some of the pure-Python implementation of :py:func:`functools.lru_cache`.
     Major differences are that it's un-bounded in size and no direct access to the cache.
-    It's also slower, being that it's pure-Python and the actual ``_lru_cache_wrapper``
+    It's also slower, being that it's pure-Python and the actual `_lru_cache_wrapper`
     is implemented in C.
     """
 

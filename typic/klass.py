@@ -126,7 +126,7 @@ def make_typedclass(
 
         TypedClass = make_typedclass(UnTypedClass)
 
-    The preferred method is via the ``klass`` decorator, however.
+    The preferred method is via the `klass` decorator, however.
 
     See Also
     --------

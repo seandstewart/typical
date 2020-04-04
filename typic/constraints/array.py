@@ -152,6 +152,7 @@ class ArrayConstraints(BaseConstraints):
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Any] = dict(
+            title=self.name,
             minItems=self.min_items,
             maxItems=self.max_items,
             uniqueItems=self.unique,

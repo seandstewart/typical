@@ -1,0 +1,7 @@
+arrange:
+  - index.md
+  - api.md
+  - types.md
+  - settings.md
+  - serdes.md
+  - validation.md

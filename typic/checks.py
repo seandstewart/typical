@@ -96,7 +96,8 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import NewType, Mapping
     >>> typic.isbuiltintype(str)
     True
@@ -147,7 +148,7 @@ def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
 def isoptionaltype(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
 
-    :py:class:`typing.Optional` is an alias for ``typing.Union[<T>, None]``, so both are
+    :py:class:`typing.Optional` is an alias for `typing.Union[<T>, None]`, so both are
     "optional".
 
     Parameters
@@ -156,7 +157,8 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import Optional, Union, Dict
     >>> typic.isoptionaltype(Optional[str])
     True
@@ -184,7 +186,8 @@ def isreadonly(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import NewType
     >>> typic.isreadonly(typic.ReadOnly[str])
     True
@@ -200,7 +203,8 @@ def isfinal(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import NewType
     >>> from typic.compat import Final
     >>> typic.isfinal(Final[str])
@@ -221,7 +225,8 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
@@ -241,7 +246,8 @@ def isstrict(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
@@ -261,7 +267,8 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> import datetime
     >>> from typing import NewType
     >>> typic.isdatetype(datetime.datetime)
@@ -289,7 +296,8 @@ def iscollectiontype(obj: Type[ObjectT]):
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import Collection, Mapping, NewType
     >>> typic.iscollectiontype(Collection)
     True
@@ -318,7 +326,8 @@ def ismappingtype(obj: Type[ObjectT]):
 
     Examples
     --------
-    >>> import typic
+
+import typic
     >>> from typing import Mapping, Dict, DefaultDict, NewType
     >>> typic.ismappingtype(Mapping)
     True
@@ -353,8 +362,8 @@ def isenumtype(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-    >>> import enum
-    >>> import typic
+
+import typic    >>> import enum
     >>>
     >>> class FooNum(enum.Enum): ...
     ...
@@ -402,7 +411,7 @@ def should_unwrap(obj: Type[ObjectT]) -> bool:
 
 @functools.lru_cache(maxsize=None)
 def isfromdictclass(obj: Type[ObjectT]) -> bool:
-    """Test whether this annotation is a class with a ``from_dict()`` method."""
+    """Test whether this annotation is a class with a `from_dict()` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
 
@@ -425,7 +434,7 @@ def _type_check(t) -> bool:
 def isinstance(o: Any, t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]) -> bool:
     """A safer instance check...
 
-    Validates that ``t`` is not an instance.
+    Validates that `t` is not an instance.
 
     Parameters
     ----------
@@ -453,7 +462,7 @@ def issubclass(
 ) -> bool:
     """A safer subclass check...
 
-    Validates that ``t`` and/or ``o`` are not instances.
+    Validates that `t` and/or `o` are not instances.
 
     Parameters
     ----------

@@ -18,6 +18,7 @@ from typing import (
     Iterable,
     Iterator,
     Set,
+    Optional,
 )
 
 from typic import gen, util
@@ -121,12 +122,12 @@ class InstanceCheck(enum.IntEnum):
     """
 
     IS = 0
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is True``.
+    """Allows for short-circuiting validation if `isinstance(value, <type>) is True`.
 
     Otherwise, perform additional checks to see if we can treat this as valid.
     """
     NOT = 1
-    """Allows for short-circuiting validation if ``isinstance(value, <type>) is False``.
+    """Allows for short-circuiting validation if `isinstance(value, <type>) is False`.
 
     Otherwise, we must perform additional checks.
     """
@@ -157,8 +158,10 @@ class BaseConstraints(__AbstractConstraints):
     coerce: bool = False
     """Whether additional coercion should be done after validation.
 
-    Even in ``strict`` mode, we may still want to coerce after validation.
+    Even in `strict` mode, we may still want to coerce after validation.
     """
+    name: Optional[str] = None
+
     VAL = "val"
     VALTNAME = "valtname"
 
@@ -228,6 +231,7 @@ class MultiConstraints(__AbstractConstraints):
 
     constraints: Tuple["ConstraintsT", ...]
     coerce: bool = False
+    name: Optional[str] = None
 
     @util.cached_property
     def nullable(self) -> bool:
@@ -290,7 +294,12 @@ class MultiConstraints(__AbstractConstraints):
         return multi_validator
 
     def for_schema(self, *, with_type: bool = False) -> dict:
-        return dict(anyOf=[x.for_schema(with_type=True) for x in self.constraints])
+        scheme: dict = {
+            "anyOf": [x.for_schema(with_type=True) for x in self.constraints],
+        }
+        if self.name:
+            scheme["name"] = self.name
+        return scheme
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -313,6 +322,7 @@ class TypeConstraints(__AbstractConstraints):
     """The type to check for."""
     nullable: bool = False
     """Whether this constraint can allow null values."""
+    name: Optional[str] = None
 
     __str = util.cached_property(util.filtered_str)
 
@@ -350,4 +360,49 @@ class TypeConstraints(__AbstractConstraints):
         return validator
 
     def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
+        if self.name:
+            return {"title": self.name}
+        return {}
+
+
+@dataclasses.dataclass(frozen=True, repr=False)
+class EnumConstraints(__AbstractConstraints):
+    type: Type[enum.Enum]  # type: ignore
+    """The enum to check for."""
+    nullable: bool = False
+    """Whether this constraint can allow null values."""
+    coerce: bool = True
+    name: Optional[str] = None
+
+    @util.cached_property
+    def __str(self) -> str:
+        values = (*(x.value for x in self.type),)
+        return (
+            f"(type={self.name or self.type.__name__}, "
+            f"values={values}, "
+            f"nullable={self.nullable})"
+        )
+
+    def __str__(self) -> str:
+        return self.__str
+
+    @util.cached_property
+    def validator(self) -> ValidatorT:
+        ns = dict(__t=self.type, VT=VT, __values=(*self.type,))
+        func_name = self._get_validator_name()
+        with gen.Block(ns) as main:
+            with main.f(func_name, main.param("value", annotation="VT")) as f:
+                if self.nullable:
+                    with f.b(f"if value is None:") as b:
+                        b.l(f"{gen.Keyword.RET} value")
+                # This is O(N), but so is casting to the enum
+                # And handling a ValueError is an order of magnitude heavier
+                f.l(f"{gen.Keyword.RET} value in __values, value")
+
+        validator: ValidatorT = main.compile(name=func_name, ns=ns)
+        return validator
+
+    def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
+        if self.name:
+            return {"title": self.name}
         return {}

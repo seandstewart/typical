@@ -3,13 +3,13 @@
 import dataclasses
 from typing import ClassVar, Type, Pattern, Tuple, Optional, Union, Dict, Any, Text
 
-from typic import gen
+from .. import gen
 from .common import BaseConstraints, ContextT, ChecksT
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class TextConstraints(BaseConstraints):
-    """Specific constraints pertaining to text-like types (``AnyStr`` in Python).
+    """Specific constraints pertaining to text-like types (`AnyStr` in Python).
 
     Currently supports :py:class:`str` and :py:class:`bytes`.
 
@@ -54,6 +54,7 @@ class TextConstraints(BaseConstraints):
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema = dict(
+            title=self.name,
             minLength=self.min_length,
             maxLength=self.max_length,
             pattern=self.regex.pattern if self.regex else None,

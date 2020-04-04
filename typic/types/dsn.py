@@ -40,7 +40,7 @@ class DSNInfo:
     -----
     DSNs are *technically* a type of network address, but are more strict.
     There's also a semi-standard API for interacting with them, thanks to SQLAlchemy, etc.
-    So we have our own ``-Info`` object which conforms more closely with the expected API.
+    So we have our own `-Info` object which conforms more closely with the expected API.
 
     See Also
     --------
@@ -48,7 +48,7 @@ class DSNInfo:
     """
 
     driver: str
-    """The database driver, e.g., ``mysql``."""
+    """The database driver, e.g., `mysql`."""
     username: str
     """The username used for authentication."""
     password: SecretStr

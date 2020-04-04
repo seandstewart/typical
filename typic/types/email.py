@@ -6,12 +6,18 @@ from typing import ClassVar, Pattern, Match, Optional
 from urllib.parse import quote
 
 from typic.util import cached_property
-from .url import NetworkAddress, PRIVATE_HOSTS, INTERNAL_HOSTS, INTERNAL_IP_PATTERN
+from .url import (
+    NetworkAddress,
+    PRIVATE_HOSTS,
+    INTERNAL_HOSTS,
+    INTERNAL_IP_PATTERN,
+    NetworkAddressValueError,
+)
 
 __all__ = ("Email", "EmailAddrInfo", "EMAIL_PATTERN", "EmailValueError")
 
 
-class EmailValueError(ValueError):
+class EmailValueError(NetworkAddressValueError):
     """A generic error for when we've received an invalid value for an email."""
 
     pass
@@ -112,7 +118,7 @@ class EmailAddrInfo:
     def is_named(self) -> bool:
         """Whether or not this email is 'named' (or 'pretty')
 
-        i.e.: ``<Foo foo@bar.com>``
+        i.e.: `<Foo foo@bar.com>`
         """
         return bool(self.name)
 
@@ -141,8 +147,8 @@ class EmailAddrInfo:
 class Email(NetworkAddress):
     """An immutable email address. Supports 'pretty' and 'raw', i.e.:
 
-        ``Foo Bar <foo.bar@foobar.net>``
-        ``foo.bar@foobar.net``
+        `Foo Bar <foo.bar@foobar.net>`
+        `foo.bar@foobar.net`
 
     Detailed information about the email string can be found up via :py:attr:`Email.info`.
 

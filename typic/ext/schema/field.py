@@ -70,8 +70,21 @@ class SchemaType(str, enum.Enum):
     NULL = "null"
 
 
+class _Serializable:
+    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
+        return resolver.primitive(self, lazy=lazy)
+
+    def tojson(self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs) -> str:
+        return dumps(
+            self.primitive(lazy=True),
+            indent=indent,
+            ensure_ascii=ensure_ascii,
+            **kwargs,
+        )
+
+
 @dataclasses.dataclass(frozen=True)
-class Ref:
+class Ref(_Serializable):
     """A JSON Schema ref (pointer).
 
     Usually for directing a validator to another schema definition.
@@ -80,9 +93,6 @@ class Ref:
     __serde_flags__ = SerdeFlags(fields={"ref": "$ref"})
 
     ref: str
-
-    def primitive(self):
-        return resolver.primitive(self)
 
 
 class StringFormat(str, enum.Enum):
@@ -106,7 +116,7 @@ class StringFormat(str, enum.Enum):
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
-class BaseSchemaField:
+class BaseSchemaField(_Serializable):
     """The base JSON Schema Field."""
 
     __serde_flags__ = SerdeFlags(omit=(None, NotImplemented))
@@ -121,14 +131,6 @@ class BaseSchemaField:
     readOnly: Optional[bool] = None
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
-
-    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
-        return resolver.primitive(self, lazy=lazy)
-
-    def json(self, *, indent: int = 0, ensure_ascii: bool = False) -> str:
-        return dumps(
-            self.primitive(lazy=True), indent=indent, ensure_ascii=ensure_ascii
-        )
 
     __repr = cached_property(filtered_repr)
 
@@ -153,7 +155,7 @@ class BaseSchemaField:
 
         Notes
         -----
-        If ``fastjsonschema`` is not installed, this will raise a ValueError.
+        If `fastjsonschema` is not installed, this will raise a ValueError.
 
         See Also
         --------
@@ -203,7 +205,7 @@ class NullSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class StrSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``string`` type.
+    """A JSON Schema Field for the `string` type.
 
     See Also
     --------
@@ -222,7 +224,7 @@ Number = Union[int, float, decimal.Decimal]
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class IntSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``integer`` type.
+    """A JSON Schema Field for the `integer` type.
 
     See Also
     --------
@@ -239,7 +241,7 @@ class IntSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class NumberSchemaField(IntSchemaField):
-    """A JSON Schema Field for the ``number`` type.
+    """A JSON Schema Field for the `number` type.
 
     See Also
     --------
@@ -251,7 +253,7 @@ class NumberSchemaField(IntSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class BooleanSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``boolean`` type.
+    """A JSON Schema Field for the `boolean` type.
 
     See Also
     --------
@@ -263,7 +265,7 @@ class BooleanSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class ObjectSchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``object`` type.
+    """A JSON Schema Field for the `object` type.
 
     See Also
     --------
@@ -284,7 +286,7 @@ class ObjectSchemaField(BaseSchemaField):
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArraySchemaField(BaseSchemaField):
-    """A JSON Schema Field for the ``array`` type.
+    """A JSON Schema Field for the `array` type.
 
     See Also
     --------

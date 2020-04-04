@@ -118,9 +118,9 @@ class FrozenDict(Generic[KT, VT], dict):
         """Return a new :py:class:`FrozenDict` with changes merged in.
 
         Priority of keys is in inverse order, i.e.:
-            1. ``**kwargs``
-            2. ``other`` mapping
-            3. ``self``, the object you're mutating.
+            1. `**kwargs`
+            2. `other` mapping
+            3. `self`, the object you're mutating.
 
         Examples
         --------
