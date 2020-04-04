@@ -1,4 +1,10 @@
-# Validation, Parsing, and Coercion
+# Validation, Parsing, and Deserialization
+Typical's default mode is that of a *deserializer & serializer*. The
+API also provides a means to manually validate inputs against your
+defined type, but it should be noted that Typical approaches
+validation as a means or side-effect of deserialization.
+
+You can, however, change the default mode.
 
 ## Strict Mode
 
@@ -9,13 +15,40 @@ are three different levels of `strict` mode enforcement:
 
 1. *Global*
 2. *Namespaced*
-3. *Annotation*
+3. *Annotated*
 
-`Global` is the easiest to turn on, but has its drawbacks:
+### Global Strict Mode
+Global strict mode is the easiest to just turn on, but has its
+drawbacks.
 
-::: typic.api.strict_mode
+#### `typic.strict_mode()`
+> Turn on global ``strict`` mode.
+>
+> All resolved annotations will validate their inputs against the generated
+> constraints. In some cases, coercion may still be used as the method for
+> validation. Additionally, post-validation coercion will occur for
+> user-defined classes if needed.
+>
+> !!! warning
+>
+>     Global state is messy, but this is provided for convenience. Care must
+>     be taken when manipulating global state in this way. If you intend to
+>     turn on global ``strict`` mode, it should be done once, at the start
+>     of the application runtime, before all annotations have been resolved.
+>     
+>     You cannot toggle ``strict`` mode off once it is enabled during the runtime
+>     of an application. This is intentional, to limit the potential for hazy or
+>     unclear state.
+>     
+>     If you find yourself in a situation where you need `strict` mode for some
+>     cases, but not others, you're encouraged to flag `strict=True` on the
+>     decorated class/callable, or even make use of the `typic.Strict` 
+>     annotation to flag `strict` mode on individual fields.
 
-`Namespaced` enforces on a per-class/per-callable basis:
+
+### Namespaced Strict Mode
+
+Namespaced enforces on a per-class/per-callable basis:
 
 
     >>> import typic
@@ -29,78 +62,82 @@ are three different levels of `strict` mode enforcement:
         ...
     typic.constraints.error.ConstraintValueError: Given value <'2'> fails constraints: (type=int, nullable=False, coerce=False)
 
+### Annotated Strict Mode
 
+Annotated Strict Mode is enforced at the type-hint level.
 
-`Annotation` is enforced at the type-hint level. This is the
-recommended method for strict-mode enforcement:
+??? example "Annotated Strict Mode"
 
-    >>> import typic
-    >>>
-    >>> @typic.klass
-    ... class Foo:
-    ...     bar: typic.StrictStrT  # convenience alias for most common need.
-    ...     blah: int  # will be coerced if possible.
-    ...
-    >>> Foo("bar", "2")
-    Foo(bar='bar', blah=2)
-    >>> Foo(None, 2)
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <None> fails constraints: (type=str, nullable=False, coerce=False)
+    ```python
+    import typic
+    
+    
+    @typic.klass
+    class Foo:
+        bar: typic.StrictStrT  # convenience alias for most common need.
+        blah: int  # will be coerced if possible.
+    
+    
+    Foo(None, 2)
+    #> Traceback (most recent call last):
+    #>     ...
+    #> typic.constraints.error.ConstraintValueError: Given value <None> fails constraints: (type=str, nullable=False, coerce=False)
+    ```
 
+!!! warning ""
 
-There are cases where the returned value is still coerced, so if you
-are listening for the result of a call to `typic.coerce` while
-enforcing strict-mode, you should be sure to track the updated value.
+    There are cases where the returned value is still coerced, so if you
+    are listening for the result of a call to `typic.coerce` while
+    enforcing strict-mode, you should be sure to track the updated value.
 
-## On Validation & Coercion
+## On Validation & Deserialization
 
 **Validation** is a bloated term in Python typing. There are many
 camps which define validation as different things - static type
 checking, runtime type checking, runtime type coercion...
 
 Unlike other popular libraries, `typical` makes an extremely clear
-delineation between type *coercion* and type *validation*.
+delineation between type *deserialization* and type *validation*.
 
-We approach type-enforcement via *coercion-first*. While you may get
-validation as a side-effect of coercion, the line between the two
-operations is not blurred. In order to operate with
+We approach type-enforcement via *deserialization-first*. While you
+may get validation as a side-effect of coercion, the line between the
+two operations is not blurred. In order to operate with
 *validation-first*, you must change the mode of operation. This is not
 the case in other popular libraries.
 
 These are the paths to "validation" which `typical` will follow:
 
-### Validate-by-Coerce
+### Validate-by-Parse
 
-The given value is inherently validated by the action of coercion.
+The given value is inherently validated by the action of conversion.
 This is `typical`'s default mode and for many built-in higher-level
 types this behavior does not change in strict-mode:
 
     >>> import ipaddress
     >>> import typic
     >>>
-    >>> typic.coerce("", ipaddress.IPv4Address)
+    >>> typic.transmute("", ipaddress.IPv4Address)
     Traceback (most recent call last):
         ...
     ipaddress.AddressValueError: Address cannot be empty
-    >>> typic.coerce("", typic.Strict[ipaddress.IPv4Address])
+    >>> typic.transmute("", typic.Strict[ipaddress.IPv4Address])
     Traceback (most recent call last):
         ...
     ipaddress.AddressValueError: Address cannot be empty
-    >>> typic.coerce("", typic.URL)
+    >>> typic.transmute("", typic.URL)
     Traceback (most recent call last):
         ...
     typic.types.url.NetworkAddressValueError: '' is not a valid network address.
 
-    >>> typic.coerce("", typic.Strict[typic.URL])
+    >>> typic.transmute("", typic.Strict[typic.URL])
     Traceback (most recent call last):
         ...
     typic.types.url.NetworkAddressValueError: '' is not a valid network address.
 
 
-### Coerce-then-Validate
+### Parse-then-Validate
 
-The given value will be coerced and then validated against any
+The given value will be transmuted and then validated against any
 additional constraints. This can be activated for primitive types by
 defining constrained subclasses:
 
@@ -110,9 +147,9 @@ defining constrained subclasses:
     >>> @typic.constrained(gt=0)
     ... class PositiveInt(int): ...
     ...
-    >>> typic.coerce("1", PositiveInt)
+    >>> typic.transmute("1", PositiveInt)
     1
-    >>> typic.coerce("-1", PositiveInt)
+    >>> typic.transmute("-1", PositiveInt)
     Traceback (most recent call last):
         ...
     typic.constraints.error.ConstraintValueError: Given value <-1> fails constraints: (type=int, nullable=False, coerce=False, gt=0)
@@ -129,20 +166,21 @@ In strict-mode, `validation-only` is used for primitive types.
 
 
     >>> import typic
-    >>> typic.coerce("1", typic.Strict[int])
+    >>> typic.transmute("1", typic.Strict[int])
     Traceback (most recent call last):
         ...
     typic.constraints.error.ConstraintValueError: Given value <'1'> fails constraints: (type=int, nullable=False, coerce=False)
 
 
 
-### Validate-then-Coerce
+### Validate-then-Parse
 
 The given value *must* meet the type-constraints provided - after
-which we coerce the value. This can be done by signaling to `typical`
-to use "strict-mode" when resolving an annotation for coercion.
+which we transmute the value. This can be done by signaling to
+`typical` to use "strict-mode" when resolving an annotation for
+coercion.
 
-In strict-mode, `validate-then-coerce` is used for user-defined types.
+In strict-mode, `validate-then-parse` is used for user-defined types.
 
 
 
@@ -153,9 +191,9 @@ In strict-mode, `validate-then-coerce` is used for user-defined types.
     ... class Foo:
     ...     bar: str
     ...
-    >>> typic.coerce({"bar": "bar"}, typic.Strict[Foo])
+    >>> typic.transmute({"bar": "bar"}, typic.Strict[Foo])
     Foo(bar='bar')
-    >>> typic.coerce({"bar": 1}, typic.Strict[Foo])
+    >>> typic.transmute({"bar": 1}, typic.Strict[Foo])
     Traceback (most recent call last):
         ...
     typic.constraints.error.ConstraintValueError: Given value <1> fails constraints: (type=str, nullable=False, coerce=False)
@@ -163,8 +201,8 @@ In strict-mode, `validate-then-coerce` is used for user-defined types.
 
 ## What "Mode" Should I Use?
 
-`typical` provides users with a path for easy, safe coercion of types
-at runtime.
+`typical` provides users with a path for easy, safe conversion of
+types at runtime.
 
 The best use-case for "strict-mode" is when you find yourself using
 `str` as your annotation. This is because any object in Python can be

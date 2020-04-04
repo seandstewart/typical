@@ -519,7 +519,7 @@ class Song:
 >     [SerDes](serdes.md).
 
 
-## Optimizing the Functional API
+## The Protocol API
 
 As promised, `typical` provides a path for optimizing your
 interactions with the Functional API. This is done by calling the

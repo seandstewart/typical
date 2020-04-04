@@ -13,7 +13,7 @@ installation with `typical[json]`. This results in a 30-50%
 improvement when serializing your data with `.tojson()`.
 
 
-## @typic.al
+## `@typic.al()`
 
 The simplest way to get going with `typical` is the `@typic.al`
 decorator. This is the core entrypoint for all the magic

@@ -30,7 +30,7 @@ Here's a short list:
       Just check out the histogram below:
 
 ![Average time (in μs) for validation and attempted initialization of invalid data in
- a complex, nested object.](static/benchmark_20191106_223028-Invalid_Data.svg)
+a complex, nested object.](static/benchmark_20200404_215129-Invalid_Data.svg)
 
-![Average time (in μs) for validation and initialization of valid data in a complex
-, nested object.](static/benchmark_20191106_223028-Valid_Data.svg)
+![Average time (in μs) for validation and initialization of valid data in a complex,
+nested object.](static/benchmark_20200404_215129-Valid_Data.svg)
