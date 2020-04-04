@@ -2,10 +2,10 @@
 name = "typical"
 packages = [{include = "typic"}]
 version = "2.0.0"
-description = "Typical: Take Typing Further."
+description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
-readme = "README.md"
+readme = "mkdocs/index.md"
 repository = "https://github.com/seandstewart/typical"
 keywords = ["typing", "data", "annotations", "validation", "json-schema"]
 classifiers = [
