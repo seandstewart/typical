@@ -1,3 +1,8 @@
+**v2.0.0**
+
+Official release of `v2.0.0`. See the release
+[page](https://github.com/seandstewart/typical/releases).
+
 **v2.0.0rc2**
 
 Patch:
