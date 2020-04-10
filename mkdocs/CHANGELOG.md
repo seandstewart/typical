@@ -1,3 +1,9 @@
+**v2.0.1**
+
+Bugfixes:
+
+- Fix runtime serialization of nested delayed/unseen objects.
+
 **v2.0.0**
 
 Official release of `v2.0.0`. See the release

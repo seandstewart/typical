@@ -273,7 +273,11 @@ class Resolver:
         params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
         fields: Mapping[str, Annotation] = {
-            x: self.annotation(y, flags=flags, default=getattr(origin, x, EMPTY))
+            x: self.annotation(
+                y,
+                flags=dataclasses.replace(flags, fields={}),
+                default=getattr(origin, x, EMPTY),
+            )
             for x, y in util.cached_type_hints(origin).items()
         }
         # Filter out any annotations which aren't part of the object's signature.
