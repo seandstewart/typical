@@ -11,6 +11,7 @@ from typic.types import url
 OREL = "/path;attr=value?query=string#frag"
 REL = f"www.foo.bar{OREL}"
 ABS = f"http://{REL}"
+PORT = f"http://www.foo.bar:100{OREL}"
 DOTL = "foo"
 HOST = "foo.bar"
 FRAG = "#frag"
@@ -27,6 +28,7 @@ _rel = url.NetworkAddress(REL)
 _orel = url.NetworkAddress(OREL)
 _dotl = url.NetworkAddress(DOTL)
 _frag = url.NetworkAddress(FRAG)
+_port = url.NetworkAddress(PORT)
 
 
 @pytest.mark.parametrize(
@@ -35,8 +37,17 @@ _frag = url.NetworkAddress(FRAG)
         (_abs, "scheme", "http"),
         (_abs, "host", "www.foo.bar"),
         (_abs, "port", 80),
+        (_abs, "base", "http://www.foo.bar"),
         (_abs, "path", "/path"),
         (_abs, "qs", "query=string"),
+        (_abs, "params", "attr=value"),
+        (_port, "fragment", "frag"),
+        (_port, "scheme", "http"),
+        (_port, "host", "www.foo.bar"),
+        (_port, "port", 100),
+        (_port, "base", "http://www.foo.bar:100"),
+        (_port, "path", "/path"),
+        (_port, "qs", "query=string"),
         (_abs, "params", "attr=value"),
         (_abs, "fragment", "frag"),
         (_rel, "scheme", ""),
@@ -124,6 +135,7 @@ def test_info_url(value: url.NetworkAddress, base):
     argvalues=[
         (url.URL("/foo"), "bar", "/foo/bar"),
         (url.URL("http://foo.bar/bar"), "foo", "http://foo.bar/bar/foo"),
+        (url.URL("http://foo.bar:8080/bar"), "foo", "http://foo.bar:8080/bar/foo"),
     ],
 )
 def test_url_join(value, path, expected):

@@ -168,7 +168,8 @@ class NetAddrInfo:
     def base(self) -> str:
         """The 'base' of the URL, including scheme, auth, and host."""
         base = f"{self.scheme}://" if self.scheme else ""
-        return f"{base}{self.auth}{self.host}"
+        port = f":{self.port}" if self.port and not self.is_default_port else ""
+        return f"{base}{self.auth}{self.host}{port}"
 
     @cached_property
     def relative(self):

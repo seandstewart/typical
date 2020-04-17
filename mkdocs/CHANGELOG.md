@@ -1,3 +1,9 @@
+**v2.0.2**
+
+Bugfixes:
+
+- Retain custom port when joining URLs
+
 **v2.0.1**
 
 Bugfixes:
