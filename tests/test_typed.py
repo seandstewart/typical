@@ -51,6 +51,7 @@ from tests.objects import (
     Pydantic,
     Typical,
     get_id,
+    SubTypic,
 )
 from typic.api import (
     transmute,
@@ -123,6 +124,7 @@ def test_isbuiltintype(obj: typing.Any):
         (Data, FromDict("bar!"), Data("bar!")),
         (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
         (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
+        (SubTypic, {"var": "var", "sub": b"sub"}, SubTypic("var", "sub")),  # type: ignore
     ],
     ids=get_id,
 )

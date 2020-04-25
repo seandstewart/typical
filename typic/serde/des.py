@@ -24,7 +24,7 @@ from pendulum import parse as dateparse
 
 from typic import checks, gen, constraints as const
 from typic.strict import STRICT_MODE
-from typic.util import safe_eval, hexhash, origin as get_origin, cached_issubclass
+from typic.util import safe_eval, origin as get_origin, cached_issubclass
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
 
@@ -121,7 +121,7 @@ class DesFactory:
 
     @staticmethod
     def _get_des_name(annotation: "Annotation") -> str:
-        return f"deserializer_{hexhash(annotation)}"
+        return f"deserializer_{hash(annotation)}".replace("-", "_")
 
     def _build_date_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"

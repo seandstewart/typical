@@ -13,6 +13,9 @@ class _Strict:
     def __repr__(self):  # pragma: nocover
         return f"<strict-mode={self.__STRICT}>"
 
+    def __hash__(self):
+        return hash(self.__STRICT)
+
     def is_strict_mode(self) -> bool:
         return self.__STRICT
 
