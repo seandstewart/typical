@@ -92,6 +92,11 @@ class Typic:
     var: str
 
 
+@typic.klass
+class SubTypic(Typic):
+    sub: str
+
+
 @typic.klass(frozen=True)
 class FrozenTypic:
     var: str

@@ -167,6 +167,9 @@ def wrap(
 
 _sentinel = object()
 _origsettergetter = attrgetter(ORIG_SETTER_NAME)
+_typic_attrs = frozenset(
+    (SERDE_ATTR, "primitive", "tojson", "transmute", "validate", "translate")
+)
 
 
 def _bind_proto(cls, proto: SerdeProtocol):
@@ -198,7 +201,6 @@ def _resolve_class(
     }
     if jsonschema:
         ns["schema"] = classmethod(schema)
-        schema(cls)
 
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine,
@@ -216,10 +218,10 @@ def _resolve_class(
             **{"__setattr__": __setattr_coerced__, ORIG_SETTER_NAME: _get_setter(cls)}
         )
 
-    bases = inspect.getmro(cls)
-    cdict = dict(cls.__dict__)
-    cdict.pop("__dict__", None)
-    cdict.pop("__weakref__", None)
+    bases = (*(x for x in inspect.getmro(cls) if x is not cls),)
+    cdict = {
+        x: cls.__dict__[x] for x in cls.__dict__.keys() - {"__dict__", "__weakref__"}
+    }
     cdict.update(ns)
     # Create the new class
     kls: Type[WrappedObjectT] = type(cls.__name__, bases, cdict)
@@ -227,6 +229,8 @@ def _resolve_class(
     proto: SerdeProtocol = resolver.resolve(kls, is_strict=strict)
     # Bind it to the new class
     _bind_proto(kls, proto)
+    if jsonschema:
+        schema(kls)
     # Track resolution state.
     setattr(kls, "__typic_resolved__", True)
     return kls
@@ -353,6 +357,7 @@ def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
     -------
     The target object, appropriately wrapped.
     """
+    strict = STRICT_MODE if strict is None else strict  # type: ignore
 
     def _typed(obj: Union[Callable, Type[ObjectT]]):
         if inspect.isclass(obj):
