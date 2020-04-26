@@ -166,7 +166,9 @@ def wrap(
 
 
 _sentinel = object()
-_origsettergetter = attrgetter(ORIG_SETTER_NAME)
+_origsettergetter: Callable[[Any], Callable[[str, Any], None]] = attrgetter(
+    ORIG_SETTER_NAME
+)
 _typic_attrs = frozenset(
     (SERDE_ATTR, "primitive", "tojson", "transmute", "validate", "translate")
 )
@@ -218,22 +220,17 @@ def _resolve_class(
             **{"__setattr__": __setattr_coerced__, ORIG_SETTER_NAME: _get_setter(cls)}
         )
 
-    bases = (*(x for x in inspect.getmro(cls) if x is not cls),)
-    cdict = {
-        x: cls.__dict__[x] for x in cls.__dict__.keys() - {"__dict__", "__weakref__"}
-    }
-    cdict.update(ns)
-    # Create the new class
-    kls: Type[WrappedObjectT] = type(cls.__name__, bases, cdict)
+    for name, attr in ns.items():
+        setattr(cls, name, attr)
     # Get the protocol
-    proto: SerdeProtocol = resolver.resolve(kls, is_strict=strict)
+    proto: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
     # Bind it to the new class
-    _bind_proto(kls, proto)
+    _bind_proto(cls, proto)
     if jsonschema:
-        schema(kls)
+        schema(cls)
     # Track resolution state.
-    setattr(kls, "__typic_resolved__", True)
-    return kls
+    setattr(cls, "__typic_resolved__", True)
+    return cls
 
 
 def _delay_resolve_class(
@@ -249,18 +246,7 @@ def _delay_resolve_class(
     # Create a classmethod for delayed resolution.
     def _resolve(cls):
         if not cls.__typic_resolved__:
-            _cls = _resolve_class(
-                cls_, strict=strict, jsonschema=jsonschema, serde=serde
-            )
-            _bind_proto(cls, _cls.__serde__)
-            if hasattr(_cls, ORIG_SETTER_NAME):
-                setattr(cls, "__setattr__", _cls.__setattr__)
-                setattr(cls, ORIG_SETTER_NAME, getattr(_cls, ORIG_SETTER_NAME))
-            else:
-                setattr(cls, "__init__", _cls.__init__)
-            if jsonschema:
-                setattr(cls, "schema", classmethod(schema))
-                schema(cls)
+            _resolve_class(cls, strict=strict, jsonschema=jsonschema, serde=serde)
             if cls in _TO_RESOLVE:
                 _TO_RESOLVE.remove(cls)
         cls.__typic_resolved__ = True

@@ -97,6 +97,17 @@ class SubTypic(Typic):
     sub: str
 
 
+@typic.klass
+class Base:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+
+@typic.klass
+class SuperBase(Base):
+    super: str
+
+
 @typic.klass(frozen=True)
 class FrozenTypic:
     var: str

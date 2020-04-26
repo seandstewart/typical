@@ -52,6 +52,7 @@ from tests.objects import (
     Typical,
     get_id,
     SubTypic,
+    SuperBase,
 )
 from typic.api import (
     transmute,
@@ -125,6 +126,7 @@ def test_isbuiltintype(obj: typing.Any):
         (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
         (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
         (SubTypic, {"var": "var", "sub": b"sub"}, SubTypic("var", "sub")),  # type: ignore
+        (SuperBase, {"super": b"base!"}, SuperBase("base!")),  # type: ignore
     ],
     ids=get_id,
 )
