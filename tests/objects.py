@@ -107,6 +107,9 @@ class Base:
 class SuperBase(Base):
     super: str
 
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+
 
 @typic.klass(frozen=True)
 class FrozenTypic:

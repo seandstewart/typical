@@ -55,7 +55,7 @@ from typic.strict import (
 )
 from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
 from typic.util import origin
-from typic.types import FrozenDict
+from typic.types import FrozenDict, freeze
 
 __all__ = (
     "Annotation",
@@ -120,7 +120,7 @@ class TypicObjectT:
     __serde__: SerdeProtocol
     __serde_flags__: SerdeFlags
     __serde_protocols__: SerdeProtocolsT
-    __settattr_original__: Callable[["WrappedObjectT", str, Any], None]
+    __setattr_original__: Callable[["WrappedObjectT", str, Any], None]
     __typic_resolved__: bool
     schema: SchemaGenT
     primitive: SerializerT
@@ -211,13 +211,22 @@ def _resolve_class(
         ns["__init__"] = wrap(cls.__init__, strict=strict)
     # The faster way - create a new setattr that applies the protocol for a given attr
     else:
+        trans = freeze({x: y.transmute for x, y in protos.items()})
 
-        def __setattr_coerced__(self: WrappedObjectT, name, value, *, __protos=protos):
-            value = __protos[name](value) if name in protos else value
-            _origsettergetter(self)(name, value)
+        def setattr_typed(setter):
+            @functools.wraps(setter)
+            def __setattr_typed__(self, name, item, *, __trans=trans, __setter=setter):
+                __setter(
+                    self, name, __trans[name](item) if name in protos else item,
+                )
+
+            return __setattr_typed__
 
         ns.update(
-            **{"__setattr__": __setattr_coerced__, ORIG_SETTER_NAME: _get_setter(cls)}
+            **{
+                ORIG_SETTER_NAME: _get_setter(cls),
+                "__setattr__": setattr_typed(cls.__setattr__),
+            }
         )
 
     for name, attr in ns.items():
