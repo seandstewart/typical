@@ -326,10 +326,11 @@ class DesFactory:
         self._add_subclass_check(func, anno_name)
         self._add_eval(func)
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
-            if annotation.serde.fields_in != annotation.serde.fields_out:
-                x = "fields_in[x]"
-                y = f"{self.VNAME}[x]"
-                b.l(
+            x = "fields_in[x]"
+            y = f"{self.VNAME}[x]"
+            b.l(f"intersection = fields_in.keys() & {self.VNAME}.keys()")
+            with b.b("if intersection:") as nb:
+                nb.l(
                     f"{self.VNAME} = "
                     f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
                 )

@@ -63,7 +63,9 @@ class TranslatorFactory:
         return {x: inspect.Parameter(x, kind) for x in attrs}
 
     @functools.lru_cache(maxsize=None)
-    def get_fields(self, target: Type) -> Optional[Mapping[str, inspect.Parameter]]:
+    def get_fields(
+        self, target: Type, as_source: bool = False
+    ) -> Optional[Mapping[str, inspect.Parameter]]:
         """Get the fields for the given type.
 
         Notes
@@ -72,9 +74,9 @@ class TranslatorFactory:
         can't make that happen, we fallback to a few known, semi-reliable methods for
         making this happen.
         """
-        # Try first with the signature of the target
+        # Try first with the signature of the target if this is the target type
         params = safe_get_params(target)
-        if not self.sig_is_undef(params):
+        if not as_source and not self.sig_is_undef(params):
             return params
         # Now we start building a fake signature
         k = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -114,7 +116,7 @@ class TranslatorFactory:
         # Ensure that the target fields are a subset of the source fields.
         # We treat the target fields as the parameters for the target,
         # so this must be true.
-        fields = {*(self.get_fields(source) or {})}
+        fields = {*(self.get_fields(source, as_source=True) or {})}
         if not fields.issuperset(target_fields.keys()):
             diff = (*(target_fields.keys() - fields),)
             raise TranslatorValueError(
