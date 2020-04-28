@@ -269,6 +269,20 @@ class Typical:
     id: typing.Optional[typic.ReadOnly[int]] = None
 
 
+@typic.klass
+class Source:
+    test: typing.Optional[str] = typic.field(init=False)
+    field_to_ignore: str = "Ignore me"
+
+    def __post_init__(self):
+        self.test = "Something"
+
+
+@typic.klass
+class Dest:
+    test: typing.Optional[str] = None
+
+
 TYPIC_OBJECTS = [
     Typic,
     Inherited,
