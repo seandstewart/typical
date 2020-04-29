@@ -6,12 +6,21 @@ import typing
 
 import pytest
 
+import typic
 from typic.constraints.factory import get_constraints
 
 
 @dataclasses.dataclass
 class Foo:
     bar: str
+
+
+class MyStr(str):
+    ...
+
+
+class MyURL(typic.URL):
+    ...
 
 
 @pytest.mark.parametrize(
@@ -47,6 +56,8 @@ class Foo:
         (datetime.datetime, datetime.datetime.now()),
         (typing.Optional[datetime.datetime], datetime.datetime.now()),
         (typing.Optional[datetime.datetime], None),
+        (MyStr, MyStr()),
+        (MyURL, MyURL("foo.com")),
     ],
 )
 def test_get_contraints(t, v):

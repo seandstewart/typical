@@ -336,19 +336,6 @@ def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]
 
 SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.FrozenDict(
     {
-        str: StrSchemaField(),
-        AnyStr: StrSchemaField(),
-        Text: StrSchemaField(),
-        bytes: StrSchemaField(),
-        int: IntSchemaField(),
-        bool: BooleanSchemaField(),
-        float: NumberSchemaField(),
-        list: ArraySchemaField(),
-        set: ArraySchemaField(uniqueItems=True),
-        tuple: ArraySchemaField(additionalItems=False),
-        frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
-        dict: ObjectSchemaField(),
-        object: UndeclaredSchemaField(),
         frozendict.FrozenDict: ObjectSchemaField(),
         decimal.Decimal: NumberSchemaField(),
         datetime.datetime: StrSchemaField(format=StringFormat.DTIME),
@@ -372,6 +359,20 @@ SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.Fro
         re.Pattern: StrSchemaField(format=StringFormat.RE),  # type: ignore
         ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
         ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
+        # WARNING: Order is important here!
+        str: StrSchemaField(),
+        AnyStr: StrSchemaField(),
+        Text: StrSchemaField(),
+        bytes: StrSchemaField(),
+        bool: BooleanSchemaField(),
+        int: IntSchemaField(),
+        float: NumberSchemaField(),
+        list: ArraySchemaField(),
+        set: ArraySchemaField(uniqueItems=True),
+        tuple: ArraySchemaField(additionalItems=False),
+        frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
+        dict: ObjectSchemaField(),
         type(None): NullSchemaField(),
+        object: UndeclaredSchemaField(),
     }
 )

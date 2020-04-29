@@ -43,8 +43,7 @@ _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
 __all__ = ("SchemaBuilder", "SchemaDefinitions", "builder")
 
 
-__KNOWN = {*SCHEMA_FIELD_FORMATS} - {AnyStr, object}
-_KNOWN = (*__KNOWN,)
+_KNOWN = (*(f for f in SCHEMA_FIELD_FORMATS.keys() if f not in {AnyStr, object}),)
 
 
 class SchemaDefinitions(TypedDict):

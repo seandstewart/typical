@@ -27,6 +27,8 @@ from typic.checks import (
     isconstrained,
     issubclass,
     istypeddict,
+    isbuiltinsubtype,
+    isnamedtuple,
 )
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import origin, get_args, cached_signature, cached_type_hints, get_name
@@ -207,6 +209,8 @@ def _from_union(
 def _from_class(
     t: Type[VT], *, nullable: bool = False, name: str = None
 ) -> Union[ObjectConstraints, TypeConstraints, MappingConstraints]:
+    if not istypeddict(t) and not isnamedtuple(t) and isbuiltinsubtype(t):
+        return _from_strict_type(t, nullable=nullable, name=name)
     try:
         params: Dict[str, inspect.Parameter] = {**cached_signature(t).parameters}
         hints = cached_type_hints(t)

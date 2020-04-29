@@ -28,6 +28,10 @@ class MySet(set):
     ...
 
 
+class MyURL(typic.URL):
+    ...
+
+
 @pytest.mark.parametrize(
     argnames=("obj", "expected"),
     argvalues=[
@@ -155,6 +159,7 @@ class MySet(set):
             ),
         ),
         (MySet, typic.ArraySchemaField(uniqueItems=True)),
+        (MyURL, typic.StrSchemaField(format=typic.StringFormat.URI)),
     ],
 )
 def test_typic_schema(obj, expected):

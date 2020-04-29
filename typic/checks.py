@@ -71,7 +71,20 @@ __all__ = (
 # Here we are with a manually-defined set of builtin-types.
 # This probably won't break anytime soon, but we shall see...
 BUILTIN_TYPES = frozenset(
-    (int, bool, float, str, bytes, bytearray, list, set, frozenset, tuple, dict)
+    (
+        int,
+        bool,
+        float,
+        str,
+        bytes,
+        bytearray,
+        list,
+        set,
+        frozenset,
+        tuple,
+        dict,
+        type(None),
+    )
 )
 
 
