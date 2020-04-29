@@ -398,7 +398,6 @@ class DesFactory:
                         self._build_generic_des(func, anno_name, annotation)
                 func.l(f"{gen.Keyword.RET} {self.VNAME}")
         deserializer = main.compile(ns=ns, name=func_name)
-        self.__DES_CACHE[func_name] = deserializer
         return deserializer
 
     def _check_varargs(
