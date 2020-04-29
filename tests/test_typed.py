@@ -56,6 +56,8 @@ from tests.objects import (
     Source,
     Dest,
 )
+from tests.module.index import MyClass
+from tests.module.other import factory
 from typic.api import (
     transmute,
     typed,
@@ -131,6 +133,7 @@ def test_isbuiltintype(obj: typing.Any):
         (SubTypic, {"var": "var", "sub": b"sub"}, SubTypic("var", "sub")),  # type: ignore
         (SuperBase, {"super": b"base!"}, SuperBase("base!")),  # type: ignore
         (Dest, Source(), Dest(Source().test)),  # type: ignore
+        (MyClass, factory(), MyClass(1)),
     ],
     ids=get_id,
 )

@@ -6,9 +6,8 @@ from typic.gen import Block, Keyword
 from typic.util import (
     cached_type_hints,
     cached_simple_attributes,
-    hexhash,
     safe_get_params,
-    get_name,
+    get_unique_name,
 )
 
 if TYPE_CHECKING:
@@ -101,7 +100,7 @@ class TranslatorFactory:
 
     @staticmethod
     def _get_name(source: Type, target: Type) -> str:
-        return f"translator_{hexhash(source, target)}"
+        return f"translator_{hash((source, target))}".replace("-", "_")
 
     @functools.lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":
@@ -111,7 +110,7 @@ class TranslatorFactory:
             raise TranslatorTypeError(
                 f"Cannot translate to type {target!r}. "
                 f"Unable to determine target fields."
-            )
+            ) from None
 
         # Ensure that the target fields are a subset of the source fields.
         # We treat the target fields as the parameters for the target,
@@ -122,10 +121,10 @@ class TranslatorFactory:
             raise TranslatorValueError(
                 f"{source!r} can't be translated to {target!r}. "
                 f"Source is missing fields: {diff}."
-            )
+            ) from None
         # Build the translator.
-        anno_name = get_name(source)
-        target_name = get_name(target)
+        anno_name = get_unique_name(source)
+        target_name = get_unique_name(target)
         func_name = self._get_name(source, target)
         oname = "o"
         ctx = {target_name: target, anno_name: source}

@@ -214,6 +214,11 @@ def get_name(obj: Type) -> str:
 
 
 @functools.lru_cache(maxsize=None)
+def get_unique_name(obj: Type) -> str:
+    return f"{get_name(obj)}_{id(obj)}".replace("-", "_")
+
+
+@functools.lru_cache(maxsize=None)
 def resolve_supertype(annotation: Type[Any]) -> Any:
     """Get the highest-order supertype for a NewType.
 
