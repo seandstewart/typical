@@ -24,6 +24,10 @@ def test_typic_objects_schema(obj):
     assert obj.schema() is typic.schema(obj)
 
 
+class MySet(set):
+    ...
+
+
 @pytest.mark.parametrize(
     argnames=("obj", "expected"),
     argvalues=[
@@ -150,6 +154,7 @@ def test_typic_objects_schema(obj):
                 )
             ),
         ),
+        (MySet, typic.ArraySchemaField(uniqueItems=True)),
     ],
 )
 def test_typic_schema(obj, expected):

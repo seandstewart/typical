@@ -13,6 +13,7 @@ from typing import (
     Generic,
     cast,
     Set,
+    AnyStr,
 )
 
 import inflection  # type: ignore
@@ -22,6 +23,7 @@ from typic.serde.resolver import resolver
 from typic.serde.common import SerdeProtocol, Annotation
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
+from typic.checks import istypeddict, isnamedtuple
 from typic.types.frozendict import FrozenDict
 
 from .field import (  # type: ignore
@@ -39,6 +41,10 @@ from .field import (  # type: ignore
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
 
 __all__ = ("SchemaBuilder", "SchemaDefinitions", "builder")
+
+
+__KNOWN = {*SCHEMA_FIELD_FORMATS} - {AnyStr, object}
+_KNOWN = (*__KNOWN,)
 
 
 class SchemaDefinitions(TypedDict):
@@ -167,6 +173,14 @@ class SchemaBuilder:
             use = cast(Type[enum.Enum], use)
             enum_ = tuple(x.value for x in use)
             use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
+
+        # Check for a subclass of a known format
+        if not istypeddict(use) and not isnamedtuple(use) and issubclass(use, _KNOWN):
+            for kn in _KNOWN:
+                if issubclass(use, kn):
+                    use = kn
+                    break
+                # pragma: nocover
 
         # If this is ro with a default, we can consider this a const
         # Which is an enum with a single value -
