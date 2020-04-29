@@ -31,14 +31,23 @@ defined in the following standard modules & bases:
         also natively support date objects provided by
         [pendulum](https://pendulum.eustace.io).
 
-- [decimal](https://docs.python.org/3.9/library/decimal.html)
-- [ipaddress](https://docs.python.org/3.9/library/ipaddress.html)
-- [typing.NamedTuple](https://docs.python.org/3.9/library/typing.html#typing.NamedTuple)
-- [typing.TypedDict](https://docs.python.org/3.9/library/typing.html#typing.TypedDict)
-- [typing.NewType](https://docs.python.org/3.9/library/typing.html#typing.NewType)
+- [decimal](https://docs.python.org/3/library/decimal.html)
+- [ipaddress](https://docs.python.org/3/library/ipaddress.html)
+- [defaultdict](https://docs.python.org/3/library/collections.html#collections.defaultdict)
+- [typing.NamedTuple](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
+- [typing.TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+- [typing.NewType](https://docs.python.org/3/library/typing.html#typing.NewType)
+- [typing.DefaultDict](https://docs.python.org/3/library/typing.html?highlight=defaultdict#typing.DefaultDict)
 
-Additionally, we maintain mapping of typing/collection ABCs to
-actionable runtime type:
+    !!! note ""
+
+        We will use the subscripted value type to attempt to determine a factory
+        for your defaultdict. If one can't be determined, or the value type
+        requires additional parameters upon initialization, the default value
+        will be `None`.
+
+Additionally, we maintain mapping of typing/collection
+ABCs to actionable runtime type:
 
 | ABC                    | Builtin |
 |:-----------------------|:--------|

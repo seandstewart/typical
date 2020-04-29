@@ -1,7 +1,8 @@
 import datetime
+import functools
 import inspect
 import re
-from collections import deque
+from collections import deque, defaultdict
 from operator import attrgetter
 from typing import (
     Mapping,
@@ -24,7 +25,12 @@ from pendulum import parse as dateparse
 
 from typic import checks, gen, constraints as const
 from typic.strict import STRICT_MODE
-from typic.util import safe_eval, origin as get_origin, cached_issubclass
+from typic.util import (
+    safe_eval,
+    origin as get_origin,
+    cached_issubclass,
+    cached_signature,
+)
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
 
@@ -178,6 +184,34 @@ class DesFactory:
         with func.b(f"if issubclass({self.VTYPE}, {anno_name}):") as b:
             b.l(f"{gen.Keyword.RET} {self.VNAME}")
 
+    def _get_default_factory(self, annotation: "Annotation"):
+        factory: Union[Type, Callable[..., Any], None] = None
+
+        if annotation.args:
+            factory_anno = self.resolver.annotation(annotation.args[-1])
+            factory = factory_anno.origin
+            if issubclass(factory_anno.origin, defaultdict):
+                factory_nested = self._get_default_factory(factory_anno)
+
+                def factory():
+                    return defaultdict(factory_nested)
+
+                factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+
+            if not checks.isbuiltinsubtype(factory_anno.origin):  # type: ignore
+
+                params: Mapping[str, inspect.Parameter] = cached_signature(
+                    factory_anno.origin
+                ).parameters
+                if not any(p.default is p.empty for p in params.values()):
+
+                    def factory(*, __origin=factory_anno.origin):
+                        return __origin()
+
+                    factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+
+        return factory
+
     def _build_builtin_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
@@ -198,6 +232,8 @@ class DesFactory:
         elif issubclass(origin, str):
             with func.b(f"if issubclass({self.VTYPE}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
+        if issubclass(origin, defaultdict):
+            func.namespace[anno_name] = functools.partial(defaultdict, None)
         # Translate fields for a mapping
         if issubclass(origin, Mapping) and annotation.serde.fields_in:
             line = f"{anno_name}({{fields_in[x]: y for x, y in {self.VNAME}.items()}})"
@@ -278,6 +314,9 @@ class DesFactory:
             key_type, item_type = args
             key_des = self.resolver.resolve(key_type, flags=annotation.serde.flags)
             item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
+        if issubclass(annotation.origin, defaultdict):
+            factory = self._get_default_factory(annotation)
+            func.namespace[anno_name] = functools.partial(defaultdict, factory)
         kd_name = f"{anno_name}_key_des"
         it_name = f"{anno_name}_item_des"
         line = f"{anno_name}({self.VNAME})"
