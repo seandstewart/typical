@@ -3,6 +3,7 @@ import datetime
 import inspect
 import re
 import typing
+from collections import defaultdict
 from operator import attrgetter
 
 import pendulum
@@ -134,6 +135,7 @@ def test_isbuiltintype(obj: typing.Any):
         (SuperBase, {"super": b"base!"}, SuperBase("base!")),  # type: ignore
         (Dest, Source(), Dest(Source().test)),  # type: ignore
         (MyClass, factory(), MyClass(1)),
+        (defaultdict, {}, defaultdict(None)),
     ],
     ids=get_id,
 )
@@ -264,6 +266,9 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.Mapping[bool, NestedFromDict], {0: {"data": {"foo": "bar!"}}}),
         (typing.Dict[bytes, NestedFromDict], {0: "{'data': {'foo': 'bar!'}}"}),
         (DateDict, '{"1970": "foo"}'),
+        (typing.DefaultDict[str, int], {}),
+        (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
+        (typing.DefaultDict[str, DefaultNone], {"foo": {}},),
     ],
     ids=get_id,
 )
@@ -272,8 +277,8 @@ def test_transmute_mapping_subscripted(annotation, value):
     key_arg, value_arg = annotation.__args__
     transmuted = transmute(annotation, value)
     assert isinstance(transmuted, annotation.__origin__)
-    assert all(isinstance(x, key_arg) for x in transmuted.keys())
-    assert all(isinstance(x, value_arg) for x in transmuted.values())
+    assert all(isinstance(x, get_origin(key_arg)) for x in transmuted.keys())
+    assert all(isinstance(x, get_origin(value_arg)) for x in transmuted.values())
 
 
 def test_transmute_nested_sequence():
