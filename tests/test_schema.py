@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 from datetime import datetime
-from typing import List, Tuple, Set, Union, Mapping, Dict, Any
+from typing import List, Tuple, Set, Union, Mapping, Dict, Any, DefaultDict
 
 import pytest
 import typic
@@ -34,6 +34,11 @@ class MyURL(typic.URL):
 
 class MyDateTime(datetime):
     ...
+
+
+@typic.klass
+class Container:
+    data: DefaultDict[str, int]
 
 
 @pytest.mark.parametrize(
@@ -165,6 +170,24 @@ class MyDateTime(datetime):
         (MySet, typic.ArraySchemaField(uniqueItems=True)),
         (MyURL, typic.StrSchemaField(format=typic.StringFormat.URI)),
         (MyDateTime, typic.StrSchemaField(format=typic.StringFormat.DTIME)),
+        (MyDateTime, typic.StrSchemaField(format=typic.StringFormat.DTIME)),
+        (
+            Container,
+            typic.ObjectSchemaField(
+                title="Container",
+                description="Container(data: DefaultDict[str, int])",
+                properties={"data": typic.Ref(ref="#/definitions/Data")},
+                additionalProperties=False,
+                required=("data",),
+                definitions=typic.FrozenDict(
+                    {
+                        "Data": typic.ObjectSchemaField(
+                            title="Data", additionalProperties=typic.IntSchemaField()
+                        )
+                    }
+                ),
+            ),
+        ),
     ],
     ids=repr,
 )
