@@ -193,9 +193,9 @@ class SchemaBuilder:
             constraints.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
             # `use` should always be a dict if the annotation is a Mapping,
             # thanks to `origin()` & `resolve()`.
-            if use is dict:
+            if isinstance(base, ObjectSchemaField):
                 self._handle_mapping(anno, constraints, name=name)
-            elif use in {tuple, set, frozenset, list}:
+            elif isinstance(base, ArraySchemaField):
                 self._handle_array(anno, constraints)
             schema = dataclasses.replace(base, **constraints)
         else:
