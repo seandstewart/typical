@@ -19,7 +19,7 @@ from .common import (
 )
 from .error import ConstraintValueError, ConstraintSyntaxError
 from .mapping import DictConstraints, MappingConstraints, ObjectConstraints
-from .number import DecimalContraints, FloatContraints, IntContraints, Number
+from .number import DecimalContraints, FloatContraints, IntContraints, NumberT
 from .text import BytesConstraints, StrConstraints
 from .factory import ConstraintsT, get_constraints
 
@@ -34,7 +34,7 @@ __all__ = (
     "FrozenSetConstraints",
     "IntContraints",
     "ListContraints",
-    "Number",
+    "NumberT",
     "SetContraints",
     "StrConstraints",
     "TupleContraints",
