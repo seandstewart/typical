@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import pytest
-
+from datetime import datetime
 from typing import List, Tuple, Set, Union, Mapping, Dict, Any
 
+import pytest
 import typic
 import typic.common
 from typic.ext.schema import (
@@ -29,6 +29,10 @@ class MySet(set):
 
 
 class MyURL(typic.URL):
+    ...
+
+
+class MyDateTime(datetime):
     ...
 
 
@@ -160,7 +164,9 @@ class MyURL(typic.URL):
         ),
         (MySet, typic.ArraySchemaField(uniqueItems=True)),
         (MyURL, typic.StrSchemaField(format=typic.StringFormat.URI)),
+        (MyDateTime, typic.StrSchemaField(format=typic.StringFormat.DTIME)),
     ],
+    ids=repr,
 )
 def test_typic_schema(obj, expected):
     assert typic.schema(obj) == expected

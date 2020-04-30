@@ -25,6 +25,8 @@ from typing import (
     Iterable,
     AbstractSet,
     MutableSet,
+    Dict,
+    Optional,
 )
 
 import typic.checks as checks
@@ -446,3 +448,29 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     except (ValueError, TypeError):  # pragma: nocover
         params = {}
     return params
+
+
+VT = TypeVar("VT")
+
+
+class TypeMap(Dict[Type, VT]):
+    """A mapping of Type -> value."""
+
+    def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:
+        """Traverse the MRO of a class, return the value for the nearest parent."""
+        # Skip traversal if this type is already mapped.
+        if t in self:
+            return self[t]
+
+        # Get the MRO - the first value is the given type so skip it
+        try:
+            for ptype in inspect.getmro(t)[1:]:
+                if ptype in self:
+                    v = self[ptype]
+                    # Cache for later use
+                    self[t] = v
+                    return v
+        except (AttributeError, TypeError):
+            pass
+
+        return default

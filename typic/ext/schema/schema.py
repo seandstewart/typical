@@ -133,8 +133,6 @@ class SchemaBuilder:
         # If a field isn't required an empty default is functionally the same
         # as a default to None for the JSON schema.
         default = anno.parameter.default if anno.has_default else None
-        # Get known schemas mapped to Python types.
-        formats = SCHEMA_FIELD_FORMATS
         # `use` is the based annotation we will use for building the schema
         use = getattr(anno.origin, "__parent__", anno.origin)
         # If there's not a static annotation, short-circuit the rest of the checks.
@@ -173,14 +171,6 @@ class SchemaBuilder:
             enum_ = tuple(x.value for x in use)
             use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
 
-        # Check for a subclass of a known format
-        if not istypeddict(use) and not isnamedtuple(use) and issubclass(use, _KNOWN):
-            for kn in _KNOWN:
-                if issubclass(use, kn):
-                    use = kn
-                    break
-                # pragma: nocover
-
         # If this is ro with a default, we can consider this a const
         # Which is an enum with a single value -
         # we don't currently honor `{'const': <val>}` since it's just syntactic sugar.
@@ -189,7 +179,14 @@ class SchemaBuilder:
             ro = None
 
         # If we've got a base object, use it
-        if use in formats:
+        base: Optional[SchemaFieldT]
+        if use is object:
+            base = UndeclaredSchemaField()
+        elif istypeddict(use) or isnamedtuple(use):
+            base = None
+        else:
+            base = cast(SchemaFieldT, SCHEMA_FIELD_FORMATS.get_by_parent(use))
+        if base:
             constraints = (
                 protocol.constraints.for_schema() if protocol.constraints else {}
             )
@@ -200,7 +197,6 @@ class SchemaBuilder:
                 self._handle_mapping(anno, constraints, name=name)
             elif use in {tuple, set, frozenset, list}:
                 self._handle_array(anno, constraints)
-            base: SchemaFieldT = formats[use]
             schema = dataclasses.replace(base, **constraints)
         else:
             schema = self.build_schema(use, name=self.defname(use, name=name))

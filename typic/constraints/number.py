@@ -5,11 +5,11 @@ import decimal
 import warnings
 from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
 
-from .. import gen, util
+from typic import gen, util
 from .common import BaseConstraints, ContextT, ChecksT
 from .error import ConstraintSyntaxError, ConstraintValueError
 
-Number = Union[int, float, decimal.Decimal]
+NumberT = Union[int, float, decimal.Decimal]
 
 
 def _get_digits(tup: decimal.DecimalTuple):
@@ -44,17 +44,17 @@ class NumberConstraints(BaseConstraints):
     :py:class:`~typic.types.constraints.common.BaseConstraints`
     """
 
-    type: ClassVar[Type[Number]]
+    type: ClassVar[Type[NumberT]]
     """The builtin type for this constraint."""
-    gt: Optional[Number] = None
+    gt: Optional[NumberT] = None
     """The value inputs must be greater-than."""
-    ge: Optional[Number] = None
+    ge: Optional[NumberT] = None
     """The value inputs must be greater-than-or-equal-to."""
-    lt: Optional[Number] = None
+    lt: Optional[NumberT] = None
     """The value inputs must be less-than."""
-    le: Optional[Number] = None
+    le: Optional[NumberT] = None
     """The value inputs must be less-than-or-equal-to."""
-    mul: Optional[Number] = None
+    mul: Optional[NumberT] = None
     """The value inputs must be a multiple-of."""
 
     def _check_syntax(self):
@@ -146,7 +146,7 @@ class NumberConstraints(BaseConstraints):
         return checks, context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
-        schema: Dict[str, Union[None, Number, str]] = dict(
+        schema: Dict[str, Union[None, NumberT, str]] = dict(
             title=self.name,
             multipleOf=self.mul,
             minimum=self.ge,
@@ -168,7 +168,7 @@ class IntContraints(NumberConstraints):
     :py:class:`NumberConstraints`
     """
 
-    type: ClassVar[Type[Number]] = int
+    type: ClassVar[Type[NumberT]] = int
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema = super().for_schema()
@@ -186,7 +186,7 @@ class FloatContraints(NumberConstraints):
     :py:class:`NumberConstraints`
     """
 
-    type: ClassVar[Type[Number]] = float
+    type: ClassVar[Type[NumberT]] = float
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -198,7 +198,7 @@ class DecimalContraints(NumberConstraints):
     :py:class:`NumberConstraints`
     """
 
-    type: ClassVar[Type[Number]] = decimal.Decimal
+    type: ClassVar[Type[NumberT]] = decimal.Decimal
     max_digits: Optional[int] = None
     """The maximum allowed digits for the input."""
     decimal_places: Optional[int] = None

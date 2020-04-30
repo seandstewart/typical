@@ -30,7 +30,7 @@ import pendulum
 from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
-from typic.util import filtered_repr, cached_property
+from typic.util import filtered_repr, cached_property, TypeMap
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
@@ -334,7 +334,7 @@ def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]
     return TYPE_TO_FIELD[type]
 
 
-SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.FrozenDict(
+SCHEMA_FIELD_FORMATS = TypeMap(
     {
         frozendict.FrozenDict: ObjectSchemaField(),
         decimal.Decimal: NumberSchemaField(),
@@ -359,7 +359,6 @@ SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.Fro
         re.Pattern: StrSchemaField(format=StringFormat.RE),  # type: ignore
         ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
         ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
-        # WARNING: Order is important here!
         str: StrSchemaField(),
         AnyStr: StrSchemaField(),
         Text: StrSchemaField(),
@@ -373,6 +372,5 @@ SCHEMA_FIELD_FORMATS: frozendict.FrozenDict[type, SchemaFieldT] = frozendict.Fro
         frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
         dict: ObjectSchemaField(),
         type(None): NullSchemaField(),
-        object: UndeclaredSchemaField(),
     }
 )

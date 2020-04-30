@@ -9,54 +9,7 @@ from operator import attrgetter
 import pendulum
 import pytest
 
-from tests.objects import (
-    FromDict,
-    Data,
-    Nested,
-    NestedSeq,
-    NestedFromDict,
-    DefaultNone,
-    Forward,
-    FooNum,
-    UserID,
-    DateDict,
-    NoParams,
-    Class,
-    func,
-    Frozen,
-    optional,
-    varargs,
-    Typic,
-    FrozenTypic,
-    Inherited,
-    KlassVar,
-    KlassVarSubscripted,
-    Method,
-    Delayed,
-    delayed,
-    ShortStr,
-    LargeInt,
-    Constrained,
-    LargeIntDict,
-    NTup,
-    ntup,
-    TDict,
-    TDictPartial,
-    ItemizedValuedDict,
-    ItemizedDict,
-    ItemizedKeyedDict,
-    ItemizedKeyedValuedDict,
-    ShortKeyDict,
-    strictvaradd,
-    Alchemy,
-    Pydantic,
-    Typical,
-    get_id,
-    SubTypic,
-    SuperBase,
-    Source,
-    Dest,
-)
+from tests import objects
 from tests.module.index import MyClass
 from tests.module.other import factory
 from typic.api import (
@@ -119,25 +72,45 @@ def test_isbuiltintype(obj: typing.Any):
         (datetime.date, 0, datetime.date.fromtimestamp(0)),
         (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
         (datetime.date, datetime.datetime(1980, 1, 1), datetime.date(1980, 1, 1)),
-        (FromDict, {"foo": "bar!"}, FromDict("bar!")),
-        (Data, {"foo": "bar!"}, Data("bar!")),
-        (Nested, {"data": {"foo": "bar!"}}, Nested(Data("bar!"))),
-        (Nested, {"data": {"foo": "bar!", "something": "else"}}, Nested(Data("bar!"))),
-        (NestedFromDict, {"data": {"foo": "bar!"}}, NestedFromDict(Data("bar!"))),
-        (FooNum, "bar", FooNum.bar),
-        (Data, Data("bar!"), Data("bar!"),),
+        (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
+        (objects.Data, {"foo": "bar!"}, objects.Data("bar!")),
+        (
+            objects.Nested,
+            {"data": {"foo": "bar!"}},
+            objects.Nested(objects.Data("bar!")),
+        ),
+        (
+            objects.Nested,
+            {"data": {"foo": "bar!", "something": "else"}},
+            objects.Nested(objects.Data("bar!")),
+        ),
+        (
+            objects.NestedFromDict,
+            {"data": {"foo": "bar!"}},
+            objects.NestedFromDict(objects.Data("bar!")),
+        ),
+        (objects.FooNum, "bar", objects.FooNum.bar),
+        (objects.Data, objects.Data("bar!"), objects.Data("bar!"),),
         (NetworkAddress, "localhost", NetworkAddress("localhost")),
         (typing.Pattern, r"\w+", re.compile(r"\w+")),
-        (Data, FromDict("bar!"), Data("bar!")),
-        (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
-        (Nested, NestedFromDict(Data("bar!")), Nested(Data("bar!"))),
-        (SubTypic, {"var": "var", "sub": b"sub"}, SubTypic("var", "sub")),  # type: ignore
-        (SuperBase, {"super": b"base!"}, SuperBase("base!")),  # type: ignore
-        (Dest, Source(), Dest(Source().test)),  # type: ignore
+        (objects.Data, objects.FromDict("bar!"), objects.Data("bar!")),
+        (
+            objects.Nested,
+            objects.NestedFromDict(objects.Data("bar!")),
+            objects.Nested(objects.Data("bar!")),
+        ),
+        (
+            objects.Nested,
+            objects.NestedFromDict(objects.Data("bar!")),
+            objects.Nested(objects.Data("bar!")),
+        ),
+        (objects.SubTypic, {"var": "var", "sub": b"sub"}, objects.SubTypic("var", "sub")),  # type: ignore
+        (objects.SuperBase, {"super": b"base!"}, objects.SuperBase("base!")),  # type: ignore
+        (objects.Dest, objects.Source(), objects.Dest(objects.Source().test)),  # type: ignore
         (MyClass, factory(), MyClass(1)),
         (defaultdict, {}, defaultdict(None)),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_simple(annotation, value, expected):
     transmuted = transmute(annotation, value)
@@ -145,7 +118,9 @@ def test_transmute_simple(annotation, value, expected):
     assert transmuted == expected
 
 
-@pytest.mark.parametrize(argnames=("annotation", "value"), argvalues=[(UserID, "1")])
+@pytest.mark.parametrize(
+    argnames=("annotation", "value"), argvalues=[(objects.UserID, "1")]
+)
 def test_transmute_newtype(annotation, value):
     transmuted = transmute(annotation, value)
     assert isinstance(transmuted, annotation.__supertype__)
@@ -154,12 +129,12 @@ def test_transmute_newtype(annotation, value):
 @pytest.mark.parametrize(
     argnames=("annotation", "value", "expected"),
     argvalues=[
-        (TDict, '{"a": "2"}', {"a": 2}),
-        (NTup, '{"a": "2"}', NTup(2)),
-        (ntup, '{"a": "2"}', ntup("2")),
-        (TDictPartial, "{}", {}),
+        (objects.TDict, '{"a": "2"}', {"a": 2}),
+        (objects.NTup, '{"a": "2"}', objects.NTup(2)),
+        (objects.ntup, '{"a": "2"}', objects.ntup("2")),
+        (objects.TDictPartial, "{}", {}),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_collection_metas(annotation, value, expected):
     transmuted = transmute(annotation, value)
@@ -167,7 +142,7 @@ def test_transmute_collection_metas(annotation, value, expected):
 
 
 def test_default_none():
-    transmuted = transmute(DefaultNone, {})
+    transmuted = transmute(objects.DefaultNone, {})
     assert transmuted.none is None
 
 
@@ -178,7 +153,7 @@ def test_default_none():
         (typing.ClassVar, typing.ClassVar),
         (typing.List[str], list),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_get_origin(annotation, origin):
     assert get_origin(annotation) is origin
@@ -195,7 +170,7 @@ T = typing.TypeVar("T")
         (typing.List[str], (str,)),
         (typing.Optional[str], (str, type(None))),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_get_args(annotation, args):
     assert get_args(annotation) == args
@@ -208,7 +183,7 @@ def test_get_args(annotation, args):
         (typing.Optional[str], None, None),
         (typing.ClassVar[str], 1, "1"),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_supscripted(annotation, value, expected):
     assert transmute(annotation, value) == expected
@@ -232,13 +207,13 @@ def test_transmute_supscripted(annotation, value, expected):
         (typing.Collection[int], '["1"]'),
         (typing.Collection[bool], '["1"]'),
         (typing.Collection[int], {"1"}),
-        (typing.Collection[FromDict], [{"foo": "bar!"}]),
-        (typing.Collection[Data], [{"foo": "bar!"}]),
-        (typing.Collection[Nested], [{"data": {"foo": "bar!"}}]),
-        (typing.Collection[NestedFromDict], [{"data": {"foo": "bar!"}}]),
-        (typing.Collection[NestedFromDict], ["{'data': {'foo': 'bar!'}}"]),
+        (typing.Collection[objects.FromDict], [{"foo": "bar!"}]),
+        (typing.Collection[objects.Data], [{"foo": "bar!"}]),
+        (typing.Collection[objects.Nested], [{"data": {"foo": "bar!"}}]),
+        (typing.Collection[objects.NestedFromDict], [{"data": {"foo": "bar!"}}]),
+        (typing.Collection[objects.NestedFromDict], ["{'data': {'foo': 'bar!'}}"]),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_collections_subscripted(annotation, value):
     arg = annotation.__args__[0]
@@ -260,17 +235,20 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.Dict[str, int], {1: "0"}),
         (typing.Dict[str, bool], {1: "0"}),
         (typing.Dict[datetime.datetime, datetime.datetime], {0: "1970"}),
-        (typing.Dict[str, FromDict], {"blah": {"foo": "bar!"}}),
-        (typing.Mapping[int, Data], {"0": {"foo": "bar!"}}),
-        (typing.Dict[datetime.date, Nested], {"1970": {"data": {"foo": "bar!"}}}),
-        (typing.Mapping[bool, NestedFromDict], {0: {"data": {"foo": "bar!"}}}),
-        (typing.Dict[bytes, NestedFromDict], {0: "{'data': {'foo': 'bar!'}}"}),
-        (DateDict, '{"1970": "foo"}'),
+        (typing.Dict[str, objects.FromDict], {"blah": {"foo": "bar!"}}),
+        (typing.Mapping[int, objects.Data], {"0": {"foo": "bar!"}}),
+        (
+            typing.Dict[datetime.date, objects.Nested],
+            {"1970": {"data": {"foo": "bar!"}}},
+        ),
+        (typing.Mapping[bool, objects.NestedFromDict], {0: {"data": {"foo": "bar!"}}}),
+        (typing.Dict[bytes, objects.NestedFromDict], {0: "{'data': {'foo': 'bar!'}}"}),
+        (objects.DateDict, '{"1970": "foo"}'),
         (typing.DefaultDict[str, int], {}),
         (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
-        (typing.DefaultDict[str, DefaultNone], {"foo": {}},),
+        (typing.DefaultDict[str, objects.DefaultNone], {"foo": {}},),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_mapping_subscripted(annotation, value):
     annotation = resolve_supertype(annotation)
@@ -282,14 +260,14 @@ def test_transmute_mapping_subscripted(annotation, value):
 
 
 def test_transmute_nested_sequence():
-    transmuted = transmute(NestedSeq, {"datum": [{"foo": "bar"}]})
-    assert isinstance(transmuted, NestedSeq)
-    assert all(isinstance(x, Data) for x in transmuted.datum)
+    transmuted = transmute(objects.NestedSeq, {"datum": [{"foo": "bar"}]})
+    assert isinstance(transmuted, objects.NestedSeq)
+    assert all(isinstance(x, objects.Data) for x in transmuted.datum)
 
 
 @pytest.mark.parametrize(
     argnames=("func", "input", "type"),
-    argvalues=[(func, "1", int), (Method().math, "4", int)],
+    argvalues=[(objects.func, "1", int), (objects.Method().math, "4", int)],
 )
 def test_wrap_callable(func, input, type):
     wrapped = wrap(func)
@@ -298,8 +276,8 @@ def test_wrap_callable(func, input, type):
 
 @pytest.mark.parametrize(
     argnames=("klass", "var", "type"),
-    argvalues=[(Class, "var", str), (Data, "foo", str)],
-    ids=get_id,
+    argvalues=[(objects.Class, "var", str), (objects.Data, "foo", str)],
+    ids=objects.get_id,
 )
 def test_wrap_class(klass, var, type):
     Wrapped = wrap_cls(klass)
@@ -310,15 +288,15 @@ def test_wrap_class(klass, var, type):
 @pytest.mark.parametrize(
     argnames=("obj", "input", "getter", "type", "check"),
     argvalues=[
-        (func, "1", None, int, inspect.isfunction),
-        (optional, 1, None, str, inspect.isfunction),
-        (optional, None, None, type(None), inspect.isfunction),
-        (Data, 1, attrgetter("foo"), str, inspect.isclass),
-        (DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
-        (Forward, "bar", attrgetter("foo"), FooNum, inspect.isclass),
-        (Frozen, "0", attrgetter("var"), bool, inspect.isclass),
+        (objects.func, "1", None, int, inspect.isfunction),
+        (objects.optional, 1, None, str, inspect.isfunction),
+        (objects.optional, None, None, type(None), inspect.isfunction),
+        (objects.Data, 1, attrgetter("foo"), str, inspect.isclass),
+        (objects.DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
+        (objects.Forward, "bar", attrgetter("foo"), objects.FooNum, inspect.isclass),
+        (objects.Frozen, "0", attrgetter("var"), bool, inspect.isclass),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_typed(obj, input, getter, type, check):
     wrapped = typed(obj)
@@ -338,13 +316,13 @@ def test_ensure_invalid():
     argnames=("func", "args", "kwargs", "check"),
     argvalues=[
         (
-            varargs,
+            objects.varargs,
             ({"foo": "bar"},),
             {"bar": {"foo": "bar"}},
-            lambda res: all(isinstance(x, Data) for x in res),
+            lambda res: all(isinstance(x, objects.Data) for x in res),
         )
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_typed_varargs(func, args, kwargs, check):
     wrapped = typed(func)
@@ -358,10 +336,10 @@ def test_typed_varargs(func, args, kwargs, check):
     argvalues=[
         (typing.Mapping[int, str], dict),
         (typing.Mapping, dict),
-        (DateDict, dict),
-        (UserID, int),
+        (objects.DateDict, dict),
+        (objects.UserID, int),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_get_origin_returns_origin(annotation, origin):
     detected = get_origin(annotation)
@@ -376,8 +354,11 @@ def test_eval_invalid():
 
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "value", "type"),
-    argvalues=[(typed(Data)("foo"), "foo", 1, str), (typed(NoParams)(), "var", 1, str)],
-    ids=get_id,
+    argvalues=[
+        (typed(objects.Data)("foo"), "foo", 1, str),
+        (typed(objects.NoParams)(), "var", 1, str),
+    ],
+    ids=objects.get_id,
 )
 def test_setattr(instance, attr, value, type):
     setattr(instance, attr, value)
@@ -413,30 +394,33 @@ def test_no_transmuter(val):
 
 
 def test_typic_klass():
-    assert Typic(1).var == "1"
+    assert objects.Typic(1).var == "1"
 
 
 def test_typic_klass_is_dataclass():
-    assert dataclasses.is_dataclass(Typic)
+    assert dataclasses.is_dataclass(objects.Typic)
 
 
 def test_typic_klass_passes_params():
     with pytest.raises(dataclasses.FrozenInstanceError):
-        FrozenTypic(1).var = 2
+        objects.FrozenTypic(1).var = 2
 
 
 def test_typic_klass_inheritance():
-    assert isinstance(Inherited(1).var, str)
+    assert isinstance(objects.Inherited(1).var, str)
 
 
 def test_typic_frozen():
-    assert isinstance(FrozenTypic(1).var, str)
+    assert isinstance(objects.FrozenTypic(1).var, str)
 
 
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "type"),
-    argvalues=[(KlassVar(), "var", str), (KlassVarSubscripted(), "var", str)],
-    ids=get_id,
+    argvalues=[
+        (objects.KlassVar(), "var", str),
+        (objects.KlassVarSubscripted(), "var", str),
+    ],
+    ids=objects.get_id,
 )
 def test_classvar(instance, attr, type):
     setattr(instance, attr, 1)
@@ -444,24 +428,24 @@ def test_classvar(instance, attr, type):
 
 
 def test_typic_callable_delayed():
-    assert isinstance(delayed(1), str)
+    assert isinstance(objects.delayed(1), str)
 
 
 def test_typic_resolve():
     resolve()
-    assert Delayed(1).foo == "1"
+    assert objects.Delayed(1).foo == "1"
 
 
 @pytest.mark.parametrize(
     argnames=("type", "value", "expected"),
     argvalues=[
-        (ShortStr, "foo", "foo"),
-        (ShortStr, 1, "1"),
-        (LargeInt, "1001", 1001),
-        (LargeIntDict, [("foo", 1001)], {"foo": 1001}),
-        (ShortKeyDict, {"foo": ""}, {"foo": ""}),
+        (objects.ShortStr, "foo", "foo"),
+        (objects.ShortStr, 1, "1"),
+        (objects.LargeInt, "1001", 1001),
+        (objects.LargeIntDict, [("foo", 1001)], {"foo": 1001}),
+        (objects.ShortKeyDict, {"foo": ""}, {"foo": ""}),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_cast_constrained(type, value, expected):
     assert type(value) == expected
@@ -470,20 +454,20 @@ def test_cast_constrained(type, value, expected):
 @pytest.mark.parametrize(
     argnames=("type", "value"),
     argvalues=[
-        (ShortStr, "fooooo"),
-        (LargeInt, 500),
-        (LargeIntDict, {"foo": 1}),
-        (LargeIntDict, {"fooooo": 1001}),
-        (ItemizedValuedDict, {"foo": 1}),
-        (ItemizedDict, {"foo": 1}),
-        (ItemizedKeyedValuedDict, {"foo": 1}),
-        (ItemizedKeyedDict, {"foo": 1}),
-        (ItemizedValuedDict, {"blah": "foooooooo"}),
-        (ItemizedKeyedValuedDict, {"blah": "foooooooo"}),
-        (ItemizedKeyedDict, {"foooooooo": "blah"}),
-        (ShortKeyDict, {"fooooooo": "blah"}),
+        (objects.ShortStr, "fooooo"),
+        (objects.LargeInt, 500),
+        (objects.LargeIntDict, {"foo": 1}),
+        (objects.LargeIntDict, {"fooooo": 1001}),
+        (objects.ItemizedValuedDict, {"foo": 1}),
+        (objects.ItemizedDict, {"foo": 1}),
+        (objects.ItemizedKeyedValuedDict, {"foo": 1}),
+        (objects.ItemizedKeyedDict, {"foo": 1}),
+        (objects.ItemizedValuedDict, {"blah": "foooooooo"}),
+        (objects.ItemizedKeyedValuedDict, {"blah": "foooooooo"}),
+        (objects.ItemizedKeyedDict, {"foooooooo": "blah"}),
+        (objects.ShortKeyDict, {"fooooooo": "blah"}),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_cast_constrained_invalid(type, value):
     with pytest.raises(ConstraintValueError):
@@ -491,7 +475,7 @@ def test_cast_constrained_invalid(type, value):
 
 
 def test_typic_klass_constrained():
-    inst = Constrained(1, "1001")
+    inst = objects.Constrained(1, "1001")
     assert inst.short == "1"
     assert inst.large == 1001
 
@@ -554,7 +538,7 @@ def test_constrained_any():
         (Strict[typing.Union[str, int]], None),
         (StrictStrT, b""),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_strict_anno_fails(anno, val):
     with pytest.raises(ConstraintValueError):
@@ -575,7 +559,7 @@ def test_strict_anno_fails(anno, val):
         (Strict[typing.Union[str, int]], "foo"),
         (StrictStrT, "foo"),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_strict_anno_passes(anno, val):
     assert transmute(anno, val) == val
@@ -584,11 +568,11 @@ def test_strict_anno_passes(anno, val):
 @pytest.mark.parametrize(
     argnames=("func", "args", "kwargs"),
     argvalues=[
-        (strictvaradd, ("1", 2), {"foo": 3}),
-        (strictvaradd, (1, None), {"foo": 3}),
-        (strictvaradd, (1, 2), {"foo": b"4"}),
+        (objects.strictvaradd, ("1", 2), {"foo": 3}),
+        (objects.strictvaradd, (1, None), {"foo": 3}),
+        (objects.strictvaradd, (1, 2), {"foo": b"4"}),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_strict_varargs_fails(func, args, kwargs):
     with pytest.raises(ConstraintValueError):
@@ -597,8 +581,8 @@ def test_strict_varargs_fails(func, args, kwargs):
 
 @pytest.mark.parametrize(
     argnames=("func", "args", "kwargs", "expected"),
-    argvalues=[(strictvaradd, (1, 2), {"foo": 3}, 6)],
-    ids=get_id,
+    argvalues=[(objects.strictvaradd, (1, 2), {"foo": 3}, 6)],
+    ids=objects.get_id,
 )
 def test_strict_varargs_passes(func, args, kwargs, expected):
     assert func(*args, **kwargs) == expected
@@ -624,7 +608,7 @@ class AddresseMap(dict):
             AddresseMap(foo=NetworkAddress("tcp://foo")),
         ),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_transmute_nested_constrained(anno, val, expected):
     c = transmute(anno, val)
@@ -632,32 +616,44 @@ def test_transmute_nested_constrained(anno, val, expected):
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})], ids=get_id,
+    argnames="t, v",
+    argvalues=[(objects.Typic, {"var": "foo"}), (objects.TDict, {"a": 1})],
+    ids=objects.get_id,
 )
 def test_validate(t, v):
     assert validate(t, v) == v
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": "foo"}), (TDict, {"a": 1})], ids=get_id,
+    argnames="t, v",
+    argvalues=[(objects.Typic, {"var": "foo"}), (objects.TDict, {"a": 1})],
+    ids=objects.get_id,
 )
 def test_validate_transmute(t, v):
     assert validate(t, v, transmute=True) == t(**v)
 
 
 @pytest.mark.parametrize(
-    argnames="t, v", argvalues=[(Typic, {"var": 1}), (TDict, {"a": ""})], ids=get_id,
+    argnames="t, v",
+    argvalues=[(objects.Typic, {"var": 1}), (objects.TDict, {"a": ""})],
+    ids=objects.get_id,
 )
 def test_validate_invalid(t, v):
     with pytest.raises(ConstraintValueError):
         validate(t, v)
 
 
-@pytest.mark.parametrize(argnames="target", argvalues=[Alchemy, Pydantic, Typical])
+@pytest.mark.parametrize(
+    argnames="target", argvalues=[objects.Alchemy, objects.Pydantic, objects.Typical]
+)
 @pytest.mark.parametrize(
     argnames="value",
-    argvalues=[Alchemy(bar="bar"), Pydantic(bar="bar"), Typical(bar="bar")],
-    ids=get_id,
+    argvalues=[
+        objects.Alchemy(bar="bar"),
+        objects.Pydantic(bar="bar"),
+        objects.Typical(bar="bar"),
+    ],
+    ids=objects.get_id,
 )
 def test_translate(target, value):
     t = translate(value, target)
@@ -671,10 +667,10 @@ class Cls:
 @pytest.mark.parametrize(
     argnames="target,value,exc",
     argvalues=[
-        (Typic, Alchemy(bar="bar"), ValueError),
-        (Cls, Alchemy(bar="bar"), TypeError),
+        (objects.Typic, objects.Alchemy(bar="bar"), ValueError),
+        (Cls, objects.Alchemy(bar="bar"), TypeError),
     ],
-    ids=get_id,
+    ids=objects.get_id,
 )
 def test_translate_error(target, value, exc):
     with pytest.raises(exc):
