@@ -117,7 +117,14 @@ class DesFactory:
         if annotation.optional:
             _checks.append(f"{self.VNAME} is None")
         if annotation.has_default:
-            _checks.append(f"{self.VNAME} == __default")
+            if hasattr(annotation.origin, "equals"):
+                _checks.append(
+                    f"({self.VNAME}.equals(__default) "
+                    f"if hasattr({self.VNAME}, 'equals') "
+                    f"else {self.VNAME} == __default)"
+                )
+            else:
+                _checks.append(f"{self.VNAME} == __default")
             _ctx["__default"] = annotation.parameter.default
         if _checks:
             check = " or ".join(_checks)

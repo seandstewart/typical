@@ -11,6 +11,7 @@ except ImportError:
 
 import inflection
 import typic
+import pandas
 import pydantic
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
@@ -281,6 +282,11 @@ class Source:
 @typic.klass
 class Dest:
     test: typing.Optional[str] = None
+
+
+@typic.klass
+class DFClass:
+    df: pandas.DataFrame = None
 
 
 TYPIC_OBJECTS = [
