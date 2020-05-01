@@ -59,8 +59,11 @@ class __AbstractConstraints(abc.ABC):
 
     @util.cached_property
     def __str(self) -> str:
-        fields = [f"type={self.type_name}"]
+        fields = [f"type={self.type_name!r}"]
         for f in dataclasses.fields(self):
+            if f.name == "type":
+                continue
+
             val = getattr(self, f.name)
             if (val or val in {False, 0}) and f.repr:
                 fields.append(f"{f.name}={val}")
@@ -98,7 +101,11 @@ class __AbstractConstraints(abc.ABC):
             An error inheriting from :py:class:`SyntaxError` indicating the constraint
             configuration is invalid.
         """
-        valid, value = self.validator(value)
+        try:
+            valid, value = self.validator(value)
+        except AttributeError:
+            valid, value = False, value
+
         if not valid:
             field = f"{field}:" if field else "Given"
             raise ConstraintValueError(

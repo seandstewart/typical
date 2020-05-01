@@ -199,7 +199,16 @@ class SchemaBuilder:
                 self._handle_array(anno, constraints)
             schema = dataclasses.replace(base, **constraints)
         else:
-            schema = self.build_schema(use, name=self.defname(use, name=name))
+            try:
+                schema = self.build_schema(use, name=self.defname(use, name=name))
+            except (ValueError, TypeError):
+                schema = UndeclaredSchemaField(
+                    enum=enum_,
+                    title=self.defname(use, name=name),
+                    default=default,
+                    readOnly=ro,
+                    writeOnly=wo,
+                )
 
         self.__cache[anno] = schema
         return schema

@@ -167,7 +167,9 @@ _SIMPLE_CONSTRAINTS = TypeMap(
 def _from_simple_type(
     t: Type[SimpleT], *, nullable: bool = False, name: str = None
 ) -> SimpleConstraintsT:
-    constr_class = cast(Type[SimpleConstraintsT], _SIMPLE_CONSTRAINTS.get_by_parent(t))
+    constr_class = cast(
+        Type[SimpleConstraintsT], _SIMPLE_CONSTRAINTS.get_by_parent(origin(t))
+    )
     return constr_class(nullable=nullable, name=name)
 
 
@@ -237,7 +239,13 @@ def _from_class(
     items: Optional[
         frozendict.FrozenDict[Hashable, ConstraintsT]
     ] = frozendict.FrozenDict(_resolve_params(**params)) or None
-    required = frozenset((x for x, y in params.items() if y.default is y.empty))
+    required = frozenset(
+        (
+            x
+            for x, y in params.items()
+            if (y.default is y.empty or y.kind in {y.VAR_KEYWORD, y.VAR_POSITIONAL})
+        )
+    )
     total = getattr(t, "__total__", None) or not required
     kwargs = dict(
         type=t,

@@ -210,7 +210,7 @@ def get_name(obj: Type) -> str:
     >>> typic.get_name(dict)
     'dict'
     """
-    if hasattr(obj, "_name"):
+    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return obj._name
     return obj.__name__
 
