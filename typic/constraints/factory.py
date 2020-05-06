@@ -241,24 +241,28 @@ def _from_class(
     ] = frozendict.FrozenDict(_resolve_params(**params)) or None
     required = frozenset(
         (
-            x
-            for x, y in params.items()
-            if (y.default is y.empty or y.kind in {y.VAR_KEYWORD, y.VAR_POSITIONAL})
+            pname
+            for pname, p in params.items()
+            if (
+                p.kind not in {p.VAR_POSITIONAL, p.VAR_KEYWORD} and p.default is p.empty
+            )
         )
     )
-    total = getattr(t, "__total__", None) or not required
-    kwargs = dict(
-        type=t,
-        nullable=nullable,
-        name=name,
-        required_keys=required,
-        items=items,
-        total=total,
+    has_varargs = any(
+        p.kind in {p.VAR_KEYWORD, p.VAR_POSITIONAL} for p in params.values()
     )
+    kwargs = {
+        "type": t,
+        "nullable": nullable,
+        "name": name,
+        "required_keys": required,
+        "items": items,
+        "total": not has_varargs,
+    }
     cls = ObjectConstraints
     if istypeddict(t):
         cls = TypedDictConstraints
-        kwargs.update(type=dict, ttype=t)
+        kwargs.update(type=dict, ttype=t, total=getattr(t, "__total__", bool(required)))
     return cls(**kwargs)  # type: ignore
 
 
