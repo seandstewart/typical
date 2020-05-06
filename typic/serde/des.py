@@ -374,12 +374,10 @@ class DesFactory:
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
             x = "fields_in[x]"
             y = f"{self.VNAME}[x]"
-            b.l(f"intersection = fields_in.keys() & {self.VNAME}.keys()")
-            with b.b("if intersection:") as nb:
-                nb.l(
-                    f"{self.VNAME} = "
-                    f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
-                )
+            b.l(
+                f"{self.VNAME} = "
+                f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
+            )
             if not self.resolver.seen(annotation.resolved):
                 b.l(
                     f"bound = __bind({anno_name}, **{self.VNAME})",

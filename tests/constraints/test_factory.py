@@ -63,3 +63,38 @@ class MyURL(typic.URL):
 def test_get_contraints(t, v):
     c = get_constraints(t)
     assert c.validate(v) == v
+
+
+@pytest.mark.parametrize(
+    argnames=("t", "v"),
+    argvalues=[
+        (str, 1),
+        (int, ""),
+        (float, ""),
+        (dict, []),
+        (list, {}),
+        (tuple, ""),
+        (frozenset, ""),
+        (typing.Dict[str, int], {"foo": ""}),
+        (typing.List[int], [""]),
+        (typing.Union[str, int], []),
+        (typing.List[typing.Optional[typing.Dict[str, int]]], [[]]),
+        (typing.List[typing.Optional[typing.Dict[str, int]]], [{"foo": ""}]),
+        (Foo, {"bar": 1}),
+        (Foo, {"bar": "", "unknown": 1}),
+        (typing.Optional[Foo], {"bar": 1}),
+        (typing.Optional[Foo], 1),
+        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [[]],),
+        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [""],),
+        (
+            typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
+            [{"bar": ""}],
+        ),
+        (MyStr, 1),
+    ],
+    ids=repr,
+)
+def test_get_contraints_invalid(t, v):
+    c = get_constraints(t)
+    with pytest.raises(typic.ConstraintValueError):
+        c.validate(v)

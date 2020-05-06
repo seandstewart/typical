@@ -52,11 +52,6 @@ class __AbstractConstraints(abc.ABC):
     def __post_init__(self):
         self.validator
 
-    __repr = util.cached_property(util.filtered_repr)
-
-    def __repr__(self) -> str:
-        return self.__repr
-
     @util.cached_property
     def __str(self) -> str:
         fields = [f"type={self.type_name!r}"]
@@ -66,10 +61,13 @@ class __AbstractConstraints(abc.ABC):
 
             val = getattr(self, f.name)
             if (val or val in {False, 0}) and f.repr:
-                fields.append(f"{f.name}={val}")
+                fields.append(f"{f.name}={val!r}")
         return f"({', '.join(fields)})"
 
     def __str__(self) -> str:
+        return self.__str
+
+    def __repr__(self):
         return self.__str
 
     @util.cached_property
@@ -77,7 +75,7 @@ class __AbstractConstraints(abc.ABC):
         return util.get_name(self.type)
 
     def _get_validator_name(self) -> str:
-        return f"validator_{util.hexhash(self)}"
+        return f"validator_{id(self)}".replace("-", "_")
 
     @util.cached_property
     @abc.abstractmethod
