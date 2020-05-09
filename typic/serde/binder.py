@@ -321,7 +321,7 @@ class Binder:
         >>> typic.bind(add, 1, 3.0, strict=True)
         Traceback (most recent call last):
             ...
-        typic.constraints.error.ConstraintValueError: Given value <3.0> fails constraints: (type='int', nullable=False, coerce=False)
+        typic.constraints.error.ConstraintValueError: Given value <3.0> fails constraints: (type=int, nullable=False, coerce=False)
         """
         return self._bind_input(
             obj=obj,

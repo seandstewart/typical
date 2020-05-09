@@ -113,7 +113,7 @@ class MappingConstraints(BaseConstraints):
             }
         }
         with loop.b(f"if {self.X} in {names.item_validators_name}:", **ctx) as b:
-            field = f"'.'.join(({self.VALTNAME}, {self.X}))"
+            field = f"_lazy_repr({self.FNAME}, {self.X})"
             b.l(
                 f"{self.RETY} = "
                 f"{names.item_validators_name}[{self.X}]({self.Y}, field={field})"
@@ -130,7 +130,7 @@ class MappingConstraints(BaseConstraints):
     def _set_item_validator_keys_values_line(
         self, loop: gen.Block, names: ItemValidatorNames
     ):
-        field = f"'.'.join(({self.VALTNAME}, {self.X}))"
+        field = f"_lazy_repr({self.FNAME}, {self.X})"
         line = (
             f"{self.RETX}, {self.RETY} = "
             f"{names.keys_validator_name}({self.X}), "
@@ -152,7 +152,7 @@ class MappingConstraints(BaseConstraints):
     def _set_item_validator_values_line(
         self, loop: gen.Block, names: ItemValidatorNames
     ):
-        field = f"'.'.join(({self.VALTNAME}, {self.X}))"
+        field = f"_lazy_repr({self.FNAME}, {self.X})"
         line = f"{self.RETY} = {names.vals_validator_name}({self.Y}, field={field})"
         ctx = {
             names.vals_validator_name: self.values.validate,  # type: ignore
@@ -161,9 +161,9 @@ class MappingConstraints(BaseConstraints):
 
     def _set_item_validator_loop_line(self, loop: gen.Block, func_name: str):
         names = ItemValidatorNames(
-            item_validators_name=f"{func_name}_items_validators",
-            vals_validator_name=f"{func_name}_vals_validator",
-            keys_validator_name=f"{func_name}_keys_validator",
+            item_validators_name=f"{func_name}_items",
+            vals_validator_name=f"{func_name}_vals",
+            keys_validator_name=f"{func_name}_keys",
         )
         if self.items:
             self._set_item_validator_items_loop_line(loop, names)
@@ -205,14 +205,19 @@ class MappingConstraints(BaseConstraints):
         if any((self.items, self.patterns, self.key_pattern, self.keys, self.values,)):
             if ns is None:
                 ns = {}
-            name = f"{func_name}_item_validator"
+            name = f"{func_name}_entries"
             with gen.Block(ns) as main:
                 with main.f(
-                    name, main.param(self.VAL), main.param("addtl", annotation=set),
+                    name,
+                    main.param(self.VALUE),
+                    main.param("addtl", annotation=set),
+                    main.param(self.FNAME, annotation=str),
                 ) as f:
                     f.l(f"{self.VALTNAME} = {self.type_name!r}")
                     f.l(f"{self.RETVAL}, valid = {{}}, True")
-                    with f.b(f"for {self.X}, {self.Y} in {self.VAL}.items():") as loop:
+                    with f.b(
+                        f"for {self.X}, {self.Y} in {self.VALUE}.items():"
+                    ) as loop:
                         loop.l(f"{self.RETX}, {self.RETY} = {self.X}, {self.Y}")
                         # Basic item constraints.
                         self._set_item_validator_loop_line(loop, name)
@@ -231,16 +236,16 @@ class MappingConstraints(BaseConstraints):
                 dep, (Mapping, str, bytes)
             ):
                 line = (
-                    f"{{*{self.VAL}.keys()}}.issuperset({set(dep)})"
-                    f"if {key!r} in val else True"
+                    f"{{*{self.VALUE}.keys()}}.issuperset({set(dep)})"
+                    f"if {key!r} in {self.VALUE} else True"
                 )
             # If it's an instance of mapping constraints,
             # then we validate the entire value against that constraint.
             elif isinstance(dep, MappingConstraints):
                 name = f"__{key}_constr_{uuid.uuid4().int}"
                 line = (
-                    f"{name}.validate({self.VAL}) "
-                    f"if {key!r} in {self.VAL} else True"
+                    f"{name}.validate({self.VALUE}, field=field) "
+                    f"if {key!r} in {self.VALUE} else True"
                 )
                 context[name] = dep
             # Fail loud and make the user fix that shit.
@@ -260,20 +265,26 @@ class MappingConstraints(BaseConstraints):
             )
         defined_keys = (self.required_keys or set()) | (self.items or {}).keys()
         if defined_keys:
-            func.l(f"addtl = {self.VAL}.keys() - {defined_keys}")
+            func.l(f"defined = {defined_keys}")
+            func.l(f"addtl = {self.VALUE}.keys() - defined")
         else:
-            func.l(f"addtl = {self.VAL}.keys()")
+            func.l(f"addtl = {self.VALUE}.keys()")
         if {self.max_items, self.min_items} != {None, None}:
-            func.l(f"size = len({self.VAL})")
+            func.l(f"size = len({self.VALUE})")
 
-        context: Dict[str, Any] = {"Mapping": Mapping}
+        _lazy_repr = (
+            util.LazyCollectionRepr
+            if issubclass(self.type, Mapping)
+            else util.LazyJoinedRepr
+        )
+        context: Dict[str, Any] = {"Mapping": Mapping, "_lazy_repr": _lazy_repr}
         checks: List[str] = []
         if self.min_items is not None:
             checks.append(f"size >= {self.min_items}")
         if self.max_items is not None:
             checks.append(f"size <= {self.max_items}")
-        if self.required_keys:
-            checks.append(f"{{*val.keys()}}.issuperset({self.required_keys})")
+        if defined_keys:
+            checks.append(f"{{*{self.VALUE}.keys()}}.issuperset(defined)")
         if self.total:
             checks.append("not addtl")
         if self.key_dependencies:
@@ -286,14 +297,15 @@ class MappingConstraints(BaseConstraints):
         if item_validator:
             with func.b("if valid:") as b:
                 b.l(  # type: ignore
-                    f"valid, {self.VAL} = {item_validator_name}({self.VAL}, addtl)",
+                    f"valid, {self.VALUE} = "
+                    f"{item_validator_name}({self.VALUE}, addtl, {self.FNAME})",
                     level=None,
                     **{item_validator_name: item_validator},
                 )
         return [], context
 
     def _set_return(self, func: gen.Block, checks: ChecksT, context: ContextT):
-        func.l(f"return valid, {self.VAL}", **context)
+        func.l(f"return valid, {self.VALUE}", **context)
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         props = (

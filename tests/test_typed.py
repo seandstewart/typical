@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import inspect
+import pathlib
 import re
 import typing
 from collections import defaultdict
@@ -655,7 +656,12 @@ def test_validate_transmute(t, v):
 
 @pytest.mark.parametrize(
     argnames="t, v",
-    argvalues=[(objects.Typic, {"var": 1}), (objects.TDict, {"a": ""})],
+    argvalues=[
+        (objects.Typic, {"var": 1}),
+        (objects.TDict, {"a": ""}),
+        (typing.Mapping[int, str], {"b": ""}),
+        (typing.Mapping[pathlib.Path, str], {1: ""},),
+    ],
     ids=objects.get_id,
 )
 def test_validate_invalid(t, v):

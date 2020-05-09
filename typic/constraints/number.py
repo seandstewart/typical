@@ -88,15 +88,15 @@ class NumberConstraints(BaseConstraints):
         checks: List[str] = []
         context: Dict[str, Any] = {}
         if self.gt is not None:
-            checks.append(f"{self.VAL} > {self.gt}")
+            checks.append(f"{self.VALUE} > {self.gt}")
         if self.ge is not None:
-            checks.append(f"{self.VAL} >= {self.ge}")
+            checks.append(f"{self.VALUE} >= {self.ge}")
         if self.lt is not None:
-            checks.append(f"{self.VAL} < {self.lt}")
+            checks.append(f"{self.VALUE} < {self.lt}")
         if self.le is not None:
-            checks.append(f"{self.VAL} <= {self.le}")
+            checks.append(f"{self.VALUE} <= {self.le}")
         if self.mul is not None:
-            checks.append(f"{self.VAL} % {self.mul} == 0")
+            checks.append(f"{self.VALUE} % {self.mul} == 0")
 
         if util.origin(self.type) is decimal.Decimal:
             max_digits, decimal_places = (
@@ -107,15 +107,15 @@ class NumberConstraints(BaseConstraints):
             if {max_digits, decimal_places} != {None, None}:
                 # Update the global namespace for the validator
                 # Add setup/sanity checks for decimals.
-                func.l(f"{self.VAL} = decimal.Decimal({self.VAL})")
+                func.l(f"{self.VALUE} = decimal.Decimal({self.VALUE})")
                 with func.b(
-                    f"if {self.VAL}.is_infinite():",
+                    f"if {self.VALUE}.is_infinite():",
                     ConstraintValueError=ConstraintValueError,
                 ) as b:
                     b.l(
                         "raise ConstraintValueError('Cannot validate infinite values.')"
                     )
-                func.l(f"tup = {self.VAL}.as_tuple()")
+                func.l(f"tup = {self.VALUE}.as_tuple()")
                 func.l(
                     "whole, digits, decimals = _get_digits(tup)",
                     _get_digits=_get_digits,

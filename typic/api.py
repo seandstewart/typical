@@ -486,7 +486,7 @@ def constrained(
     >>> ShortStr('waytoomanycharacters')
     Traceback (most recent call last):
     ...
-    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type='str', nullable=False, coerce=False, max_length=10)
+    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, coerce=False, max_length=10)
     >>> @typic.constrained(values=ShortStr, max_items=2)
     ... class SmallMap(dict):
     ...     '''A small map that only allows short strings.'''

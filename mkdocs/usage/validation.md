@@ -109,9 +109,8 @@ These are the paths to "validation" which `typical` will follow:
 
 ### Validate-by-Parse
 
-The given value is inherently validated by the action of conversion.
-This is `typical`'s default mode and for many built-in higher-level
-types this behavior does not change in strict-mode:
+The given value is inherently validated by the action of
+conversion. This is `typical`'s default mode of operation:
 
     >>> import ipaddress
     >>> import typic
@@ -120,16 +119,7 @@ types this behavior does not change in strict-mode:
     Traceback (most recent call last):
         ...
     ipaddress.AddressValueError: Address cannot be empty
-    >>> typic.transmute("", typic.Strict[ipaddress.IPv4Address])
-    Traceback (most recent call last):
-        ...
-    ipaddress.AddressValueError: Address cannot be empty
     >>> typic.transmute("", typic.URL)
-    Traceback (most recent call last):
-        ...
-    typic.types.url.NetworkAddressValueError: '' is not a valid network address.
-
-    >>> typic.transmute("", typic.Strict[typic.URL])
     Traceback (most recent call last):
         ...
     typic.types.url.NetworkAddressValueError: '' is not a valid network address.
@@ -161,15 +151,31 @@ The given value *must* meet the type-constraints provided. This can be
 done by signaling to `typical` to use "strict-mode" when resolving an
 annotation for coercion.
 
-In strict-mode, `validation-only` is used for primitive types.
+In strict-mode, `validation-only` is used for primitive
+types and builtin higher-level types:
 
 
 
+    >>> import datetime
+    >>> import ipaddress
     >>> import typic
     >>> typic.transmute("1", typic.Strict[int])
     Traceback (most recent call last):
         ...
     typic.constraints.error.ConstraintValueError: Given value <'1'> fails constraints: (type=int, nullable=False, coerce=False)
+    >>> typic.transmute("", typic.Strict[ipaddress.IPv4Address])
+    Traceback (most recent call last):
+        ...
+    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=IPv4Address, nullable=False)
+    >>> typic.transmute("", typic.Strict[typic.URL])
+    Traceback (most recent call last):
+        ...
+    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=URL, nullable=False)
+    >>> typic.transmute("", typic.Strict[datetime.date])
+    Traceback (most recent call last):
+        ...
+    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=date, nullable=False)
+
 
 
 
@@ -196,7 +202,14 @@ In strict-mode, `validate-then-parse` is used for user-defined types.
     >>> typic.transmute({"bar": 1}, typic.Strict[Foo])
     Traceback (most recent call last):
         ...
-    typic.constraints.error.ConstraintValueError: Given value <1> fails constraints: (type=str, nullable=False, coerce=False)
+    typic.constraints.error.ConstraintValueError: Foo.bar: value <1> fails constraints: (type=str, nullable=False, coerce=False)
+
+
+!!! tip ""
+
+    All of the above examples use `typic.transmute(...)` and wrap the annotation in
+    `typic.Strict[...]`, however, users may call `typic.validate(...)` directly to
+    access Typical's runtime validation engine.
 
 
 ## What "Mode" Should I Use?
