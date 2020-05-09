@@ -5,10 +5,10 @@ from typic.constraints.error import ConstraintValueError
 from typic.strict import STRICT_MODE
 
 
-def test_no_validation_if_not_strict():
+def test_validation_if_not_strict():
     tc = TypeConstraints(str)
-    valid, value = tc.validator(1)
-    assert valid
+    with pytest.raises(ConstraintValueError):
+        tc.validate(1)
 
 
 def test_validation_if_strict():

@@ -360,7 +360,7 @@ class DesFactory:
             item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
             line = (
                 f"{self.VNAME} = "
-                f"{anno_name}({it_name}(x) for x in {anno_name}({self.VNAME}))"
+                f"{anno_name}({it_name}(x) for x in parent({self.VNAME}))"
             )
 
         self._add_eval(func)
@@ -408,6 +408,7 @@ class DesFactory:
         origin = get_origin(annotation.resolved)
         ns = {
             anno_name: origin,
+            "parent": getattr(origin, "__parent__", origin),
             "issubclass": cached_issubclass,
             **annotation.serde.asdict(),
         }
@@ -454,8 +455,8 @@ class DesFactory:
             def des(__val, *, __des=__des):
                 return (*(__des(x) for x in __val),)
 
-            def validator(__val, *, __validator=__validator):
-                return (*(__validator(x) for x in __val),)
+            def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
+                return (*(__validator(x, field=field) for x in value),)
 
         elif anno.parameter.kind == VAR_KEYWORD:
             __des = des
@@ -464,24 +465,21 @@ class DesFactory:
             def des(__val, *, __des=__des):
                 return {x: __des(y) for x, y in __val.items()}
 
-            def validator(__val, *, __validator=__validator):
-                return {x: __validator(y) for x, y in __val.items()}
+            def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
+                return {x: __validator(y, field=field) for x, y in value.items()}
 
         return des, validator
 
     def _finalize_validator(
-        self, des: DeserializerT, constr: Optional["const.ConstraintsT"],
+        self, constr: Optional["const.ConstraintsT"],
     ) -> "const.ValidatorT":
-        def validate(o):
-            return o
+        def validate(value, *, field: str = None):
+            return value
 
         if constr:
             validate = constr.validate  # noqa: F811
 
-        # Special case for type-constraints which should be coerced for validation.
-        if isinstance(constr, const.TypeConstraints) and constr.coerce:
-            validate = des
-        return validate
+        return validate  # type: ignore
 
     def _finalize_deserializer(
         self,
@@ -490,13 +488,13 @@ class DesFactory:
         constr: Optional["const.ConstraintsT"],
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         # Determine how to run in "strict-mode"
-        validator = self._finalize_validator(des, constr)
+        validator = self._finalize_validator(constr)
         # Handle *args and **kwargs
         des, validator = self._check_varargs(anno, des, validator)
-        # If we have type constraints, only validate if we're in strict mode.
+        # If we have type constraints, override the deserializer for strict annotations.
         if isinstance(constr, const.TypeConstraints):
             if anno.strict:
-                des = validator
+                des = validator  # type: ignore
         # Otherwise
         else:
             # In strict mode, we validate & coerce if there are constraints
@@ -507,7 +505,7 @@ class DesFactory:
                     return __d(__v(val))
 
             elif anno.strict:
-                des = validator
+                des = validator  # type: ignore
 
         return des, validator
 

@@ -124,10 +124,10 @@ class ArrayConstraints(BaseConstraints):
         # Build the code.
         # Only make it unique if we have to. This preserves order as well.
         if self.unique is True and util.origin(self.type) not in {set, frozenset}:
-            func.l(f"{self.VAL} = __unique({self.VAL})", __unique=unique)
+            func.l(f"{self.VALUE} = __unique({self.VALUE})", __unique=unique)
         # Only get the size if we have to.
         if {self.max_items, self.min_items} != {None, None}:
-            func.l(f"size = len({self.VAL})")
+            func.l(f"size = len({self.VALUE})")
         # Get the validation checks and context
         asserts: List[str] = []
         context: Dict[str, Any] = {}
@@ -139,12 +139,17 @@ class ArrayConstraints(BaseConstraints):
         if self.values:
             o = util.origin(self.type)
             itval = "__item_validator"
-            ctx = {itval: self.values.validate, o.__name__: o}
-            field = f"'.'.join(({self.VALTNAME}, str(i)))"
+            ctx = {
+                itval: self.values.validate,
+                o.__name__: o,
+                "_lazy_repr": util.LazyCollectionRepr,
+            }
+            r = "i" if issubclass(self.type, Sequence) else "x"
+            field = f"_lazy_repr({self.FNAME}, {r})"
             func.l(
-                f"{self.VAL} = "
+                f"{self.VALUE} = "
                 f"{o.__name__}("
-                f"({itval}(x, field={field}) for i, x in enumerate({self.VAL}))"
+                f"({itval}(x, field={field}) for i, x in enumerate({self.VALUE}))"
                 f")",
                 **ctx,
             )

@@ -11,7 +11,7 @@ from typing import List, Union, Type, Tuple, Optional
 import typic
 
 _empty = inspect.Parameter.empty
-ParameterKind = type(inspect.Parameter.POSITIONAL_OR_KEYWORD)
+ParameterKind = inspect._ParameterKind
 
 
 class Keyword(str, enum.Enum):

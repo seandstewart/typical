@@ -34,11 +34,11 @@ class TextConstraints(BaseConstraints):
     def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
         # Set up the local env.
         if self.curtail_length is not None:
-            func.l(f"{self.VAL} = {self.VAL}[:{self.curtail_length}]")
+            func.l(f"{self.VALUE} = {self.VALUE}[:{self.curtail_length}]")
         if self.strip_whitespace:
-            func.l(f"{self.VAL} = {self.VAL}.strip()")
+            func.l(f"{self.VALUE} = {self.VALUE}.strip()")
         if {self.min_length, self.max_length} != {None, None}:
-            func.l(f"size = len({self.VAL})")
+            func.l(f"size = len({self.VALUE})")
         # Build the validation.
         checks = []
         context: Dict[str, Any] = {}
@@ -48,7 +48,7 @@ class TextConstraints(BaseConstraints):
             checks.append(f"size >= {self.min_length}")
         if self.regex is not None:
             context.update(__pattern=self.regex)
-            checks.append(f"__pattern.match({self.VAL})")
+            checks.append(f"__pattern.match({self.VALUE})")
 
         return checks, context
 

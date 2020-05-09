@@ -216,6 +216,17 @@ def get_name(obj: Type) -> str:
 
 
 @functools.lru_cache(maxsize=None)
+def get_qualname(obj: Type) -> str:
+    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
+        return f"{obj.__module__}.{obj._name}"
+
+    qualname = getattr(obj, "__qualname__", obj.__name__)
+    if "<locals>" in qualname:
+        return obj.__name__
+    return qualname
+
+
+@functools.lru_cache(maxsize=None)
 def get_unique_name(obj: Type) -> str:
     return f"{get_name(obj)}_{id(obj)}".replace("-", "_")
 
@@ -474,3 +485,39 @@ class TypeMap(Dict[Type, VT]):
             pass
 
         return default
+
+
+class LazyJoinedRepr:
+    __slots__ = ("fields", "__dict__")
+
+    def __init__(self, *fields):
+        self.fields = fields
+
+    @cached_property
+    def __repr(self) -> str:
+        return ".".join(str(f) for f in self.fields)
+
+    def __repr__(self) -> str:
+        return self.__repr
+
+    def __str__(self) -> str:
+        return self.__repr
+
+
+class LazyCollectionRepr:
+    __slots__ = ("root_name", "keys", "__dict__")
+
+    def __init__(self, root_name: str, *keys):
+        self.root_name = root_name
+        self.keys = keys
+
+    @cached_property
+    def __repr(self) -> str:
+        keys = "".join(f"[{o!r}]" for o in self.keys)
+        return f"{self.root_name}{keys}"
+
+    def __repr__(self) -> str:
+        return self.__repr
+
+    def __str__(self) -> str:
+        return self.__repr
