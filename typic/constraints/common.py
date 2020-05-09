@@ -22,7 +22,6 @@ from typing import (
 )
 
 from typic import gen, util
-from typic.strict import STRICT_MODE
 from .error import ConstraintValueError
 
 
@@ -345,21 +344,6 @@ class TypeConstraints(__AbstractConstraints):
     """Whether this constraint can allow null values."""
     name: Optional[str] = None
 
-    __str = util.cached_property(util.filtered_str)
-
-    def __str__(self) -> str:
-        return self.__str
-
-    @property
-    def coerce(self) -> bool:
-        """Whether coercion can be used in lieu of validation.
-
-        There are a large number of types provided by the standard lib which are much
-        more strict than primitives. These can be relied upon to error out if given
-        invalid inputs, so we can signal upstream to use this method.
-        """
-        return not STRICT_MODE
-
     @util.cached_property
     def validator(self) -> ValidatorT:
         ns = dict(__t=self.type, VT=VT)
@@ -369,12 +353,11 @@ class TypeConstraints(__AbstractConstraints):
                 # Standard instancecheck is default.
                 check = "isinstance(value, __t)"
                 retval = "value"
-                # This is just a pass-through, the coercer does the real work.
-                if self.coerce:
-                    check = "True"
                 # Have to allow nulls if its nullable.
-                elif self.nullable:
+                if self.nullable:
                     check = "(value is None or isinstance(value, __t))"
+                elif self.type is Any:
+                    check = "True"
                 f.l(f"{gen.Keyword.RET} {check}, {retval}")
 
         validator: ValidatorT = main.compile(name=func_name, ns=ns)
