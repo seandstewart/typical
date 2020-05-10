@@ -279,6 +279,41 @@ def test_transmute_mapping_subscripted(annotation, value):
     assert all(isinstance(x, get_origin(value_arg)) for x in transmuted.values())
 
 
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (typing.Optional[typing.List[int]], '["1"]', [1]),
+        (typing.Optional[typing.List[int]], None, None),
+        (typing.List[typing.Optional[int]], [None], [None]),
+        (typing.List[typing.Optional[int]], ["1"], [1]),
+        (typing.List[typing.Optional[Strict[int]]], [1], [1]),
+        (typing.List[typing.Optional[Strict[int]]], [None], [None]),
+        (typing.Optional[typing.Mapping[str, int]], '{"foo":"1"}', {"foo": 1}),
+        (typing.Optional[typing.Mapping[str, int]], None, None),
+        (
+            typing.Mapping[typing.Optional[str], typing.Optional[int]],
+            '{"foo":null}',
+            {"foo": None},
+        ),
+        (
+            typing.Mapping[typing.Optional[str], typing.Optional[int]],
+            "{None:None}",
+            {None: None},
+        ),
+        (
+            typing.Mapping[typing.Optional[str], typing.Optional[int]],
+            "{None:1}",
+            {None: 1},
+        ),
+        (typing.Mapping[typing.Optional[str], typing.Optional[int]], "{1:1}", {"1": 1}),
+    ],
+    ids=objects.get_id,
+)
+def test_transmute_optional(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
 def test_transmute_nested_sequence():
     transmuted = transmute(objects.NestedSeq, {"datum": [{"foo": "bar"}]})
     assert isinstance(transmuted, objects.NestedSeq)
