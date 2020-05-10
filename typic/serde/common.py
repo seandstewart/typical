@@ -160,6 +160,10 @@ class Annotation:
         """What types are subscripted to this annotation, if any."""
         return util.get_args(self.resolved)
 
+    @property
+    def resolved_origin(self) -> Type[ObjectT]:
+        return util.origin(self.resolved)
+
     def translator(self, target: Type[_T]) -> TranslatorT:
         """A factory for translating from this type to another."""
         t = translator.factory(self, target)

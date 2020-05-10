@@ -27,7 +27,6 @@ from typic import checks, gen, constraints as const
 from typic.strict import STRICT_MODE
 from typic.util import (
     safe_eval,
-    origin as get_origin,
     cached_issubclass,
     cached_signature,
 )
@@ -117,7 +116,7 @@ class DesFactory:
         if annotation.optional:
             _checks.append(f"{self.VNAME} is None")
         if annotation.has_default:
-            if hasattr(annotation.origin, "equals"):
+            if hasattr(annotation.resolved_origin, "equals"):
                 _checks.append(
                     f"({self.VNAME}.equals(__default) "
                     f"if hasattr({self.VNAME}, 'equals') "
@@ -139,7 +138,7 @@ class DesFactory:
     def _build_date_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
-        origin = get_origin(annotation.resolved)
+        origin = annotation.resolved_origin
         if issubclass(origin, datetime.datetime):
             with func.b(f"if issubclass({self.VTYPE}, datetime):") as b:
                 b.l(
@@ -196,8 +195,8 @@ class DesFactory:
 
         if annotation.args:
             factory_anno = self.resolver.annotation(annotation.args[-1])
-            factory = factory_anno.origin
-            if issubclass(factory_anno.origin, defaultdict):
+            factory = factory_anno.resolved_origin
+            if issubclass(factory_anno.resolved_origin, defaultdict):
                 factory_nested = self._get_default_factory(factory_anno)
 
                 def factory():
@@ -205,14 +204,14 @@ class DesFactory:
 
                 factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
 
-            if not checks.isbuiltinsubtype(factory_anno.origin):  # type: ignore
+            if not checks.isbuiltinsubtype(factory_anno.resolved_origin):  # type: ignore
 
                 params: Mapping[str, inspect.Parameter] = cached_signature(
-                    factory_anno.origin
+                    factory_anno.resolved_origin
                 ).parameters
                 if not any(p.default is p.empty for p in params.values()):
 
-                    def factory(*, __origin=factory_anno.origin):
+                    def factory(*, __origin=factory_anno.resolved_origin):
                         return __origin()
 
                     factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
@@ -222,7 +221,7 @@ class DesFactory:
     def _build_builtin_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
-        origin = get_origin(annotation.resolved)
+        origin = annotation.resolved_origin
         # We should try and evaluate inputs for anything that isn't a subclass of str.
         if issubclass(origin, (Collection, bool, int)) and not issubclass(
             origin, (str, bytes)
@@ -321,7 +320,7 @@ class DesFactory:
             key_type, item_type = args
             key_des = self.resolver.resolve(key_type, flags=annotation.serde.flags)
             item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
-        if issubclass(annotation.origin, defaultdict):
+        if issubclass(annotation.resolved_origin, defaultdict):
             factory = self._get_default_factory(annotation)
             func.namespace[anno_name] = functools.partial(defaultdict, factory)
         kd_name = f"{anno_name}_key_des"
@@ -405,7 +404,7 @@ class DesFactory:
         # For SpecialForms (Union, mainly) this will be the un-subscripted type.
         # For custom types or classes, this will be the same as the annotation.
         anno_name = f"{func_name}_anno"
-        origin = get_origin(annotation.resolved)
+        origin = annotation.resolved_origin
         ns = {
             anno_name: origin,
             "parent": getattr(origin, "__parent__", origin),
@@ -429,7 +428,7 @@ class DesFactory:
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.istypeddict(origin):
                         self._build_typeddict_des(
-                            func, anno_name, annotation, total=origin.__total__
+                            func, anno_name, annotation, total=origin.__total__  # type: ignore
                         )
                     elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
                         self._build_typedtuple_des(func, anno_name, annotation)

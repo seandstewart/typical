@@ -49,7 +49,7 @@ KVPairT = Tuple[KT, VT]
 
 
 def make_class_serdict(annotation: "Annotation", fields: Mapping[str, SerializerT]):
-    name = f"{util.get_name(annotation.origin)}SerDict"
+    name = f"{util.get_name(annotation.resolved_origin)}SerDict"
     bases = (ClassFieldSerDict,)
     getters = annotation.serde.fields_getters
     if annotation.serde.fields_out:
@@ -133,7 +133,7 @@ class ClassFieldSerDict(dict):
 
 
 def make_kv_serdict(annotation: "Annotation", kser: SerializerT, vser: SerializerT):
-    name = f"{util.get_name(annotation.origin)}KVSerDict"
+    name = f"{util.get_name(annotation.resolved_origin)}KVSerDict"
     bases = (KVSerDict,)
     ns = dict(
         lazy=False,
@@ -191,7 +191,7 @@ class KVSerDict(dict):
 
 
 def make_serlist(annotation: "Annotation", serializer: SerializerT):
-    name = f"{util.get_name(annotation.origin)}SerList"
+    name = f"{util.get_name(annotation.resolved_origin)}SerList"
     bases = (SerList,)
     ns = dict(
         lazy=False,
