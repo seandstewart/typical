@@ -673,7 +673,12 @@ def test_transmute_nested_constrained(anno, val, expected):
 
 @pytest.mark.parametrize(
     argnames="t, v",
-    argvalues=[(objects.Typic, {"var": "foo"}), (objects.TDict, {"a": 1})],
+    argvalues=[
+        (objects.Typic, {"var": "foo"}),
+        (objects.TDict, {"a": 1}),
+        (typing.Union[str, pathlib.Path], pathlib.Path(".")),
+        (typing.Union[str, pathlib.Path], "."),
+    ],
     ids=objects.get_id,
 )
 def test_validate(t, v):
@@ -696,6 +701,7 @@ def test_validate_transmute(t, v):
         (objects.TDict, {"a": ""}),
         (typing.Mapping[int, str], {"b": ""}),
         (typing.Mapping[pathlib.Path, str], {1: ""},),
+        (typing.Union[str, pathlib.Path], 1),
     ],
     ids=objects.get_id,
 )

@@ -23,7 +23,7 @@ from typing import (
 
 from typic import gen, util
 from .error import ConstraintValueError
-
+from ..util import TypeMap
 
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
@@ -286,23 +286,21 @@ class MultiConstraints(__AbstractConstraints):
         If a value does not match any origin-type, as reported by :py:func:`typic.origin`,
         then we will report the value as invalid.
         """
-        vmap: Dict[Type, ValidatorT] = {
-            util.origin(c.type): c.validator for c in self.constraints
-        }
+        vmap = TypeMap({util.origin(c.type): c.validator for c in self.constraints})
         if vmap:
             if self.nullable:
 
                 def multi_validator(value: VT, *, field: str = None) -> Tuple[bool, VT]:
                     if value is None:
                         return True, value
-                    t = type(value)
-                    return vmap[t](value, field=field) if t in vmap else (False, value)  # type: ignore
+                    v: Optional[ValidatorT] = vmap.get_by_parent(type(value), None)
+                    return v(value, field=field) if v else (False, value)  # type: ignore
 
             else:
 
                 def multi_validator(value: VT, *, field: str = None) -> Tuple[bool, VT]:
-                    t = type(value)
-                    return vmap[t](value, field=field) if t in vmap else (False, value)  # type: ignore
+                    v: Optional[ValidatorT] = vmap.get_by_parent(type(value), None)
+                    return v(value, field=field) if v else (False, value)  # type: ignore
 
         else:
 
