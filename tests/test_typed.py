@@ -697,6 +697,12 @@ def test_validate_transmute(t, v):
 @pytest.mark.parametrize(
     argnames="t, v",
     argvalues=[
+        (int, "",),
+        (str, 0),
+        (bytes, ""),
+        (float, 1),
+        (list, set()),
+        (dict, []),
         (objects.Typic, {"var": 1}),
         (objects.TDict, {"a": ""}),
         (typing.Mapping[int, str], {"b": ""}),

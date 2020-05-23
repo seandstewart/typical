@@ -97,8 +97,6 @@ class DesFactory:
 
     def __init__(self, resolver: "Resolver"):
         self.resolver = resolver
-        for typ in checks.BUILTIN_TYPES:
-            self.factory(self.resolver.annotation(typ))
 
     def register(self, deserializer: DeserializerT, check: DeserializerT):
         """Register a user-defined coercer.

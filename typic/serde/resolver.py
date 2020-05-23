@@ -59,6 +59,10 @@ class Resolver:
         self.ser = SerFactory(self)
         self.binder = Binder(self)
         self.bind = self.binder.bind
+        for typ in checks.STDLIB_TYPES:
+            self.resolve(typ)
+            self.resolve(Optional[typ])
+            self.resolve(typ, is_optional=True)
 
     def transmute(self, annotation: Type[ObjectT], value: Any) -> ObjectT:
         """Convert a given value `into` the target annotation.

@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
+import decimal
 import enum
 import functools
 import inspect
+import ipaddress
+import pathlib
 from operator import attrgetter
 from typing import (
     Any,
@@ -86,6 +89,17 @@ BUILTIN_TYPES = frozenset(
         type(None),
     )
 )
+STDLIB_TYPES = frozenset(
+    (
+        *BUILTIN_TYPES,
+        datetime.datetime,
+        datetime.date,
+        decimal.Decimal,
+        pathlib.Path,
+        ipaddress.IPv4Address,
+        ipaddress.IPv6Address,
+    )
+)
 
 
 @functools.lru_cache(maxsize=None)
@@ -110,7 +124,7 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType, Mapping
     >>> typic.isbuiltintype(str)
     True
