@@ -30,6 +30,8 @@ from typic.util import (
     safe_eval,
     cached_issubclass,
     cached_signature,
+    get_defname,
+    get_unique_name,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
@@ -131,8 +133,10 @@ class DesFactory:
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
-    def _get_des_name(annotation: "Annotation") -> str:
-        return f"deserializer_{hash(annotation)}".replace("-", "_")
+    def _get_name(
+        annotation: "Annotation", constr: Optional["const.ConstraintsT"]
+    ) -> str:
+        return get_defname("deserializer", (annotation, constr))
 
     def _build_date_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
@@ -401,15 +405,14 @@ class DesFactory:
                 tr=self.resolver.translate,
             )
 
-    def _build_des(self, annotation: "Annotation",) -> Callable:
-        func_name = self._get_des_name(annotation)
+    def _build_des(self, annotation: "Annotation", func_name: str) -> Callable:
         args = annotation.args
         # Get the "origin" of the annotation.
         # For natives and their typing.* equivs, this will be a builtin type.
         # For SpecialForms (Union, mainly) this will be the un-subscripted type.
         # For custom types or classes, this will be the same as the annotation.
-        anno_name = f"{func_name}_anno"
         origin = annotation.resolved_origin
+        anno_name = get_unique_name(origin)
         ns = {
             anno_name: origin,
             "parent": getattr(origin, "__parent__", origin),
@@ -519,7 +522,7 @@ class DesFactory:
         self, annotation: "Annotation", constr: Optional["const.ConstraintsT"] = None
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         annotation.serde = annotation.serde or SerdeConfig()
-        key = self._get_des_name(annotation)
+        key = self._get_name(annotation, constr)
         if key in self.__DES_CACHE:
             return self.__DES_CACHE[key]
         deserializer: Optional[DeserializerT] = None
@@ -528,7 +531,7 @@ class DesFactory:
                 deserializer = des
                 break
         if not deserializer:
-            deserializer = self._build_des(annotation)
+            deserializer = self._build_des(annotation, key)
 
         deserializer, validator = self._finalize_deserializer(
             annotation, deserializer, constr

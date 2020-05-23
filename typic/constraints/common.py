@@ -90,7 +90,7 @@ class __AbstractConstraints(abc.ABC):
         return util.get_name(self.type)
 
     def _get_validator_name(self) -> str:
-        return f"validator_{id(self)}".replace("-", "_")
+        return util.get_defname("validator", self)
 
     @util.cached_property
     @abc.abstractmethod

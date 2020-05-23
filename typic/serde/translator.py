@@ -8,6 +8,7 @@ from typic.util import (
     cached_simple_attributes,
     safe_get_params,
     get_unique_name,
+    get_defname,
 )
 
 if TYPE_CHECKING:
@@ -100,7 +101,7 @@ class TranslatorFactory:
 
     @staticmethod
     def _get_name(source: Type, target: Type) -> str:
-        return f"translator_{hash((source, target))}".replace("-", "_")
+        return get_defname("translator", (source, target))
 
     @functools.lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":

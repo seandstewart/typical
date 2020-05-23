@@ -288,7 +288,7 @@ class SerFactory:
 
     @staticmethod
     def _get_name(annotation: "Annotation") -> str:
-        return f"serializer_{util.hexhash(annotation)}"
+        return util.get_defname("serializer", annotation)
 
     def _build_list_serializer(
         self, func: gen.Block, annotation: "Annotation",
