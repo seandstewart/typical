@@ -189,8 +189,8 @@ class DesFactory:
         )
         func.l(f"{self.VTYPE} = type({self.VNAME})")
 
-    def _add_subclass_check(self, func: gen.Block, anno_name: str):
-        with func.b(f"if issubclass({self.VTYPE}, {anno_name}):") as b:
+    def _add_type_check(self, func: gen.Block, anno_name: str):
+        with func.b(f"if {self.VTYPE} is {anno_name}:") as b:
             b.l(f"{gen.Keyword.RET} {self.VNAME}")
 
     def _get_default_factory(self, annotation: "Annotation"):
@@ -260,7 +260,7 @@ class DesFactory:
         )
 
     def _build_fromdict_des(self, func: gen.Block, anno_name: str):
-        self._add_subclass_check(func, anno_name)
+        self._add_type_check(func, anno_name)
         self._add_eval(func)
         func.l(f"{self.VNAME} = {anno_name}.from_dict({self.VNAME})")
 
@@ -277,14 +277,7 @@ class DesFactory:
             self._add_eval(func)
 
         fields_deser = {
-            x: self.resolver.resolve(
-                y.resolved,
-                flags=y.serde.flags,
-                name=x,
-                parameter=y.parameter,
-                is_optional=y.optional,
-                is_strict=y.strict,
-            ).transmute
+            x: self.resolver._resolve_from_annotation(y).transmute
             for x, y in annotation.serde.fields.items()
         }
         x = "fields_in[x]"
@@ -371,38 +364,82 @@ class DesFactory:
     def _build_path_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
-        self._add_subclass_check(func, anno_name)
+        self._add_type_check(func, anno_name)
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
     def _build_generic_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
-        self._add_subclass_check(func, anno_name)
+        serde = annotation.serde
+        resolved = annotation.resolved
+        self._add_type_check(func, anno_name)
         self._add_eval(func)
+        # Main branch - we have a mapping for a user-defined class.
+        # This is where the serde configuration comes in.
+        # WINDY PATH AHEAD
+        func.l("# Happy path - deserialize a mapping into the object.")
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
+            # Universal line - transform input to known keys/values.
+            # Specific values may change.
+            def mainline(k, v):
+                b.l(
+                    f"{self.VNAME} = "
+                    f"{{{k}: {v} for x in fields_in.keys() & {self.VNAME}.keys()}}"
+                )
+
+            # The "happy path" - e.g., no guesswork needed.
+            def happypath(k, v, **ns):
+                mainline(k, v)
+                b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})", **ns)
+
+            # Default X - translate given `x` to known input `x`
             x = "fields_in[x]"
+            # No field name translation needs to happen.
+            if {*serde.fields_in.keys()} == {*serde.fields_in.values()}:
+                x = "x"
+
+            # Default Y - get the given `y` with the given `x`
             y = f"{self.VNAME}[x]"
-            b.l(
-                f"{self.VNAME} = "
-                f"{{{x}: {y} for x in fields_in.keys() & {self.VNAME}.keys()}}"
-            )
-            if not self.resolver.seen(annotation.resolved):
+            # Get the intersection of known input fields and annotations.
+            matched = {*serde.fields_in.values()} & serde.fields.keys()
+            # Happy path! This is a `@typic.al` wrapped class.
+            if self.resolver.known(resolved):
+                happypath(x, y)
+            # Secondary happy path! We know how to deserialize already.
+            elif len(matched) == len(serde.fields_in) and not self.resolver.delayed(
+                resolved
+            ):
+                desers = {
+                    f: self.resolver._resolve_from_annotation(serde.fields[f]).transmute
+                    for f in matched
+                }
+                y = f"desers[{x}]({self.VNAME}[x])"
+                happypath(x, y, desers=desers)
+            # We must call bind() in order to deserialize.
+            else:
+                mainline(x, y)
                 b.l(
                     f"bound = __bind({anno_name}, **{self.VNAME})",
                     __bind=self.resolver.bind,
                 )
                 b.l(f"{self.VNAME} = bound.eval()")
-            else:
-                b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})")
+
+        # Secondary branch - we have some other input for a user-defined class
+        func.l("# Unknown path, just try casting it directly.")
         with func.b(
             f"elif isbuiltinsubtype({self.VTYPE}):",
             isbuiltinsubtype=checks.isbuiltinsubtype,
         ) as b:
             b.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+        # Final branch - user-defined class for another user-defined class
+        func.l(
+            "# Two user-defined types, "
+            "try to translate the input into the desired output."
+        )
         with func.b("else:") as b:
             b.l(
-                f"{self.VNAME} = tr({self.VNAME}, {anno_name})",
-                tr=self.resolver.translate,
+                f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
+                translate=self.resolver.translate,
             )
 
     def _build_des(self, annotation: "Annotation", func_name: str) -> Callable:

@@ -54,7 +54,6 @@ class Resolver:
     _DYNAMIC = SerFactory._DYNAMIC
 
     def __init__(self):
-        self.__seen = set()
         self.des = DesFactory(self)
         self.ser = SerFactory(self)
         self.binder = Binder(self)
@@ -138,12 +137,11 @@ class Resolver:
         )
         return self.transmute(annotation, value)
 
-    def seen(self, t: Type) -> bool:
-        return (
-            t in self.__seen
-            or hasattr(t, ORIG_SETTER_NAME)
-            or not getattr(t, "__delayed__", True)
-        )
+    def known(self, t: Type) -> bool:
+        return hasattr(t, ORIG_SETTER_NAME) or hasattr(t, "__delayed__")
+
+    def delayed(self, t: Type) -> bool:
+        return getattr(t, "__delayed__", False)
 
     @functools.lru_cache(maxsize=None)
     def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
@@ -400,6 +398,26 @@ class Resolver:
         )
 
     @functools.lru_cache(maxsize=None)
+    def _resolve_from_annotation(
+        self, anno: Annotation, _des: bool = True, _ser: bool = True,
+    ) -> SerdeProtocol:
+        # Build the deserializer
+        deserializer, validator, constraints = None, None, None
+        if _des:
+            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
+            deserializer, validator = self.des.factory(anno, constraints)
+        # Build the serializer
+        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
+        # Put it all together
+        return SerdeProtocol(
+            annotation=anno,
+            deserializer=deserializer,
+            serializer=serializer,
+            constraints=constraints,
+            validator=validator,
+        )
+
+    @functools.lru_cache(maxsize=None)
     def resolve(
         self,
         annotation: Type[ObjectT],
@@ -455,23 +473,7 @@ class Resolver:
             is_strict=is_strict,
             flags=flags,
         )
-        # Build the deserializer
-        deserializer, validator, constraints = None, None, None
-        if _des:
-            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
-            deserializer, validator = self.des.factory(anno, constraints)
-        # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
-        # Put it all together
-        resolved = SerdeProtocol(
-            annotation=anno,
-            deserializer=deserializer,
-            serializer=serializer,
-            constraints=constraints,
-            validator=validator,
-        )
-        # Add it to our tracker for external checks.
-        self.__seen.add(annotation)
+        resolved = self._resolve_from_annotation(anno, _des, _ser)
         return resolved
 
     @functools.lru_cache(maxsize=None)
