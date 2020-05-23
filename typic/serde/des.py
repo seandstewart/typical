@@ -1,6 +1,7 @@
 import datetime
 import functools
 import inspect
+import pathlib
 import re
 from collections import deque, defaultdict
 from operator import attrgetter
@@ -363,6 +364,12 @@ class DesFactory:
         self._add_eval(func)
         func.l(line, level=None, **{it_name: item_des})
 
+    def _build_path_des(
+        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+    ):
+        self._add_subclass_check(func, anno_name)
+        func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
     def _build_generic_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
@@ -418,6 +425,8 @@ class DesFactory:
                         self._build_date_des(func, anno_name, annotation)
                     elif origin in {Pattern, re.Pattern}:  # type: ignore
                         self._build_pattern_des(func, anno_name)
+                    elif issubclass(origin, pathlib.Path):
+                        self._build_path_des(func, anno_name, annotation)
                     elif not args and checks.isbuiltintype(origin):
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.isfromdictclass(origin):
