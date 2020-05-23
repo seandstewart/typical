@@ -138,7 +138,7 @@ class DesFactory:
     ):
         origin = annotation.resolved_origin
         if issubclass(origin, datetime.datetime):
-            with func.b(f"if issubclass({self.VTYPE}, datetime):") as b:
+            with func.b(f"if isinstance({self.VNAME}, datetime):") as b:
                 b.l(
                     f"{self.VNAME} = "
                     f"{anno_name}("
@@ -153,7 +153,7 @@ class DesFactory:
                     f")",
                     datetime=datetime.datetime,
                 )
-            with func.b(f"elif issubclass({self.VTYPE}, date):") as b:
+            with func.b(f"elif isinstance({self.VNAME}, date):") as b:
                 b.l(
                     f"{self.VNAME} = "
                     f"{anno_name}("
@@ -163,11 +163,11 @@ class DesFactory:
                     date=datetime.date,
                 )
         elif issubclass(origin, datetime.date):
-            with func.b(f"if issubclass({self.VTYPE}, datetime.datetime):") as b:
+            with func.b(f"if isinstance({self.VNAME}, datetime.datetime):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.date()", datetime=datetime)
-        with func.b(f"elif issubclass({self.VTYPE}, (int, float)):") as b:
+        with func.b(f"elif isinstance({self.VNAME}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
-        with func.b(f"elif issubclass({self.VTYPE}, (str, bytes)):") as b:
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
             line = f"{self.VNAME} = dateparse({self.VNAME})"
             # We do the negative assertion here because all datetime objects are
             # subclasses of date.
@@ -178,7 +178,7 @@ class DesFactory:
     def _add_eval(self, func: gen.Block):
         func.l(
             f"_, {self.VNAME} = __eval({self.VNAME}) "
-            f"if issubclass({self.VTYPE}, (str, bytes)) "
+            f"if isinstance({self.VNAME}, (str, bytes)) "
             f"else (False, {self.VNAME})",
             __eval=safe_eval,
         )
@@ -227,14 +227,14 @@ class DesFactory:
             self._add_eval(func)
         # Encode for bytes
         if issubclass(origin, bytes):
-            with func.b(f"if issubclass({self.VTYPE}, str):") as b:
+            with func.b(f"if isinstance({self.VNAME}, str):") as b:
                 b.l(
                     f"{self.VNAME} = {anno_name}("
                     f"{self.VNAME}, encoding={DEFAULT_ENCODING!r})"
                 )
         # Decode for str
         elif issubclass(origin, str):
-            with func.b(f"if issubclass({self.VTYPE}, (bytes, bytearray)):") as b:
+            with func.b(f"if isinstance({self.VNAME}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
         if issubclass(origin, defaultdict):
             func.namespace[anno_name] = functools.partial(defaultdict, None)
@@ -298,7 +298,7 @@ class DesFactory:
             else:
                 b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
         with func.b(
-            f"elif issubclass({self.VTYPE}, (list, set, frozenset, tuple)):"
+            f"elif isinstance({self.VNAME}, (list, set, frozenset, tuple)):"
         ) as b:
             if annotation.serde.fields:
                 b.l(
