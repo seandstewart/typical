@@ -8,7 +8,7 @@ docs_dir: mkdocs
 theme:
   name: "material"
   favicon: "static/favicon/favicon.ico"
-  logo: "static/favicon/favicon-32x32.png"
+  logo: "static/c3p-white.png"
   palette:
     primary: "indigo"
     accent: "amber"

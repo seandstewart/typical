@@ -1,6 +1,6 @@
 # The Basics
 
-`typical` is built around a powerful, high-level functional API whose
+Typical is built around a powerful, high-level functional API whose
 purpose is to make working with annotations at runtime a breeze for
 any developer.
 
@@ -15,7 +15,7 @@ improvement when serializing your data with `.tojson()`.
 
 ## `@typic.al()`
 
-The simplest way to get going with `typical` is the `@typic.al`
+The simplest way to get going with Typical is the `@typic.al`
 decorator. This is the core entrypoint for all the magic
 :crystal_ball:.
 
@@ -52,7 +52,7 @@ print(repr(explain(1.0)))
 
 ```
 
-In the above example, `typical` has taken care of your runtime
+In the above example, Typical has taken care of your runtime
 type-validation automatically. It also follows the classical Python
 logic of duck-typing: `float -> int -> Decision`. But it will handle
 more cases than that:
@@ -62,18 +62,18 @@ print(repr(explain(b"-1")))
 #> <Explanation.MAYBE: '¯\\_(ツ)_/¯'>
 ```
 
-`typical` knows to look for common cases such as json and string/byte
+Typical knows to look for common cases such as json and string/byte
 literals and handles them gracefully.
 
 That means you don't have to remember to handle every single edge case
-yourself. Just write your pure function and let `typical` handle the
+yourself. Just write your pure function and let Typical handle the
 rest. **This is incredibly useful for code which lives on the edges of
 your application** - such as a handler for an external caller or an
 ingestor from a data-source.
 
 #### Errors
 
-But what about errors? `typical` is built to provide transparency in
+But what about errors? Typical is built to provide transparency in
 the event that a value cannot be transmuted into the expected
 annotation. Taking the above example, if we pass a value not defined
 by our `Decsion` enum:
@@ -89,7 +89,7 @@ caller for handling.
 
 ### Wrapping Classes
 
-`typical` works with classes too -
+Typical works with classes too -
 
 ```python
 import typic

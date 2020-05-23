@@ -48,5 +48,12 @@ class Model(serializers.Serializer):
 def validate(data):
     result = Model(data=data)
     if result.is_valid():
-        return True, marsh.initialize(**data)
+        return True, data
     return False, result.errors
+
+
+def deserialize(data):
+    valid, result = validate(data)
+    if valid:
+        return valid, marsh.initialize(**data)
+    return valid, result

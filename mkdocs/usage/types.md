@@ -2,8 +2,8 @@
 
 ## The Standard Library
 
-`typical` is built upon the standard `typing` library. Virtually any
-valid static type may be reflected and managed by `typical`. Just
+Typical is built upon the standard `typing` library. Virtually any
+valid static type may be reflected and managed by Typical. Just
 follow the rules defined by
 [PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good
 to go!
@@ -20,7 +20,7 @@ to go!
     resolution.
 
 Beyond classes, standard types, and the annotation syntax provided by
-the `typing` library, `typical` also natively supports extended types
+the `typing` library, Typical also natively supports extended types
 defined in the following standard modules & bases:
 
 - [datetime](https://docs.python.org/3.9/library/datetime.html)
@@ -62,16 +62,16 @@ ABCs to actionable runtime type:
 | typing.Hashable        | str     |
 
 ## Constraining Builtin Types
-`typical` provides a path for defining "constrained" types based upon
+Typical provides a path for defining "constrained" types based upon
 Python builtins. This gives you a means to express limited types in a
 declarative manner. There is some overlap between constrained types
-and JSON Schema - this is intentional. However, `typical`'s
+and JSON Schema - this is intentional. However, Typical's
 constraints are built with Python types in mind, so there are small,
 but important differences between the two implementations.
 
 !!! note
 
-    It should be noted that `typical`'s constraint syntax is the means 
+    It should be noted that Typical's constraint syntax is the means 
     by which we generate JSON Schema definitions.
 
 The public interface for constraining types is the
@@ -317,7 +317,7 @@ The Constraints API has defined the following errors:
 
 ## Extended Types
 
-`typical` also ships with a library of extended types to make your
+Typical also ships with a library of extended types to make your
 daily work a breeze:
 
 ## Networking
@@ -587,7 +587,7 @@ and methods:
 >     ```
 
 ## Paths
-`typical` provides two subclasses of
+Typical provides two subclasses of
 [`pathlib.Path`](https://docs.python.org/3/library/pathlib.html):
 
 1. `FilePath`

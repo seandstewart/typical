@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import dataclasses
 from datetime import datetime
-from dataclasses import field
 from typing import List, Optional
 
 import typic
@@ -27,13 +27,13 @@ class PositiveInt(int):
     """A positive integer."""
 
 
-@typic.klass
+@dataclasses.dataclass
 class Location:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
 
-@typic.klass
+@dataclasses.dataclass
 class Skill:
     subject: str
     subject_id: int
@@ -43,7 +43,7 @@ class Skill:
     qual_level_ranking: float = 0
 
 
-@typic.klass
+@dataclasses.dataclass
 class Model:
     id: int
     client_name: DBString
@@ -54,11 +54,21 @@ class Model:
     contractor: Optional[PositiveInt] = None
     upstream_http_referrer: Optional[HTTPReferer] = None
     last_updated: Optional[datetime] = None
-    skills: List[Skill] = field(default_factory=list)
+    skills: List[Skill] = dataclasses.field(default_factory=list)
+
+
+model_protocol = typic.protocol(Model)
 
 
 def validate(data):
     try:
-        return True, Model(**data)
+        return True, model_protocol.validate(data)
+    except ValueError as err:
+        return False, err
+
+
+def deserialize(data):
+    try:
+        return True, model_protocol.transmute(data)
     except (TypeError, ValueError) as err:
         return False, err

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import dataclasses
 import enum
 import functools
 import inspect
@@ -309,7 +310,10 @@ def get_constraints(
     t: Type[VT], *, nullable: bool = False, name: str = None
 ) -> ConstraintsT:
     if isconstrained(t):
-        return t.__constraints__  # type: ignore
+        c: ConstraintsT = t.__constraints__  # type: ignore
+        if (c.name, c.nullable) != (name, nullable):
+            return dataclasses.replace(c, name=name, nullable=nullable)
+        return c
     if issubclass(t, enum.Enum):
         return _from_enum_type(t, nullable=nullable, name=name)  # type: ignore
     if isnamedtuple(t) or istypeddict(t):

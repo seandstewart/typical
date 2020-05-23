@@ -12,7 +12,7 @@
 
 ## Introduction
 
-`typical` is a library devoted to runtime analysis, inference,
+Typical is a library devoted to runtime analysis, inference,
 validation, and enforcement of Python types,
 [PEP 484](https://www.python.org/dev/peps/pep-0484/) Type Hints, and
 custom user-defined data-types.
@@ -67,7 +67,7 @@ strict_math(1, 2, 3, "4")
   
 ```
 
-`typical` has both a high-level *Object API* and high-level
+Typical has both a high-level *Object API* and high-level
 *Functional API*. In general, any method registered to one API is also
 available to the other.
 
@@ -155,6 +155,6 @@ protocol.validate({"id": 0, "tweets": []})  # or typic.validate()
 
 ## Changelog
 
-See our [Change Log](CHANGELOG.md) and our
+See our
 [Releases](https://github.com/seandstewart/typical/releases).
 

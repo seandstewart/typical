@@ -55,3 +55,7 @@ def validate(data):
         return True, Model(**data)
     except ValidationError as err:
         return False, err
+
+
+def deserialize(data):
+    return validate(data)
