@@ -38,28 +38,46 @@ The following benchmarks Typical's three public APIs against:
 - [Pydantic](https://pydantic-docs.helpmanual.io/)
 
 
-### Deserialization & Validation
-
-
-[![Average time (in μs) for attempted deserialization of
-invalid data in a complex, nested
-object.][deser-invalid]][deser-invalid]
-
-
-[![Average time (in μs) for deserializatino of valid data in a
-complex, nested object.][deser-valid]][deser-valid]
-
 ### Validation Only
 
 [![Average time (in μs) for validation of invalid data in
 a complex, nested
 object.][validate-invalid]][validate-invalid]
 
-
 [![Average time (in μs) for validation of valid data in a
 complex, nested object.][validate-valid]][validate-valid]
+
+
+### Deserialization & Validation
+
+[![Average time (in μs) for attempted deserialization of
+invalid data in a complex, nested
+object.][deser-invalid]][deser-invalid]
+
+[![Average time (in μs) for deserialization of valid data in a
+complex, nested object.][deser-valid]][deser-valid]
+
+
+### Serialization & Validation
+
+*It should be noted that at the time of this writing, both
+Pydantic and Marshmallow will passively allow or ignore
+invalid data in certain cases by default. This was the
+case with the test-case used for these benchmarks, which
+can be found
+[here](https://github.com/seandstewart/typical/blob/master/benchmark/test_benchmarks.py).*
+
+[![Average time (in μs) for attempted serialization of
+invalid data in a complex, nested
+object.][ser-invalid]][ser-invalid]
+
+[![Average time (in μs) for serialization of valid data in
+a complex, nested object.][ser-valid]][ser-valid]
+
 
 [validate-invalid]: static/Validate_Invalid_Data.svg
 [validate-valid]: static/Validate_Valid_Data.svg
 [deser-invalid]: static/Deserialize_Invalid_Data.svg
 [deser-valid]: static/Deserialize_Valid_Data.svg
+[ser-invalid]: static/Serialize_Invalid_Data.svg
+[ser-valid]: static/Serialize_Valid_Data.svg

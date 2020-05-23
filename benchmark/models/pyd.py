@@ -59,3 +59,7 @@ def validate(data):
 
 def deserialize(data):
     return validate(data)
+
+
+def tojson(instance: Model):
+    return True, instance.json()  # No validation!

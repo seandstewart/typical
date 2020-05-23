@@ -69,3 +69,10 @@ def deserialize(data):
         return True, typic.transmute(Model, data)
     except (TypeError, ValueError) as err:
         return False, err
+
+
+def tojson(instance: Model):
+    try:
+        return True, typic.tojson(instance)
+    except ValueError as err:
+        return False, err

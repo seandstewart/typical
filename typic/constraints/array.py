@@ -142,7 +142,7 @@ class ArrayConstraints(BaseConstraints):
             ctx = {
                 itval: self.values.validate,
                 o.__name__: o,
-                "_lazy_repr": util.LazyCollectionRepr,
+                "_lazy_repr": util.collectionrepr,
             }
             r = "i" if issubclass(self.type, Sequence) else "x"
             field = f"_lazy_repr({self.FNAME}, {r})"

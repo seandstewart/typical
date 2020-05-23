@@ -93,3 +93,7 @@ def deserialize(data):
     if valid:
         return valid, initialize(**data)
     return valid, result
+
+
+def tojson(instance: Model):
+    return True, SCHEMA.dumps(instance)  # Implicit filtering of invalid data!

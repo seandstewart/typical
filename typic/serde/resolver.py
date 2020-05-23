@@ -145,16 +145,26 @@ class Resolver:
 
     @functools.lru_cache(maxsize=None)
     def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
+        tname = util.get_name(t)
         if hasattr(t, SERDE_ATTR):
             return getattr(t, SERDE_ATTR)
-        for name, caller in self._DICT_FACTORY_METHODS:
-            if hasattr(t, name):
+        for attr, caller in self._DICT_FACTORY_METHODS:
+            if hasattr(t, attr):
 
                 def serializer(
-                    val, lazy: bool = False, *, __prim=self.primitive, __call=caller
+                    val,
+                    lazy: bool = False,
+                    name: util.ReprT = None,
+                    *,
+                    __prim=self.primitive,
+                    __call=caller,
+                    __tname=tname,
+                    __repr=util.joinedrepr,
                 ):
+                    name = name or __tname
                     return {
-                        __prim(x): __prim(y, lazy=lazy) for x, y in __call(val).items()
+                        __prim(x): __prim(y, lazy=lazy, name=__repr(name, x))
+                        for x, y in __call(val).items()
                     }
 
                 return SerdeProtocol(
@@ -173,7 +183,7 @@ class Resolver:
         serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
         return serde
 
-    def primitive(self, obj: Any, lazy: bool = False) -> Any:
+    def primitive(self, obj: Any, lazy: bool = False, name: util.ReprT = None) -> Any:
         """A method for converting an object to its primitive equivalent.
 
         Useful for encoding data to JSON.
@@ -212,7 +222,7 @@ class Resolver:
             obj = obj.value
             t = type(obj)
         proto: SerdeProtocol = self._get_serializer_proto(t)
-        return proto.primitive(obj, lazy=lazy)
+        return proto.primitive(obj, lazy=lazy, name=name)
 
     def tojson(
         self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs

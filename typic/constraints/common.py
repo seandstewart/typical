@@ -57,7 +57,7 @@ class __AbstractConstraints(abc.ABC):
 
     @util.cached_property
     def __str(self) -> str:
-        fields = [f"type={util.get_qualname(self.type)}"]
+        fields = [f"type={self.type_qualname}"]
         for f in dataclasses.fields(self):
             if f.name == "type":
                 continue
@@ -88,6 +88,10 @@ class __AbstractConstraints(abc.ABC):
     @util.cached_property
     def type_name(self) -> str:
         return util.get_name(self.type)
+
+    @util.cached_property
+    def type_qualname(self) -> str:
+        return util.get_qualname(self.type)
 
     def _get_validator_name(self) -> str:
         return util.get_defname("validator", self)
@@ -276,6 +280,14 @@ class MultiConstraints(__AbstractConstraints):
     @util.cached_property
     def type(self) -> Tuple[Type, ...]:  # type: ignore
         return (*self.__type(),)
+
+    @util.cached_property
+    def type_name(self) -> str:
+        return f"({', '.join(util.get_name(t) for t in self.type)})"
+
+    @util.cached_property
+    def type_qualname(self) -> str:
+        return f"({', '.join(util.get_qualname(t) for t in self.type)})"
 
     @util.cached_property
     def validator(self) -> ValidatorT:

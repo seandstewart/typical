@@ -27,6 +27,11 @@ _MODS = {
 }
 
 
+@dataclasses.dataclass
+class NotASkill:
+    ...
+
+
 @pytest.mark.parametrize(argnames="mod", argvalues=(*reversed([*_MODS]),))
 def test_benchmarks_validate_valid_data(benchmark, mod):
     benchmark.group = "Validate Valid Data"
@@ -62,3 +67,34 @@ def test_benchmarks_deserialize_invalid_data(benchmark, mod):
     deserialize = _MODS[mod].deserialize
     valid, data = benchmark(deserialize, deepcopy(INVALID))
     assert not valid, data
+
+
+@pytest.mark.parametrize(argnames="mod", argvalues=(*reversed([*_MODS]),))
+def test_benchmarks_serialize_valid_data(benchmark, mod):
+    benchmark.group = "Serialize Valid Data"
+    benchmark.name = mod
+    serialize = _MODS[mod].tojson
+    model = _MODS[mod].Model
+    instance = (
+        model(**VALID_RAW) if mod == "pydantic" else typic.transmute(model, VALID_RAW)
+    )
+    valid, data = benchmark(serialize, instance)
+    assert valid, data
+
+
+@pytest.mark.parametrize(argnames="mod", argvalues=(*reversed([*_MODS]),))
+def test_benchmarks_serialize_invalid_data(benchmark, mod):
+    benchmark.group = "Serialize Invalid Data"
+    benchmark.name = mod
+    serialize = _MODS[mod].tojson
+    model = _MODS[mod].Model
+    instance = (
+        model(**VALID_RAW) if mod == "pydantic" else typic.transmute(model, VALID_RAW)
+    )
+    instance.skills.append(NotASkill())
+    valid, data = benchmark(serialize, instance)
+    # Marshmallow implicitly filters invalid data, and pydantic doesn't care at all.
+    if mod in {"marshmallow", "pydantic"}:
+        assert valid, data
+    else:
+        assert not valid, data

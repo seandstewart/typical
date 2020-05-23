@@ -30,7 +30,7 @@ import pendulum
 from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
-from typic.util import filtered_repr, cached_property, TypeMap
+from typic.util import filtered_repr, cached_property, TypeMap, ReprT
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
@@ -71,8 +71,8 @@ class SchemaType(str, enum.Enum):
 
 
 class _Serializable:
-    def primitive(self, *, lazy: bool = False) -> Mapping[str, Any]:
-        return resolver.primitive(self, lazy=lazy)
+    def primitive(self, *, lazy: bool = False, name: ReprT = None) -> Mapping[str, Any]:
+        return resolver.primitive(self, lazy=lazy, name=name)
 
     def tojson(self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs) -> str:
         return dumps(
@@ -126,7 +126,7 @@ class BaseSchemaField(_Serializable):
     enum: Optional[Tuple[Any, ...]] = None
     title: Optional[str] = None
     description: Optional[str] = None
-    default: Optional[str] = None
+    default: Optional[Any] = None
     examples: Optional[List[Any]] = None
     readOnly: Optional[bool] = None
     writeOnly: Optional[bool] = None

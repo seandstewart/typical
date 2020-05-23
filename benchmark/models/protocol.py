@@ -72,3 +72,10 @@ def deserialize(data):
         return True, model_protocol.transmute(data)
     except (TypeError, ValueError) as err:
         return False, err
+
+
+def tojson(instance: Model):
+    try:
+        return True, model_protocol.tojson(instance)
+    except ValueError as err:
+        return False, err

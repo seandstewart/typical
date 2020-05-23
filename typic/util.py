@@ -218,7 +218,7 @@ def get_name(obj: Type) -> str:
 @functools.lru_cache(maxsize=None)
 def get_qualname(obj: Type) -> str:
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return f"{obj.__module__}.{obj._name}"
+        return repr(obj)
 
     qualname = getattr(obj, "__qualname__", obj.__name__)
     if "<locals>" in qualname:
@@ -492,7 +492,7 @@ class TypeMap(Dict[Type, VT]):
         return default
 
 
-class LazyJoinedRepr:
+class joinedrepr:
     __slots__ = ("fields", "__dict__")
 
     def __init__(self, *fields):
@@ -509,10 +509,10 @@ class LazyJoinedRepr:
         return self.__repr
 
 
-class LazyCollectionRepr:
+class collectionrepr:
     __slots__ = ("root_name", "keys", "__dict__")
 
-    def __init__(self, root_name: str, *keys):
+    def __init__(self, root_name: "ReprT", *keys):
         self.root_name = root_name
         self.keys = keys
 
@@ -526,3 +526,6 @@ class LazyCollectionRepr:
 
     def __str__(self) -> str:
         return self.__repr
+
+
+ReprT = Union[str, joinedrepr, collectionrepr]
