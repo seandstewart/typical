@@ -2,7 +2,7 @@
 
 ## MyPy
 
-`typical` comes packaged with a simple plugin for mypy which will
+Typical comes packaged with a simple plugin for mypy which will
 greatly improve the static type-checking of your `typic.klass`
 objects.
 

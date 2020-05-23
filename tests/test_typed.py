@@ -33,7 +33,7 @@ from typic.api import (
 from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
-from typic.types import NetworkAddress
+from typic.types import NetworkAddress, DirectoryPath
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
@@ -74,6 +74,8 @@ def test_isbuiltintype(obj: typing.Any):
         (datetime.date, 0, datetime.date.fromtimestamp(0)),
         (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
         (datetime.date, datetime.datetime(1980, 1, 1), datetime.date(1980, 1, 1)),
+        (DirectoryPath, pathlib.Path.cwd(), DirectoryPath.cwd()),
+        (pathlib.Path, DirectoryPath.cwd(), pathlib.Path.cwd()),
         (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
         (objects.Data, {"foo": "bar!"}, objects.Data("bar!")),
         (
@@ -697,6 +699,12 @@ def test_validate_transmute(t, v):
 @pytest.mark.parametrize(
     argnames="t, v",
     argvalues=[
+        (int, "",),
+        (str, 0),
+        (bytes, ""),
+        (float, 1),
+        (list, set()),
+        (dict, []),
         (objects.Typic, {"var": 1}),
         (objects.TDict, {"a": ""}),
         (typing.Mapping[int, str], {"b": ""}),

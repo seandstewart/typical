@@ -273,9 +273,7 @@ class MappingConstraints(BaseConstraints):
             func.l(f"size = len({self.VALUE})")
 
         _lazy_repr = (
-            util.LazyCollectionRepr
-            if issubclass(self.type, Mapping)
-            else util.LazyJoinedRepr
+            util.collectionrepr if issubclass(self.type, Mapping) else util.joinedrepr
         )
         context: Dict[str, Any] = {"Mapping": Mapping, "_lazy_repr": _lazy_repr}
         checks: List[str] = []

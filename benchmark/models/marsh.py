@@ -86,3 +86,14 @@ def validate(data):
 
     except ValidationError as err:
         return False, err.messages
+
+
+def deserialize(data):
+    valid, result = validate(data)
+    if valid:
+        return valid, initialize(**data)
+    return valid, result
+
+
+def tojson(instance: Model):
+    return True, SCHEMA.dumps(instance)  # Implicit filtering of invalid data!

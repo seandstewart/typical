@@ -45,6 +45,7 @@ from typic.common import (
     TYPIC_ANNOS_NAME,
 )
 from typic.serde.resolver import resolver
+from typic.serde.ser import SerializationValueError
 from typic.strict import (
     is_strict_mode,
     strict_mode,
@@ -80,6 +81,7 @@ __all__ = (
     "SchemaReturnT",
     "SerdeFlags",
     "SerdeProtocol",
+    "SerializationValueError",
     "Strict",
     "strict_mode",
     "StrictStrT",

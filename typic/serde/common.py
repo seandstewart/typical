@@ -162,7 +162,22 @@ class Annotation:
 
     @property
     def resolved_origin(self) -> Type[ObjectT]:
+        """The origin-type of the 'resolved' annotation.
+
+        This is slightly different than `origin` -- `origin` will represent the
+        origin-type of the "wrapped" type, e.g., `Union`, or `ReadOnly`.
+        This will represent the origin of the "actionable", e.g. `resolved`, type.
+        """
         return util.origin(self.resolved)
+
+    @util.cached_property
+    def generic(self) -> Type:
+        """Get the 'generic' for this type, if there is one.
+
+        Mapping[str, str] -> Mapping
+        dict -> dict
+        """
+        return getattr(self.resolved, "__origin__", self.resolved_origin)
 
     def translator(self, target: Type[_T]) -> TranslatorT:
         """A factory for translating from this type to another."""
@@ -192,7 +207,7 @@ class SerdeProtocol:
         self.validate = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
         self.transmute = self.deserialize
-        self.primitive = self.serializer or (lambda o, lazy=False: o)
+        self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
 
         def _json(
             val: ObjectT,

@@ -40,7 +40,7 @@ class Skill:
     category: str
     qual_level: str
     qual_level_id: int
-    qual_level_ranking: float = 0
+    qual_level_ranking: float = 0.0
 
 
 @typic.klass
@@ -59,6 +59,20 @@ class Model:
 
 def validate(data):
     try:
+        return True, Model.validate(data)
+    except ValueError as err:
+        return False, err
+
+
+def deserialize(data):
+    try:
         return True, Model(**data)
     except (TypeError, ValueError) as err:
+        return False, err
+
+
+def tojson(instance):
+    try:
+        return True, instance.tojson()
+    except ValueError as err:
         return False, err

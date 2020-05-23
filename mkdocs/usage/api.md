@@ -1,6 +1,6 @@
 # Using Typical
 
-`typical` has two primary means of interaction - the *Object API* and
+Typical has two primary means of interaction - the *Object API* and
 the *Functional API*.
 
 
@@ -95,11 +95,11 @@ is also accepted by `@typic.klass`, plus a few more:
 
 ### Interacting With Your Objects
 
-As we've already demonstrated, `typical` will guarantee the  data
+As we've already demonstrated, Typical will guarantee the  data
 passed into your models is parsed and transformed into the data you
 defined.
 
-First, let's define the API. Below are the methods which `typical`
+First, let's define the API. Below are the methods which Typical
 will bind to your object when it is wrapped with `@typic.al` or
 `@typic.klass`.
 
@@ -354,7 +354,7 @@ class Song:
 
     The important thing to take away here is that there's *virtually
     no difference in LOC or declaration* from the standard lib and the
-    `@typic.klass` declaration. This is a cornerstone of `typical`'s
+    `@typic.klass` declaration. This is a cornerstone of Typical's
     design: Work with *with* standard libary, not against
     (or parallel) to it.
 
@@ -521,7 +521,7 @@ class Song:
 
 ## The Protocol API
 
-As promised, `typical` provides a path for optimizing your
+As promised, Typical provides a path for optimizing your
 interactions with the Functional API. This is done by calling the
 `typic.protocol` method. This method is a public alias for the our
 type resolver's main entry-point. This means that the protocol

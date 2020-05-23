@@ -8,7 +8,7 @@ You can, however, change the default mode.
 
 ## Strict Mode
 
-`strict` mode turns `typical` into a run-time *enforcer*, not just
+`strict` mode turns Typical into a run-time *enforcer*, not just
 coercer. What does this mean? Simply put, if the input does not meet
 the constraints of the provided type, an error will be raised. There
 are three different levels of `strict` mode enforcement:
@@ -96,7 +96,7 @@ Annotated Strict Mode is enforced at the type-hint level.
 camps which define validation as different things - static type
 checking, runtime type checking, runtime type coercion...
 
-Unlike other popular libraries, `typical` makes an extremely clear
+Unlike other popular libraries, Typical makes an extremely clear
 delineation between type *deserialization* and type *validation*.
 
 We approach type-enforcement via *deserialization-first*. While you
@@ -105,12 +105,12 @@ two operations is not blurred. In order to operate with
 *validation-first*, you must change the mode of operation. This is not
 the case in other popular libraries.
 
-These are the paths to "validation" which `typical` will follow:
+These are the paths to "validation" which Typical will follow:
 
 ### Validate-by-Parse
 
 The given value is inherently validated by the action of
-conversion. This is `typical`'s default mode of operation:
+conversion. This is Typical's default mode of operation:
 
     >>> import ipaddress
     >>> import typic
@@ -148,7 +148,7 @@ defining constrained subclasses:
 ### Validate-Only
 
 The given value *must* meet the type-constraints provided. This can be
-done by signaling to `typical` to use "strict-mode" when resolving an
+done by signaling to Typical to use "strict-mode" when resolving an
 annotation for coercion.
 
 In strict-mode, `validation-only` is used for primitive
@@ -183,7 +183,7 @@ types and builtin higher-level types:
 
 The given value *must* meet the type-constraints provided - after
 which we transmute the value. This can be done by signaling to
-`typical` to use "strict-mode" when resolving an annotation for
+Typical to use "strict-mode" when resolving an annotation for
 coercion.
 
 In strict-mode, `validate-then-parse` is used for user-defined types.
@@ -214,7 +214,7 @@ In strict-mode, `validate-then-parse` is used for user-defined types.
 
 ## What "Mode" Should I Use?
 
-`typical` provides users with a path for easy, safe conversion of
+Typical provides users with a path for easy, safe conversion of
 types at runtime.
 
 The best use-case for "strict-mode" is when you find yourself using
@@ -222,7 +222,7 @@ The best use-case for "strict-mode" is when you find yourself using
 a string, so you could end up in a weird place if you're blindly
 casting all of your inputs to `str`.
 
-To this, `typical` provides a `StrictStrT` annotation for public
+To this, Typical provides a `StrictStrT` annotation for public
 consumption that will enforce strict type-checking for string fields.
 
 

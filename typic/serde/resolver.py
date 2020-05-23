@@ -54,11 +54,14 @@ class Resolver:
     _DYNAMIC = SerFactory._DYNAMIC
 
     def __init__(self):
-        self.__seen = set()
         self.des = DesFactory(self)
         self.ser = SerFactory(self)
         self.binder = Binder(self)
         self.bind = self.binder.bind
+        for typ in checks.STDLIB_TYPES:
+            self.resolve(typ)
+            self.resolve(Optional[typ])
+            self.resolve(typ, is_optional=True)
 
     def transmute(self, annotation: Type[ObjectT], value: Any) -> ObjectT:
         """Convert a given value `into` the target annotation.
@@ -134,25 +137,34 @@ class Resolver:
         )
         return self.transmute(annotation, value)
 
-    def seen(self, t: Type) -> bool:
-        return (
-            t in self.__seen
-            or hasattr(t, ORIG_SETTER_NAME)
-            or not getattr(t, "__delayed__", True)
-        )
+    def known(self, t: Type) -> bool:
+        return hasattr(t, ORIG_SETTER_NAME) or hasattr(t, "__delayed__")
+
+    def delayed(self, t: Type) -> bool:
+        return getattr(t, "__delayed__", False)
 
     @functools.lru_cache(maxsize=None)
     def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
+        tname = util.get_name(t)
         if hasattr(t, SERDE_ATTR):
             return getattr(t, SERDE_ATTR)
-        for name, caller in self._DICT_FACTORY_METHODS:
-            if hasattr(t, name):
+        for attr, caller in self._DICT_FACTORY_METHODS:
+            if hasattr(t, attr):
 
                 def serializer(
-                    val, lazy: bool = False, *, __prim=self.primitive, __call=caller
+                    val,
+                    lazy: bool = False,
+                    name: util.ReprT = None,
+                    *,
+                    __prim=self.primitive,
+                    __call=caller,
+                    __tname=tname,
+                    __repr=util.joinedrepr,
                 ):
+                    name = name or __tname
                     return {
-                        __prim(x): __prim(y, lazy=lazy) for x, y in __call(val).items()
+                        __prim(x): __prim(y, lazy=lazy, name=__repr(name, x))
+                        for x, y in __call(val).items()
                     }
 
                 return SerdeProtocol(
@@ -171,7 +183,7 @@ class Resolver:
         serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
         return serde
 
-    def primitive(self, obj: Any, lazy: bool = False) -> Any:
+    def primitive(self, obj: Any, lazy: bool = False, name: util.ReprT = None) -> Any:
         """A method for converting an object to its primitive equivalent.
 
         Useful for encoding data to JSON.
@@ -210,7 +222,7 @@ class Resolver:
             obj = obj.value
             t = type(obj)
         proto: SerdeProtocol = self._get_serializer_proto(t)
-        return proto.primitive(obj, lazy=lazy)
+        return proto.primitive(obj, lazy=lazy, name=name)
 
     def tojson(
         self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
@@ -396,6 +408,26 @@ class Resolver:
         )
 
     @functools.lru_cache(maxsize=None)
+    def _resolve_from_annotation(
+        self, anno: Annotation, _des: bool = True, _ser: bool = True,
+    ) -> SerdeProtocol:
+        # Build the deserializer
+        deserializer, validator, constraints = None, None, None
+        if _des:
+            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
+            deserializer, validator = self.des.factory(anno, constraints)
+        # Build the serializer
+        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
+        # Put it all together
+        return SerdeProtocol(
+            annotation=anno,
+            deserializer=deserializer,
+            serializer=serializer,
+            constraints=constraints,
+            validator=validator,
+        )
+
+    @functools.lru_cache(maxsize=None)
     def resolve(
         self,
         annotation: Type[ObjectT],
@@ -451,23 +483,7 @@ class Resolver:
             is_strict=is_strict,
             flags=flags,
         )
-        # Build the deserializer
-        deserializer, validator, constraints = None, None, None
-        if _des:
-            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
-            deserializer, validator = self.des.factory(anno, constraints)
-        # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
-        # Put it all together
-        resolved = SerdeProtocol(
-            annotation=anno,
-            deserializer=deserializer,
-            serializer=serializer,
-            constraints=constraints,
-            validator=validator,
-        )
-        # Add it to our tracker for external checks.
-        self.__seen.add(annotation)
+        resolved = self._resolve_from_annotation(anno, _des, _ser)
         return resolved
 
     @functools.lru_cache(maxsize=None)

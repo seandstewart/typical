@@ -7,7 +7,7 @@ import ipaddress
 import json
 import re
 from types import MappingProxyType
-from typing import ClassVar, Optional, Dict, TypeVar, Generic, List
+from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
 import pytest
 
@@ -106,6 +106,7 @@ class SubURL(typic.URL):
         (SubURL("foo"), "foo"),
         (ClassVarEnum(), {"foo": objects.FooNum.bar.value}),
     ],
+    ids=repr,
 )
 def test_primitive(obj, expected):
     primitive = typic.primitive(obj)
@@ -151,9 +152,9 @@ class CaseDict(Dict):
             {objects.FooNum.bar: objects.Typic(var="foo")},
             {"bar": {"var": "foo"}},
         ),
-        (GenDict[str, int], {"foo_bar": 2}, {"fooBar": 2},),
-        (SerDict, {"foo_bar": 2}, {"fooBar": 2},),
-        (CaseDict, {"foo_bar": 2}, {"fooBar": 2},),
+        (GenDict[str, int], GenDict(foo_bar=2), {"fooBar": 2},),
+        (SerDict, SerDict(foo_bar=2), {"fooBar": 2},),
+        (CaseDict, CaseDict(foo_bar=2), {"fooBar": 2},),
     ],
 )
 def test_serde_serializer(t, obj, prim):
@@ -186,7 +187,7 @@ def test_serde_deserializer(t, obj, prim):
 @typic.klass
 class Foo:
     bar: str
-    id: typic.ReadOnly[int] = None
+    id: Optional[typic.ReadOnly[int]] = None
 
 
 @typic.klass
@@ -211,3 +212,28 @@ def test_tojson(obj, expected):
         json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
     )
     assert typic.tojson(obj) == native == expected
+
+
+badbar = Bar([])
+badbar.foos.append("foo")
+
+
+@pytest.mark.parametrize(
+    argnames=("type", "value"),
+    argvalues=[
+        (str, 1),
+        (bool, ""),
+        (bytes, ""),
+        (dict, []),
+        (list, {}),
+        (List[str], [1]),
+        (Bar, Foo("")),
+        (Bar, badbar),
+        (Mapping[str, Bar], {"foo": Foo("")}),
+        (List[Bar], [Foo("")]),
+    ],
+)
+def test_invalid_serializer(type, value):
+    proto = typic.protocol(type)
+    with pytest.raises(ValueError):
+        proto.tojson(value)

@@ -27,7 +27,7 @@ your needs.
 
 ## Customizing Your Ser/Des Protocol
 
-`typical` provides a path for you to customize *how* your data is
+Typical provides a path for you to customize *how* your data is
 transmuted into your custom classes, and how it is dumped back to its
 primitive form. It all starts with this class:
 
