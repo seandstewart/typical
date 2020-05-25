@@ -407,7 +407,7 @@ class SerFactory:
                 annotation.args[0], flags=annotation.serde.flags
             )
             arg_ser = self.factory(arg_a)
-            arg_ser_name = f"arg_ser"
+            arg_ser_name = "arg_ser"
 
             serlist = make_serlist(annotation, arg_ser)
             serlist_name = serlist.__name__
@@ -459,7 +459,7 @@ class SerFactory:
             **ns,
         )
         # Write the line.
-        line = f"d if lazy else {{**d}}"
+        line = "d if lazy else {**d}"
         func.l(f"{gen.Keyword.RET} {line}")
 
     def _build_dict_serializer(self, func: gen.Block, annotation: "Annotation"):

@@ -57,7 +57,7 @@ class FrozenDict(Generic[KT, VT], dict):
     TypeError: attempting to mutate immutable type 'FrozenDict'
     """
 
-    _MSG = f"attempting to mutate immutable type 'FrozenDict'"
+    _MSG = "attempting to mutate immutable type 'FrozenDict'"
 
     def __init__(
         self,

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.16"
+version = "2.0.17"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -29,7 +29,7 @@ exclude = ["tests", "docs", "docsrc", "benchmark"]
 [tool.poetry.dependencies]
 python = "^3.7"
 inflection = "^0.3.1"
-pendulum = "^2.0"
+pendulum = "^2.1"
 typing-extensions = {version = "^3.7", python = "~3.7"}
 fastjsonschema = {version = "^2.14", optional = true}
 ujson = {version = "^2.0.2", optional = true}
