@@ -22,7 +22,7 @@ from typing import (
     Optional,
 )
 
-from pendulum import parse as dateparse
+from pendulum import parse as dateparse, DateTime, instance
 
 from typic import checks, gen, constraints as const
 from typic.strict import STRICT_MODE
@@ -143,33 +143,42 @@ class DesFactory:
     ):
         origin = annotation.resolved_origin
         if issubclass(origin, datetime.datetime):
-            with func.b(f"if isinstance({self.VNAME}, datetime):") as b:
+            with func.b(
+                f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
+            ) as b:
+                # Use pendulum's helper if possible.
+                if origin is DateTime:
+                    b.l(f"{self.VNAME} = instance({self.VNAME})", instance=instance)
+                else:
+                    b.l(
+                        f"{self.VNAME} = "
+                        f"{anno_name}("
+                        f"{self.VNAME}.year, "
+                        f"{self.VNAME}.month, "
+                        f"{self.VNAME}.day, "
+                        f"{self.VNAME}.hour, "
+                        f"{self.VNAME}.minute, "
+                        f"{self.VNAME}.second, "
+                        f"{self.VNAME}.microsecond, "
+                        f"{self.VNAME}.tzinfo"
+                        f")",
+                    )
+            with func.b(
+                f"elif isinstance({self.VNAME}, date):", date=datetime.date
+            ) as b:
                 b.l(
                     f"{self.VNAME} = "
                     f"{anno_name}("
                     f"{self.VNAME}.year, "
                     f"{self.VNAME}.month, "
-                    f"{self.VNAME}.day,"
-                    f"{self.VNAME}.hour,"
-                    f"{self.VNAME}.minute,"
-                    f"{self.VNAME}.second,"
-                    f"{self.VNAME}.microsecond,"
-                    f"{self.VNAME}.tzinfo,"
+                    f"{self.VNAME}.day"
                     f")",
-                    datetime=datetime.datetime,
-                )
-            with func.b(f"elif isinstance({self.VNAME}, date):") as b:
-                b.l(
-                    f"{self.VNAME} = "
-                    f"{anno_name}("
-                    f"{self.VNAME}.year, "
-                    f"{self.VNAME}.month, "
-                    f"{self.VNAME}.day)",
-                    date=datetime.date,
                 )
         elif issubclass(origin, datetime.date):
-            with func.b(f"if isinstance({self.VNAME}, datetime.datetime):") as b:
-                b.l(f"{self.VNAME} = {self.VNAME}.date()", datetime=datetime)
+            with func.b(
+                f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
+            ) as b:
+                b.l(f"{self.VNAME} = {self.VNAME}.date()")
         with func.b(f"elif isinstance({self.VNAME}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
         with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
