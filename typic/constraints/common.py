@@ -407,7 +407,7 @@ class EnumConstraints(__AbstractConstraints):
         with gen.Block(ns) as main:
             with self.define(main, func_name) as f:
                 if self.nullable:
-                    with f.b(f"if value is None:") as b:
+                    with f.b("if value is None:") as b:
                         b.l(f"{gen.Keyword.RET} value")
                 # This is O(N), but so is casting to the enum
                 # And handling a ValueError is an order of magnitude heavier

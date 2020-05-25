@@ -61,7 +61,7 @@ class NumberConstraints(BaseConstraints):
         if self.gt is not None:
             if self.ge is not None:
                 raise ConstraintSyntaxError(
-                    f"Values must either be '>' or '>=', not both."
+                    "Values must either be '>' or '>=', not both."
                 ) from None
             if self.gt in {self.lt, self.le}:
                 msg = (
@@ -72,7 +72,7 @@ class NumberConstraints(BaseConstraints):
         if self.lt is not None:
             if self.le is not None:
                 raise ConstraintSyntaxError(
-                    f"Values must either be '<' or '<=', not both."
+                    "Values must either be '<' or '<=', not both."
                 ) from None
             if self.lt in {self.gt, self.ge}:
                 msg = (

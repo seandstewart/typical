@@ -11,7 +11,7 @@ django.setup()
 from rest_framework import serializers  # noqa: E402
 
 from benchmark.models import marsh  # noqa: E402
-from benchmark.models.marsh import Model  # noqa: F401
+from benchmark.models.marsh import Model  # noqa: F401,E402
 
 
 class LocationSerializer(serializers.Serializer):

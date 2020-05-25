@@ -339,7 +339,7 @@ class DesFactory:
                 x = f"{kd_name}(fields_in.get(x, x))"
             # If there is only a field mapping, get the correct name for the field.
             elif annotation.serde.fields_in:
-                x = f"fields_in.get(x, x)"
+                x = "fields_in.get(x, x)"
             # If there are only serializers, get the serialized value
             elif args:
                 x = f"{kd_name}(x)"
