@@ -5,7 +5,8 @@
 
 from .dsn import *
 from .email import *
-from .frozendict import *
+from .frozendict import freeze
 from .path import *
 from .secret import *
 from .url import *
+from .generics import FrozenDict

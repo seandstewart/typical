@@ -113,6 +113,14 @@ toml = ["toml"]
 
 [[package]]
 category = "dev"
+description = "The Cython compiler for writing C extensions for the Python language."
+name = "cython"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "0.29.19"
+
+[[package]]
+category = "dev"
 description = "Distribution utilities"
 name = "distlib"
 optional = false
@@ -970,7 +978,7 @@ json = ["ujson"]
 schema = ["fastjsonschema"]
 
 [metadata]
-content-hash = "2e853c2e70b5fe1278177ba6b4ac1f1a1541d72a1028c0b583ecbc2023d44eb6"
+content-hash = "54cd22dc5fbbe4b93140e18fb4425a224429fb121f5b90d75c71910804564a3d"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -1043,6 +1051,33 @@ coverage = [
     {file = "coverage-5.1-cp39-cp39-win32.whl", hash = "sha256:a82b92b04a23d3c8a581fc049228bafde988abacba397d57ce95fe95e0338ab4"},
     {file = "coverage-5.1-cp39-cp39-win_amd64.whl", hash = "sha256:bb28a7245de68bf29f6fb199545d072d1036a1917dca17a1e75bbb919e14ee8e"},
     {file = "coverage-5.1.tar.gz", hash = "sha256:f90bfc4ad18450c80b024036eaf91e4a246ae287701aaa88eaebebf150868052"},
+]
+cython = [
+    {file = "Cython-0.29.19-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:7a1ebe4f811ce0c1642d432ef8ae9bea1db93c7215eb1e95eb4bcb7503a42107"},
+    {file = "Cython-0.29.19-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:b31f3dc2931b84c99d0038013304986cd690f5debb8471dbba1ca8584601b230"},
+    {file = "Cython-0.29.19-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:edf5b76f6fff07f236510bb578b6ba6387e534af9ecdbe7892c591dbe1ea3314"},
+    {file = "Cython-0.29.19-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:69ae45714b1fd5ebb309d787c278b5316cb504b287dae95456ccf50d8c55f537"},
+    {file = "Cython-0.29.19-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:58598e9a35cb89916c2fd80c0b2f4b7443542281f804206e90eae7f9acb79b81"},
+    {file = "Cython-0.29.19-cp34-cp34m-manylinux1_i686.whl", hash = "sha256:61bff7ae850986ebdf8b7fb01c63be94e75ba73f2dcbc9338ca687ff810488b8"},
+    {file = "Cython-0.29.19-cp34-cp34m-manylinux1_x86_64.whl", hash = "sha256:9fde858f57952c9e55fae20cffeaf0bd5554a0630f0bd537879e57e60d8f105f"},
+    {file = "Cython-0.29.19-cp35-cp35m-macosx_10_6_intel.whl", hash = "sha256:32ae95d3c3fe4dbb5d3f430accdc93247e2204791f4f70a5f2a8fac2d3105524"},
+    {file = "Cython-0.29.19-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:c50fa9238c37b43d17234c8083371f4d4da208153d13f86d9db8925c16bb2850"},
+    {file = "Cython-0.29.19-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:8418a201c229f8af7eae11b3d22df699a37cfe934a113e032d59369a13a7ef13"},
+    {file = "Cython-0.29.19-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:e7838dadab758a7caa4f726e523930d491dbc4f93c4a01d9de6828f342ea1188"},
+    {file = "Cython-0.29.19-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:f4bb0e06a463cc280562cc54e53fefb2bf14b0b8d00c042781c71f17e78b1847"},
+    {file = "Cython-0.29.19-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:ad5abd7ee54f48be7efa95f4ad0d7df44a84970d57330b151a049642ffc1705b"},
+    {file = "Cython-0.29.19-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:ee9a913482dfc5a62242ea66abff93f3dbe28729bce590014c8445e39af3d95c"},
+    {file = "Cython-0.29.19-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:0fa549d45e8aa658e270a7e85a0e7b8bf7b3dfdc59fcd4f4dbf54d854f4abdb5"},
+    {file = "Cython-0.29.19-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:111941da36709f53170af6b0f81ec3df883364ff02d20f742e815b27ea37dfa0"},
+    {file = "Cython-0.29.19-cp37-cp37m-win32.whl", hash = "sha256:44d9acf4dd75d66b456c21d2ee0bcea3b49065775aa955a11be62a64fc5210ec"},
+    {file = "Cython-0.29.19-cp37-cp37m-win_amd64.whl", hash = "sha256:22b7c38d3f1af1bc7906b1a7b42354b4cf47d36bbdf687a581a050e72ddd249b"},
+    {file = "Cython-0.29.19-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:381f8570ab287670c14f8138591788c1a801b185899939d08f4c60c284b4940d"},
+    {file = "Cython-0.29.19-cp38-cp38-manylinux1_i686.whl", hash = "sha256:00348a2675b53282535aa22c4d444076b08010aa47f4bf10622542c213c37452"},
+    {file = "Cython-0.29.19-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:cd262da047a60f0d90fa83d6416e901519a5de6d4d68218d62dcb15f12fdcb1b"},
+    {file = "Cython-0.29.19-cp38-cp38-win32.whl", hash = "sha256:29960b4c2789a9d6024be5fff75a55e52ae7f32d265fe52c0e40414f20d4d6db"},
+    {file = "Cython-0.29.19-cp38-cp38-win_amd64.whl", hash = "sha256:4b971daa8c05c3277c4c7be4be5e7cd2e4971377ca752563c55a1c1f88d819c8"},
+    {file = "Cython-0.29.19-py2.py3-none-any.whl", hash = "sha256:ffd24c9bd35127138215f56ad833db1966cdc47ac659a31bde96949018e477c2"},
+    {file = "Cython-0.29.19.tar.gz", hash = "sha256:97f98a7dc0d58ea833dc1f8f8b3ce07adf4c0f030d1886c5399a2135ed415258"},
 ]
 distlib = [
     {file = "distlib-0.3.0.zip", hash = "sha256:2e166e231a26b36d6dfe35a48c4464346620f8645ed0ace01ee31822b288de21"},

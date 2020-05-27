@@ -135,6 +135,24 @@ class NetAddrInfo:
     PRIVATE_HOSTS: ClassVar[Set[str]] = PRIVATE_HOSTS
     INTERNAL_HOSTS: ClassVar[Set[str]] = INTERNAL_HOSTS
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "scheme": str,
+        "auth": str,
+        "password": SecretStr,
+        "host": str,
+        "port": int,
+        "path": str,
+        "qs": str,
+        "params": str,
+        "fragment": str,
+        "is_ip": bool,
+        "PATTERN": ClassVar[Pattern],
+        "DEFAULT_PORTS": ClassVar[Dict],
+        "PRIVATE_HOSTS": ClassVar[Set[str]],
+        "INTERNAL_HOSTS": ClassVar[Set[str]],
+    }
+
     @classmethod
     def from_str(cls, value) -> "NetAddrInfo":
         """Parse a string, validate, and return an instance of :py:class:`NetAddrInfo`."""

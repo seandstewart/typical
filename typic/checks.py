@@ -20,10 +20,8 @@ from typing import (
     TypeVar,
 )
 
-import typic
-import typic.common
 import typic.util as util
-import typic.strict as strict
+import typic.generics as generics
 
 from typic.compat import Final
 
@@ -184,8 +182,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
 
     Examples
     --------
-
-import typic
+    >>> import typic
     >>> from typing import Optional, Union, Dict
     >>> typic.isoptionaltype(Optional[str])
     True
@@ -214,14 +211,14 @@ def isreadonly(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.isreadonly(typic.ReadOnly[str])
     True
     >>> typic.isreadonly(NewType("Foo", typic.ReadOnly[str]))
     True
     """
-    return util.origin(obj) is typic.common.ReadOnly
+    return util.origin(obj) is generics.ReadOnly
 
 
 @functools.lru_cache(maxsize=None)
@@ -231,7 +228,7 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> from typic.compat import Final
     >>> typic.isfinal(Final[str])
@@ -253,14 +250,14 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
     >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
     True
     """
-    return util.origin(obj) is typic.common.WriteOnly
+    return util.origin(obj) is generics.WriteOnly
 
 
 @functools.lru_cache(maxsize=None)
@@ -274,14 +271,14 @@ def isstrict(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
     >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
     True
     """
-    return util.origin(obj) is strict.Strict
+    return util.origin(obj) is generics.Strict
 
 
 @functools.lru_cache(maxsize=None)
@@ -295,7 +292,7 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> import datetime
     >>> from typing import NewType
     >>> typic.isdatetype(datetime.datetime)
@@ -324,7 +321,7 @@ def iscollectiontype(obj: Type[ObjectT]):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import Collection, Mapping, NewType
     >>> typic.iscollectiontype(Collection)
     True
@@ -354,7 +351,7 @@ def ismappingtype(obj: Type[ObjectT]):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import Mapping, Dict, DefaultDict, NewType
     >>> typic.ismappingtype(Mapping)
     True
@@ -390,8 +387,7 @@ def isenumtype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic    >>> import enum
-    >>>
+    >>> import typic
     >>> class FooNum(enum.Enum): ...
     ...
     >>> typic.isenumtype(FooNum)

@@ -25,6 +25,7 @@ classifiers = [
 ]
 include = ["README.md", "LICENSE"]
 exclude = ["tests", "docs", "docsrc", "benchmark"]
+build = "build.py"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -57,11 +58,12 @@ pymdown-extensions = "^6.3"
 fontawesome-markdown = "^0.2.6"
 mkdocs-awesome-pages-plugin = "^2.2.1"
 pandas = "^1.0.3"
+Cython = "^0.29.19"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
 json = ["ujson"]
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=0.12", "Cython>=0.29.19"]
 build-backend = "poetry.masonry.api"

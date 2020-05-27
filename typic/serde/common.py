@@ -13,10 +13,11 @@ from typing import (
     Iterable,
     cast,
     TypeVar,
+    List,
 )
 
 from typic import strict as st, util, constraints as const
-from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
+from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT, VAR_POSITIONAL, VAR_KEYWORD
 from typic.compat import TypedDict
 from typic.ext import json
 from typic.types import freeze
@@ -70,6 +71,15 @@ class SerdeFlags:
     exclude: Optional[Iterable[str]] = None
     """Provide a set of fields which will be excluded from the output."""
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "signature_only": bool,
+        "case": Optional[Case],
+        "omit": Optional[OmitSettingsT],
+        "fields": Optional[FieldSettingsT],  # type: ignore
+        "exclude": Optional[Iterable[str]],
+    }
+
     def __init__(
         self,
         signature_only: bool = False,
@@ -92,6 +102,16 @@ class SerdeConfigD(TypedDict):
     fields_getters: Mapping[str, Callable[[str], Any]]
     omit_values: Tuple[Any, ...]
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    # noinspection PyTypedDict
+    __annotations__ = {
+        "fields": Mapping[str, "Annotation"],
+        "fields_out": Mapping[str, str],
+        "fields_in": Mapping[str, str],
+        "fields_getters": Mapping[str, Callable[[str], Any]],
+        "omit_values": Tuple[Any, ...],
+    }
+
 
 @dataclasses.dataclass
 class SerdeConfig:
@@ -103,6 +123,15 @@ class SerdeConfig:
         default_factory=dict
     )
     omit_values: Tuple[Any, ...] = dataclasses.field(default_factory=tuple)
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "flags": SerdeFlags,
+        "fields": Mapping[str, "Annotation"],
+        "fields_out": Mapping[str, str],
+        "fields_in": Mapping[str, str],
+        "fields_getters": Mapping[str, Callable[[str], Any]],
+        "omit_values": Tuple[Any, ...],
+    }
 
     def __hash__(self):
         return hash(f"{self}")
@@ -149,6 +178,19 @@ class Annotation:
     """The configuration for serializing and deserializing the given type."""
     constraints: Optional["const.ConstraintsT"] = None
     """Type restriction configuration, if any."""
+
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "resolved": Any,
+        "origin": Type,
+        "un_resolved": Any,
+        "parameter": inspect.Parameter,
+        "optional": bool,
+        "strict": st.StrictModeT,  # type: ignore
+        "static": bool,
+        "serde": SerdeConfig,
+        "constraints": Optional["const.ConstraintsT"],
+    }
 
     @property
     def has_default(self) -> bool:
@@ -200,6 +242,15 @@ class SerdeProtocol:
     validator: Optional[const.ValidatorT]
     """The type validator, if any"""
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "annotation": Annotation,
+        "deserializer": Optional[DeserializerT],  # type: ignore
+        "serializer": Optional[SerializerT],  # type: ignore
+        "constraints": Optional[const.ConstraintsT],  # type: ignore
+        "validator": Optional[const.ValidatorT],  # type: ignore
+    }
+
     def __post_init__(self):
         # Pass through if for some reason there's no coercer.
         self.deserialize = self.deserializer or (lambda o: o)
@@ -240,3 +291,69 @@ class SerdeProtocol:
 
 SerdeProtocolsT = Dict[str, SerdeProtocol]
 """A mapping of attr/param name to :py:class:`SerdeProtocol`."""
+
+
+@dataclasses.dataclass(frozen=True)
+class BoundArguments:
+    obj: Union[Type, Callable]
+    """The object we "bound" the input to."""
+    annotations: "SerdeProtocolsT"
+    """A mapping of the resolved annotations."""
+    parameters: Mapping[str, inspect.Parameter]
+    """A mapping of the parameters."""
+    arguments: Dict[str, Any]
+    """A mapping of the input to parameter name."""
+    returns: Optional["SerdeProtocol"]
+    """The resolved return type, if any."""
+    _argnames: Tuple[str, ...]
+    _kwdargnames: Tuple[str, ...]
+
+    @util.cached_property
+    def args(self) -> Tuple[Any, ...]:
+        """A tuple of the args passed to the callable."""
+        args: List = list()
+        argsappend = args.append
+        argsextend = args.extend
+        paramsget = self.parameters.__getitem__
+        argumentsget = self.arguments.__getitem__
+        for name in self._argnames:
+            kind = paramsget(name).kind
+            arg = argumentsget(name)
+            if kind == VAR_POSITIONAL:
+                argsextend(arg)
+            else:
+                argsappend(arg)
+        return tuple(args)
+
+    @util.cached_property
+    def kwargs(self) -> Dict[str, Any]:
+        """A mapping of the key-word arguments passed to the callable."""
+        kwargs: Dict = {}
+        kwargsupdate = kwargs.update
+        kwargsset = kwargs.__setitem__
+        paramsget = self.parameters.__getitem__
+        argumentsget = self.arguments.__getitem__
+        for name in self._kwdargnames:
+            kind = paramsget(name).kind
+            arg = argumentsget(name)
+            if kind == VAR_KEYWORD:
+                kwargsupdate(arg)
+            else:
+                kwargsset(name, arg)
+        return kwargs
+
+    def eval(self) -> Any:
+        """Evaluate the callable against the input provided.
+
+        Examples
+        --------
+        >>> import typic
+        >>>
+        >>> def foo(bar: int) -> int:
+        ...     return bar ** bar
+        ...
+        >>> bound = typic.bind(foo, "2")
+        >>> bound.eval()
+        4
+        """
+        return self.obj(*self.args, **self.kwargs)

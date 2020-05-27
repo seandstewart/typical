@@ -32,6 +32,9 @@ class Line:
     code: str
     level: int
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {"code": str, "level": int}
+
     def render(self) -> str:
         if self.code.strip():
             return f"{self.INDENT * self.level}{self.code}\n"
@@ -44,6 +47,14 @@ class Block:
     body: List[Union[Line, "Block"]] = dataclasses.field(default_factory=list)
     level: int = 0
     name: Optional[str] = None
+
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "namespace": dict,
+        "body": List[Union[Line, "Block"]],
+        "level": int,
+        "name": Optional[str],
+    }
 
     def line(self, line: str, *, level: int = None, **context):
         if level is None:
@@ -164,7 +175,7 @@ class Block:
 
     def compile(self, *, name: str, ns: dict = None):
         ns = {} if ns is None else ns
-        fname = self._generate_unique_filename(func_name=name)
+        fname = self._generate_unique_filename(name)
         self.namespace.update(ns)
         code = self.render()
         bytecode = compile(code, fname, "exec")
@@ -181,6 +192,9 @@ class Block:
 class Module:  # pragma: nocover
     namespace: dict = dataclasses.field(init=False, default_factory=dict)
     body: Block = dataclasses.field(init=False)
+
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {"namespace": dict, "body": Block}
 
     def __post_init__(self):
         self.body = Block(self.namespace)

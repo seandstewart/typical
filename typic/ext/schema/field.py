@@ -31,7 +31,7 @@ from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
 from typic.util import filtered_repr, cached_property, TypeMap, ReprT
-from typic.types import dsn, email, frozendict, path, secret, url
+from typic.types import dsn, email, path, secret, url, FrozenDict
 from .compat import fastjsonschema
 
 __all__ = (
@@ -130,7 +130,7 @@ class BaseSchemaField(_Serializable):
     examples: Optional[List[Any]] = None
     readOnly: Optional[bool] = None
     writeOnly: Optional[bool] = None
-    extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
+    extensions: Optional[Tuple[FrozenDict[str, Any], ...]] = None
 
     __repr = cached_property(filtered_repr)
 
@@ -281,7 +281,7 @@ class ObjectSchemaField(BaseSchemaField):
     propertyNames: Optional[Mapping[str, Pattern]] = None
     patternProperties: Optional[Mapping[Pattern, Any]] = None
     dependencies: Optional[Mapping[str, Union[Tuple[str], Any]]] = None
-    definitions: Optional[frozendict.FrozenDict[str, Any]] = None
+    definitions: Optional[FrozenDict[str, Any]] = None
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -336,7 +336,7 @@ def get_field_type(type: Optional[Union[SchemaType, Any]]) -> Type[SchemaFieldT]
 
 SCHEMA_FIELD_FORMATS = TypeMap(
     {
-        frozendict.FrozenDict: ObjectSchemaField(),
+        FrozenDict: ObjectSchemaField(),
         decimal.Decimal: NumberSchemaField(),
         datetime.datetime: StrSchemaField(format=StringFormat.DTIME),
         pendulum.DateTime: StrSchemaField(format=StringFormat.DTIME),

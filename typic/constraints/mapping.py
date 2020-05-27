@@ -21,7 +21,7 @@ from typing import (
 )
 
 from typic import gen, util
-from typic.types.frozendict import FrozenDict, freeze
+from typic.types import FrozenDict, freeze
 from .common import (
     BaseConstraints,
     ContextT,

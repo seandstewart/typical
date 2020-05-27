@@ -84,9 +84,9 @@ class Container:
             objects.LargeInt,
             typic.IntSchemaField(**objects.LargeInt.__constraints__.for_schema()),
         ),
-        (typic.common.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
+        (typic.ReadOnly[str], typic.StrSchemaField(readOnly=True)),
         (Final[str], typic.StrSchemaField(readOnly=True)),
-        (typic.common.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
+        (typic.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
         (
             Union[str, int],
             typic.MultiSchemaField(

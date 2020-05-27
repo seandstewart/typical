@@ -31,7 +31,7 @@ from typic.checks import (
     isbuiltinsubtype,
     isnamedtuple,
 )
-from typic.types import dsn, email, frozendict, path, secret, url
+from typic.types import dsn, email, path, secret, url, FrozenDict
 from typic.util import (
     origin,
     get_args,
@@ -237,9 +237,9 @@ def _from_class(
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable, name=name)
     name = name or get_name(t)
-    items: Optional[
-        frozendict.FrozenDict[Hashable, ConstraintsT]
-    ] = frozendict.FrozenDict(_resolve_params(**params)) or None
+    items: Optional[FrozenDict[Hashable, ConstraintsT]] = FrozenDict(
+        _resolve_params(**params)
+    ) or None
     required = frozenset(
         (
             pname

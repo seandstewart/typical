@@ -25,7 +25,6 @@ from typing import (
     Iterable,
     AbstractSet,
     MutableSet,
-    Dict,
     Optional,
 )
 
@@ -218,7 +217,7 @@ def get_name(obj: Type) -> str:
 @functools.lru_cache(maxsize=None)
 def get_qualname(obj: Type) -> str:
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return repr(obj)
+        return obj.__repr__()
 
     qualname = getattr(obj, "__qualname__", obj.__name__)
     if "<locals>" in qualname:
@@ -469,7 +468,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
 VT = TypeVar("VT")
 
 
-class TypeMap(Dict[Type, VT]):
+class TypeMap(dict):
     """A mapping of Type -> value."""
 
     def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:

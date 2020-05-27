@@ -68,6 +68,22 @@ class DSNInfo:
     PRIVATE_HOSTS: ClassVar[Set[str]] = PRIVATE_HOSTS
     INTERNAL_HOSTS: ClassVar[Set[str]] = INTERNAL_HOSTS
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "driver": str,
+        "username": str,
+        "password": SecretStr,
+        "host": str,
+        "port": int,
+        "name": str,
+        "qs": str,
+        "is_ip": bool,
+        "PATTERN": ClassVar[Pattern],
+        "DEFAULT_PORTS": ClassVar[Dict],
+        "PRIVATE_HOSTS": ClassVar[Set[str]],
+        "INTERNAL_HOSTS": ClassVar[Set[str]],
+    }
+
     @classmethod
     def from_str(cls, value) -> "DSNInfo":
         """Parse & validate a string and generate an instance of :py:class:`DSNInfo`."""

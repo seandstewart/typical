@@ -82,6 +82,15 @@ class EmailAddrInfo:
     """The host address where the email server is located."""
     is_ip: bool = False
 
+    # FIXME: SEE: https://github.com/cython/cython/issues/2552
+    __annotations__ = {
+        "name": str,
+        "username": str,
+        "host": str,
+        "is_ip": bool,
+        "PATTERN": ClassVar[Pattern],
+    }
+
     @classmethod
     def from_str(cls, value) -> "EmailAddrInfo":
         """Parse & validate a string, generate an instance of :py:class:`EmailAddrInfo`.

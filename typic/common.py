@@ -1,7 +1,7 @@
 import enum
 import inspect
 from functools import partial
-from typing import Union, Type, Any, TypeVar, Callable, Generic
+from typing import Union, Type, Any, TypeVar, Callable
 
 import inflection
 
@@ -52,16 +52,3 @@ _TRANSFORMERS = {
     Case.KEBAB: inflection.dasherize,
     Case.DOT: partial(inflection.parameterize, separator="."),
 }
-T = TypeVar("T")
-
-
-class ReadOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be read-only."""
-
-    pass
-
-
-class WriteOnly(Generic[T]):
-    """A type annotation to indicate a field is meant to be write-only."""
-
-    pass

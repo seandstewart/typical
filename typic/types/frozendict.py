@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 import copy
 from operator import attrgetter
-from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic, FrozenSet
-from collections.abc import Hashable
+from typing import Union, Tuple, List, TypeVar, Mapping, Any, FrozenSet, Hashable
 
 from typic.util import cached_property
 
@@ -15,7 +14,7 @@ VT = TypeVar("VT", covariant=True)  # Value type.
 _hashgetter = attrgetter("__hash__")
 
 
-class FrozenDict(Generic[KT, VT], dict):
+class FrozenDict(dict):
     """An immutable, hashable mapping.
 
     This inherits directly from the builtin :py:class:`dict`.

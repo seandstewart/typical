@@ -25,8 +25,8 @@ from typic.common import (
     TYPIC_ANNOS_NAME,
     ObjectT,
     Case,
-    ReadOnly,
 )
+from typic.generics import ReadOnly
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
