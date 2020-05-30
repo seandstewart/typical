@@ -27,10 +27,11 @@ include = ["README.md", "LICENSE"]
 exclude = ["tests", "docs", "docsrc", "benchmark"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.6.1"
 inflection = "^0.3.1"
 pendulum = "^2.1"
 typing-extensions = {version = "^3.7", python = "~3.7"}
+dataclasses = {version = "*", python = "~3.6"}
 fastjsonschema = {version = "^2.14", optional = true}
 ujson = {version = ">=2.0", optional = true}
 

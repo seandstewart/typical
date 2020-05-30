@@ -5,10 +5,11 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.7, 3.8, pypy3]
 
     steps:
     - uses: actions/checkout@v2
@@ -19,7 +20,16 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Display Python version
-      run: python -c "import sys; print(sys.version)"
+      run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
+
+    - name: Install Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        ./.github/ubuntu-install.sh
+    - name: Install macOS dependencies
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        ./.github/macos-install.sh
 
     - name: Install Poetry
       uses: dschep/install-poetry-action@v1.2
@@ -29,9 +39,9 @@ jobs:
       id: cache
       with:
         path: ~/.virtualenvs
-        key: poetry-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          poetry-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
