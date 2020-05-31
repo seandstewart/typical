@@ -48,22 +48,36 @@ jobs:
         poetry config virtualenvs.in-project false
         poetry config virtualenvs.path ~/.virtualenvs
 
+    - name: Install Dependencies (with Lint)
+      run: poetry install --no-dev -E tests -E lint
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
+
     - name: Install Dependencies
-      run: poetry install
+      run: poetry install --no-dev -E tests
+      if: matrix.python-version != 3.8 && matrix.os != 'ubuntu-latest'
 
     - name: Lint with flake8
       run: "poetry run flake8 ."
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
 
     - name: Check Formatting with Black
       run: "poetry run black . --check"
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
 
     - name: Static type-check with MyPy
       run: "poetry run mypy typic --ignore-missing-imports"
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
+
+    - name: Test with pytest + coverage
+      run: "poetry run pytest tests typic --doctest-modules --cov --cov-report xml"
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
 
     - name: Test with pytest
-      run: "poetry run pytest tests typic --doctest-modules --cov --cov-report xml"
+      run: "poetry run pytest tests typic --doctest-modules"
+      if: matrix.python-version != 3.8 && matrix.os != 'ubuntu-latest'
 
     - name: Upload coverage to Codecov
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
