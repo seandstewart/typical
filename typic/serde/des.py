@@ -3,7 +3,7 @@ import functools
 import inspect
 import pathlib
 import re
-from collections import deque, defaultdict
+from collections import deque, defaultdict, abc
 from operator import attrgetter
 from typing import (
     Mapping,
@@ -196,11 +196,14 @@ class DesFactory:
             f"else (False, {self.VNAME})",
             __eval=safe_eval,
         )
-        func.l(f"{self.VTYPE} = type({self.VNAME})")
+        self._add_vtype(func)
 
     def _add_type_check(self, func: gen.Block, anno_name: str):
         with func.b(f"if {self.VTYPE} is {anno_name}:") as b:
             b.l(f"{gen.Keyword.RET} {self.VNAME}")
+
+    def _add_vtype(self, func: gen.Block):
+        func.l(f"{self.VTYPE} = {self.VNAME}.__class__")
 
     def _get_default_factory(self, annotation: "Annotation"):
         factory: Union[Type, Callable[..., Any], None] = None
@@ -299,7 +302,7 @@ class DesFactory:
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
         self._add_eval(func)
-        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             if annotation.serde.fields:
                 self._build_typeddict_des(b, anno_name, annotation, eval=False)
             else:
@@ -387,19 +390,15 @@ class DesFactory:
         # This is where the serde configuration comes in.
         # WINDY PATH AHEAD
         func.l("# Happy path - deserialize a mapping into the object.")
-        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=Mapping) as b:
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             # Universal line - transform input to known keys/values.
             # Specific values may change.
             def mainline(k, v):
-                b.l(
-                    f"{self.VNAME} = "
-                    f"{{{k}: {v} for x in fields_in.keys() & {self.VNAME}.keys()}}"
-                )
+                return f"{{{k}: {v} for x in fields_in.keys() & {self.VNAME}.keys()}}"
 
             # The "happy path" - e.g., no guesswork needed.
             def happypath(k, v, **ns):
-                mainline(k, v)
-                b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})", **ns)
+                b.l(f"{self.VNAME} = {anno_name}(**{mainline(k, v)})", **ns)
 
             # Default X - translate given `x` to known input `x`
             x = "fields_in[x]"
@@ -412,26 +411,24 @@ class DesFactory:
             # Get the intersection of known input fields and annotations.
             matched = {*serde.fields_in.values()} & serde.fields.keys()
             # Happy path! This is a `@typic.al` wrapped class.
-            if self.resolver.known(resolved):
+            if self.resolver.known(resolved) or self.resolver.delayed(resolved):
                 happypath(x, y)
             # Secondary happy path! We know how to deserialize already.
-            elif len(matched) == len(serde.fields_in) and not self.resolver.delayed(
-                resolved
-            ):
-                desers = {
-                    f: self.resolver._resolve_from_annotation(serde.fields[f]).transmute
-                    for f in matched
-                }
-                y = f"desers[{x}]({self.VNAME}[x])"
-                happypath(x, y, desers=desers)
-            # We must call bind() in order to deserialize.
             else:
-                mainline(x, y)
-                b.l(
-                    f"bound = __bind({anno_name}, **{self.VNAME})",
-                    __bind=self.resolver.bind,
-                )
-                b.l(f"{self.VNAME} = bound.eval()")
+                fields_in = serde.fields_in
+                if serde.fields and len(matched) == len(serde.fields_in):
+                    desers = {
+                        f: self.resolver._resolve_from_annotation(
+                            serde.fields[f]
+                        ).transmute
+                        for f in matched
+                    }
+                else:
+                    protocols = self.resolver.protocols(annotation.resolved_origin)
+                    fields_in = {x: x for x in protocols}
+                    desers = {f: p.transmute for f, p in protocols.items()}
+                y = f"desers[{x}]({self.VNAME}[x])"
+                happypath(x, y, desers=desers, fields_in=fields_in)
 
         # Secondary branch - we have some other input for a user-defined class
         func.l("# Unknown path, just try casting it directly.")
@@ -467,7 +464,7 @@ class DesFactory:
         }
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
-                func.l(f"{self.VTYPE} = type({self.VNAME})")
+                self._add_vtype(func)
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, annotation)
                     if checks.isdatetype(origin):
