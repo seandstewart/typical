@@ -115,7 +115,7 @@ class Binder:
         # bytecode hack to localize access
         # only noticeable with really large datasets
         # but it's best to be prepared.
-        posargs: List[str] = list()
+        posargs: List[str] = []
         posargsadd = posargs.append
         argspop = args.popleft
         paramspop = params.popleft
@@ -129,7 +129,7 @@ class Binder:
             kind = param.kind
             # We've got varargs, so push all supplied args to that param.
             if kind == VAR_POSITIONAL:
-                value = (val,) + tuple(args)
+                value = (val, *args)
                 args = deque()
                 if anno:
                     value = anno(value)
