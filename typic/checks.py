@@ -46,6 +46,7 @@ str
 __all__ = (
     "BUILTIN_TYPES",
     "ObjectT",
+    "isbuiltininstance",
     "isbuiltintype",
     "isbuiltinsubtype",
     "isclassvartype",
@@ -62,7 +63,11 @@ __all__ = (
     "isnamedtuple",
     "isoptionaltype",
     "isreadonly",
+    "issimpleattribute",
     "isstrict",
+    "isstdlibinstance",
+    "isstdlibtype",
+    "isstdlibsubtype",
     "issubclass",
     "istypeddict",
     "istypedtuple",
@@ -89,6 +94,7 @@ BUILTIN_TYPES = frozenset(
         type(None),
     )
 )
+BUILTIN_TYPES_TUPLE = tuple(BUILTIN_TYPES)
 STDLIB_TYPES = frozenset(
     (
         *BUILTIN_TYPES,
@@ -100,6 +106,7 @@ STDLIB_TYPES = frozenset(
         ipaddress.IPv6Address,
     )
 )
+STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
 
 
 @functools.lru_cache(maxsize=None)
@@ -144,6 +151,14 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
 
 
 @functools.lru_cache(maxsize=None)
+def isstdlibtype(obj: Type[ObjectT]) -> bool:
+    return (
+        util.resolve_supertype(obj) in STDLIB_TYPES
+        or util.resolve_supertype(type(obj)) in STDLIB_TYPES
+    )
+
+
+@functools.lru_cache(maxsize=None)
 def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
     """Check whether the provided type is a subclass of a builtin-type.
 
@@ -168,7 +183,20 @@ def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
     >>> typic.isbuiltintype(Mapping)
     False
     """
-    return issubclass(util.resolve_supertype(t), (*BUILTIN_TYPES,))
+    return issubclass(util.resolve_supertype(t), BUILTIN_TYPES_TUPLE)
+
+
+@functools.lru_cache(maxsize=None)
+def isstdlibsubtype(t: Type[ObjectT]) -> bool:
+    return issubclass(util.resolve_supertype(t), STDLIB_TYPES_TUPLE)
+
+
+def isbuiltininstance(o: ObjectT) -> bool:
+    return _isinstance(o, BUILTIN_TYPES_TUPLE)
+
+
+def isstdlibinstance(o: ObjectT) -> bool:
+    return _isinstance(o, STDLIB_TYPES_TUPLE)
 
 
 @functools.lru_cache(maxsize=None)
@@ -185,7 +213,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import Optional, Union, Dict
     >>> typic.isoptionaltype(Optional[str])
     True
@@ -214,7 +242,7 @@ def isreadonly(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.isreadonly(typic.ReadOnly[str])
     True
@@ -231,7 +259,7 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> from typic.compat import Final
     >>> typic.isfinal(Final[str])
@@ -253,7 +281,7 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
@@ -274,7 +302,7 @@ def isstrict(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import NewType
     >>> typic.iswriteonly(typic.WriteOnly[str])
     True
@@ -295,7 +323,7 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> import datetime
     >>> from typing import NewType
     >>> typic.isdatetype(datetime.datetime)
@@ -324,7 +352,7 @@ def iscollectiontype(obj: Type[ObjectT]):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import Collection, Mapping, NewType
     >>> typic.iscollectiontype(Collection)
     True
@@ -354,7 +382,7 @@ def ismappingtype(obj: Type[ObjectT]):
     Examples
     --------
 
-import typic
+    >>> import typic
     >>> from typing import Mapping, Dict, DefaultDict, NewType
     >>> typic.ismappingtype(Mapping)
     True
@@ -390,7 +418,8 @@ def isenumtype(obj: Type[ObjectT]) -> bool:
     Examples
     --------
 
-import typic    >>> import enum
+    >>> import typic
+    >>> import enum
     >>>
     >>> class FooNum(enum.Enum): ...
     ...
@@ -642,7 +671,7 @@ def isnamedtuple(obj: Type[ObjectT]) -> bool:
 
 
 def isproperty(obj) -> bool:
-    return type(obj).__name__ in {"property", "cached_property"}
+    return obj.__class__.__name__ in {"property", "cached_property"}
 
 
 _ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)
