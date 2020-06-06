@@ -20,7 +20,6 @@ from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict
 from typic.ext import json
 from typic.types import freeze
-from .translator import translator
 
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
@@ -139,6 +138,8 @@ class Annotation:
     """The type annotation before resolving super-types."""
     parameter: inspect.Parameter
     """The parameter this annotation refers to."""
+    translator: "TranslatorT" = dataclasses.field(init=False)
+    """A factory for generating a translation protocol between higher-level types."""
     optional: bool = False
     """Whether this annotation allows null/default values."""
     strict: st.StrictModeT = st.STRICT_MODE
@@ -179,10 +180,6 @@ class Annotation:
         """
         return getattr(self.resolved, "__origin__", self.resolved_origin)
 
-    def translator(self, target: Type[_T]) -> TranslatorT:
-        """A factory for translating from this type to another."""
-        t = translator.factory(self, target)
-        return t
 
 
 @dataclasses.dataclass(unsafe_hash=True)

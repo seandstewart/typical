@@ -39,6 +39,7 @@ from .common import (
 )
 from .des import DesFactory
 from .ser import SerFactory
+from .translator import TranslatorFactory
 
 
 _T = TypeVar("_T")
@@ -57,6 +58,7 @@ class Resolver:
         self.des = DesFactory(self)
         self.ser = SerFactory(self)
         self.binder = Binder(self)
+        self.translator = TranslatorFactory(self)
         self.bind = self.binder.bind
         for typ in checks.STDLIB_TYPES:
             self.resolve(typ)
@@ -217,10 +219,10 @@ class Resolver:
         >>> typic.primitive(Foo())
         {'bar': 'bar'}
         """
-        t = type(obj)
+        t = obj.__class__
         if checks.isenumtype(t):
             obj = obj.value
-            t = type(obj)
+            t = obj.__class__
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.primitive(obj, lazy=lazy, name=name)
 
@@ -270,10 +272,10 @@ class Resolver:
         >>> typic.tojson(Enum.FOO)
         '"foo"'
         """
-        t = type(obj)
+        t = obj.__class__
         if checks.isenumtype(t):
             obj = obj.value
-            t = type(obj)
+            t = obj.__class__
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
@@ -396,7 +398,7 @@ class Resolver:
             else SerdeConfig(flags)
         )
 
-        return Annotation(
+        anno = Annotation(
             resolved=use,
             origin=orig,
             un_resolved=annotation,
@@ -406,6 +408,8 @@ class Resolver:
             static=is_static,
             serde=serde,
         )
+        anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
+        return anno
 
     @functools.lru_cache(maxsize=None)
     def _resolve_from_annotation(
@@ -515,11 +519,10 @@ class Resolver:
         if not any(
             (inspect.ismethod(obj), inspect.isfunction(obj), inspect.isclass(obj))
         ):
-            obj = type(obj)
+            obj = obj.__class__
 
-        sig = util.cached_signature(obj)
         hints = util.cached_type_hints(obj)
-        params: Mapping[str, inspect.Parameter] = sig.parameters
+        params = util.safe_get_params(obj)
         fields: Mapping[str, dataclasses.Field] = {}
         if dataclasses.is_dataclass(obj):
             fields = {f.name: f for f in dataclasses.fields(obj)}

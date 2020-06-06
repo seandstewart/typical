@@ -458,7 +458,7 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
     try:
-        if issubclass(obj, Mapping) and not checks.istypeddict(origin):
+        if checks.issubclass(obj, Mapping) and not checks.istypeddict(obj):
             return {}
         params = cached_signature(obj).parameters
     except (ValueError, TypeError):  # pragma: nocover
