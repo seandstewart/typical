@@ -18,6 +18,7 @@ from typing import (
 from typic.api import wrap_cls, ObjectT
 from typic.types import freeze
 from .serde.common import SerdeFlags
+from typic.util import apply_slots
 
 _field_slots: Tuple[str, ...] = cast(Tuple[str, ...], dataclasses.Field.__slots__) + (
     "exclude",
@@ -118,6 +119,7 @@ def make_typedclass(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = False,
+    slots: bool = False,
     serde: SerdeFlags = None
 ):
     """A convenience function for generating a dataclass with type-coercion.
@@ -143,6 +145,8 @@ def make_typedclass(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
+    if slots:
+        dcls = apply_slots(dcls)
     fields = [
         f if isinstance(f, Field) else Field.from_field(f)
         for f in dataclasses.fields(dcls)
@@ -170,6 +174,7 @@ def klass(
     delay: bool = False,
     strict: bool = False,
     jsonschema: bool = True,
+    slots: bool = False,
     serde: SerdeFlags = None
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
@@ -210,6 +215,7 @@ def klass(
             delay=delay,
             strict=strict,
             jsonschema=jsonschema,
+            slots=slots,
             serde=serde,
         )
 

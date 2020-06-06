@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import typic
 
@@ -71,8 +71,26 @@ def deserialize(data):
         return False, err
 
 
+def transmute(instance):
+    return True, typic.transmute(Model, instance)
+
+
 def tojson(instance: Model):
     try:
         return True, typic.tojson(instance)
     except ValueError as err:
+        return False, err
+
+
+def translate_to(instance: Model, target: Type):
+    try:
+        return True, typic.translate(instance, target)
+    except (ValueError, TypeError) as err:
+        return False, err
+
+
+def translate_from(instance: Model):
+    try:
+        return True, typic.translate(instance, Model)
+    except (ValueError, TypeError) as err:
         return False, err
