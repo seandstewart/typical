@@ -30,6 +30,7 @@ from typic.checks import (
     istypeddict,
     isbuiltinsubtype,
     isnamedtuple,
+    should_unwrap,
 )
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
@@ -309,6 +310,9 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
 def get_constraints(
     t: Type[VT], *, nullable: bool = False, name: str = None
 ) -> ConstraintsT:
+    while should_unwrap(t):
+        nullable = nullable or isoptionaltype(t)
+        t = get_args(t)[0]
     if isconstrained(t):
         c: ConstraintsT = t.__constraints__  # type: ignore
         if (c.name, c.nullable) != (name, nullable):
