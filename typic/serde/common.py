@@ -24,7 +24,7 @@ from typic.types import freeze
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
 """Specify types or values which you wish to omit from the output."""
-SerializerT = Union[Callable[[Any, bool], Any], Callable[[Any], Any]]
+SerializerT = Union[Callable[[Any, bool, str], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
@@ -210,7 +210,7 @@ class SerdeProtocol:
         # Pass through if for some reason there's no coercer.
         deserialize = self.deserializer or (lambda o: o)
         # Set the validator
-        self.validate = self.validator or (lambda o: o)
+        self.validate: const.ValidatorT = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
         self.transmute = deserialize
         self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
@@ -250,3 +250,22 @@ class SerdeProtocol:
 
 SerdeProtocolsT = Dict[str, SerdeProtocol]
 """A mapping of attr/param name to :py:class:`SerdeProtocol`."""
+
+
+class _Unprocessed:
+    def __repr__(self):
+        return "<unprocessed>"
+
+
+Unprocessed = _Unprocessed()
+
+
+class _Omit:
+    def __repr__(self):
+        return "<omit>"
+
+
+Omit = _Omit()
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+KVPairT = Tuple[KT, VT]

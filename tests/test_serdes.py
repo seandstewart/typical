@@ -14,6 +14,7 @@ import pytest
 import typic
 import typic.api
 import typic.common
+import typic.ext.json
 from tests import objects
 
 
@@ -208,6 +209,34 @@ class Bar:
     ],
 )
 def test_tojson(obj, expected):
+    assert typic.tojson(obj) == expected
+
+
+typic.ext.json.NATIVE_JSON = True
+
+
+@typic.klass
+class Foo:
+    bar: str
+    id: Optional[typic.ReadOnly[int]] = None
+
+
+@typic.klass
+class Bar:
+    foos: List[Foo]
+
+
+@pytest.mark.parametrize(
+    argnames=("obj", "expected"),
+    argvalues=[
+        (None, "null"),
+        (MultiNum.INT, "1"),
+        (MultiNum.STR, '"str"'),
+        ([typic.URL("foo")], '["foo"]'),
+        (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
+    ],
+)
+def test_tojson_native(obj, expected):
     native = (
         json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
     )
