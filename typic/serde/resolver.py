@@ -83,7 +83,7 @@ class Resolver:
             The value to be transmuted
         """
         resolved: SerdeProtocol = self.resolve(annotation)
-        transmuted: ObjectT = resolved.transmute(value)
+        transmuted: ObjectT = resolved.transmute(value)  # type: ignore
 
         return transmuted
 
@@ -125,7 +125,7 @@ class Resolver:
         resolved: SerdeProtocol = self.resolve(annotation)
         value = resolved.validate(value)
         if transmute:
-            return resolved.transmute(value)
+            return resolved.transmute(value)  # type: ignore
         return value
 
     def coerce_value(
@@ -224,7 +224,7 @@ class Resolver:
             obj = obj.value
             t = obj.__class__
         proto: SerdeProtocol = self._get_serializer_proto(t)
-        return proto.primitive(obj, lazy=lazy, name=name)
+        return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
         self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs

@@ -51,6 +51,7 @@ A mapping should be of attribute name -> out/in field name.
 """
 
 
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeFlags:
     """Optional settings for a Ser-ialization/de-serialization protocol."""
@@ -92,6 +93,7 @@ class SerdeConfigD(TypedDict):
     omit_values: Tuple[Any, ...]
 
 
+@util.apply_slots
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)
@@ -119,6 +121,7 @@ class SerdeConfig:
 _T = TypeVar("_T")
 
 
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class Annotation:
     """The resolved, actionable annotation for a given annotation."""
@@ -181,29 +184,35 @@ class Annotation:
         return getattr(self.resolved, "__origin__", self.resolved_origin)
 
 
-
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
     """An actionable run-time serialization & deserialization protocol for a type."""
 
     annotation: Annotation
     """The target annotation and various meta-data."""
-    deserializer: Optional[DeserializerT]
-    """The coercer for the annotation."""
-    serializer: Optional[SerializerT]
+    deserializer: Optional[DeserializerT] = dataclasses.field(repr=False)
+    """The deserializer for the annotation."""
+    serializer: Optional[SerializerT] = dataclasses.field(repr=False)
     """The serializer for the given annotation."""
     constraints: Optional[const.ConstraintsT]
     """Type restriction configuration, if any."""
-    validator: Optional[const.ValidatorT]
+    validator: Optional[const.ValidatorT] = dataclasses.field(repr=False)
     """The type validator, if any"""
+    validate: const.ValidatorT = dataclasses.field(init=False)
+    """Validate an input against the annotation."""
+    transmute: DeserializerT = dataclasses.field(init=False)
+    """Transmute an input into the annotation."""
+    primitive: SerializerT = dataclasses.field(init=False)
+    """Get the "primitive" representation of the annotation."""
 
     def __post_init__(self):
         # Pass through if for some reason there's no coercer.
-        self.deserialize = self.deserializer or (lambda o: o)
+        deserialize = self.deserializer or (lambda o: o)
         # Set the validator
         self.validate = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
-        self.transmute = self.deserialize
+        self.transmute = deserialize
         self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
 
         def _json(
@@ -212,15 +221,19 @@ class SerdeProtocol:
             indent: int = 0,
             ensure_ascii: bool = False,
             __prim=self.primitive,
+            __dumps=json.dumps,
             **kwargs,
         ) -> str:
-            return json.dumps(
+            return __dumps(
                 __prim(val, lazy=True),
                 indent=indent,
                 ensure_ascii=ensure_ascii,
                 **kwargs,
             )
 
+        _json.__name__ = "tojson"
+        _json.__qualname__ = f"{self.__class__}.{_json.__name__}"
+        _json.__module__ = self.__class__.__module__
         self.tojson = _json
 
         def translate(
@@ -232,7 +245,7 @@ class SerdeProtocol:
         self.translate = translate
 
     def __call__(self, val: Any) -> ObjectT:
-        return self.transmute(val)
+        return self.transmute(val)  # type: ignore
 
 
 SerdeProtocolsT = Dict[str, SerdeProtocol]

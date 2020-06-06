@@ -31,7 +31,6 @@ from .common import (
 )
 from .error import ConstraintSyntaxError
 
-
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
 
@@ -58,6 +57,7 @@ ItemValidator = Union[
 ]
 
 
+@util.apply_slots
 @dataclasses.dataclass
 class ItemValidatorNames:
     item_validators_name: str
@@ -65,6 +65,7 @@ class ItemValidatorNames:
     keys_validator_name: str
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class MappingConstraints(BaseConstraints):
     type: ClassVar = Mapping
@@ -346,11 +347,13 @@ class MappingConstraints(BaseConstraints):
         return {x: y for x, y in schema.items() if y is not None}
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class DictConstraints(MappingConstraints):
     type: ClassVar[Type[dict]] = dict
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class ObjectConstraints(MappingConstraints):
     type: Type = dataclasses.field(default=object)  # type: ignore
@@ -359,6 +362,7 @@ class ObjectConstraints(MappingConstraints):
     coerce: bool = True
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class TypedDictConstraints(ObjectConstraints):
     instancecheck: ClassVar[InstanceCheck] = InstanceCheck.NOT

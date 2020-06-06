@@ -202,7 +202,7 @@ class Binder:
             if kwdargs_param is not None:
                 # Process our '**kwargs'-like parameter
                 name = kwdargs_param.name
-                value = kwargs_anno.transmute(kwargs) if kwargs_anno else kwargs
+                value = kwargs_anno.transmute(kwargs) if kwargs_anno else kwargs  # type: ignore
                 argumentsset(name, value)
                 kwdargsadd(name)
             else:
