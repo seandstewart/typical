@@ -1,4 +1,4 @@
-name: Test
+name: Test & Lint
 
 on: [push]
 
@@ -8,8 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: [3.7, 3.8]
+        os: [ubuntu-latest]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,13 +23,8 @@ jobs:
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
     - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
       run: |
         ./.github/ubuntu-install.sh
-    - name: Install macOS dependencies
-      if: startsWith(matrix.os, 'macos')
-      run: |
-        ./.github/macos-install.sh
 
     - name: Install Poetry
       uses: dschep/install-poetry-action@v1.2
@@ -48,8 +43,28 @@ jobs:
         poetry config virtualenvs.in-project false
         poetry config virtualenvs.path ~/.virtualenvs
 
-    - name: Install Dependencies
-      run: poetry install --no-dev -E tests
+    - name: Install Dependencies (with Lint)
+      run: poetry install --no-dev -E tests -E lint
 
-    - name: Test with pytest
-      run: "poetry run pytest tests typic --doctest-modules"
+    - name: Lint with flake8
+      run: "poetry run flake8 ."
+
+    - name: Check Formatting with Black
+      run: "poetry run black . --check"
+
+    - name: Static type-check with MyPy
+      run: "poetry run mypy typic --ignore-missing-imports"
+
+    - name: Test with pytest + coverage
+      run: "poetry run pytest tests typic --doctest-modules --cov --cov-report xml"
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
+
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests,${{ matrix.python-version }}
+        name: codecov-umbrella
+        fail_ci_if_error: false
