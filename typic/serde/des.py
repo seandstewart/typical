@@ -111,20 +111,21 @@ class DesFactory:
         """
         self.__USER_DESS.appendleft((check, deserializer))
 
-    def _set_checks(self, func: gen.Block, annotation: "Annotation"):
+    def _set_checks(self, func: gen.Block, anno_name: str, annotation: "Annotation"):
         _checks = []
         _ctx = {}
         if annotation.optional:
             _checks.append(f"{self.VNAME} is None")
         if annotation.has_default:
             if hasattr(annotation.resolved_origin, "equals"):
-                _checks.append(
+                eq = (
                     f"({self.VNAME}.equals(__default) "
                     f"if hasattr({self.VNAME}, 'equals') "
                     f"else {self.VNAME} == __default)"
                 )
             else:
-                _checks.append(f"{self.VNAME} == __default")
+                eq = f"{self.VNAME} == __default"
+            _checks.append(f"({self.VTYPE} is {anno_name} and {eq})")
             _ctx["__default"] = annotation.parameter.default
         if _checks:
             check = " or ".join(_checks)
@@ -466,7 +467,7 @@ class DesFactory:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
                 self._add_vtype(func)
                 if origin not in self.UNRESOLVABLE:
-                    self._set_checks(func, annotation)
+                    self._set_checks(func, anno_name, annotation)
                     if checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
                     elif origin in {Pattern, re.Pattern}:  # type: ignore

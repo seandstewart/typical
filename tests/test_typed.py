@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import enum
 import inspect
 import pathlib
 import re
@@ -34,6 +35,7 @@ from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
+from typic.klass import klass
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
@@ -128,6 +130,17 @@ def test_transmute_simple(annotation, value, expected):
 def test_transmute_newtype(annotation, value):
     transmuted = transmute(annotation, value)
     assert isinstance(transmuted, annotation.__supertype__)
+
+
+def test_transmute_subclassed_enum_with_default():
+    class MyNum(enum.IntEnum):
+        YES = 1
+
+    @klass
+    class Foo:
+        bar: MyNum = MyNum.YES
+
+    assert Foo(1).bar.__class__ is MyNum
 
 
 @pytest.mark.parametrize(

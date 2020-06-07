@@ -372,7 +372,9 @@ class Resolver:
         # Get the unfiltered args
         args = getattr(non_super, "__args__", None)
         # Set whether this is optional/strict
-        is_optional = is_optional or checks.isoptionaltype(non_super)
+        is_optional = (
+            is_optional or checks.isoptionaltype(non_super) or parameter.default is None
+        )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC
         # Determine whether we should use the first arg of the annotation
