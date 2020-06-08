@@ -358,7 +358,7 @@ class SerFactory:
         Iterable_abc,
     )
     _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict)
-    _PRIMITIVES = (str, int, bool, float, type(None))
+    _PRIMITIVES = (str, int, bool, float, type(None), type(...))
     _DYNAMIC = frozenset(
         {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar}
     )
@@ -374,7 +374,7 @@ class SerFactory:
 
     def _check_add_null_check(self, func: gen.Block, annotation: "Annotation"):
         if annotation.optional:
-            with func.b("if o is None:") as b:
+            with func.b(f"if o in {self.resolver.OPTIONALS}:") as b:
                 b.l(f"{gen.Keyword.RET}")
 
     def _add_type_check(self, func: gen.Block, annotation: "Annotation"):
@@ -533,6 +533,8 @@ class SerFactory:
                 self._check_add_null_check(func, annotation)
                 self._add_type_check(func, annotation)
                 line = f"{ser_name}(o)"
+                if annotation.origin in (type(o) for o in self.resolver.OPTIONALS):
+                    line = "None"
                 func.l(f"{gen.Keyword.RET} {line}")
 
         serializer: SerializerT = main.compile(name=func_name, ns=ns)
@@ -582,7 +584,10 @@ class SerFactory:
                 ) as func:
                     self._check_add_null_check(func, annotation)
                     self._add_type_check(func, annotation)
-                    func.l(f"{gen.Keyword.RET} o")
+                    line = "o"
+                    if annotation.origin in (type(o) for o in self.resolver.OPTIONALS):
+                        line = "None"
+                    func.l(f"{gen.Keyword.RET} {line}")
 
             serializer = main.compile(name=func_name, ns=ns)
             self._serializer_cache[func_name] = serializer

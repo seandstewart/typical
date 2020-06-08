@@ -50,6 +50,7 @@ class __AbstractConstraints(abc.ABC):
     VALTNAME = "valtname"
     FIELD = "field"
     FNAME = "fieldname"
+    NULLABLES = (None, Ellipsis)
 
     __slots__ = ("__dict__",)
 
@@ -218,14 +219,14 @@ class BaseConstraints(__AbstractConstraints):
                     line = f"if isinstance({self.VALUE}, {type_name}):"
                     if self.nullable:
                         line = (
-                            f"if {self.VALUE} is None "
+                            f"if {self.VALUE} in {self.NULLABLES} "
                             f"or isinstance({self.VALUE}, {type_name}):"
                         )
                     with f.b(line, **{type_name: self.type}) as b:  # type: ignore
                         b.l(f"return True, {self.VALUE}")
                 else:
                     if self.nullable:
-                        with f.b(f"if {self.VALUE} is None:") as b:
+                        with f.b(f"if {self.VALUE} in {self.NULLABLES}:") as b:
                             b.l(f"return True, {self.VALUE}")
                     line = f"if not isinstance({self.VALUE}, {type_name}):"
                     with f.b(line, **{type_name: self.type}) as b:  # type: ignore
@@ -414,7 +415,7 @@ class EnumConstraints(__AbstractConstraints):
         with gen.Block(ns) as main:
             with self.define(main, func_name) as f:
                 if self.nullable:
-                    with f.b("if value is None:") as b:
+                    with f.b(f"if value in {self.NULLABLES}:") as b:
                         b.l(f"{gen.Keyword.RET} value")
                 # This is O(N), but so is casting to the enum
                 # And handling a ValueError is an order of magnitude heavier

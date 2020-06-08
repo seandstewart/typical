@@ -181,7 +181,7 @@ def _resolve_params(**param: inspect.Parameter,) -> Mapping[str, ConstraintsT]:
     while param:
         name, p = param.popitem()
         anno = p.annotation
-        nullable = p.default is None or isoptionaltype(anno)
+        nullable = p.default in (None, Ellipsis) or isoptionaltype(anno)
         if anno in {Any, Ellipsis, p.empty}:
             continue
         if origin(anno) is Union:

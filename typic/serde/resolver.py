@@ -54,6 +54,7 @@ class Resolver:
         {("asdict", methodcaller("asdict")), ("to_dict", methodcaller("to_dict"))}
     )
     _DYNAMIC = SerFactory._DYNAMIC
+    OPTIONALS = (None, ...)
 
     def __init__(self):
         self.des = DesFactory(self)
@@ -374,7 +375,9 @@ class Resolver:
         args = getattr(non_super, "__args__", None)
         # Set whether this is optional/strict
         is_optional = (
-            is_optional or checks.isoptionaltype(non_super) or parameter.default is None
+            is_optional
+            or checks.isoptionaltype(non_super)
+            or parameter.default in self.OPTIONALS
         )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC

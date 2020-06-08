@@ -115,7 +115,7 @@ class DesFactory:
         _checks = []
         _ctx = {}
         if annotation.optional:
-            _checks.append(f"{self.VNAME} is None")
+            _checks.append(f"{self.VNAME} in {self.resolver.OPTIONALS}")
         if annotation.has_default:
             if hasattr(annotation.resolved_origin, "equals"):
                 eq = (
