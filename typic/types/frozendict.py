@@ -74,10 +74,10 @@ class FrozenDict(Generic[KT, VT], dict):
         )
 
     def __copy__(self) -> "FrozenDict":
-        return type(self)({**self})
+        return self.__class__({**self})
 
     def __deepcopy__(self, memodict: dict = None) -> "FrozenDict":
-        return type(self)({x: copy.deepcopy(y, memodict) for x, y in self.items()})
+        return self.__class__({x: copy.deepcopy(y, memodict) for x, y in self.items()})
 
     @cached_property
     def __hash(self) -> int:
@@ -129,7 +129,7 @@ class FrozenDict(Generic[KT, VT], dict):
         >>> fdict.mutate({"bazz": "buzz"}, bazz="blah")
         {'foo': ('bar',), 'bazz': 'blah'}
         """
-        return type(self)({**self, **(other or {}), **kwargs})
+        return self.__class__({**self, **(other or {}), **kwargs})
 
 
 FrozenT = Union[FrozenDict, Hashable, Tuple, FrozenSet, None]

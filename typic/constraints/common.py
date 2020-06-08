@@ -23,7 +23,6 @@ from typing import (
 
 from typic import gen, util
 from .error import ConstraintValueError
-from ..util import TypeMap
 
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
@@ -51,6 +50,8 @@ class __AbstractConstraints(abc.ABC):
     VALTNAME = "valtname"
     FIELD = "field"
     FNAME = "fieldname"
+
+    __slots__ = ("__dict__",)
 
     def __post_init__(self):
         self.validator
@@ -157,6 +158,7 @@ class InstanceCheck(enum.IntEnum):
     """
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)  # type: ignore
 class BaseConstraints(__AbstractConstraints):
     """A base constraints object. Shouldn't be used directly.
@@ -247,6 +249,7 @@ class BaseConstraints(__AbstractConstraints):
         return validator
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class MultiConstraints(__AbstractConstraints):
     """A container for multiple constraints for a single field."""
@@ -298,7 +301,9 @@ class MultiConstraints(__AbstractConstraints):
         If a value does not match any origin-type, as reported by :py:func:`typic.origin`,
         then we will report the value as invalid.
         """
-        vmap = TypeMap({util.origin(c.type): c.validator for c in self.constraints})
+        vmap = util.TypeMap(
+            {util.origin(c.type): c.validator for c in self.constraints}
+        )
         if vmap:
             if self.nullable:
 
@@ -330,6 +335,7 @@ class MultiConstraints(__AbstractConstraints):
         return scheme
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class TypeConstraints(__AbstractConstraints):
     """A container for simple types. Validation is limited to instance checks.
@@ -379,6 +385,7 @@ class TypeConstraints(__AbstractConstraints):
         return {}
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class EnumConstraints(__AbstractConstraints):
     type: Type[enum.Enum]  # type: ignore

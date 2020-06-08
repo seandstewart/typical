@@ -14,34 +14,30 @@ import pytest
 import typic
 import typic.api
 import typic.common
+import typic.ext.json
 from tests import objects
 
 
 @typic.klass
 class FieldMapp:
-    __serde_flags__ = typic.SerdeFlags(fields={"foo_bar": "foo"})
-
-    foo_bar: str = "bar"
+    foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(case=typic.common.Case.CAMEL))
 class Camel:
-    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
 
     foo_bar: str = "bar"
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(signature_only=True))
 class SigOnly:
-    __serde_flags__ = typic.SerdeFlags(signature_only=True)
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(omit=("bar",)))
 class Omit:
-    __serde_flags__ = typic.SerdeFlags(omit=("bar",))
 
     bar: str = "foo"
     foo: str = "bar"
@@ -208,6 +204,34 @@ class Bar:
     ],
 )
 def test_tojson(obj, expected):
+    assert typic.tojson(obj) == expected
+
+
+typic.ext.json.NATIVE_JSON = True
+
+
+@typic.klass
+class Foo:
+    bar: str
+    id: Optional[typic.ReadOnly[int]] = None
+
+
+@typic.klass
+class Bar:
+    foos: List[Foo]
+
+
+@pytest.mark.parametrize(
+    argnames=("obj", "expected"),
+    argvalues=[
+        (None, "null"),
+        (MultiNum.INT, "1"),
+        (MultiNum.STR, '"str"'),
+        ([typic.URL("foo")], '["foo"]'),
+        (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
+    ],
+)
+def test_tojson_native(obj, expected):
     native = (
         json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
     )
@@ -237,3 +261,18 @@ def test_invalid_serializer(type, value):
     proto = typic.protocol(type)
     with pytest.raises(ValueError):
         proto.tojson(value)
+
+
+def test_inherited_serde_flags():
+    @typic.klass(serde=typic.SerdeFlags(omit=(1,)))
+    class Foo:
+        a: str
+        b: str = typic.field(exclude=True)
+
+    @typic.klass(serde=typic.SerdeFlags(omit=(2,)))
+    class Bar(Foo):
+        c: int
+
+    assert Bar.__serde_flags__.fields.keys() == {"a", "b", "c"}
+    assert Bar.__serde_flags__.exclude == {"b"}
+    assert Bar.__serde_flags__.omit == (1, 2)

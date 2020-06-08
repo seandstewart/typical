@@ -30,7 +30,7 @@ import pendulum
 from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
-from typic.util import filtered_repr, cached_property, TypeMap, ReprT
+from typic.util import filtered_repr, cached_property, TypeMap, ReprT, apply_slots
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
@@ -71,6 +71,8 @@ class SchemaType(str, enum.Enum):
 
 
 class _Serializable:
+    __slots__ = ()
+
     def primitive(self, *, lazy: bool = False, name: ReprT = None) -> Mapping[str, Any]:
         return resolver.primitive(self, lazy=lazy, name=name)
 
@@ -83,6 +85,7 @@ class _Serializable:
         )
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True)
 class Ref(_Serializable):
     """A JSON Schema ref (pointer).
@@ -115,6 +118,7 @@ class StringFormat(str, enum.Enum):
     IPV6 = "ipv6"
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class BaseSchemaField(_Serializable):
     """The base JSON Schema Field."""
@@ -182,6 +186,7 @@ class BaseSchemaField(_Serializable):
         return copy.deepcopy(self)
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class UndeclaredSchemaField(BaseSchemaField):
     """A sentinel object for generating an empty schema."""
@@ -189,6 +194,7 @@ class UndeclaredSchemaField(BaseSchemaField):
     pass
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class MultiSchemaField(BaseSchemaField):
     """A schema field which supports multiple types."""
@@ -198,11 +204,13 @@ class MultiSchemaField(BaseSchemaField):
     oneOf: Optional[Tuple["SchemaFieldT", ...]] = None
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class NullSchemaField(BaseSchemaField):
     type = SchemaType.NULL
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class StrSchemaField(BaseSchemaField):
     """A JSON Schema Field for the `string` type.
@@ -222,6 +230,7 @@ class StrSchemaField(BaseSchemaField):
 Number = Union[int, float, decimal.Decimal]
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class IntSchemaField(BaseSchemaField):
     """A JSON Schema Field for the `integer` type.
@@ -239,6 +248,7 @@ class IntSchemaField(BaseSchemaField):
     exclusiveMinimum: Optional[Number] = None
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class NumberSchemaField(IntSchemaField):
     """A JSON Schema Field for the `number` type.
@@ -251,6 +261,7 @@ class NumberSchemaField(IntSchemaField):
     type = SchemaType.NUM
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class BooleanSchemaField(BaseSchemaField):
     """A JSON Schema Field for the `boolean` type.
@@ -263,6 +274,7 @@ class BooleanSchemaField(BaseSchemaField):
     type = SchemaType.BOOL
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class ObjectSchemaField(BaseSchemaField):
     """A JSON Schema Field for the `object` type.
@@ -284,6 +296,7 @@ class ObjectSchemaField(BaseSchemaField):
     definitions: Optional[frozendict.FrozenDict[str, Any]] = None
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArraySchemaField(BaseSchemaField):
     """A JSON Schema Field for the `array` type.

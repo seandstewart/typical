@@ -24,9 +24,11 @@ Here's a short list:
       library as it works for your use-case.
 
 4. Performance.
-    - Typical is the fastest pure-Python (no Cython!)
+   -  Typical is the fastest pure-Python (no Cython!)
       library out there. Just check out the histograms
-      below.
+      below. It achieves this performance with
+      finely-tuned code-generation which allows Typical to
+      localize namespaces and minimize branching logic.
 
 
 ## Benchmarks
@@ -36,6 +38,10 @@ The following benchmarks Typical's three public APIs against:
 - [Django Rest Framework (DRF)](https://www.django-rest-framework.org/)
 - [Marshmallow](https://marshmallow.readthedocs.io/en/stable/)
 - [Pydantic](https://pydantic-docs.helpmanual.io/)
+
+As can be seen, Typical's three APIs are neck-in-neck with
+Pydantic, without the need for Cython as a
+build-dependency, making it far more portable.
 
 
 ### Validation Only
@@ -74,6 +80,27 @@ object.][ser-invalid]][ser-invalid]
 [![Average time (in μs) for serialization of valid data in
 a complex, nested object.][ser-valid]][ser-valid]
 
+### Translate *to* an Arbitrary Class
+
+Typical supports automated translation of one known,
+custom class to an unknown, unlike other popular
+libraries.
+
+[![Average time (in μs) for translation of a known class
+to another unknown class a complex, nested
+object.][trans-to]][trans-to]
+
+
+### Translate *from* an Arbitrary Class
+
+Typical also supports translation from an arbitrary class
+to a known class. Pydantic supports this feature with the
+`from_orm()` method.
+
+[![Average time (in μs) for translation of a known class
+to another unknown class a complex, nested
+object.][trans-from]][trans-from]
+
 
 [validate-invalid]: static/Validate_Invalid_Data.svg
 [validate-valid]: static/Validate_Valid_Data.svg
@@ -81,3 +108,5 @@ a complex, nested object.][ser-valid]][ser-valid]
 [deser-valid]: static/Deserialize_Valid_Data.svg
 [ser-invalid]: static/Serialize_Invalid_Data.svg
 [ser-valid]: static/Serialize_Valid_Data.svg
+[trans-to]: static/Translate_to_Arbitrary_Class.svg
+[trans-from]: static/Translate_from_Arbitrary_Class.svg

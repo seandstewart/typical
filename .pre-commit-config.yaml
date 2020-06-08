@@ -13,3 +13,7 @@ repos:
     rev: 3.8.2
     hooks:
     - id: flake8
+  - repo: .
+    rev: master
+    hooks:
+    - id: export-requirements-dev

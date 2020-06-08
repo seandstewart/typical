@@ -32,6 +32,7 @@ def _get_digits(tup: decimal.DecimalTuple):
     return whole_digits, digits, decimals
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class NumberConstraints(BaseConstraints):
     """Specific constraints pertaining to number-like types.
@@ -159,6 +160,7 @@ class NumberConstraints(BaseConstraints):
         return {x: y for x, y in schema.items() if y is not None}
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class IntContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.
@@ -171,12 +173,13 @@ class IntContraints(NumberConstraints):
     type: ClassVar[Type[NumberT]] = int
 
     def for_schema(self, *, with_type: bool = False) -> dict:
-        schema = super().for_schema()
+        schema = NumberConstraints.for_schema(self)
         if with_type:
             schema["type"] = "integer"
         return schema
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class FloatContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.
@@ -189,6 +192,7 @@ class FloatContraints(NumberConstraints):
     type: ClassVar[Type[NumberT]] = float
 
 
+@util.apply_slots
 @dataclasses.dataclass(frozen=True, repr=False)
 class DecimalContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.

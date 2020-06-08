@@ -5,7 +5,7 @@ import re
 from typing import ClassVar, Pattern, Match, Optional
 from urllib.parse import quote
 
-from typic.util import cached_property
+from typic.util import cached_property, apply_slots
 from .url import (
     NetworkAddress,
     PRIVATE_HOSTS,
@@ -59,6 +59,7 @@ EMAIL_PATTERN = re.compile(
 )
 
 
+@apply_slots
 @dataclasses.dataclass(frozen=True)
 class EmailAddrInfo:
     """Detailed information about an email address.

@@ -2,6 +2,7 @@ import dataclasses
 import functools
 import inspect
 import warnings
+from collections.abc import Callable
 from operator import attrgetter, methodcaller
 from typing import (
     Mapping,
@@ -39,6 +40,7 @@ from .common import (
 )
 from .des import DesFactory
 from .ser import SerFactory
+from .translator import TranslatorFactory
 
 
 _T = TypeVar("_T")
@@ -57,6 +59,7 @@ class Resolver:
         self.des = DesFactory(self)
         self.ser = SerFactory(self)
         self.binder = Binder(self)
+        self.translator = TranslatorFactory(self)
         self.bind = self.binder.bind
         for typ in checks.STDLIB_TYPES:
             self.resolve(typ)
@@ -81,7 +84,7 @@ class Resolver:
             The value to be transmuted
         """
         resolved: SerdeProtocol = self.resolve(annotation)
-        transmuted: ObjectT = resolved.transmute(value)
+        transmuted: ObjectT = resolved.transmute(value)  # type: ignore
 
         return transmuted
 
@@ -123,7 +126,7 @@ class Resolver:
         resolved: SerdeProtocol = self.resolve(annotation)
         value = resolved.validate(value)
         if transmute:
-            return resolved.transmute(value)
+            return resolved.transmute(value)  # type: ignore
         return value
 
     def coerce_value(
@@ -217,12 +220,12 @@ class Resolver:
         >>> typic.primitive(Foo())
         {'bar': 'bar'}
         """
-        t = type(obj)
+        t = obj.__class__
         if checks.isenumtype(t):
             obj = obj.value
-            t = type(obj)
+            t = obj.__class__
         proto: SerdeProtocol = self._get_serializer_proto(t)
-        return proto.primitive(obj, lazy=lazy, name=name)
+        return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
         self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
@@ -270,10 +273,10 @@ class Resolver:
         >>> typic.tojson(Enum.FOO)
         '"foo"'
         """
-        t = type(obj)
+        t = obj.__class__
         if checks.isenumtype(t):
             obj = obj.value
-            t = type(obj)
+            t = obj.__class__
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
@@ -370,7 +373,9 @@ class Resolver:
         # Get the unfiltered args
         args = getattr(non_super, "__args__", None)
         # Set whether this is optional/strict
-        is_optional = is_optional or checks.isoptionaltype(non_super)
+        is_optional = (
+            is_optional or checks.isoptionaltype(non_super) or parameter.default is None
+        )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC
         # Determine whether we should use the first arg of the annotation
@@ -396,7 +401,7 @@ class Resolver:
             else SerdeConfig(flags)
         )
 
-        return Annotation(
+        anno = Annotation(
             resolved=use,
             origin=orig,
             un_resolved=annotation,
@@ -406,11 +411,16 @@ class Resolver:
             static=is_static,
             serde=serde,
         )
+        anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
+        return anno
 
     @functools.lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self, anno: Annotation, _des: bool = True, _ser: bool = True,
     ) -> SerdeProtocol:
+        # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
+        if anno.origin is Callable:
+            _des, _ser = False, False
         # Build the deserializer
         deserializer, validator, constraints = None, None, None
         if _des:
@@ -515,11 +525,10 @@ class Resolver:
         if not any(
             (inspect.ismethod(obj), inspect.isfunction(obj), inspect.isclass(obj))
         ):
-            obj = type(obj)
+            obj = obj.__class__
 
-        sig = util.cached_signature(obj)
         hints = util.cached_type_hints(obj)
-        params: Mapping[str, inspect.Parameter] = sig.parameters
+        params = util.safe_get_params(obj)
         fields: Mapping[str, dataclasses.Field] = {}
         if dataclasses.is_dataclass(obj):
             fields = {f.name: f for f in dataclasses.fields(obj)}
