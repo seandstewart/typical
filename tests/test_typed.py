@@ -181,6 +181,11 @@ def test_default_none():
     assert transmuted.none is None
 
 
+def test_default_ellipsis():
+    transmuted = transmute(objects.DefaultEllipsis, {})
+    assert transmuted.ellipsis is ...
+
+
 @pytest.mark.parametrize(
     argnames=("annotation", "origin"),
     argvalues=[
@@ -282,6 +287,7 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.DefaultDict[str, int], {}),
         (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
         (typing.DefaultDict[str, objects.DefaultNone], {"foo": {}},),
+        (typing.DefaultDict[str, objects.DefaultEllipsis], {"foo": {}},),
     ],
     ids=objects.get_id,
 )
@@ -363,6 +369,13 @@ def test_wrap_class(klass, var, type):
         (objects.optional, None, None, type(None), inspect.isfunction),
         (objects.Data, 1, attrgetter("foo"), str, inspect.isclass),
         (objects.DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
+        (
+            objects.DefaultEllipsis,
+            ...,
+            attrgetter("ellipsis"),
+            type(...),
+            inspect.isclass,
+        ),
         (objects.Forward, "bar", attrgetter("foo"), objects.FooNum, inspect.isclass),
         (objects.Frozen, "0", attrgetter("var"), bool, inspect.isclass),
     ],
@@ -691,6 +704,8 @@ def test_transmute_nested_constrained(anno, val, expected):
     argvalues=[
         (objects.Typic, {"var": "foo"}),
         (objects.TDict, {"a": 1}),
+        (objects.DefaultEllipsis, {"ellipsis": ...}),
+        (objects.DefaultNone, {"none": None}),
         (typing.Union[str, pathlib.Path], pathlib.Path(".")),
         (typing.Union[str, pathlib.Path], "."),
     ],

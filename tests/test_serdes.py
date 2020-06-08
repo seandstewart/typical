@@ -63,6 +63,7 @@ class SubURL(typic.URL):
         (True, True),
         (1.0, 1.0),
         (None, None),
+        (..., None),
         ("foo", "foo"),
         (b"foo", "foo"),
         (bytearray("foo", "utf-8"), "foo"),
@@ -183,7 +184,7 @@ def test_serde_deserializer(t, obj, prim):
 @typic.klass
 class Foo:
     bar: str
-    id: Optional[typic.ReadOnly[int]] = None
+    id: Optional[typic.ReadOnly[int]] = ...
 
 
 @typic.klass
