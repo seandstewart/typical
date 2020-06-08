@@ -2,6 +2,7 @@ import dataclasses
 import functools
 import inspect
 import warnings
+from collections.abc import Callable
 from operator import attrgetter, methodcaller
 from typing import (
     Mapping,
@@ -417,6 +418,9 @@ class Resolver:
     def _resolve_from_annotation(
         self, anno: Annotation, _des: bool = True, _ser: bool = True,
     ) -> SerdeProtocol:
+        # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
+        if anno.origin is Callable:
+            _des, _ser = False, False
         # Build the deserializer
         deserializer, validator, constraints = None, None, None
         if _des:
