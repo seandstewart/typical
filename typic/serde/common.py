@@ -84,6 +84,36 @@ class SerdeFlags:
         self.fields = cast(FieldSettingsT, freeze(fields))
         self.exclude = cast(Iterable[str], freeze(exclude))
 
+    def merge(self, other: "SerdeFlags") -> "SerdeFlags":
+        """Merge the values of another SerdeFlags instance into this one."""
+        case = other.case or self.case
+        signature_only = self.signature_only or other.signature_only
+        if other.omit and self.omit:
+            omit = (*self.omit, *(o for o in other.omit if o not in self.omit))
+        else:
+            omit = other.omit or self.omit  # type: ignore
+
+        if other.fields and self.fields:
+            if not isinstance(other.fields, Mapping):
+                other.fields = freeze({x: x for x in other.fields})  # type: ignore
+            if not isinstance(self.fields, Mapping):
+                self.fields = freeze({x: x for x in self.fields})  # type: ignore
+            fields = {**self.fields, **other.fields}  # type: ignore
+        else:
+            fields = other.fields or self.fields  # type: ignore
+
+        if other.exclude and self.exclude:
+            exclude = {*self.exclude, *other.exclude}
+        else:
+            exclude = other.exclude or self.exclude  # type: ignore
+        return SerdeFlags(
+            signature_only=signature_only,
+            case=case,
+            omit=omit,
+            fields=fields,
+            exclude=exclude,
+        )
+
 
 class SerdeConfigD(TypedDict):
     fields: Mapping[str, "Annotation"]

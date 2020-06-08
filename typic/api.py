@@ -198,7 +198,10 @@ def _resolve_class(
 ) -> Type[WrappedObjectT]:
     # Build the namespace for the new class
     protos = protocols(cls, strict=strict)
-    serde = getattr(cls, SERDE_FLAGS_ATTR, (serde or SerdeFlags()))
+    if hasattr(cls, SERDE_FLAGS_ATTR):
+        pserde: SerdeFlags = getattr(cls, SERDE_FLAGS_ATTR)
+        serde = pserde.merge(serde) if serde else pserde
+    serde = serde or SerdeFlags()
     ns: Dict[str, Any] = {
         SERDE_FLAGS_ATTR: serde,
         TYPIC_ANNOS_NAME: protos,

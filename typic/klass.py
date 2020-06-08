@@ -12,7 +12,6 @@ from typing import (
     Callable,
     Optional,
     Union,
-    Iterable,
 )
 
 from typic.api import wrap_cls, ObjectT
@@ -155,8 +154,7 @@ def make_typedclass(
     exclude = frozenset({f.name for f in fields if f.exclude})
     dcls.__typic_fields__ = (*fields,)
     serde = serde or SerdeFlags()
-    serde.fields = cast(Mapping[str, str], field_names)
-    serde.exclude = cast(Iterable[str], exclude)
+    serde = serde.merge(SerdeFlags(fields=field_names, exclude=exclude))  # type: ignore
     return wrap_cls(
         dcls, delay=delay, strict=strict, jsonschema=jsonschema, serde=serde,
     )

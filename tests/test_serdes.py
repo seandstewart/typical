@@ -20,29 +20,24 @@ from tests import objects
 
 @typic.klass
 class FieldMapp:
-    __serde_flags__ = typic.SerdeFlags(fields={"foo_bar": "foo"})
-
-    foo_bar: str = "bar"
+    foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(case=typic.common.Case.CAMEL))
 class Camel:
-    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
 
     foo_bar: str = "bar"
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(signature_only=True))
 class SigOnly:
-    __serde_flags__ = typic.SerdeFlags(signature_only=True)
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typic.klass
+@typic.klass(serde=typic.SerdeFlags(omit=("bar",)))
 class Omit:
-    __serde_flags__ = typic.SerdeFlags(omit=("bar",))
 
     bar: str = "foo"
     foo: str = "bar"
@@ -266,3 +261,18 @@ def test_invalid_serializer(type, value):
     proto = typic.protocol(type)
     with pytest.raises(ValueError):
         proto.tojson(value)
+
+
+def test_inherited_serde_flags():
+    @typic.klass(serde=typic.SerdeFlags(omit=(1,)))
+    class Foo:
+        a: str
+        b: str = typic.field(exclude=True)
+
+    @typic.klass(serde=typic.SerdeFlags(omit=(2,)))
+    class Bar(Foo):
+        c: int
+
+    assert Bar.__serde_flags__.fields.keys() == {"a", "b", "c"}
+    assert Bar.__serde_flags__.exclude == {"b"}
+    assert Bar.__serde_flags__.omit == (1, 2)
