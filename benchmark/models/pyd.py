@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from pydantic import BaseModel, ConstrainedStr, PositiveInt, BaseConfig, ValidationError
 
@@ -20,11 +20,21 @@ class GReCaptchaResponse(ConstrainedStr):
 
 
 class Location(BaseModel):
+    class Config(BaseConfig):
+        validate_all = True
+        validate_assignment = True
+        orm_mode = True
+
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
 
 class Skill(BaseModel):
+    class Config(BaseConfig):
+        validate_all = True
+        validate_assignment = True
+        orm_mode = True
+
     subject: str
     subject_id: int
     category: str
@@ -37,6 +47,7 @@ class Model(BaseModel):
     class Config(BaseConfig):
         validate_all = True
         validate_assignment = True
+        orm_mode = True
 
     id: int
     client_name: DBString
@@ -63,3 +74,10 @@ def deserialize(data):
 
 def tojson(instance: Model):
     return True, instance.json()  # No validation!
+
+
+def translate_from(other: Any):
+    try:
+        return True, Model.from_orm(other)
+    except ValidationError as err:
+        return False, err

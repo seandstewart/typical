@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import typic
 
@@ -78,4 +78,18 @@ def tojson(instance: Model):
     try:
         return True, model_protocol.tojson(instance)
     except ValueError as err:
+        return False, err
+
+
+def translate_to(instance: Model, target: Type):
+    try:
+        return True, model_protocol.translate(instance, target)
+    except (ValueError, TypeError) as err:
+        return False, err
+
+
+def translate_from(instance: Model):
+    try:
+        return True, typic.translate(instance, Model)
+    except (ValueError, TypeError) as err:
         return False, err

@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 from datetime import datetime
 from dataclasses import field
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import typic
 
@@ -66,7 +66,7 @@ def validate(data):
 
 def deserialize(data):
     try:
-        return True, Model(**data)
+        return True, Model.transmute(data)
     except (TypeError, ValueError) as err:
         return False, err
 
@@ -75,4 +75,18 @@ def tojson(instance):
     try:
         return True, instance.tojson()
     except ValueError as err:
+        return False, err
+
+
+def translate_to(instance: Model, target: Type):
+    try:
+        return True, instance.translate(target)  # type: ignore
+    except (ValueError, TypeError) as err:
+        return False, err
+
+
+def translate_from(instance: Model):
+    try:
+        return True, typic.translate(instance, Model)
+    except (ValueError, TypeError) as err:
         return False, err

@@ -64,6 +64,11 @@ class DefaultNone:
 
 
 @dataclasses.dataclass
+class DefaultEllipsis:
+    ellipsis: str = ...
+
+
+@dataclasses.dataclass
 class Forward:
     foo: "FooNum"
 

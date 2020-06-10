@@ -20,12 +20,11 @@ from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict
 from typic.ext import json
 from typic.types import freeze
-from .translator import translator
 
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
 """Specify types or values which you wish to omit from the output."""
-SerializerT = Union[Callable[[Any, bool], Any], Callable[[Any], Any]]
+SerializerT = Union[Callable[[Any, bool, str], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
@@ -52,6 +51,7 @@ A mapping should be of attribute name -> out/in field name.
 """
 
 
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeFlags:
     """Optional settings for a Ser-ialization/de-serialization protocol."""
@@ -84,6 +84,36 @@ class SerdeFlags:
         self.fields = cast(FieldSettingsT, freeze(fields))
         self.exclude = cast(Iterable[str], freeze(exclude))
 
+    def merge(self, other: "SerdeFlags") -> "SerdeFlags":
+        """Merge the values of another SerdeFlags instance into this one."""
+        case = other.case or self.case
+        signature_only = self.signature_only or other.signature_only
+        if other.omit and self.omit:
+            omit = (*self.omit, *(o for o in other.omit if o not in self.omit))
+        else:
+            omit = other.omit or self.omit  # type: ignore
+
+        if other.fields and self.fields:
+            if not isinstance(other.fields, Mapping):
+                other.fields = freeze({x: x for x in other.fields})  # type: ignore
+            if not isinstance(self.fields, Mapping):
+                self.fields = freeze({x: x for x in self.fields})  # type: ignore
+            fields = {**self.fields, **other.fields}  # type: ignore
+        else:
+            fields = other.fields or self.fields  # type: ignore
+
+        if other.exclude and self.exclude:
+            exclude = {*self.exclude, *other.exclude}
+        else:
+            exclude = other.exclude or self.exclude  # type: ignore
+        return SerdeFlags(
+            signature_only=signature_only,
+            case=case,
+            omit=omit,
+            fields=fields,
+            exclude=exclude,
+        )
+
 
 class SerdeConfigD(TypedDict):
     fields: Mapping[str, "Annotation"]
@@ -93,6 +123,7 @@ class SerdeConfigD(TypedDict):
     omit_values: Tuple[Any, ...]
 
 
+@util.apply_slots
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)
@@ -120,6 +151,7 @@ class SerdeConfig:
 _T = TypeVar("_T")
 
 
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class Annotation:
     """The resolved, actionable annotation for a given annotation."""
@@ -139,6 +171,8 @@ class Annotation:
     """The type annotation before resolving super-types."""
     parameter: inspect.Parameter
     """The parameter this annotation refers to."""
+    translator: "TranslatorT" = dataclasses.field(init=False)
+    """A factory for generating a translation protocol between higher-level types."""
     optional: bool = False
     """Whether this annotation allows null/default values."""
     strict: st.StrictModeT = st.STRICT_MODE
@@ -179,34 +213,36 @@ class Annotation:
         """
         return getattr(self.resolved, "__origin__", self.resolved_origin)
 
-    def translator(self, target: Type[_T]) -> TranslatorT:
-        """A factory for translating from this type to another."""
-        t = translator.factory(self, target)
-        return t
 
-
+@util.apply_slots
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
     """An actionable run-time serialization & deserialization protocol for a type."""
 
     annotation: Annotation
     """The target annotation and various meta-data."""
-    deserializer: Optional[DeserializerT]
-    """The coercer for the annotation."""
-    serializer: Optional[SerializerT]
+    deserializer: Optional[DeserializerT] = dataclasses.field(repr=False)
+    """The deserializer for the annotation."""
+    serializer: Optional[SerializerT] = dataclasses.field(repr=False)
     """The serializer for the given annotation."""
     constraints: Optional[const.ConstraintsT]
     """Type restriction configuration, if any."""
-    validator: Optional[const.ValidatorT]
+    validator: Optional[const.ValidatorT] = dataclasses.field(repr=False)
     """The type validator, if any"""
+    validate: const.ValidatorT = dataclasses.field(init=False)
+    """Validate an input against the annotation."""
+    transmute: DeserializerT = dataclasses.field(init=False)
+    """Transmute an input into the annotation."""
+    primitive: SerializerT = dataclasses.field(init=False)
+    """Get the "primitive" representation of the annotation."""
 
     def __post_init__(self):
         # Pass through if for some reason there's no coercer.
-        self.deserialize = self.deserializer or (lambda o: o)
+        deserialize = self.deserializer or (lambda o: o)
         # Set the validator
-        self.validate = self.validator or (lambda o: o)
+        self.validate: const.ValidatorT = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
-        self.transmute = self.deserialize
+        self.transmute = deserialize
         self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
 
         def _json(
@@ -215,15 +251,19 @@ class SerdeProtocol:
             indent: int = 0,
             ensure_ascii: bool = False,
             __prim=self.primitive,
+            __dumps=json.dumps,
             **kwargs,
         ) -> str:
-            return json.dumps(
+            return __dumps(
                 __prim(val, lazy=True),
                 indent=indent,
                 ensure_ascii=ensure_ascii,
                 **kwargs,
             )
 
+        _json.__name__ = "tojson"
+        _json.__qualname__ = f"{self.__class__}.{_json.__name__}"
+        _json.__module__ = self.__class__.__module__
         self.tojson = _json
 
         def translate(
@@ -235,8 +275,27 @@ class SerdeProtocol:
         self.translate = translate
 
     def __call__(self, val: Any) -> ObjectT:
-        return self.transmute(val)
+        return self.transmute(val)  # type: ignore
 
 
 SerdeProtocolsT = Dict[str, SerdeProtocol]
 """A mapping of attr/param name to :py:class:`SerdeProtocol`."""
+
+
+class _Unprocessed:
+    def __repr__(self):
+        return "<unprocessed>"
+
+
+Unprocessed = _Unprocessed()
+
+
+class _Omit:
+    def __repr__(self):
+        return "<omit>"
+
+
+Omit = _Omit()
+KT = TypeVar("KT")
+VT = TypeVar("VT")
+KVPairT = Tuple[KT, VT]

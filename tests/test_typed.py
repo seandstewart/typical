@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import enum
 import inspect
 import pathlib
 import re
@@ -34,6 +35,7 @@ from typic.checks import isbuiltintype, BUILTIN_TYPES
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
+from typic.klass import klass
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
@@ -130,6 +132,17 @@ def test_transmute_newtype(annotation, value):
     assert isinstance(transmuted, annotation.__supertype__)
 
 
+def test_transmute_subclassed_enum_with_default():
+    class MyNum(enum.IntEnum):
+        YES = 1
+
+    @klass
+    class Foo:
+        bar: MyNum = MyNum.YES
+
+    assert Foo(1).bar.__class__ is MyNum
+
+
 @pytest.mark.parametrize(
     argnames=("annotation", "value", "expected"),
     argvalues=[
@@ -166,6 +179,11 @@ def test_transmute_pandas(annotation, value, expected):
 def test_default_none():
     transmuted = transmute(objects.DefaultNone, {})
     assert transmuted.none is None
+
+
+def test_default_ellipsis():
+    transmuted = transmute(objects.DefaultEllipsis, {})
+    assert transmuted.ellipsis is ...
 
 
 @pytest.mark.parametrize(
@@ -269,6 +287,7 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.DefaultDict[str, int], {}),
         (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
         (typing.DefaultDict[str, objects.DefaultNone], {"foo": {}},),
+        (typing.DefaultDict[str, objects.DefaultEllipsis], {"foo": {}},),
     ],
     ids=objects.get_id,
 )
@@ -350,6 +369,13 @@ def test_wrap_class(klass, var, type):
         (objects.optional, None, None, type(None), inspect.isfunction),
         (objects.Data, 1, attrgetter("foo"), str, inspect.isclass),
         (objects.DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
+        (
+            objects.DefaultEllipsis,
+            ...,
+            attrgetter("ellipsis"),
+            type(...),
+            inspect.isclass,
+        ),
         (objects.Forward, "bar", attrgetter("foo"), objects.FooNum, inspect.isclass),
         (objects.Frozen, "0", attrgetter("var"), bool, inspect.isclass),
     ],
@@ -678,6 +704,8 @@ def test_transmute_nested_constrained(anno, val, expected):
     argvalues=[
         (objects.Typic, {"var": "foo"}),
         (objects.TDict, {"a": 1}),
+        (objects.DefaultEllipsis, {"ellipsis": ...}),
+        (objects.DefaultNone, {"none": None}),
         (typing.Union[str, pathlib.Path], pathlib.Path(".")),
         (typing.Union[str, pathlib.Path], "."),
     ],

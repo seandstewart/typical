@@ -1,6 +1,6 @@
 import functools
 import inspect
-from typing import TYPE_CHECKING, Type, Mapping, Tuple, Optional
+from typing import TYPE_CHECKING, Type, Mapping, Tuple, Optional, Set, Dict, Any
 
 from typic.gen import Block, Keyword
 from typic.util import (
@@ -12,7 +12,8 @@ from typic.util import (
 )
 
 if TYPE_CHECKING:
-    from .common import Annotation, TranslatorT
+    from .common import Annotation, TranslatorT, SerdeProtocol
+    from .resolver import Resolver
 
 
 class TranslatorTypeError(TypeError):
@@ -41,6 +42,9 @@ class TranslatorFactory:
         {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}
     )
 
+    def __init__(self, resolver: "Resolver"):
+        self.resolver = resolver
+
     def sig_is_undef(self, params: Mapping[str, inspect.Parameter]) -> bool:
         return (not params) or {x.kind for x in params.values()}.issubset(
             self.VAR_KINDS
@@ -51,6 +55,10 @@ class TranslatorFactory:
 
     def pos_only(self, params: Mapping[str, inspect.Parameter]) -> bool:
         return not any(x.kind in self.KWD_KINDS for x in params.values())
+
+    @staticmethod
+    def required_fields(params: Mapping[str, inspect.Parameter]) -> Set[str]:
+        return {x for x, y in params.items() if y.default is y.empty}
 
     @staticmethod
     def _fields_from_hints(
@@ -76,7 +84,8 @@ class TranslatorFactory:
         """
         # Try first with the signature of the target if this is the target type
         params = safe_get_params(target)
-        if not as_source and not self.sig_is_undef(params):
+        undefined = self.sig_is_undef(params)
+        if not as_source and not undefined:
             return params
         # Now we start building a fake signature
         k = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -97,11 +106,29 @@ class TranslatorFactory:
         if attrs:
             return self._fields_from_attrs(k, attrs)
         # Can't be done.
-        return None
+        return None if undefined else params
 
     @staticmethod
     def _get_name(source: Type, target: Type) -> str:
         return get_defname("translator", (source, target))
+
+    @staticmethod
+    def _iter_field_assigns(
+        fields: Mapping[str, inspect.Parameter],
+        oname: str,
+        protos: Mapping[str, "SerdeProtocol"],
+        ctx: Dict[str, Any],
+    ):
+        for f, p in fields.items():
+            fset = f"{oname}.{f}"
+            if f in protos:
+                deser_name = f"{f}_deser"
+                proto = protos[f]
+                ctx[deser_name] = proto.transmute
+                fset = f"{deser_name}({fset})"
+            if p.kind != p.POSITIONAL_ONLY:
+                fset = f"{f}={fset}"
+            yield fset
 
     @functools.lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":
@@ -116,28 +143,27 @@ class TranslatorFactory:
         # Ensure that the target fields are a subset of the source fields.
         # We treat the target fields as the parameters for the target,
         # so this must be true.
-        fields = {*(self.get_fields(source, as_source=True) or {})}
-        if not fields.issuperset(target_fields.keys()):
-            diff = (*(target_fields.keys() - fields),)
+        fields = self.get_fields(source, as_source=True) or {}
+        fields_to_pass = {x: fields[x] for x in fields.keys() & target_fields.keys()}
+        required = self.required_fields(target_fields)
+        if not required.issubset(fields_to_pass.keys()):
+            diff = (*(required - fields.keys()),)
             raise TranslatorValueError(
                 f"{source!r} can't be translated to {target!r}. "
-                f"Source is missing fields: {diff}."
+                f"Source is missing required fields: {diff}."
             ) from None
+        protocols = self.resolver.protocols(target)
+
         # Build the translator.
         anno_name = get_unique_name(source)
         target_name = get_unique_name(target)
         func_name = self._get_name(source, target)
         oname = "o"
-        ctx = {target_name: target, anno_name: source}
+        ctx: Dict[str, Any] = {target_name: target, anno_name: source}
         with Block(ctx) as main:
             with main.f(func_name, Block.p(oname)) as func:
                 args = ", ".join(
-                    (
-                        f"{oname}.{f}"
-                        if p.kind == p.POSITIONAL_ONLY
-                        else f"{f}={oname}.{f}"
-                        for f, p in target_fields.items()
-                    )
+                    self._iter_field_assigns(fields_to_pass, oname, protocols, ctx)
                 )
                 func.l(f"{Keyword.RET} {target_name}({args})")
         trans = main.compile(name=func_name, ns=ctx)
@@ -146,6 +172,3 @@ class TranslatorFactory:
     def factory(self, annotation: "Annotation", target: Type) -> "TranslatorT":
         """Generate a translator for :py:class:`typic.Annotation` -> ``type``."""
         return self._compile_translator(annotation.resolved, target)
-
-
-translator = TranslatorFactory()

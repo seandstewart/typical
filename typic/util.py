@@ -458,7 +458,7 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
     try:
-        if issubclass(obj, Mapping) and not checks.istypeddict(origin):
+        if checks.issubclass(obj, Mapping) and not checks.istypeddict(obj):
             return {}
         params = cached_signature(obj).parameters
     except (ValueError, TypeError):  # pragma: nocover
@@ -492,11 +492,68 @@ class TypeMap(Dict[Type, VT]):
         return default
 
 
-class joinedrepr:
-    __slots__ = ("fields", "__dict__")
+def apply_slots(
+    _cls: Type = None, *, dict: bool = True, weakref: bool = False,
+):
+    """Decorator to add __slots__ to class created by dataclass.
 
-    def __init__(self, *fields):
-        self.fields = fields
+    Returns new class object as it's not possible to add __slots__ after class creation.
+
+    Source: https://github.com/starhel/dataslots/blob/master/dataslots/__init__.py
+    """
+
+    def _slots_setstate(self, state):
+        for param_dict in filter(None, state):
+            for slot, value in param_dict.items():
+                object.__setattr__(self, slot, value)
+
+    def wrap(cls):
+        cls_dict = {**cls.__dict__}
+        # Create only missing slots
+        inherited_slots = set().union(
+            *(getattr(c, "__slots__", set()) for c in cls.mro())
+        )
+
+        field_names = {f.name for f in dataclasses.fields(cls)}
+        if dict:
+            field_names.add("__dict__")
+        if weakref:
+            field_names.add("__weakref__")
+        cls_dict["__slots__"] = (*(field_names - inherited_slots),)
+
+        # Erase filed names from class __dict__
+        for f in field_names:
+            cls_dict.pop(f, None)
+
+        # Erase __dict__ and __weakref__
+        cls_dict.pop("__dict__", None)
+        cls_dict.pop("__weakref__", None)
+
+        # Pickle fix for frozen dataclass as mentioned in https://bugs.python.org/issue36424
+        # Use only if __getstate__ and __setstate__ are not declared and frozen=True
+        if (
+            all(param not in cls_dict for param in ["__getstate__", "__setstate__"])
+            and cls.__dataclass_params__.frozen
+        ):
+            cls_dict["__setstate__"] = _slots_setstate
+
+        # Prepare new class with slots
+        new_cls = type(cls)(cls.__name__, cls.__bases__, cls_dict)
+        new_cls.__qualname__ = getattr(cls, "__qualname__")
+
+        return new_cls
+
+    return wrap if _cls is None else wrap(_cls)
+
+
+class joinedrepr(str):
+    __slots__ = ("fields",)
+    fields: Iterable[Any]
+
+    def __new__(cls, *fields):
+        n = str.__new__(cls)
+        n.fields = fields
+        return n
 
     @cached_property
     def __repr(self) -> str:
@@ -509,12 +566,19 @@ class joinedrepr:
         return self.__repr
 
 
-class collectionrepr:
-    __slots__ = ("root_name", "keys", "__dict__")
+class collectionrepr(str):
+    __slots__ = (
+        "root_name",
+        "keys",
+    )
+    root_name: str
+    keys: Iterable[Any]
 
-    def __init__(self, root_name: "ReprT", *keys):
-        self.root_name = root_name
-        self.keys = keys
+    def __new__(cls, root_name: "ReprT", *keys):
+        n = str.__new__(cls)
+        n.root_name = root_name
+        n.keys = keys
+        return n
 
     @cached_property
     def __repr(self) -> str:

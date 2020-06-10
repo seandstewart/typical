@@ -27,7 +27,6 @@ from typing import (
     TypeVar,
     Iterable,
     MutableMapping,
-    Tuple,
     ItemsView,
     KeysView,
     ValuesView,
@@ -35,107 +34,101 @@ from typing import (
 )
 
 from typic import util, checks, gen, types
+from typic.ext import json
 from typic.common import DEFAULT_ENCODING
-from .common import SerializerT, SerdeConfig, Annotation
+from .common import (
+    SerializerT,
+    SerdeConfig,
+    Annotation,
+    Unprocessed,
+    Omit,
+    KT,
+    VT,
+)
+
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
 
 
 _T = TypeVar("_T")
-KT = TypeVar("KT")
-VT = TypeVar("VT")
-KVPairT = Tuple[KT, VT]
 
 
 def make_class_serdict(annotation: "Annotation", fields: Mapping[str, SerializerT]):
     name = f"{util.get_name(annotation.resolved_origin)}SerDict"
     bases = (ClassFieldSerDict,)
     getters = annotation.serde.fields_getters
+    omit = (*annotation.serde.omit_values,)
     if annotation.serde.fields_out:
         fout = annotation.serde.fields_out
         getters = {y: getters[x] for x, y in fout.items()}
         fields = {y: fields[x] for x, y in fout.items()}
+
+    def getitem(self, key):
+        v = dict.__getitem__(self, key)
+        return self.__missing__(key) if v is Unprocessed else v
+
+    if omit:
+
+        def missing(
+            self,
+            item,
+            *,
+            __fields=fields,
+            __getters=getters,
+            __repr=util.joinedrepr,
+            __omit=omit,
+        ):
+            raw = __getters[item](self.instance)
+            if raw not in __omit:
+                self[item] = ret = __fields[item](
+                    raw, lazy=self.lazy, name=__repr(self._name, item)
+                )
+                return ret
+            return Omit
+
+        def iter(self, *, __fields=fields.keys(), Omit=Omit):
+            for k in fields:
+                v = self.__missing__(k)
+                if v is Omit:
+                    continue
+                yield k
+
+    else:
+
+        def missing(  # type: ignore
+            self, item, *, __fields=fields, __getters=getters, __repr=util.joinedrepr,
+        ):
+            self[item] = ret = __fields[item](
+                __getters[item](self.instance),
+                lazy=self.lazy,
+                name=__repr(self._name, item),
+            )
+            return ret
+
+        def iter(self, *, __fields=fields.keys()):  # type: ignore
+            for k in __fields:
+                self.__missing__(k)
+                yield k
+
+    stdlib = json.using_stdlib()
     ns = dict(
         lazy=False,
         getters=getters,
         fields=fields,
         omit=(*annotation.serde.omit_values,),
         type=annotation.resolved_origin,
+        __missing__=missing,
+        __iter__=iter,
+        stdlib=stdlib,
     )
+    if stdlib:
+        ns["__getitem__"] = getitem
     return type(name, bases, ns)
-
-
-class _Unprocessed:
-    def __repr__(self):
-        return "<unprocessed>"
-
-
-Unprocessed = _Unprocessed()
-
-
-class _Omit:
-    def __repr__(self):
-        return "<omit>"
-
-
-Omit = _Omit()
 
 
 class SerializationValueError(ValueError):
     ...
-
-
-def _raise_serialization_error(
-    inst_tname: str,
-    tname: str,
-    pre: str,
-    sub: bool = True,
-    *,
-    __err=SerializationValueError,
-):
-    subt = "a subtype of " if sub else ""
-    raise __err(
-        f"{pre}type {inst_tname!r} "
-        f"is not {subt}type {tname!r}. "
-        f"Perhaps this annotation should be "
-        f"Union[{inst_tname}, {tname}]?"
-    ) from None
-
-
-def _validate_instance(
-    instance,
-    t,
-    *,
-    name=None,
-    __isinst=isinstance,
-    __err=_raise_serialization_error,
-    __getqualname=util.get_qualname,
-    __type=type,
-):
-    if not __isinst(instance, t):
-        pre = f"{name}: " if name else ""
-        inst_tname = __getqualname(__type(instance))
-        tname = __getqualname(t)
-        __err(inst_tname, tname, pre)
-
-
-def _validate_subclass(
-    instance,
-    t,
-    *,
-    name=None,
-    __issub=util.cached_issubclass,
-    __err=_raise_serialization_error,
-    __getqualname=util.get_qualname,
-    __type=type,
-):
-    instance_t = __type(instance)
-    if not __issub(instance_t, t):
-        pre = f"{name}: " if name else ""
-        inst_tname = __getqualname(__type(instance))
-        tname = __getqualname(t)
-        __err(inst_tname, tname, pre)
 
 
 class ClassFieldSerDict(dict):
@@ -145,6 +138,9 @@ class ClassFieldSerDict(dict):
     getters: Mapping[str, Callable[[str], Any]]
     fields: Mapping[str, SerializerT]
     omit: Iterable[Any]
+    stdlib: bool
+
+    __slots__ = ("instance", "lazy", "_name")
 
     def __init__(
         self, instance: Any, lazy: bool = False, *, __tfname__: util.ReprT = None,
@@ -152,38 +148,11 @@ class ClassFieldSerDict(dict):
         self._name = __tfname__
         self.instance = instance
         self.lazy = lazy
-        super().__init__(((x, Unprocessed) for x in self.fields))
+        if self.stdlib:
+            dict.__init__(self, dict.fromkeys(self.fields, Unprocessed))
 
-    def __hash__(self):  # pragma: nocover
-        h = getattr(self.instance, "__hash__", None)
-        return h() if h else None
-
-    def __iter__(self):
-        removals = set()
-        remadd = removals.add
-        pop = self.pop
-        for k in super().__iter__():
-            v = self[k]
-            if v is Omit:
-                remadd(k)
-                continue
-            yield k
-        for rk in removals:
-            pop(rk)
-
-    def __getitem__(self, item) -> Union[VT, _Omit]:
-        value = super().__getitem__(item)
-        if value is Unprocessed:
-            raw = self.getters[item](self.instance)
-            if raw in self.omit:
-                serialized = Omit
-            else:
-                serialized = self.fields[item](  # type: ignore
-                    raw, lazy=self.lazy, name=util.joinedrepr(self._name, item)
-                )
-            self[item] = serialized
-            return serialized
-        return value
+    def __hash__(self):
+        return self.instance.__hash__()
 
     def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
         return ItemsView(self)  # type: ignore
@@ -198,13 +167,63 @@ class ClassFieldSerDict(dict):
 def make_kv_serdict(annotation: "Annotation", kser: SerializerT, vser: SerializerT):
     name = f"{util.get_name(annotation.resolved_origin)}KVSerDict"
     bases = (KVSerDict,)
+    omit = (*annotation.serde.omit_values,)
+
+    def getitem(self, key):
+        v = dict.__getitem__(self, key)
+        return self.__missing__(key) if v is Unprocessed else v
+
+    if omit:
+
+        def missing(self, key, *, __repr=util.collectionrepr, __vser=vser, __omit=omit):
+            if key in self._unprocessed:
+                value = self._unprocessed[key]
+                if value in __omit:
+                    return Omit
+                newv = __vser(  # type: ignore
+                    value, lazy=self.lazy, name=__repr(self._name, key),
+                )
+                self[key] = newv
+                return newv
+            raise KeyError(f"{__repr(self._name, key)!r}")
+
+        def iter(self, *, Omit=Omit, __kser=kser):  # type: ignore
+            for k in self._unprocessed:
+                if self[k] is Omit:
+                    continue
+                yield k
+
+    else:
+
+        def missing(self, key, *, __repr=util.collectionrepr, __vser=vser):  # type: ignore
+            if key in self._unprocessed:
+                newv = vser(  # type: ignore
+                    self._unprocessed[key],
+                    lazy=self.lazy,
+                    name=__repr(self._name, key),
+                )
+                self[key] = newv
+                return newv
+            raise KeyError(f"{__repr(self._name, key)!r}")
+
+        def iter(self, *, __kser=kser):  # type: ignore
+            for k in self._unprocessed:
+                self[k]
+                yield k
+
+    stdlib = json.using_stdlib()
     ns = dict(
         type=annotation.generic,
         lazy=False,
         kser=staticmethod(kser),
         vser=staticmethod(vser),
-        omit=(*annotation.serde.omit_values,),
+        omit=omit,
+        __missing__=missing,
+        __iter__=iter,
+        stdlib=stdlib,
     )
+    if stdlib:
+        ns["__getitem__"] = getitem
     return type(name, bases, ns)
 
 
@@ -213,43 +232,17 @@ class KVSerDict(dict):
     vser: SerializerT
     lazy: bool
     omit: Iterable[Any]
+    stdlib: bool
 
-    def __init__(
-        self, seq=None, *, lazy: bool = False, __tfname__: util.ReprT, **kwargs
-    ):
+    __slots__ = ("_unprocessed", "_name")
+
+    def __init__(self, mapping: Mapping, *, lazy: bool = False, __tfname__: util.ReprT):
         kser = self.kser
         self._name = __tfname__
-        self._unprocessed = {
-            kser(k): v for k, v in dict(seq, **kwargs).items()  # type: ignore
-        }
-        super().__init__(((k, Unprocessed) for k in self._unprocessed))
+        self._unprocessed = {kser(k): v for k, v in mapping.items()}  # type: ignore
         self.lazy = lazy
-
-    def __iter__(self):
-        pop = self.pop
-        removals = set()
-        remadd = removals.add
-        for k in super().__iter__():
-            if self[k] is Omit:
-                remadd(k)
-                continue
-            yield k
-        for rk in removals:
-            pop(rk)
-
-    def __getitem__(self, item) -> Union[VT, _Omit]:
-        value = super().__getitem__(item)
-        if value in self.omit:
-            return Omit
-        if value is Unprocessed:
-            newv = self.vser(  # type: ignore
-                self._unprocessed[item],
-                lazy=self.lazy,
-                name=util.collectionrepr(self._name, item),
-            )
-            self[item] = newv
-            return newv
-        return value
+        if self.stdlib:
+            dict.__init__(self, dict.fromkeys(self._unprocessed, Unprocessed))
 
     def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
         return ItemsView(self)  # type: ignore
@@ -277,29 +270,31 @@ class SerList(list):
     omit: Iterable[Any]
     lazy: bool
 
+    __slots__ = ("repr", "_name")
+
     def __init__(self, seq=(), *, __tfname__: util.ReprT, lazy: bool = False):
+        self.repr = util.collectionrepr
         self.lazy = lazy
         self._name = __tfname__
         ser = self.serializer
-        super().__init__(
+        list.__init__(
+            self,
             (
-                ser(x, lazy=lazy, name=util.collectionrepr(self._name, i))  # type: ignore
+                ser(x, lazy=lazy, name=self.repr(self._name, i))  # type: ignore
                 for i, x in enumerate(seq)
-            )
+            ),
         )
 
     def __setitem__(self, key, value):  # pragma: nocover
         super().__setitem__(
             key,
-            self.serializer(
-                value, lazy=self.lazy, name=util.collectionrepr(self._name, key)
-            ),
+            self.serializer(value, lazy=self.lazy, name=self.repr(self._name, key)),
         )
 
     def append(self, object: _T) -> None:  # pragma: nocover
         super().append(
             self.serializer(  # type: ignore
-                object, lazy=self.lazy, name=util.collectionrepr(self._name, len(self)),
+                object, lazy=self.lazy, name=self.repr(self._name, len(self)),
             )
         )
 
@@ -363,7 +358,7 @@ class SerFactory:
         Iterable_abc,
     )
     _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict)
-    _PRIMITIVES = (str, int, bool, float, type(None))
+    _PRIMITIVES = (str, int, bool, float, type(None), type(...))
     _DYNAMIC = frozenset(
         {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar}
     )
@@ -379,22 +374,32 @@ class SerFactory:
 
     def _check_add_null_check(self, func: gen.Block, annotation: "Annotation"):
         if annotation.optional:
-            with func.b("if o is None:") as b:
+            with func.b(f"if o in {self.resolver.OPTIONALS}:") as b:
                 b.l(f"{gen.Keyword.RET}")
 
     def _add_type_check(self, func: gen.Block, annotation: "Annotation"):
-        validator = (
-            _validate_instance
-            if checks.isbuiltinsubtype(annotation.generic)
-            else _validate_subclass
-        )
         resolved_name = util.get_name(annotation.resolved)
         func.l(f"{self._FNAME} = name or {resolved_name!r}")
-        func.l(
-            f"_validate(o, t, name={self._FNAME})",
-            _validate=validator,
-            t=annotation.generic,
-        )
+        line = "if not tcheck(o.__class__, t):"
+        check: Callable[[Any], bool] = util.cached_issubclass
+        if checks.isbuiltinsubtype(annotation.generic):
+            line = "if not tcheck(o, t):"
+            check = isinstance  # type: ignore
+        with func.b(line, tcheck=check) as b:
+            msg = (
+                f"{{{self._FNAME}}}: type {{inst_tname!r}} "
+                f"is not a subtype of type "
+                f"{util.get_qualname(annotation.generic)!r}. "
+                f"Perhaps this annotation should be "
+                f"Union[{{inst_tname}}, {util.get_qualname(annotation.generic)}]?"
+            )
+            b.l("inst_tname = qualname(o.__class__)")
+            b.l(
+                f"raise err(f{msg!r})",
+                err=SerializationValueError,
+                qualname=util.get_qualname,
+                t=annotation.generic,
+            )
 
     def _build_list_serializer(
         self, func: gen.Block, annotation: "Annotation",
@@ -528,6 +533,8 @@ class SerFactory:
                 self._check_add_null_check(func, annotation)
                 self._add_type_check(func, annotation)
                 line = f"{ser_name}(o)"
+                if annotation.origin in (type(o) for o in self.resolver.OPTIONALS):
+                    line = "None"
                 func.l(f"{gen.Keyword.RET} {line}")
 
         serializer: SerializerT = main.compile(name=func_name, ns=ns)
@@ -577,7 +584,10 @@ class SerFactory:
                 ) as func:
                     self._check_add_null_check(func, annotation)
                     self._add_type_check(func, annotation)
-                    func.l(f"{gen.Keyword.RET} o")
+                    line = "o"
+                    if annotation.origin in (type(o) for o in self.resolver.OPTIONALS):
+                        line = "None"
+                    func.l(f"{gen.Keyword.RET} {line}")
 
             serializer = main.compile(name=func_name, ns=ns)
             self._serializer_cache[func_name] = serializer

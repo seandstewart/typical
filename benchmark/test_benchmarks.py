@@ -27,6 +27,21 @@ _MODS = {
 }
 
 
+_TRANSLATE_FROM_MODS = {
+    "typic-object-api": klass,
+    "typic-protocol-api": protocol,
+    "typic-functional-api": functional,
+    "pydantic": pyd,
+}
+
+
+_TRANSLATE_TO_MODS = {
+    "typic-object-api": klass,
+    "typic-protocol-api": protocol,
+    "typic-functional-api": functional,
+}
+
+
 @dataclasses.dataclass
 class NotASkill:
     ...
@@ -98,3 +113,26 @@ def test_benchmarks_serialize_invalid_data(benchmark, mod):
         assert valid, data
     else:
         assert not valid, data
+
+
+@pytest.mark.parametrize(argnames="mod", argvalues=(*reversed([*_TRANSLATE_TO_MODS]),))
+def test_benchmarks_translate_to_class(benchmark, mod):
+    benchmark.group = "Translate to Arbitrary Class"
+    benchmark.name = mod
+    translate = _MODS[mod].translate_to
+    model = _MODS[mod].Model
+    instance = typic.transmute(model, VALID_RAW)
+    valid, data = benchmark(translate, instance, marsh.Model)
+    assert valid, data
+
+
+@pytest.mark.parametrize(
+    argnames="mod", argvalues=(*reversed([*_TRANSLATE_FROM_MODS]),)
+)
+def test_benchmarks_translate_from_class(benchmark, mod):
+    benchmark.group = "Translate from Arbitrary Class"
+    benchmark.name = mod
+    translate = _MODS[mod].translate_from
+    instance = typic.transmute(marsh.Model, VALID_RAW)
+    valid, data = benchmark(translate, instance)
+    assert valid, data
