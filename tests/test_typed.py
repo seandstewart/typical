@@ -31,7 +31,7 @@ from typic.api import (
     validate,
     translate,
 )
-from typic.checks import isbuiltintype, BUILTIN_TYPES
+from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
@@ -80,6 +80,11 @@ def test_isbuiltintype(obj: typing.Any):
         (pathlib.Path, DirectoryPath.cwd(), pathlib.Path.cwd()),
         (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
         (objects.Data, {"foo": "bar!"}, objects.Data("bar!")),
+        (dict, objects.Data("bar!"), {"foo": "bar!"}),
+        (list, objects.Data("bar!"), ["bar!"]),
+        (objects.TDict, objects.TClass(1), objects.TDict(a=1)),
+        (objects.NTup, objects.TClass(1), objects.NTup(a=1)),
+        (objects.TDict, objects.NTup(1), objects.TDict(a=1)),
         (
             objects.Nested,
             {"data": {"foo": "bar!"}},
@@ -120,7 +125,8 @@ def test_isbuiltintype(obj: typing.Any):
 )
 def test_transmute_simple(annotation, value, expected):
     transmuted = transmute(annotation, value)
-    assert isinstance(transmuted, annotation)
+    t = dict if istypeddict(annotation) else annotation
+    assert isinstance(transmuted, t)
     assert transmuted == expected
 
 
@@ -252,6 +258,7 @@ def test_transmute_supscripted(annotation, value, expected):
         (typing.Collection[objects.Nested], [{"data": {"foo": "bar!"}}]),
         (typing.Collection[objects.NestedFromDict], [{"data": {"foo": "bar!"}}]),
         (typing.Collection[objects.NestedFromDict], ["{'data': {'foo': 'bar!'}}"]),
+        (typing.Collection[str], objects.TClass(1)),
     ],
     ids=objects.get_id,
 )
@@ -288,6 +295,7 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
         (typing.DefaultDict[str, objects.DefaultNone], {"foo": {}},),
         (typing.DefaultDict[str, objects.DefaultEllipsis], {"foo": {}},),
+        (typing.Mapping[str, str], objects.TClass(1)),
     ],
     ids=objects.get_id,
 )
