@@ -12,7 +12,6 @@ from typing import (
     Callable,
     Type,
     Dict,
-    Collection,
     Tuple,
     List,
     Pattern,

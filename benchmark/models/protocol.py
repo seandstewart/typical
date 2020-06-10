@@ -83,7 +83,7 @@ def tojson(instance: Model):
 
 def translate_to(instance: Model, target: Type):
     try:
-        return True, model_protocol.translate(instance, target)
+        return True, model_protocol.translate(instance, target)  # type: ignore
     except (ValueError, TypeError) as err:
         return False, err
 

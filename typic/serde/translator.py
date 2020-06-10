@@ -10,7 +10,6 @@ from typing import (
     Set,
     Dict,
     Any,
-    Iterator,
 )
 
 from typic.checks import iscollectiontype, ismappingtype

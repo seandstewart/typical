@@ -114,7 +114,7 @@ class Resolver:
             The higher-order class to translate into.
         """
         resolved: SerdeProtocol = self.resolve(type(value))
-        return resolved.translate(value, target)
+        return resolved.translate(value, target)  # type: ignore
 
     def validate(
         self, annotation: Type[ObjectT], value: Any, *, transmute: bool = False
