@@ -7,7 +7,7 @@ from types import MappingProxyType
 from typing import Dict, List, ClassVar, Pattern, Match, Mapping, Set, Optional
 from urllib import parse
 
-from typic.util import cached_property, apply_slots
+from typic.util import cached_property, slotted
 from .secret import SecretStr
 
 __all__ = (
@@ -102,7 +102,7 @@ class NetworkAddressValueError(ValueError):
     """A generic error indicating the value is not a valid network address."""
 
 
-@apply_slots
+@slotted
 @dataclasses.dataclass(frozen=True)
 class NetAddrInfo:
     """Detailed information about a network address.

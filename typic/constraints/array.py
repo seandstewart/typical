@@ -89,7 +89,7 @@ def unique(seq: Sequence, *, ret_type: Type[Union[list, tuple]] = list) -> Seque
         return unique_slow(seq, ret_type=ret_type)
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArrayConstraints(BaseConstraints):
     """Specific constraints pertaining to a sized, array-like type.
@@ -169,7 +169,7 @@ class ArrayConstraints(BaseConstraints):
         return {x: y for x, y in schema.items() if y is not None}
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class ListContraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`list`."""
@@ -177,7 +177,7 @@ class ListContraints(ArrayConstraints):
     type: ClassVar[Type[list]] = list
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class TupleContraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`tuple`."""
@@ -185,7 +185,7 @@ class TupleContraints(ArrayConstraints):
     type: ClassVar[Type[tuple]] = tuple
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class SetContraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`set`."""
@@ -194,7 +194,7 @@ class SetContraints(ArrayConstraints):
     unique: bool = True
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class FrozenSetConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`frozenset`."""

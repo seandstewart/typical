@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import ClassVar, Pattern, Dict, Set, Match, Optional, Mapping, List
 from urllib.parse import urlencode, urlparse, ParseResult, quote, parse_qs
 
-from typic.util import cached_property, apply_slots
+from typic.util import cached_property, slotted
 from .secret import SecretStr
 from .url import (
     DEFAULT_PORTS,
@@ -29,7 +29,7 @@ class DSNValueError(NetworkAddressValueError):
     pass
 
 
-@apply_slots
+@slotted
 @dataclasses.dataclass(frozen=True)
 class DSNInfo:
     """Detailed information about a D(ata)S(ource)N(ame).

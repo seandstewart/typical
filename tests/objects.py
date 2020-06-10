@@ -117,6 +117,15 @@ class SuperBase(Base):
         super().__setattr__(key, value)
 
 
+class MetaSlotsClass(type):
+    def __new__(mcs, name, bases, namespace):
+        cls = super().__new__(mcs, name, bases, namespace)
+        ...
+        cls = typic.klass(cls, slots=True)
+        ...
+        return cls
+
+
 @typic.klass(frozen=True)
 class FrozenTypic:
     var: str
@@ -238,6 +247,11 @@ class NestedConstrained:
     array: typing.List[Constrained]
     constr: LargeIntDict
     other_constr: ShortStrDictT
+
+
+@typic.klass
+class TClass:
+    a: int
 
 
 class TDict(TypedDict):

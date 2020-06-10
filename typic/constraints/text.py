@@ -7,7 +7,7 @@ from typic import gen, util
 from .common import BaseConstraints, ContextT, ChecksT
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class TextConstraints(BaseConstraints):
     """Specific constraints pertaining to text-like types (`AnyStr` in Python).
@@ -65,7 +65,7 @@ class TextConstraints(BaseConstraints):
         return {x: y for x, y in schema.items() if x is not None}
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class StrConstraints(TextConstraints):
     """Constraints specifically for :py:class:`str`."""
@@ -73,7 +73,7 @@ class StrConstraints(TextConstraints):
     type: ClassVar[Type[str]] = str
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class BytesConstraints(TextConstraints):
     """Constraints specifically for :py:class:`bytes`."""

@@ -786,3 +786,11 @@ class Cls:
 def test_translate_error(target, value, exc):
     with pytest.raises(exc):
         translate(value, target)
+
+
+def test_prevent_recursion_with_slots():
+
+    with pytest.raises(TypeError):
+
+        class SubMeta(metaclass=objects.MetaSlotsClass):
+            a: int

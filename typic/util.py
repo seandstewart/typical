@@ -49,6 +49,7 @@ __all__ = (
     "safe_eval",
     "safe_get_params",
     "simple_attributes",
+    "slotted",
     "typed_dict_signature",
 )
 
@@ -492,10 +493,21 @@ class TypeMap(Dict[Type, VT]):
         return default
 
 
-def apply_slots(
+def recursing() -> bool:
+    """Detect whether we're in a recursive loop."""
+    frames = inspect.getouterframes(inspect.currentframe())[1:]
+    top_frame = inspect.getframeinfo(frames[0][0])
+    for frame, _, _, _, _, _ in frames[1:]:
+        (path, line_number, func_name, lines, index) = inspect.getframeinfo(frame)
+        if path == top_frame[0] and func_name == top_frame[2]:
+            return True
+    return False
+
+
+def slotted(
     _cls: Type = None, *, dict: bool = True, weakref: bool = False,
 ):
-    """Decorator to add __slots__ to class created by dataclass.
+    """Decorator to create a "slotted" version of the provided class.
 
     Returns new class object as it's not possible to add __slots__ after class creation.
 
@@ -538,8 +550,9 @@ def apply_slots(
             cls_dict["__setstate__"] = _slots_setstate
 
         # Prepare new class with slots
-        new_cls = type(cls)(cls.__name__, cls.__bases__, cls_dict)
-        new_cls.__qualname__ = getattr(cls, "__qualname__")
+        new_cls = cls.__class__(cls.__name__, cls.__bases__, cls_dict)
+        new_cls.__qualname__ = cls.__qualname__
+        new_cls.__module__ = cls.__module__
 
         return new_cls
 

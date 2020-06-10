@@ -13,6 +13,8 @@ from typing import (
     Iterable,
     cast,
     TypeVar,
+    AnyStr,
+    Iterator,
 )
 
 from typic import strict as st, util, constraints as const
@@ -30,6 +32,7 @@ DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
 TranslatorT = Callable[[Any], Any]
 """The signature of a type translator."""
+FieldIteratorT = Callable[[Any], Iterator[Union[Tuple[str, Any], Any]]]
 FieldSerializersT = Mapping[str, SerializerT]
 """A mapping of field names to their serializer functions."""
 FieldDeserializersT = Mapping[str, DeserializerT]
@@ -51,7 +54,7 @@ A mapping should be of attribute name -> out/in field name.
 """
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeFlags:
     """Optional settings for a Ser-ialization/de-serialization protocol."""
@@ -123,7 +126,7 @@ class SerdeConfigD(TypedDict):
     omit_values: Tuple[Any, ...]
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)
@@ -151,7 +154,7 @@ class SerdeConfig:
 _T = TypeVar("_T")
 
 
-@util.apply_slots
+@util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
 class Annotation:
     """The resolved, actionable annotation for a given annotation."""
@@ -183,38 +186,19 @@ class Annotation:
     """The configuration for serializing and deserializing the given type."""
     constraints: Optional["const.ConstraintsT"] = None
     """Type restriction configuration, if any."""
+    generic: Type = dataclasses.field(init=False)
+    has_default: bool = dataclasses.field(init=False)
+    resolved_origin: Type = dataclasses.field(init=False)
+    args: Tuple[Type, ...] = dataclasses.field(init=False)
 
-    @property
-    def has_default(self) -> bool:
-        """Whether or not the annotation has a defined default value."""
-        return self.parameter.default is not self.EMPTY
-
-    @property
-    def args(self) -> Tuple[Any, ...]:
-        """What types are subscripted to this annotation, if any."""
-        return util.get_args(self.resolved)
-
-    @property
-    def resolved_origin(self) -> Type[ObjectT]:
-        """The origin-type of the 'resolved' annotation.
-
-        This is slightly different than `origin` -- `origin` will represent the
-        origin-type of the "wrapped" type, e.g., `Union`, or `ReadOnly`.
-        This will represent the origin of the "actionable", e.g. `resolved`, type.
-        """
-        return util.origin(self.resolved)
-
-    @util.cached_property
-    def generic(self) -> Type:
-        """Get the 'generic' for this type, if there is one.
-
-        Mapping[str, str] -> Mapping
-        dict -> dict
-        """
-        return getattr(self.resolved, "__origin__", self.resolved_origin)
+    def __post_init__(self):
+        self.has_default = self.parameter.default is not self.EMPTY
+        self.args = util.get_args(self.resolved)
+        self.resolved_origin = util.origin(self.resolved)
+        self.generic = getattr(self.resolved, "__origin__", self.resolved_origin)
 
 
-@util.apply_slots
+@util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
     """An actionable run-time serialization & deserialization protocol for a type."""
@@ -235,6 +219,8 @@ class SerdeProtocol:
     """Transmute an input into the annotation."""
     primitive: SerializerT = dataclasses.field(init=False)
     """Get the "primitive" representation of the annotation."""
+    tojson: Callable[..., AnyStr] = dataclasses.field(init=False)
+    translate: TranslatorT = dataclasses.field(init=False)
 
     def __post_init__(self):
         # Pass through if for some reason there's no coercer.
