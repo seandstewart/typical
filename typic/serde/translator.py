@@ -1,7 +1,18 @@
 import functools
 import inspect
-from typing import TYPE_CHECKING, Type, Mapping, Tuple, Optional, Set, Dict, Any
+from operator import methodcaller
+from typing import (
+    TYPE_CHECKING,
+    Type,
+    Mapping,
+    Tuple,
+    Optional,
+    Set,
+    Dict,
+    Any,
+)
 
+from typic.checks import iscollectiontype, ismappingtype
 from typic.gen import Block, Keyword
 from typic.util import (
     cached_type_hints,
@@ -12,8 +23,13 @@ from typic.util import (
 )
 
 if TYPE_CHECKING:
-    from .common import Annotation, TranslatorT, SerdeProtocol
+    from .common import Annotation, TranslatorT, SerdeProtocol, FieldIteratorT
     from .resolver import Resolver
+
+
+_itemscaller = methodcaller("items")
+_valuescaller = methodcaller("values")
+_iter = iter
 
 
 class TranslatorTypeError(TypeError):
@@ -72,7 +88,7 @@ class TranslatorFactory:
 
     @functools.lru_cache(maxsize=None)
     def get_fields(
-        self, target: Type, as_source: bool = False
+        self, type: Type, as_source: bool = False
     ) -> Optional[Mapping[str, inspect.Parameter]]:
         """Get the fields for the given type.
 
@@ -83,7 +99,7 @@ class TranslatorFactory:
         making this happen.
         """
         # Try first with the signature of the target if this is the target type
-        params = safe_get_params(target)
+        params = safe_get_params(type)
         undefined = self.sig_is_undef(params)
         if not as_source and not undefined:
             return params
@@ -96,17 +112,49 @@ class TranslatorFactory:
         elif self.pos_only(params):
             k = inspect.Parameter.POSITIONAL_ONLY
         # Fetch any type hints and try to use those.
-        hints = cached_type_hints(target)
+        hints = cached_type_hints(type)
         if hints:
             return self._fields_from_hints(k, hints)
         # Fallback to the target object's defined attributes
         # This will basically work for ORM models, Pydantic models...
         # Anything that defines the instance using the class body.
-        attrs = cached_simple_attributes(target)
+        attrs = cached_simple_attributes(type)
         if attrs:
             return self._fields_from_attrs(k, attrs)
         # Can't be done.
         return None if undefined else params
+
+    @functools.lru_cache(maxsize=None)
+    def iterator(self, type: Type, values: bool = False) -> "FieldIteratorT":
+        """Get an iterator function for a given type, if possible."""
+
+        if ismappingtype(type):
+            iter = _valuescaller if values else _itemscaller
+            return iter
+
+        if iscollectiontype(type):
+            return _iter
+
+        fields = self.get_fields(type, as_source=True) or {}
+
+        if fields:
+            func_name = get_defname("iterator", (type, values))
+            oname = "o"
+            ctx: dict = {}
+            with Block(ctx) as main:
+                with main.f(func_name, Block.p(oname)) as func:
+                    if values:
+                        for f in fields:
+                            func.l(f"{Keyword.YLD} {oname}.{f}")
+                    else:
+                        for f in fields:
+                            func.l(f"{Keyword.YLD} {f!r}, {oname}.{f}")
+
+            return main.compile(name=func_name, ns=ctx)
+
+        raise TranslatorTypeError(
+            f"Cannot get iterator for type {type!r}, unable to determine fields."
+        ) from None
 
     @staticmethod
     def _get_name(source: Type, target: Type) -> str:

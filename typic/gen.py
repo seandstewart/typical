@@ -16,6 +16,7 @@ ParameterKind = inspect._ParameterKind
 
 class Keyword(str, enum.Enum):
     RET = "return"
+    YLD = "yield"
     ASN = "async"
     AWT = "await"
     DEF = "def"

@@ -32,7 +32,7 @@ def _get_digits(tup: decimal.DecimalTuple):
     return whole_digits, digits, decimals
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class NumberConstraints(BaseConstraints):
     """Specific constraints pertaining to number-like types.
@@ -160,7 +160,7 @@ class NumberConstraints(BaseConstraints):
         return {x: y for x, y in schema.items() if y is not None}
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class IntContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.
@@ -179,7 +179,7 @@ class IntContraints(NumberConstraints):
         return schema
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class FloatContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.
@@ -192,7 +192,7 @@ class FloatContraints(NumberConstraints):
     type: ClassVar[Type[NumberT]] = float
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class DecimalContraints(NumberConstraints):
     """Constraints specifically for :py:class:`int`.

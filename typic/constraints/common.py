@@ -159,7 +159,7 @@ class InstanceCheck(enum.IntEnum):
     """
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)  # type: ignore
 class BaseConstraints(__AbstractConstraints):
     """A base constraints object. Shouldn't be used directly.
@@ -250,7 +250,7 @@ class BaseConstraints(__AbstractConstraints):
         return validator
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class MultiConstraints(__AbstractConstraints):
     """A container for multiple constraints for a single field."""
@@ -336,7 +336,7 @@ class MultiConstraints(__AbstractConstraints):
         return scheme
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class TypeConstraints(__AbstractConstraints):
     """A container for simple types. Validation is limited to instance checks.
@@ -386,7 +386,7 @@ class TypeConstraints(__AbstractConstraints):
         return {}
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class EnumConstraints(__AbstractConstraints):
     type: Type[enum.Enum]  # type: ignore

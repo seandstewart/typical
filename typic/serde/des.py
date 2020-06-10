@@ -12,7 +12,6 @@ from typing import (
     Callable,
     Type,
     Dict,
-    Collection,
     Tuple,
     List,
     Pattern,
@@ -234,15 +233,10 @@ class DesFactory:
 
         return factory
 
-    def _build_builtin_des(
+    def _build_text_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
     ):
         origin = annotation.resolved_origin
-        # We should try and evaluate inputs for anything that isn't a subclass of str.
-        if issubclass(origin, (Collection, bool, int)) and not issubclass(
-            origin, (str, bytes)
-        ):
-            self._add_eval(func)
         # Encode for bytes
         if issubclass(origin, bytes):
             with func.b(f"if isinstance({self.VNAME}, str):") as b:
@@ -254,15 +248,22 @@ class DesFactory:
         elif issubclass(origin, str):
             with func.b(f"if isinstance({self.VNAME}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
-        if issubclass(origin, defaultdict):
-            func.namespace[anno_name] = functools.partial(defaultdict, None)
-        # Translate fields for a mapping
-        if issubclass(origin, Mapping) and annotation.serde.fields_in:
-            line = f"{anno_name}({{fields_in[x]: y for x, y in {self.VNAME}.items()}})"
-        # Coerce to the target type.
+        func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
+    def _build_builtin_des(
+        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+    ):
+        origin = annotation.resolved_origin
+        if issubclass(origin, (str, bytes)):
+            self._build_text_des(func, anno_name, annotation)
+        elif checks.ismappingtype(origin):
+            self._build_mapping_des(func, anno_name, annotation)
+        elif checks.iscollectiontype(origin):
+            self._build_collection_des(func, anno_name, annotation)
+        # bool, int, float...
         else:
-            line = f"{anno_name}({self.VNAME})"
-        func.l(f"{self.VNAME} = {line}")
+            self._add_eval(func)
+            func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
     def _build_pattern_des(self, func: gen.Block, anno_name: str):
         func.l(
@@ -289,15 +290,27 @@ class DesFactory:
         if eval:
             self._add_eval(func)
 
-        fields_deser = {
-            x: self.resolver._resolve_from_annotation(y).transmute
-            for x, y in annotation.serde.fields.items()
-        }
-        x = "fields_in[x]"
-        y = f"fields_deser[x]({self.VNAME}[x])" if fields_deser else f"{self.VNAME}[x]"
-        line = f"{{{x}: {y} for x in fields_in.keys()"
-        tail = "}" if total else f"& {self.VNAME}.keys()}}"
-        func.l(f"{self.VNAME} = {anno_name}(**{line}{tail})", fields_deser=fields_deser)
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
+            fields_deser = {
+                x: self.resolver._resolve_from_annotation(y).transmute
+                for x, y in annotation.serde.fields.items()
+            }
+            x = "fields_in[x]"
+            y = (
+                f"fields_deser[x]({self.VNAME}[x])"
+                if fields_deser
+                else f"{self.VNAME}[x]"
+            )
+            line = f"{{{x}: {y} for x in fields_in.keys()"
+            tail = "}" if total else f"& {self.VNAME}.keys()}}"
+            b.l(
+                f"{self.VNAME} = {anno_name}(**{line}{tail})", fields_deser=fields_deser
+            )
+        with func.b("else:") as b:
+            b.l(
+                f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
+                translate=self.resolver.translate,
+            )
 
     def _build_typedtuple_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
@@ -318,6 +331,11 @@ class DesFactory:
                 )
             else:
                 b.l(f"{self.VNAME} = {anno_name}(*{self.VNAME})",)
+        with func.b("else:") as b:
+            b.l(
+                f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
+                translate=self.resolver.translate,
+            )
 
     def _build_mapping_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",
@@ -334,7 +352,8 @@ class DesFactory:
             func.namespace[anno_name] = functools.partial(defaultdict, factory)
         kd_name = f"{anno_name}_key_des"
         it_name = f"{anno_name}_item_des"
-        line = f"{anno_name}({self.VNAME})"
+        iterate = f"iterate({self.VNAME})"
+        line = f"{anno_name}({iterate})"
         if args or annotation.serde.fields_in:
             x, y = "x", "y"
             # If there are args & field mapping, get the correct field name
@@ -348,13 +367,19 @@ class DesFactory:
             elif args:
                 x = f"{kd_name}(x)"
                 y = f"{it_name}(y)"
-            # Write the line.
-            line = f"{anno_name}({{{x}: {y} for x, y in {self.VNAME}.items()}})"
+            line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
+
+        # Write the lines.
         self._add_eval(func)
         func.l(
             f"{self.VNAME} = {line}",
             level=None,
-            **{kd_name: key_des, it_name: item_des},
+            **{
+                kd_name: key_des,
+                it_name: item_des,
+                "Mapping": abc.Mapping,
+                "iterate": self.resolver.iterate,
+            },
         )
 
     def _build_collection_des(
@@ -362,17 +387,26 @@ class DesFactory:
     ):
         item_des = None
         it_name = f"{anno_name}_item_des"
-        line = f"{self.VNAME} = {anno_name}({self.VNAME})"
+        iterate = f"iterate({self.VNAME}, values=True)"
+        line = f"{self.VNAME} = {anno_name}({iterate})"
         if annotation.args:
             item_type = annotation.args[0]
             item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
             line = (
                 f"{self.VNAME} = "
-                f"{anno_name}({it_name}(x) for x in parent({self.VNAME}))"
+                f"{anno_name}({it_name}(x) for x in parent({iterate}))"
             )
 
         self._add_eval(func)
-        func.l(line, level=None, **{it_name: item_des})
+        func.l(
+            line,
+            level=None,
+            **{
+                it_name: item_des,
+                "Collection": abc.Collection,
+                "iterate": self.resolver.iterate,
+            },
+        )
 
     def _build_path_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation",

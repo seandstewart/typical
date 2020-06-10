@@ -15,6 +15,7 @@ from typing import (
     cast,
     Union,
     TypeVar,
+    Iterator,
 )
 
 from typic import checks, constraints as const, util, strict as st
@@ -66,6 +67,11 @@ class Resolver:
             self.resolve(typ)
             self.resolve(Optional[typ])
             self.resolve(typ, is_optional=True)
+            try:
+                self.translator.iterator(typ)
+                self.translator.iterator(typ, values=True)
+            except TypeError:
+                pass
 
     def transmute(self, annotation: Type[ObjectT], value: Any) -> ObjectT:
         """Convert a given value `into` the target annotation.
@@ -108,7 +114,7 @@ class Resolver:
             The higher-order class to translate into.
         """
         resolved: SerdeProtocol = self.resolve(type(value))
-        return resolved.translate(value, target)
+        return resolved.translate(value, target)  # type: ignore
 
     def validate(
         self, annotation: Type[ObjectT], value: Any, *, transmute: bool = False
@@ -129,6 +135,27 @@ class Resolver:
         if transmute:
             return resolved.transmute(value)  # type: ignore
         return value
+
+    def iterate(
+        self, obj, *, values: bool = False
+    ) -> Iterator[Union[Tuple[str, Any], Any]]:
+        """Iterate over the fields of an object.
+
+        Parameters
+        ----------
+        obj
+            The object to iterate over
+        values
+            Whether to only yield values of an object's fields. (defaults False)
+        """
+        t = obj.__class__
+        # Extract the type of the enum value if this is an Enum.
+        # Enums classes are iterable and will generate the wrong kind of iterator.
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = obj.__class__
+        iterator = self.translator.iterator(t, values=values)
+        return iterator(obj)
 
     def coerce_value(
         self, value: Any, annotation: Type[ObjectT]

@@ -67,6 +67,7 @@ __all__ = (
     "coerce",
     "constrained",
     "is_strict_mode",
+    "iterate",
     "tojson",
     "primitive",
     "protocol",
@@ -109,6 +110,7 @@ schemas = schema_builder.all
 protocols = resolver.protocols
 protocol = resolver.resolve
 tojson = resolver.tojson
+iterate = resolver.iterate
 
 # TBDeprecated
 coerce = resolver.coerce_value
