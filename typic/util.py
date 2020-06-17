@@ -8,7 +8,7 @@ import inspect
 import sys
 from threading import RLock
 from types import MappingProxyType
-from typing import (
+from typing import (  # type: ignore  # ironic...
     Tuple,
     Any,
     Sequence,
@@ -27,6 +27,7 @@ from typing import (
     MutableSet,
     Dict,
     Optional,
+    ForwardRef,
 )
 
 import typic.checks as checks
@@ -213,6 +214,8 @@ def get_name(obj: Type) -> str:
     """
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return obj._name
+    elif isinstance(obj, ForwardRef):
+        return obj.__forward_arg__
     return obj.__name__
 
 
@@ -220,7 +223,8 @@ def get_name(obj: Type) -> str:
 def get_qualname(obj: Type) -> str:
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return repr(obj)
-
+    elif isinstance(obj, ForwardRef):
+        return obj.__forward_arg__
     qualname = getattr(obj, "__qualname__", obj.__name__)
     if "<locals>" in qualname:
         return obj.__name__
