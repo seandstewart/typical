@@ -8,7 +8,7 @@ import inspect
 import sys
 from threading import RLock
 from types import MappingProxyType
-from typing import (
+from typing import (  # type: ignore  # ironic...
     Tuple,
     Any,
     Sequence,
