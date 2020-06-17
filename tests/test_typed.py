@@ -5,6 +5,7 @@ import inspect
 import pathlib
 import re
 import typing
+import uuid
 from collections import defaultdict
 from operator import attrgetter
 
@@ -38,6 +39,10 @@ from typic.types import NetworkAddress, DirectoryPath
 from typic.klass import klass
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
+
+
+class SubUUID(uuid.UUID):
+    ...
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -76,6 +81,11 @@ def test_isbuiltintype(obj: typing.Any):
         (datetime.date, 0, datetime.date.fromtimestamp(0)),
         (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
         (datetime.date, datetime.datetime(1980, 1, 1), datetime.date(1980, 1, 1)),
+        (uuid.UUID, 1, uuid.UUID(int=1)),
+        (uuid.UUID, uuid.UUID(int=1).bytes, uuid.UUID(int=1)),
+        (uuid.UUID, str(uuid.UUID(int=1)), uuid.UUID(int=1)),
+        (uuid.UUID, uuid.UUID(int=1).fields, uuid.UUID(int=1)),
+        (SubUUID, uuid.UUID(int=1), SubUUID(int=1)),
         (DirectoryPath, pathlib.Path.cwd(), DirectoryPath.cwd()),
         (pathlib.Path, DirectoryPath.cwd(), pathlib.Path.cwd()),
         (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
