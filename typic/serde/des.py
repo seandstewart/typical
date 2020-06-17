@@ -111,25 +111,37 @@ class DesFactory:
         self.__USER_DESS.appendleft((check, deserializer))
 
     def _set_checks(self, func: gen.Block, anno_name: str, annotation: "Annotation"):
-        _checks = []
         _ctx = {}
+        # run a safe eval if input is text and anno isn't
+        if issubclass(annotation.resolved_origin, (str, bytes)):
+            self._add_vtype(func)
+        else:
+            self._add_eval(func)
+        # Equality checks for defaults and optionals
+        custom_equality = hasattr(annotation.resolved_origin, "equals")
+        check_values: Tuple[Any, ...] = ()
+        eq = None
         if annotation.optional:
-            _checks.append(f"{self.VNAME} in {self.resolver.OPTIONALS}")
+            check_values = self.resolver.OPTIONALS[:]
         if annotation.has_default:
-            if hasattr(annotation.resolved_origin, "equals"):
+            check_values = (annotation.parameter.default, *check_values)
+        if check_values:
+            eq = f"{self.VNAME} in __defaults"
+            if custom_equality:
+                func.l(f"custom_equality = hasattr({self.VNAME}, 'equals')")
                 eq = (
-                    f"({self.VNAME}.equals(__default) "
-                    f"if hasattr({self.VNAME}, 'equals') "
-                    f"else {self.VNAME} == __default)"
+                    f"(any({self.VNAME}.equals(d) for d in __defaults) "
+                    "if custom_equality "
+                    f"else {eq})"
                 )
-            else:
-                eq = f"{self.VNAME} == __default"
-            _checks.append(f"({self.VTYPE} is {anno_name} and {eq})")
-            _ctx["__default"] = annotation.parameter.default
-        if _checks:
-            check = " or ".join(_checks)
-            func.l(f"if {check}:", **_ctx)
-            with func.b() as b:
+            _ctx["__defaults"] = check_values
+        if eq:
+            pre = ""
+            # Subclassed enums mixed with types pass eq checks for the mixed type.
+            # We don't want to short-circuit, though, if the input isn't the Enum inst.
+            if checks.isenumtype(annotation.resolved_origin):
+                pre = f"{self.VTYPE} is {anno_name} and "
+            with func.b(f"if {pre}{eq}:", **_ctx) as b:  # type: ignore
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
@@ -262,7 +274,6 @@ class DesFactory:
             self._build_collection_des(func, anno_name, annotation)
         # bool, int, float...
         else:
-            self._add_eval(func)
             func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
     def _build_pattern_des(self, func: gen.Block, anno_name: str):
@@ -275,7 +286,6 @@ class DesFactory:
 
     def _build_fromdict_des(self, func: gen.Block, anno_name: str):
         self._add_type_check(func, anno_name)
-        self._add_eval(func)
         func.l(f"{self.VNAME} = {anno_name}.from_dict({self.VNAME})")
 
     def _build_typeddict_des(
@@ -285,10 +295,7 @@ class DesFactory:
         annotation: "Annotation",
         *,
         total: bool = True,
-        eval: bool = True,
     ):
-        if eval:
-            self._add_eval(func)
 
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             fields_deser = {
@@ -315,10 +322,9 @@ class DesFactory:
     def _build_typedtuple_des(
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
-        self._add_eval(func)
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             if annotation.serde.fields:
-                self._build_typeddict_des(b, anno_name, annotation, eval=False)
+                self._build_typeddict_des(b, anno_name, annotation)
             else:
                 b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
         with func.b(
@@ -370,7 +376,6 @@ class DesFactory:
             line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
 
         # Write the lines.
-        self._add_eval(func)
         func.l(
             f"{self.VNAME} = {line}",
             level=None,
@@ -420,7 +425,6 @@ class DesFactory:
         serde = annotation.serde
         resolved = annotation.resolved
         self._add_type_check(func, anno_name)
-        self._add_eval(func)
         # Main branch - we have a mapping for a user-defined class.
         # This is where the serde configuration comes in.
         # WINDY PATH AHEAD
@@ -499,7 +503,6 @@ class DesFactory:
         }
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
-                self._add_vtype(func)
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, anno_name, annotation)
                     if checks.isdatetype(origin):
