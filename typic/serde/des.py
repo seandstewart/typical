@@ -374,7 +374,9 @@ class DesFactory:
                 x = f"{kd_name}(x)"
                 y = f"{it_name}(y)"
             line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
-
+        # If we don't have nested annotations, we can short-circuit on valid inputs
+        else:
+            self._add_type_check(func, anno_name)
         # Write the lines.
         func.l(
             f"{self.VNAME} = {line}",
@@ -401,8 +403,8 @@ class DesFactory:
                 f"{self.VNAME} = "
                 f"{anno_name}({it_name}(x) for x in parent({iterate}))"
             )
-
-        self._add_eval(func)
+        else:
+            self._add_type_check(func, anno_name)
         func.l(
             line,
             level=None,
