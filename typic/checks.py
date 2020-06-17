@@ -7,6 +7,7 @@ import functools
 import inspect
 import ipaddress
 import pathlib
+import uuid
 from operator import attrgetter
 from typing import (
     Any,
@@ -71,6 +72,7 @@ __all__ = (
     "issubclass",
     "istypeddict",
     "istypedtuple",
+    "isuuidtype",
     "iswriteonly",
     "should_unwrap",
 )
@@ -334,6 +336,32 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     True
     """
     return _issubclass(util.origin(obj), (datetime.datetime, datetime.date))
+
+
+@functools.lru_cache(maxsize=None)
+def isuuidtype(obj: Type[ObjectT]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import uuid
+    >>> from typing import NewType
+    >>> typic.isuuidtype(uuid.UUID)
+    True
+    >>> class MyUUID(uuid.UUID): ...
+    ...
+    >>> typic.isuuidtype(MyUUID)
+    True
+    >>> typic.isuuidtype(NewType("Foo", uuid.UUID))
+    True
+    """
+    return _issubclass(util.origin(obj), uuid.UUID)
 
 
 _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}

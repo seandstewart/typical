@@ -3,6 +3,7 @@ import functools
 import inspect
 import pathlib
 import re
+import uuid
 from collections import deque, defaultdict, abc
 from operator import attrgetter
 from typing import (
@@ -200,6 +201,25 @@ class DesFactory:
             if not issubclass(origin, datetime.datetime):
                 line = f"{line}.date()"
             b.l(line, dateparse=dateparse)
+
+    def _build_uuid_des(
+        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+    ):
+        self._add_type_check(func, anno_name)
+        with func.b(f"if issubclass({self.VTYPE}, UUID):", UUID=uuid.UUID) as b:
+            b.l(f"{self.VNAME} = {anno_name}(int={self.VNAME}.int)")
+
+        with func.b(f"elif isinstance({self.VNAME}, str):") as b:
+            b.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, bytes):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(bytes={self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, int):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int={self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, tuple):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(fields={self.VNAME})")
 
     def _add_eval(self, func: gen.Block):
         func.l(
@@ -509,6 +529,8 @@ class DesFactory:
                     self._set_checks(func, anno_name, annotation)
                     if checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
+                    elif checks.isuuidtype(origin):
+                        self._build_uuid_des(func, anno_name, annotation)
                     elif origin in {Pattern, re.Pattern}:  # type: ignore
                         self._build_pattern_des(func, anno_name)
                     elif issubclass(origin, pathlib.Path):
