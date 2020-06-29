@@ -120,29 +120,34 @@ class DesFactory:
             self._add_eval(func)
         # Equality checks for defaults and optionals
         custom_equality = hasattr(annotation.resolved_origin, "equals")
-        check_values: Tuple[Any, ...] = ()
-        eq = None
+        if custom_equality and (annotation.optional or annotation.has_default):
+            func.l(f"custom_equality = hasattr({self.VNAME}, 'equals')")
+        null = ""
         if annotation.optional:
-            check_values = self.resolver.OPTIONALS[:]
-        if annotation.has_default:
-            check_values = (annotation.parameter.default, *check_values)
-        if check_values:
-            eq = f"{self.VNAME} in __defaults"
+            null = f"{self.VNAME} in {self.resolver.OPTIONALS}"
             if custom_equality:
-                func.l(f"custom_equality = hasattr({self.VNAME}, 'equals')")
-                eq = (
-                    f"(any({self.VNAME}.equals(d) for d in __defaults) "
+                null = (
+                    f"(any({self.VNAME}.equals(o) for o in {self.resolver.OPTIONALS}) "
                     "if custom_equality "
-                    f"else {eq})"
+                    f"else {null})"
                 )
-            _ctx["__defaults"] = check_values
-        if eq:
-            pre = ""
-            # Subclassed enums mixed with types pass eq checks for the mixed type.
-            # We don't want to short-circuit, though, if the input isn't the Enum inst.
-            if checks.isenumtype(annotation.resolved_origin):
-                pre = f"{self.VTYPE} is {anno_name} and "
-            with func.b(f"if {pre}{eq}:", **_ctx) as b:  # type: ignore
+        eq = ""
+        if (
+            annotation.has_default
+            and annotation.parameter.default not in self.resolver.OPTIONALS
+        ):
+            eq = f"{self.VNAME} == __default"
+            if custom_equality:
+                if hasattr(annotation.parameter.default, "equals"):
+                    eq = f"__default.equals({self.VNAME})"
+                eq = f"{self.VNAME}.equals(__default) if custom_equality else {eq}"
+            _ctx["__default"] = annotation.parameter.default
+        if eq or null:
+            # Add a type-check for anything that isn't a builtin.
+            if eq and not checks.isbuiltintype(annotation.resolved_origin):
+                eq = f"{self.VTYPE} is {anno_name} and {eq}"
+            check = " or ".join(c for c in (null, eq) if c)
+            with func.b(f"if {check}:", **_ctx) as b:  # type: ignore
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
