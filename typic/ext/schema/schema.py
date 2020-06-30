@@ -20,7 +20,7 @@ import inflection  # type: ignore
 
 from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
-from typic.serde.common import SerdeProtocol, Annotation
+from typic.serde.common import SerdeProtocol, Annotation, DelayedSerdeProtocol
 from typic.compat import Final, TypedDict
 from typic.util import get_args, origin
 from typic.checks import istypeddict, isnamedtuple
@@ -68,6 +68,10 @@ class SchemaBuilder:
 
     def __init__(self):
         self.__cache = {}
+        self.__attached = set()
+
+    def attach(self, t: Type):
+        self.__attached.add(t)
 
     def _handle_mapping(self, anno: Annotation, constraints: dict, *, name: str = None):
         args = anno.args
@@ -275,10 +279,16 @@ class SchemaBuilder:
         required: List[str] = []
         total: bool = getattr(obj, "__total__", True)
         for nm, protocol in protocols.items():
-            field = self.get_field(protocol, name=nm)
-            # If we received an object schema,
-            # figure out a name and inherit the definitions.
-            flattened = self._flatten_definitions(definitions, field)
+            if isinstance(protocol, DelayedSerdeProtocol):
+                ref = protocol.delayed.name
+                flattened = Ref(f"#/definitions/{self.defname(ref, name=ref)}")
+            elif protocol.annotation.resolved_origin is obj:
+                flattened = Ref(f"#/definitions/{self.defname(obj)}")
+            else:
+                field = self.get_field(protocol, name=nm)
+                # If we received an object schema,
+                # figure out a name and inherit the definitions.
+                flattened = self._flatten_definitions(definitions, field)
             properties[nm] = flattened
             # Check for required field(s)
             if not protocol.annotation.has_default:
@@ -327,6 +337,8 @@ class SchemaBuilder:
         """
         definitions = SchemaDefinitions(definitions={})
         schm: ObjectSchemaField
+        while self.__attached:
+            self.build_schema(self.__attached.pop())
         for obj, schm in self.__cache.items():
             if schm.type != SchemaType.OBJ:
                 continue

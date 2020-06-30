@@ -1,5 +1,92 @@
 # Working with Types
 
+Typical is *Python's Typing Toolkit*. Below we'll walk you through what that means.
+
+## Postponed Annotations
+
+Typical natively supports type annotations defined with forward references for all
+interfaces. This support is automatic and requires no additional configuration:
+
+```python
+import typic
+
+
+@typic.klass
+class A:
+    b: "B"
+
+
+@typic.klass
+class B:
+    c: int
+
+
+print(A.transmute({"b": {"c": "1"}}))
+#> A(b=B(c=1))
+```
+
+!!! warning "Gotcha!"
+
+    The type you reference *must* be available within the global namespace of the 
+    enclosing object. Otherwise, the reference will be treated as an anonymous type
+    and not be proactively transmuted.
+
+
+### Self-referencing (Recursive) Types
+
+As a side-effect of our support for postponed annotations, Typical also supports
+self-referential (recursive) types:
+
+```python
+import typic
+import dataclasses
+from typing import Optional
+
+
+@dataclasses.dataclass
+class Node:
+    pos: int
+    child: Optional["Node"] = None
+
+
+n = typic.transmute(Node, {"pos": 0, "child": {"pos": 1}})
+print(n)
+#> Node(pos=0, child=Node(pos=1, child=None))
+
+print(typic.tojson(n))
+#> {"pos":0,"child":{"pos":1,"child":null}}
+```
+
+
+### Circular Dependencies
+
+As another side-effect of postponed annotation support, Typical also handles types which
+have circular dependencies upon each other:
+
+```python
+import typic
+from typing import Optional
+
+
+@typic.klass
+class A:
+    b: Optional["B"] = None
+
+
+@typic.klass
+class B:
+    a: Optional["A"] = None
+
+
+a = A.transmute({"b": {"a": {}}})
+print(a)
+#> A(b=B(a=A(b=None)))
+
+print(a.tojson())
+#> {"b":{"a":{"b":null}}}
+```
+
+
 ## The Standard Library
 
 Typical is built upon the standard `typing` library. Virtually any

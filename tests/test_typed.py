@@ -31,6 +31,7 @@ from typic.api import (
     Strict,
     validate,
     translate,
+    primitive,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
 from typic.constraints import ConstraintValueError
@@ -804,3 +805,77 @@ def test_prevent_recursion_with_slots():
 
         class SubMeta(metaclass=objects.MetaSlotsClass):
             a: int
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value,expected",
+    argvalues=[
+        (objects.A, {}, objects.A()),
+        (objects.B, {"a": {"b": None}}, objects.B(objects.A())),
+        (objects.C, {"c": None}, objects.C()),
+        (objects.C, {"c": {}}, objects.C(objects.C())),
+        (objects.D, {"d": None}, objects.D()),
+        (objects.D, {"d": {}}, objects.D(objects.D())),
+        (objects.E, {}, objects.E()),
+        (
+            objects.E,
+            {"d": {}, "f": {"g": {"h": "1"}}},
+            objects.E(objects.D(), objects.F(objects.G(1))),
+        ),
+    ],
+)
+def test_recursive_transmute(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (objects.A, {}),
+        (objects.B, {"a": {"b": None}}),
+        (objects.C, {"c": None}),
+        (objects.C, {"c": {}}),
+        (objects.D, {"d": None}),
+        (objects.D, {"d": {}}),
+        (objects.E, {}),
+        (objects.E, {"d": {}, "f": {"g": {"h": 1}}},),
+    ],
+)
+def test_recursive_validate(annotation, value):
+    validated = validate(annotation, value)
+    assert validated == value
+
+
+@pytest.mark.parametrize(
+    argnames="value,expected",
+    argvalues=[
+        (objects.A(), {"b": None}),
+        (objects.B(objects.A()), {"a": {"b": None}}),
+        (objects.C(), {"c": None}),
+        (objects.C(objects.C()), {"c": {"c": None}}),
+        (objects.D(), {"d": None}),
+        (objects.D(objects.D()), {"d": {"d": None}}),
+        (objects.E(), {"d": None, "f": None}),
+        (
+            objects.E(objects.D(), objects.F(objects.G(1))),
+            {"d": {"d": None}, "f": {"g": {"h": 1}}},
+        ),
+    ],
+)
+def test_recursive_primitive(value, expected):
+    prim = primitive(value)
+    assert prim == expected
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (objects.B, {"a": {"b": {"a": 1}}}),
+        (objects.E, {"d": {}, "f": {"g": {"h": "1"}}},),
+    ],
+)
+def test_recursive_validate_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        validate(annotation, value)

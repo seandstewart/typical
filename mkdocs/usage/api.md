@@ -90,8 +90,11 @@ is also accepted by `@typic.klass`, plus a few more:
 > Generate a JSON Schema definition for your object.
 
 `serde: SerdeFlags = None`
-> Customize the serialization & deserialization of your object. See
-> [SerDes](serdes.md).
+> Customize the serialization & deserialization of your object. See [SerDes](serdes.md).
+
+`slots: bool = True`
+> Automatically generate a class with slots for the attributes defined by your
+> annotations.
 
 ### Interacting With Your Objects
 

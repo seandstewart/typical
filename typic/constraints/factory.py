@@ -32,6 +32,7 @@ from typic.checks import (
     isnamedtuple,
     should_unwrap,
 )
+from typic.compat import ForwardRef
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
@@ -40,6 +41,7 @@ from typic.util import (
     cached_type_hints,
     get_name,
     TypeMap,
+    recursing,
 )
 from .array import (
     Array,
@@ -48,7 +50,14 @@ from .array import (
     SetContraints,
     TupleContraints,
 )
-from .common import MultiConstraints, TypeConstraints, EnumConstraints, VT
+from .common import (
+    MultiConstraints,
+    TypeConstraints,
+    EnumConstraints,
+    VT,
+    DelayedConstraints,
+    ForwardDelayedConstraints,
+)
 from .mapping import (
     MappingConstraints,
     DictConstraints,
@@ -67,9 +76,11 @@ from .text import BytesConstraints, StrConstraints
 ConstraintsT = Union[
     BytesConstraints,
     DecimalContraints,
+    DelayedConstraints,
     DictConstraints,
     EnumConstraints,
     FloatContraints,
+    ForwardDelayedConstraints,
     FrozenSetConstraints,
     IntContraints,
     ListContraints,
@@ -175,9 +186,10 @@ def _from_simple_type(
     return constr_class(nullable=nullable, name=name)
 
 
-def _resolve_params(**param: inspect.Parameter,) -> Mapping[str, ConstraintsT]:
+def _resolve_params(
+    cls: Type, **param: inspect.Parameter,
+) -> Mapping[str, ConstraintsT]:
     items: Dict[str, ConstraintsT] = {}
-
     while param:
         name, p = param.popitem()
         anno = p.annotation
@@ -185,9 +197,12 @@ def _resolve_params(**param: inspect.Parameter,) -> Mapping[str, ConstraintsT]:
         if anno in {Any, Ellipsis, p.empty}:
             continue
         if origin(anno) is Union:
-            items[name] = _from_union(anno, nullable=nullable, name=name)
+            items[name] = _from_union(anno, nullable=nullable, name=name, cls=cls)
             continue
-        items[name] = get_constraints(anno, nullable=nullable, name=name)
+        else:
+            items[name] = _maybe_get_delayed(
+                anno, nullable=nullable, name=name, cls=cls
+            )
     return items
 
 
@@ -204,17 +219,17 @@ def _from_enum_type(
 
 
 def _from_union(
-    t: Type[VT], *, nullable: bool = False, name: str = None
+    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
 ) -> ConstraintsT:
     _nullable: bool = isoptionaltype(t)
     nullable = nullable or _nullable
     _args = get_args(t)[:-1] if _nullable else get_args(t)
     if len(_args) == 1:
-        return get_constraints(_args[0], nullable=nullable, name=name)
+        return _maybe_get_delayed(_args[0], nullable=nullable, name=name, cls=cls)
     return MultiConstraints(
         (
             *(
-                get_constraints(a, nullable=nullable)  # type: ignore
+                _maybe_get_delayed(a, nullable=nullable, cls=cls)  # type: ignore
                 for a in _args
             ),
         ),
@@ -240,7 +255,7 @@ def _from_class(
     name = name or get_name(t)
     items: Optional[
         frozendict.FrozenDict[Hashable, ConstraintsT]
-    ] = frozendict.FrozenDict(_resolve_params(**params)) or None
+    ] = frozendict.FrozenDict(_resolve_params(t, **params)) or None
     required = frozenset(
         (
             pname
@@ -304,6 +319,25 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         Union: _from_union,  # type: ignore
     }
 )
+
+
+def _maybe_get_delayed(
+    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
+):
+    if t.__class__ is ForwardRef:
+        return ForwardDelayedConstraints(
+            t,  # type: ignore
+            cls.__module__,
+            localns=getattr(cls, "__dict__", {}).copy(),
+            nullable=nullable,
+            name=name,  # type: ignore
+            factory=get_constraints,
+        )
+    elif t is cls or recursing():
+        return DelayedConstraints(
+            t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
+        )
+    return get_constraints(t, nullable=nullable, name=name)
 
 
 @functools.lru_cache(maxsize=None)
