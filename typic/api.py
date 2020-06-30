@@ -210,6 +210,7 @@ def _resolve_class(
     }
     if jsonschema:
         ns["schema"] = classmethod(schema)
+        schema_builder.attach(cls)
 
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine,
@@ -242,8 +243,6 @@ def _resolve_class(
     proto: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
     # Bind it to the new class
     _bind_proto(cls, proto)
-    if jsonschema:
-        schema(cls)
     # Track resolution state.
     setattr(cls, "__typic_resolved__", True)
     return cls
@@ -538,9 +537,9 @@ def constrained(
             raise TypeError(f"can't constrain type {cls_.__name__!r}")
 
         args: Tuple[Type, ...] = ()
-        if values and constr_cls.type in {list, dict, set, tuple, frozenset}:
+        if values and constr_cls.type in {list, dict, set, tuple, frozenset}:  # type: ignore
             args = _handle_constraint_values(constraints, values, args)
-        if constr_cls.type == dict:
+        if constr_cls.type == dict:  # type: ignore
             args = _handle_constraint_keys(constraints, args)
         if args:
             cdict["__args__"] = args

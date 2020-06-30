@@ -16,9 +16,10 @@ from typing import (
     Union,
     TypeVar,
     Iterator,
+    Dict,
 )
 
-from typic import checks, constraints as const, util, strict as st
+from typic import checks, constraints as constr, util, strict as st
 from typic.common import (
     EMPTY,
     ORIG_SETTER_NAME,
@@ -29,6 +30,7 @@ from typic.common import (
     Case,
     ReadOnly,
 )
+from typic.compat import ForwardRef
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
@@ -38,11 +40,13 @@ from .common import (
     Annotation,
     SerdeProtocol,
     SerdeProtocolsT,
+    DelayedSerdeProtocol,
+    ForwardDelayedAnnotation,
+    DelayedAnnotation,
 )
 from .des import DesFactory
 from .ser import SerFactory
 from .translator import TranslatorFactory
-
 
 _T = TypeVar("_T")
 
@@ -199,7 +203,7 @@ class Resolver:
                     }
 
                 return SerdeProtocol(
-                    self.annotation(t),
+                    self.annotation(t),  # type: ignore
                     deserializer=None,
                     serializer=serializer,
                     constraints=None,
@@ -308,6 +312,15 @@ class Resolver:
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
+    @staticmethod
+    def _self_referencing(ref: Union[Type, ForwardRef], origin: Type):
+        args = util.get_args(ref) or (ref,)
+        for arg in args:
+            recursive = arg is origin
+            if recursive:
+                return recursive
+        return False
+
     @functools.lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
@@ -315,14 +328,22 @@ class Resolver:
         # Get all the annotated fields
         params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
-        fields: Mapping[str, Annotation] = {
-            x: self.annotation(
-                y,
+        fields: Dict[
+            str, Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
+        ] = {}
+        for name, anno in util.cached_type_hints(origin).items():
+            namespace: Optional[Type] = origin
+            recursive = True
+            if self._self_referencing(anno, origin) and not util.recursing():
+                namespace = None
+                recursive = False
+            fields[name] = self.annotation(
+                anno,
                 flags=dataclasses.replace(flags, fields={}),
-                default=getattr(origin, x, EMPTY),
+                default=getattr(origin, name, EMPTY),
+                namespace=namespace,
+                recursive=recursive,
             )
-            for x, y in util.cached_type_hints(origin).items()
-        }
         # Filter out any annotations which aren't part of the object's signature.
         if flags.signature_only:
             fields = {x: fields[x] for x in fields.keys() & params.keys()}
@@ -346,12 +367,22 @@ class Resolver:
             type_omissions = {
                 o for o in omit if checks._type_check(o) or o is NotImplemented
             }
+            type_name_omissions = {util.get_name(o) for o in type_omissions}
             value_omissions = (*(o for o in omit if o not in type_omissions),)
-            fields_out = {
-                x: y
-                for x, y in fields_out.items()
-                if not {fields[x].origin, fields[x].parameter.default} & type_omissions
-            }
+            fields_out_final = {}
+            for name, out in fields_out.items():
+                anno = fields[name]
+                default = anno.parameter.default if anno.parameter else EMPTY
+                if isinstance(anno, ForwardDelayedAnnotation):
+                    if {
+                        util.get_name(anno.ref),
+                        util.get_name(default),
+                    } & type_name_omissions:
+                        fields_out_final[name] = out
+                elif not {anno.origin, default} & type_omissions:
+                    fields_out_final[name] = out
+            fields_out = fields_out_final
+
         fields_in = {y: x for x, y in fields_out.items()}
         if params:
             fields_in = {x: y for x, y in fields_in.items() if y in params}
@@ -377,7 +408,9 @@ class Resolver:
         is_strict: StrictModeT = None,
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
-    ) -> Annotation:
+        namespace: Type = None,
+        recursive: bool = False,
+    ) -> Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]:
         """Get a :py:class:`Annotation` for this type.
 
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
@@ -425,6 +458,35 @@ class Resolver:
             args = util.get_args(use)
             is_static = util.origin(use) not in self._DYNAMIC
 
+        if use.__class__ is ForwardRef:
+            module, localns = self.__module__, {}
+            if namespace:
+                module = namespace.__module__
+                localns = getattr(namespace, "__dict__", {})
+
+            return ForwardDelayedAnnotation(
+                ref=use,
+                resolver=self,
+                _name=name,
+                parameter=parameter,
+                is_optional=is_optional,
+                is_strict=is_strict,
+                flags=flags,
+                default=default,
+                module=module,
+                localns=localns,
+            )
+        elif use is namespace or recursive:
+            return DelayedAnnotation(
+                type=use,
+                resolver=self,
+                _name=name,
+                parameter=parameter,
+                is_optional=is_optional,
+                is_strict=is_strict,
+                flags=flags,
+                default=default,
+            )
         serde = (
             self._get_configuration(util.origin(use), flags)
             if is_static
@@ -446,15 +508,20 @@ class Resolver:
 
     @functools.lru_cache(maxsize=None)
     def _resolve_from_annotation(
-        self, anno: Annotation, _des: bool = True, _ser: bool = True,
+        self,
+        anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation],
+        _des: bool = True,
+        _ser: bool = True,
     ) -> SerdeProtocol:
+        if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
+            return DelayedSerdeProtocol(anno)
         # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
         if anno.origin is Callable:
             _des, _ser = False, False
         # Build the deserializer
         deserializer, validator, constraints = None, None, None
         if _des:
-            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
+            constraints = constr.get_constraints(anno.resolved, nullable=anno.optional)
             deserializer, validator = self.des.factory(anno, constraints)
         # Build the serializer
         serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
@@ -477,6 +544,7 @@ class Resolver:
         parameter: Optional[inspect.Parameter] = None,
         is_optional: bool = None,
         is_strict: bool = None,
+        namespace: Type = None,
         _des: bool = True,
         _ser: bool = True,
     ) -> SerdeProtocol:
@@ -522,6 +590,7 @@ class Resolver:
             is_optional=is_optional,
             is_strict=is_strict,
             flags=flags,
+            namespace=namespace,
         )
         resolved = self._resolve_from_annotation(anno, _des, _ser)
         return resolved
@@ -590,8 +659,9 @@ class Resolver:
                 if field.init is False and util.origin(annotation) is not ReadOnly:
                     annotation = ReadOnly[annotation]  # type: ignore
                 param = param.replace(default=field.default)
-            resolved: SerdeProtocol = self.resolve(
-                annotation, parameter=param, name=name, is_strict=strict
+
+            resolved = self.resolve(
+                annotation, parameter=param, name=name, is_strict=strict, namespace=obj,
             )
             ann[name] = resolved
         try:

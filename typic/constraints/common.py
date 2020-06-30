@@ -3,6 +3,8 @@
 import abc
 import dataclasses
 import enum
+import sys
+import warnings
 from inspect import Signature
 from typing import (
     Callable,
@@ -19,9 +21,11 @@ from typing import (
     Iterator,
     Set,
     Optional,
+    Mapping,
 )
 
 from typic import gen, util
+from typic.compat import ForwardRef, evaluate_forwardref
 from .error import ConstraintValueError
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -428,3 +432,70 @@ class EnumConstraints(__AbstractConstraints):
         if self.name:
             return {"title": self.name}
         return {}
+
+
+class DelayedConstraints:
+    __slots__ = "t", "nullable", "name", "factory", "_constraints"
+
+    def __init__(self, t: Type, nullable: bool, name: str, factory: Callable):
+        self.t = t
+        self.nullable = nullable
+        self.name = name
+        self.factory = factory
+        self._constraints: Optional["__AbstractConstraints"] = None
+
+    @property
+    def constraints(self) -> "__AbstractConstraints":
+        if self._constraints is None:
+            self._constraints = self.factory(
+                self.t, nullable=self.nullable, name=self.name
+            )
+        return self._constraints
+
+    def validate(self, value: VT, *, field: str = None):
+        return self.constraints.validate(value, field=field)
+
+    def __getattr__(self, item):
+        return self.constraints.__getattribute__(item)
+
+
+class ForwardDelayedConstraints:
+    def __init__(
+        self,
+        ref: ForwardRef,
+        module: str,
+        localns: Mapping,
+        nullable: bool,
+        name: str,
+        factory: Callable,
+    ):
+        self.ref = ref
+        self.module = module
+        self.localns = localns
+        self.nullable = nullable
+        self.name = name
+        self.factory = factory
+        self._constraints: Optional["__AbstractConstraints"] = None
+
+    @property
+    def constraints(self) -> "__AbstractConstraints":
+        if self._constraints is None:
+            globalns = sys.modules[self.module].__dict__.copy()
+            try:
+                type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
+            except NameError as e:
+                warnings.warn(
+                    f"Counldn't resolve forward reference: {e}. "
+                    f"Make sure this type is available in {self.module}."
+                )
+                type = Any
+            self._constraints = self.factory(
+                type, nullable=self.nullable, name=self.name
+            )
+        return self._constraints
+
+    def validate(self, value: VT, *, field: str = None):
+        return self.constraints.validate(value, field=field)
+
+    def __getattr__(self, item):
+        return self.constraints.__getattribute__(item)

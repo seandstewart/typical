@@ -152,7 +152,7 @@ class ArrayConstraints(BaseConstraints):
                 f"{o.__name__}("
                 f"({itval}(x, field={field}) for i, x in enumerate({self.VALUE}))"
                 f")",
-                **ctx,
+                **ctx,  # type: ignore
             )
         return asserts, context
 

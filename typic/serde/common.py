@@ -1,5 +1,7 @@
 import dataclasses
 import inspect
+import sys
+import warnings
 from typing import (
     Callable,
     Union,
@@ -15,13 +17,17 @@ from typing import (
     TypeVar,
     AnyStr,
     Iterator,
+    TYPE_CHECKING,
 )
 
 from typic import strict as st, util, constraints as const
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
-from typic.compat import TypedDict
+from typic.compat import TypedDict, ForwardRef, evaluate_forwardref
 from typic.ext import json
 from typic.types import freeze
+
+if TYPE_CHECKING:
+    from .resolver import Resolver
 
 
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
@@ -119,7 +125,7 @@ class SerdeFlags:
 
 
 class SerdeConfigD(TypedDict):
-    fields: Mapping[str, "Annotation"]
+    fields: Mapping[str, "AnnotationT"]
     fields_out: Mapping[str, str]
     fields_in: Mapping[str, str]
     fields_getters: Mapping[str, Callable[[str], Any]]
@@ -130,7 +136,7 @@ class SerdeConfigD(TypedDict):
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)
-    fields: Mapping[str, "Annotation"] = dataclasses.field(default_factory=dict)
+    fields: Mapping[str, "AnnotationT"] = dataclasses.field(default_factory=dict)
     fields_out: Mapping[str, str] = dataclasses.field(default_factory=dict)
     fields_in: Mapping[str, str] = dataclasses.field(default_factory=dict)
     fields_getters: Mapping[str, Callable[[str], Any]] = dataclasses.field(
@@ -198,6 +204,93 @@ class Annotation:
         self.generic = getattr(self.resolved, "__origin__", self.resolved_origin)
 
 
+_empty = object()
+
+
+@util.slotted(dict=False)
+@dataclasses.dataclass(unsafe_hash=True)
+class ForwardDelayedAnnotation:
+    ref: ForwardRef
+    module: str
+    resolver: "Resolver"
+    parameter: Optional[inspect.Parameter] = None
+    is_optional: Optional[bool] = None
+    is_strict: Optional[st.StrictModeT] = None
+    flags: Optional["SerdeFlags"] = None
+    default: Any = _empty
+    localns: Optional[Mapping] = dataclasses.field(hash=False, default=None)
+    _name: Optional[str] = None
+    _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
+
+    @property
+    def resolved(self):
+        if self._resolved is None:
+            globalns = sys.modules[self.module].__dict__.copy()
+            try:
+                type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
+            except NameError as e:
+                warnings.warn(
+                    f"Counldn't resolve forward reference: {e}. "
+                    f"Make sure this type is available in {self.module}."
+                )
+                type = Any
+            anno = self.resolver.annotation(
+                type,
+                name=self._name,
+                parameter=self.parameter,
+                is_optional=self.is_optional,
+                is_strict=self.is_strict,
+                flags=self.flags,
+                default=EMPTY if self.default is _empty else self.default,
+            )
+            self._resolved = self.resolver._resolve_from_annotation(anno)
+        return self._resolved
+
+    @property
+    def name(self) -> str:
+        return util.get_name(self.ref)
+
+
+@util.slotted(dict=False)
+@dataclasses.dataclass(unsafe_hash=True)
+class DelayedAnnotation:
+    type: Type
+    resolver: "Resolver"
+    parameter: Optional[inspect.Parameter] = None
+    is_optional: Optional[bool] = None
+    is_strict: Optional[st.StrictModeT] = None
+    flags: Optional["SerdeFlags"] = None
+    default: Any = _empty
+    _name: Optional[str] = None
+    _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
+
+    @property
+    def resolved(self):
+        if self._resolved is None:
+            anno = self.resolver.annotation(
+                self.type,
+                name=self._name,
+                parameter=self.parameter,
+                is_optional=self.is_optional,
+                is_strict=self.is_strict,
+                flags=self.flags,
+                default=EMPTY if self.default is _empty else self.default,
+            )
+            self._resolved = self.resolver._resolve_from_annotation(anno)
+        return self._resolved
+
+    @property
+    def origin(self):
+        return self.type
+
+    @property
+    def name(self) -> str:
+        return util.get_name(self.type)
+
+
+AnnotationT = Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
+
+
 @util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeProtocol:
@@ -259,6 +352,35 @@ class SerdeProtocol:
             return trans(val)
 
         self.translate = translate
+
+    def __call__(self, val: Any) -> ObjectT:
+        return self.transmute(val)  # type: ignore
+
+
+class DelayedSerdeProtocol(SerdeProtocol):
+    __slots__ = ("delayed", "_protocol",) + tuple(SerdeProtocol.__slots__)
+
+    def __init__(
+        self, delayed: Union[ForwardDelayedAnnotation, DelayedAnnotation],
+    ):
+        self.delayed = delayed
+        self._protocol: Optional[SerdeProtocol] = None
+        self.transmute = lambda val: self.proto.transmute(val)  # type: ignore
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(delayed={self.delayed}, protocol={self._protocol})"
+
+    @property
+    def proto(self) -> SerdeProtocol:
+        if self._protocol is None:
+            _protocol = self.delayed.resolved
+            for name in SerdeProtocol.__slots__:
+                object.__setattr__(self, name, getattr(_protocol, name))
+            self._protocol = _protocol
+        return self._protocol
+
+    def __getattr__(self, item):
+        return self.proto.__getattribute__(item)
 
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)  # type: ignore

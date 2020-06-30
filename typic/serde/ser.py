@@ -31,6 +31,7 @@ from typing import (
     KeysView,
     ValuesView,
     Dict,
+    Optional,
 )
 
 from typic import util, checks, gen, types
@@ -40,10 +41,13 @@ from .common import (
     SerializerT,
     SerdeConfig,
     Annotation,
+    ForwardDelayedAnnotation,
     Unprocessed,
     Omit,
     KT,
     VT,
+    DelayedAnnotation,
+    AnnotationT,
 )
 
 
@@ -408,7 +412,7 @@ class SerFactory:
         line = "[*o]"
         ns: Dict[str, Any] = {}
         if annotation.args:
-            arg_a: "Annotation" = self.resolver.annotation(
+            arg_a: "AnnotationT" = self.resolver.annotation(
                 annotation.args[0], flags=annotation.serde.flags
             )
             arg_ser = self.factory(arg_a)
@@ -475,10 +479,10 @@ class SerFactory:
         args = util.get_args(annotation.resolved)
         if args:
             kt, vt = args
-            ktr: "Annotation" = self.resolver.annotation(
+            ktr: "AnnotationT" = self.resolver.annotation(
                 kt, flags=annotation.serde.flags
             )
-            vtr: "Annotation" = self.resolver.annotation(
+            vtr: "AnnotationT" = self.resolver.annotation(
                 vt, flags=annotation.serde.flags
             )
             kser_, vser_ = (self.factory(ktr), self.factory(vtr))
@@ -629,6 +633,26 @@ class SerFactory:
             self._serializer_cache[func_name] = serializer
         return serializer
 
-    def factory(self, annotation: "Annotation"):
+    def factory(self, annotation: "AnnotationT"):
+        if isinstance(annotation, (DelayedAnnotation, ForwardDelayedAnnotation)):
+            return DelayedSerializer(annotation, self)
         annotation.serde = annotation.serde or SerdeConfig()
         return self._compile_serializer(annotation)
+
+
+class DelayedSerializer:
+    __slots__ = "anno", "factory", "_serializer"
+
+    def __init__(
+        self,
+        anno: Union["DelayedAnnotation", "ForwardDelayedAnnotation"],
+        factory: SerFactory,
+    ):
+        self.anno = anno
+        self.factory = factory
+        self._serializer: Optional[SerializerT] = None
+
+    def __call__(self, *args, **kwargs):
+        if self._serializer is None:
+            self._serializer = self.factory.factory(self.anno.resolved.annotation)
+        return self._serializer(*args, **kwargs)

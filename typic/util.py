@@ -27,11 +27,12 @@ from typing import (  # type: ignore  # ironic...
     MutableSet,
     Dict,
     Optional,
-    ForwardRef,
+    _eval_type,
 )
 
 import typic.checks as checks
 from typic.ext import json
+from typic.compat import ForwardRef
 
 __all__ = (
     "cached_issubclass",
@@ -197,7 +198,7 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
 
 
 @functools.lru_cache(maxsize=None)
-def get_name(obj: Type) -> str:
+def get_name(obj: Union[Type, ForwardRef]) -> str:
     """Safely retrieve the name of either a standard object or a type annotation.
 
     Examples
@@ -213,9 +214,11 @@ def get_name(obj: Type) -> str:
     'dict'
     """
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name
+        return obj._name  # type: ignore
     elif isinstance(obj, ForwardRef):
         return obj.__forward_arg__
+    elif obj in {NotImplemented, None, Ellipsis}:
+        return str(obj)
     return obj.__name__
 
 
@@ -225,6 +228,8 @@ def get_qualname(obj: Type) -> str:
         return repr(obj)
     elif isinstance(obj, ForwardRef):
         return obj.__forward_arg__
+    elif obj in {NotImplemented, None, Ellipsis}:
+        return str(obj)
     qualname = getattr(obj, "__qualname__", obj.__name__)
     if "<locals>" in qualname:
         return obj.__name__
@@ -409,13 +414,39 @@ def cached_signature(obj: Callable) -> inspect.Signature:
     )
 
 
+def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
+    raw_annotations = getattr(annotation, "__annotations__", None) or {}
+    module_name = getattr(annotation, "__module__", None)
+    if module_name:
+        base_globals: Optional[Dict[str, Any]] = sys.modules[module_name].__dict__
+    else:
+        base_globals = None
+    annotations = {}
+    for name, value in raw_annotations.items():
+        if isinstance(value, str):
+            if sys.version_info >= (3, 7):
+                value = ForwardRef(value, is_argument=False)
+            else:
+                value = ForwardRef(value)
+        try:
+            value = _eval_type(value, base_globals, None)
+        except NameError:
+            # this is ok, it can be fixed with update_forward_refs
+            pass
+        annotations[name] = value
+    return annotations
+
+
 @functools.lru_cache(maxsize=None)
-def cached_type_hints(obj: Callable) -> dict:
+def cached_type_hints(obj: Union[Type, Callable]) -> dict:
     """A cached result of :py:func:`typing.get_type_hints`.
 
     We don't want to go through the process of resolving type-hints every time.
     """
-    return get_type_hints(obj)
+    try:
+        return get_type_hints(obj)
+    except NameError:
+        return _safe_get_type_hints(obj)
 
 
 @functools.lru_cache(maxsize=None)

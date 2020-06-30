@@ -34,7 +34,15 @@ from typic.util import (
     get_unique_name,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
-from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
+from .common import (
+    DeserializerT,
+    DeserializerRegistryT,
+    SerdeConfig,
+    Annotation,
+    DelayedAnnotation,
+    ForwardDelayedAnnotation,
+    AnnotationT,
+)
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
@@ -242,31 +250,39 @@ class DesFactory:
     def _add_vtype(self, func: gen.Block):
         func.l(f"{self.VTYPE} = {self.VNAME}.__class__")
 
-    def _get_default_factory(self, annotation: "Annotation"):
+    def _get_default_factory(self, annotation: "AnnotationT"):
         factory: Union[Type, Callable[..., Any], None] = None
-
-        if annotation.args:
-            factory_anno = self.resolver.annotation(annotation.args[-1])
-            factory = factory_anno.resolved_origin
-            if issubclass(factory_anno.resolved_origin, defaultdict):
+        args: Tuple = annotation.args if isinstance(annotation, Annotation) else tuple()
+        if args:
+            factory_anno = self.resolver.annotation(args[-1])
+            if isinstance(factory_anno, ForwardDelayedAnnotation):
+                return factory
+            elif isinstance(factory_anno, DelayedAnnotation):
+                use = factory_anno.type
+                raw = use
+            else:
+                use = factory_anno.resolved_origin
+                raw = factory_anno.un_resolved
+            factory = use
+            if issubclass(use, defaultdict):
                 factory_nested = self._get_default_factory(factory_anno)
 
                 def factory():
                     return defaultdict(factory_nested)
 
-                factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+                factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
-            if not checks.isbuiltinsubtype(factory_anno.resolved_origin):  # type: ignore
+            if not checks.isbuiltinsubtype(use):  # type: ignore
 
                 params: Mapping[str, inspect.Parameter] = cached_signature(
-                    factory_anno.resolved_origin
+                    use
                 ).parameters
                 if not any(p.default is p.empty for p in params.values()):
 
-                    def factory(*, __origin=factory_anno.resolved_origin):
+                    def factory(*, __origin=use):
                         return __origin()
 
-                    factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+                    factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
         return factory
 

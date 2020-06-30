@@ -68,13 +68,49 @@ class DefaultEllipsis:
     ellipsis: str = ...
 
 
-@dataclasses.dataclass
+@typic.klass
 class Forward:
     foo: "FooNum"
 
 
 class FooNum(str, enum.Enum):
     bar = "bar"
+
+
+@typic.klass
+class A:
+    b: typing.Optional["B"] = None
+
+
+@typic.klass
+class B:
+    a: typing.Optional["A"] = None
+
+
+@typic.klass
+class C:
+    c: typing.Optional["C"] = None
+
+
+@dataclasses.dataclass
+class D:
+    d: typing.Optional["D"] = None
+
+
+@dataclasses.dataclass
+class E:
+    d: typing.Optional[D] = None
+    f: typing.Optional["F"] = None
+
+
+@dataclasses.dataclass
+class F:
+    g: "G"
+
+
+@typic.klass
+class G:
+    h: typing.Optional[int] = None
 
 
 class Class:

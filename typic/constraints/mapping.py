@@ -264,12 +264,18 @@ class MappingConstraints(BaseConstraints):
                 f"A mapping may not be considered 'total' and allow additional "
                 f"keys/values: {self}"
             )
+        if not issubclass(self.type, Mapping):
+            with func.b(f"if not isinstance({self.VALUE}, Mapping):") as b:
+                b.l(f"return False, {self.VALUE}")
+        if self.required_keys:
+            func.l(f"required = {set(self.required_keys)}")
         defined_keys = (self.required_keys or set()) | (self.items or {}).keys()
+        func.l(f"valkeys = {{*{self.VALUE}}}")
         if defined_keys:
             func.l(f"defined = {defined_keys}")
-            func.l(f"addtl = {self.VALUE}.keys() - defined")
+            func.l("addtl = valkeys - defined")
         else:
-            func.l(f"addtl = {self.VALUE}.keys()")
+            func.l("addtl = set()")
         if {self.max_items, self.min_items} != {None, None}:
             func.l(f"size = len({self.VALUE})")
 
@@ -282,10 +288,12 @@ class MappingConstraints(BaseConstraints):
             checks.append(f"size >= {self.min_items}")
         if self.max_items is not None:
             checks.append(f"size <= {self.max_items}")
+        if self.required_keys:
+            checks.append("valkeys.issuperset(required)")
         if defined_keys:
-            checks.append(f"{{*{self.VALUE}.keys()}}.issuperset(defined)")
-        if self.total:
-            checks.append("not addtl")
+            checks.append(
+                f"valkeys.{'issubset' if self.total else 'issuperset'}(defined)"
+            )
         if self.key_dependencies:
             self._build_key_dependencies(checks, context)
         check = " and ".join(checks) or "True"
