@@ -47,6 +47,7 @@ from .common import (
 from .des import DesFactory
 from .ser import SerFactory
 from .translator import TranslatorFactory
+from ..util import guard_recursion, RecursionDetected
 
 _T = TypeVar("_T")
 
@@ -312,15 +313,6 @@ class Resolver:
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
-    @staticmethod
-    def _self_referencing(ref: Union[Type, ForwardRef], origin: Type):
-        args = util.get_args(ref) or (ref,)
-        for arg in args:
-            recursive = arg is origin
-            if recursive:
-                return recursive
-        return False
-
     @functools.lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
@@ -332,18 +324,16 @@ class Resolver:
             str, Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
         ] = {}
         for name, anno in util.cached_type_hints(origin).items():
-            namespace: Optional[Type] = origin
-            recursive = True
-            if self._self_referencing(anno, origin) and not util.recursing():
-                namespace = None
-                recursive = False
-            fields[name] = self.annotation(
-                anno,
+            kwargs = dict(
                 flags=dataclasses.replace(flags, fields={}),
                 default=getattr(origin, name, EMPTY),
-                namespace=namespace,
-                recursive=recursive,
+                namespace=origin,
             )
+            with guard_recursion():  # pragma: nocover
+                try:
+                    fields[name] = self.annotation(anno, **kwargs)
+                except RecursionDetected:
+                    fields[name] = self.annotation(anno, recursive=True, **kwargs)
         # Filter out any annotations which aren't part of the object's signature.
         if flags.signature_only:
             fields = {x: fields[x] for x in fields.keys() & params.keys()}
@@ -374,10 +364,10 @@ class Resolver:
                 anno = fields[name]
                 default = anno.parameter.default if anno.parameter else EMPTY
                 if isinstance(anno, ForwardDelayedAnnotation):
-                    if {
-                        util.get_name(anno.ref),
-                        util.get_name(default),
-                    } & type_name_omissions:
+                    if (
+                        not {util.get_name(anno.ref), util.get_name(default)}
+                        & type_name_omissions
+                    ):
                         fields_out_final[name] = out
                 elif not {anno.origin, default} & type_omissions:
                     fields_out_final[name] = out

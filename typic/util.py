@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import ast
+import bdb
 import collections
+import contextlib
 import dataclasses
 import functools
 import inspect
@@ -528,15 +530,50 @@ class TypeMap(Dict[Type, VT]):
         return default
 
 
-def recursing() -> bool:
-    """Detect whether we're in a recursive loop."""
-    frames = inspect.getouterframes(inspect.currentframe())[1:]
-    top_frame = inspect.getframeinfo(frames[0][0])
-    for frame, _, _, _, _, _ in frames[1:]:
-        (path, line_number, func_name, lines, index) = inspect.getframeinfo(frame)
-        if path == top_frame[0] and func_name == top_frame[2]:
-            return True
-    return False
+class RecursionDetected(RuntimeError):
+    ...
+
+
+class RecursionDetector(bdb.Bdb):  # pragma: nocover
+    """Prevent recursion from even starting.
+
+    https://stackoverflow.com/a/36663046
+
+    Warnings
+    --------
+    While the detector is tracing, no other debug tracers (i.e., codecov!) can trace.
+    """
+
+    def do_clear(self, arg):
+        pass
+
+    def __init__(self, *args):
+        bdb.Bdb.__init__(self, *args)
+        self.stack = set()
+
+    def user_call(self, frame, argument_list):
+        code = frame.f_code
+        if code in self.stack:
+            raise RecursionDetected(f"Caught recursion in: {frame}")
+        self.stack.add(code)
+
+    def user_return(self, frame, return_value):
+        if frame.f_code in self.stack:
+            self.stack.remove(frame.f_code)
+
+
+_detector = RecursionDetector()
+
+
+@contextlib.contextmanager
+def guard_recursion():  # pragma: nocover
+    curtrace = sys.gettrace()
+    _detector.set_trace()
+    try:
+        yield
+    finally:
+        _detector.stack.clear()
+        sys.settrace(curtrace)
 
 
 def slotted(

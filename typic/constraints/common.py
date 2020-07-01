@@ -460,6 +460,16 @@ class DelayedConstraints:
 
 
 class ForwardDelayedConstraints:
+    __slots__ = (
+        "ref",
+        "module",
+        "localns",
+        "nullable",
+        "name",
+        "factory",
+        "_constraints",
+    )
+
     def __init__(
         self,
         ref: ForwardRef,
