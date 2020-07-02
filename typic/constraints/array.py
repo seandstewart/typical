@@ -162,7 +162,6 @@ class ArrayConstraints(BaseConstraints):
             minItems=self.min_items,
             maxItems=self.max_items,
             uniqueItems=self.unique,
-            items=self.values.for_schema(with_type=True) if self.values else None,
         )
         if with_type:
             schema["type"] = "array"

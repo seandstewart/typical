@@ -8,6 +8,7 @@ import enum
 import ipaddress
 import pathlib
 import re
+import reprlib
 import uuid
 from typing import (
     ClassVar,
@@ -136,7 +137,7 @@ class BaseSchemaField(_Serializable):
     writeOnly: Optional[bool] = None
     extensions: Optional[Tuple[frozendict.FrozenDict[str, Any], ...]] = None
 
-    __repr = cached_property(filtered_repr)
+    __repr = cached_property(reprlib.recursive_repr()(filtered_repr))
 
     def __repr__(self) -> str:  # pragma: nocover
         return self.__repr
@@ -325,6 +326,7 @@ SchemaFieldT = Union[
     MultiSchemaField,
     UndeclaredSchemaField,
     NullSchemaField,
+    Ref,
 ]
 """A type-alias for the defined JSON Schema Fields."""
 

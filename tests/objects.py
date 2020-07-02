@@ -88,6 +88,12 @@ class B:
 
 
 @typic.klass
+class ABs:
+    a: typing.Optional[A] = None
+    bs: typing.Optional[typing.Iterable[B]] = None
+
+
+@typic.klass
 class C:
     c: typing.Optional["C"] = None
 

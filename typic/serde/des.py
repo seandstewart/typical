@@ -336,11 +336,14 @@ class DesFactory:
         annotation: "Annotation",
         *,
         total: bool = True,
+        namespace: Type = None,
     ):
 
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             fields_deser = {
-                x: self.resolver._resolve_from_annotation(y).transmute
+                x: self.resolver._resolve_from_annotation(
+                    y, _namespace=namespace
+                ).transmute
                 for x, y in annotation.serde.fields.items()
             }
             x = "fields_in[x]"
@@ -361,11 +364,15 @@ class DesFactory:
             )
 
     def _build_typedtuple_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
+        namespace: Type = None,
     ):
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             if annotation.serde.fields:
-                self._build_typeddict_des(b, anno_name, annotation)
+                self._build_typeddict_des(b, anno_name, annotation, namespace=namespace)
             else:
                 b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
         with func.b(
@@ -385,15 +392,23 @@ class DesFactory:
             )
 
     def _build_mapping_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
+        namespace: Type = None,
     ):
         key_des, item_des = None, None
         args = annotation.args
         if args:
             args = cast(Tuple[Type, Type], args)
             key_type, item_type = args
-            key_des = self.resolver.resolve(key_type, flags=annotation.serde.flags)
-            item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
+            key_des = self.resolver.resolve(
+                key_type, flags=annotation.serde.flags, namespace=namespace
+            )
+            item_des = self.resolver.resolve(
+                item_type, flags=annotation.serde.flags, namespace=namespace
+            )
         if issubclass(annotation.resolved_origin, defaultdict):
             factory = self._get_default_factory(annotation)
             func.namespace[anno_name] = functools.partial(defaultdict, factory)
@@ -431,7 +446,11 @@ class DesFactory:
         )
 
     def _build_collection_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
+        namespace: Type = None,
     ):
         item_des = None
         it_name = f"{anno_name}_item_des"
@@ -439,7 +458,9 @@ class DesFactory:
         line = f"{self.VNAME} = {anno_name}({iterate})"
         if annotation.args:
             item_type = annotation.args[0]
-            item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
+            item_des = self.resolver.resolve(
+                item_type, flags=annotation.serde.flags, namespace=namespace
+            )
             line = (
                 f"{self.VNAME} = "
                 f"{anno_name}({it_name}(x) for x in parent({iterate}))"
@@ -463,7 +484,11 @@ class DesFactory:
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
     def _build_generic_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
+        namespace: Type = None,
     ):
         serde = annotation.serde
         resolved = annotation.resolved
@@ -501,7 +526,7 @@ class DesFactory:
                 if serde.fields and len(matched) == len(serde.fields_in):
                     desers = {
                         f: self.resolver._resolve_from_annotation(
-                            serde.fields[f]
+                            serde.fields[f], _namespace=namespace
                         ).transmute
                         for f in matched
                     }
@@ -530,7 +555,9 @@ class DesFactory:
                 translate=self.resolver.translate,
             )
 
-    def _build_des(self, annotation: "Annotation", func_name: str) -> Callable:
+    def _build_des(
+        self, annotation: "Annotation", func_name: str, namespace: Type = None
+    ) -> Callable:
         args = annotation.args
         # Get the "origin" of the annotation.
         # For natives and their typing.* equivs, this will be a builtin type.
@@ -564,18 +591,30 @@ class DesFactory:
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.istypeddict(origin):
                         self._build_typeddict_des(
-                            func, anno_name, annotation, total=origin.__total__  # type: ignore
+                            func,
+                            anno_name,
+                            annotation,
+                            total=origin.__total__,  # type: ignore
+                            namespace=namespace,
                         )
                     elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
-                        self._build_typedtuple_des(func, anno_name, annotation)
+                        self._build_typedtuple_des(
+                            func, anno_name, annotation, namespace=namespace
+                        )
                     elif not args and checks.isbuiltinsubtype(origin):
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.ismappingtype(origin):
-                        self._build_mapping_des(func, anno_name, annotation)
+                        self._build_mapping_des(
+                            func, anno_name, annotation, namespace=namespace
+                        )
                     elif checks.iscollectiontype(origin):
-                        self._build_collection_des(func, anno_name, annotation)
+                        self._build_collection_des(
+                            func, anno_name, annotation, namespace=namespace
+                        )
                     else:
-                        self._build_generic_des(func, anno_name, annotation)
+                        self._build_generic_des(
+                            func, anno_name, annotation, namespace=namespace
+                        )
                 func.l(f"{gen.Keyword.RET} {self.VNAME}")
         deserializer = main.compile(ns=ns, name=func_name)
         return deserializer
@@ -645,7 +684,10 @@ class DesFactory:
         return des, validator
 
     def factory(
-        self, annotation: "Annotation", constr: Optional["const.ConstraintsT"] = None
+        self,
+        annotation: "Annotation",
+        constr: Optional["const.ConstraintsT"] = None,
+        namespace: Type = None,
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         annotation.serde = annotation.serde or SerdeConfig()
         key = self._get_name(annotation, constr)
@@ -657,7 +699,7 @@ class DesFactory:
                 deserializer = des
                 break
         if not deserializer:
-            deserializer = self._build_des(annotation, key)
+            deserializer = self._build_des(annotation, key, namespace)
 
         deserializer, validator = self._finalize_deserializer(
             annotation, deserializer, constr

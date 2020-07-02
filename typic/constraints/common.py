@@ -3,6 +3,7 @@
 import abc
 import dataclasses
 import enum
+import reprlib
 import sys
 import warnings
 from inspect import Signature
@@ -58,10 +59,8 @@ class __AbstractConstraints(abc.ABC):
 
     __slots__ = ("__dict__",)
 
-    def __post_init__(self):
-        self.validator
-
     @util.cached_property
+    @reprlib.recursive_repr()
     def __str(self) -> str:
         fields = [f"type={self.type_qualname}"]
         for f in dataclasses.fields(self):
@@ -192,6 +191,9 @@ class BaseConstraints(__AbstractConstraints):
     Even in `strict` mode, we may still want to coerce after validation.
     """
     name: Optional[str] = None
+
+    def __post_init__(self):
+        self.validator
 
     def _build_validator(
         self, func: gen.Block
@@ -365,6 +367,9 @@ class TypeConstraints(__AbstractConstraints):
     """Whether this constraint can allow null values."""
     name: Optional[str] = None
 
+    def __post_init__(self):
+        self.validator
+
     @util.cached_property
     def validator(self) -> ValidatorT:
         ns = dict(__t=self.type, VT=VT)
@@ -399,6 +404,9 @@ class EnumConstraints(__AbstractConstraints):
     """Whether this constraint can allow null values."""
     coerce: bool = True
     name: Optional[str] = None
+
+    def __post_init__(self):
+        self.validator
 
     @util.cached_property
     def __str(self) -> str:

@@ -146,7 +146,7 @@ def make_typedclass(
     )
     if slots:
         try:
-            with guard_recursion():
+            with guard_recursion():  # pragma: nocover
                 dcls = slotted(dcls)
         except RecursionDetected:
             raise TypeError(

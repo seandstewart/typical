@@ -1,5 +1,6 @@
 import dataclasses
 import inspect
+import reprlib
 import sys
 import warnings
 from typing import (
@@ -222,6 +223,19 @@ class ForwardDelayedAnnotation:
     _name: Optional[str] = None
     _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
 
+    @reprlib.recursive_repr()
+    def __repr__(self):
+        return (
+            f"{self.__class__}("
+            f"ref={self.ref},"
+            f"module={self.module}!r, "
+            f"parameter={self.parameter}, "
+            f"is_optional={self.is_optional}, "
+            f"is_strict={self.is_strict}, "
+            f"flags={self.flags}, "
+            f"default={self.default})"
+        )
+
     @property
     def resolved(self):
         if self._resolved is None:
@@ -230,7 +244,7 @@ class ForwardDelayedAnnotation:
                 type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
             except NameError as e:
                 warnings.warn(
-                    f"Counldn't resolve forward reference: {e}. "
+                    f"Couldn't resolve forward reference: {e}. "
                     f"Make sure this type is available in {self.module}."
                 )
                 type = Any
@@ -263,6 +277,17 @@ class DelayedAnnotation:
     default: Any = _empty
     _name: Optional[str] = None
     _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
+
+    @reprlib.recursive_repr()
+    def __repr__(self):
+        return (
+            f"{self.__class__}("
+            f"parameter={self.parameter}, "
+            f"is_optional={self.is_optional}, "
+            f"is_strict={self.is_strict}, "
+            f"flags={self.flags}, "
+            f"default={self.default})"
+        )
 
     @property
     def resolved(self):

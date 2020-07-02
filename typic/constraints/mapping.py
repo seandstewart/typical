@@ -329,26 +329,6 @@ class MappingConstraints(BaseConstraints):
             propertyNames=(
                 {"pattern": self.key_pattern.pattern} if self.key_pattern else None
             ),
-            patternProperties=(
-                {x: y.for_schema() for x, y in self.patterns.items()}
-                if self.patterns
-                else None
-            ),
-            additionalProperties=(
-                self.values.for_schema(with_type=True)
-                if self.values
-                else not self.total
-            ),
-            dependencies=(
-                {
-                    x: y.for_schema(with_type=True)
-                    if isinstance(y, BaseConstraints)
-                    else y
-                    for x, y in self.key_dependencies.items()
-                }
-                if self.key_dependencies
-                else None
-            ),
         )
         if with_type:
             schema["type"] = "object"
