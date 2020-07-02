@@ -19,6 +19,7 @@ from typing import (
     Type,
     Tuple,
     TypeVar,
+    Iterable,
 )
 
 import typic
@@ -365,6 +366,12 @@ def isuuidtype(obj: Type[ObjectT]) -> bool:
 
 
 _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
+
+
+@functools.lru_cache(maxsize=None)
+def isiterabletype(obj: Type[ObjectT]):
+    obj = util.origin(obj)
+    return _issubclass(obj, Iterable)
 
 
 @functools.lru_cache(maxsize=None)

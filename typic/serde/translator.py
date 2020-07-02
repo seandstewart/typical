@@ -12,7 +12,7 @@ from typing import (
     Any,
 )
 
-from typic.checks import iscollectiontype, ismappingtype
+from typic.checks import ismappingtype, isiterabletype
 from typic.gen import Block, Keyword
 from typic.util import (
     cached_type_hints,
@@ -132,7 +132,7 @@ class TranslatorFactory:
             iter = _valuescaller if values else _itemscaller
             return iter
 
-        if iscollectiontype(type):
+        if isiterabletype(type):
             return _iter
 
         fields = self.get_fields(type, as_source=True) or {}

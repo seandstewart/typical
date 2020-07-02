@@ -17,7 +17,7 @@ from typing import (
 from typic.api import wrap_cls, ObjectT
 from typic.types import freeze
 from .serde.common import SerdeFlags
-from typic.util import slotted, recursing
+from typic.util import slotted, guard_recursion, RecursionDetected
 
 _field_slots: Tuple[str, ...] = cast(Tuple[str, ...], dataclasses.Field.__slots__) + (
     "exclude",
@@ -145,13 +145,15 @@ def make_typedclass(
         frozen=frozen,
     )
     if slots:
-        if recursing():
+        try:
+            with guard_recursion():
+                dcls = slotted(dcls)
+        except RecursionDetected:
             raise TypeError(
                 f"{cls!r} uses a custom metaclass {cls.__class__!r} "
                 "which is not compatible with the 'slots' operator. "
                 "See Issue #104 on GitHub for more information."
             ) from None
-        dcls = slotted(dcls)
     fields = [
         f if isinstance(f, Field) else Field.from_field(f)
         for f in dataclasses.fields(dcls)

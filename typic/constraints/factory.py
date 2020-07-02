@@ -41,7 +41,8 @@ from typic.util import (
     cached_type_hints,
     get_name,
     TypeMap,
-    recursing,
+    guard_recursion,
+    RecursionDetected,
 )
 from .array import (
     Array,
@@ -333,11 +334,17 @@ def _maybe_get_delayed(
             name=name,  # type: ignore
             factory=get_constraints,
         )
-    elif t is cls or recursing():
+    elif t is cls:
         return DelayedConstraints(
             t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
         )
-    return get_constraints(t, nullable=nullable, name=name)
+    with guard_recursion():  # pragma: nocover
+        try:
+            return get_constraints(t, nullable=nullable, name=name)
+        except RecursionDetected:
+            return DelayedConstraints(
+                t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
+            )
 
 
 @functools.lru_cache(maxsize=None)

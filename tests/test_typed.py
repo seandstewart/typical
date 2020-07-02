@@ -131,6 +131,7 @@ def test_isbuiltintype(obj: typing.Any):
         (objects.Dest, objects.Source(), objects.Dest(objects.Source().test)),  # type: ignore
         (MyClass, factory(), MyClass(1)),
         (defaultdict, {}, defaultdict(None)),
+        (list, (x for x in range(10)), [*range(10)]),
     ],
     ids=objects.get_id,
 )
