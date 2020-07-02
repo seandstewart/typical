@@ -68,6 +68,7 @@ class Resolver:
         self.binder = Binder(self)
         self.translator = TranslatorFactory(self)
         self.bind = self.binder.bind
+        self.__cache = {}
         for typ in checks.STDLIB_TYPES:
             self.resolve(typ)
             self.resolve(Optional[typ])
@@ -502,27 +503,37 @@ class Resolver:
         anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation],
         _des: bool = True,
         _ser: bool = True,
+        _namespace: Type = None,
     ) -> SerdeProtocol:
+        if anno in self.__cache:
+            return self.__cache[anno]
         if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
             return DelayedSerdeProtocol(anno)
+
         # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
         if anno.origin is Callable:
             _des, _ser = False, False
         # Build the deserializer
         deserializer, validator, constraints = None, None, None
         if _des:
-            constraints = constr.get_constraints(anno.resolved, nullable=anno.optional)
-            deserializer, validator = self.des.factory(anno, constraints)
+            constraints = constr.get_constraints(
+                anno.resolved, nullable=anno.optional, cls=_namespace
+            )
+            deserializer, validator = self.des.factory(
+                anno, constraints, namespace=_namespace
+            )
         # Build the serializer
         serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
         # Put it all together
-        return SerdeProtocol(
+        proto = SerdeProtocol(
             annotation=anno,
             deserializer=deserializer,
             serializer=serializer,
             constraints=constraints,
             validator=validator,
         )
+        self.__cache[anno] = proto
+        return proto
 
     @functools.lru_cache(maxsize=None)
     def resolve(
@@ -582,7 +593,7 @@ class Resolver:
             flags=flags,
             namespace=namespace,
         )
-        resolved = self._resolve_from_annotation(anno, _des, _ser)
+        resolved = self._resolve_from_annotation(anno, _des, _ser, namespace)
         return resolved
 
     @functools.lru_cache(maxsize=None)

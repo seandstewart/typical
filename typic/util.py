@@ -47,7 +47,6 @@ __all__ = (
     "filtered_repr",
     "get_args",
     "get_name",
-    "hexhash",
     "origin",
     "resolve_supertype",
     "safe_eval",
@@ -80,10 +79,6 @@ GENERIC_TYPE_MAP = {
     Hashable: str,
     collections.abc.Hashable: str,
 }
-
-
-def hexhash(*args, __order=sys.byteorder, **kwargs) -> str:
-    return hash(f"{args}{kwargs}").to_bytes(8, __order, signed=True).hex()
 
 
 @functools.lru_cache(maxsize=2000, typed=True)

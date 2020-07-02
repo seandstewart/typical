@@ -823,6 +823,11 @@ def test_prevent_recursion_with_slots():
             {"d": {}, "f": {"g": {"h": "1"}}},
             objects.E(objects.D(), objects.F(objects.G(1))),
         ),
+        (
+            objects.ABs,
+            {"a": {}, "bs": [{}]},
+            objects.ABs(a=objects.A(), bs=[objects.B()]),
+        ),
     ],
 )
 def test_recursive_transmute(annotation, value, expected):
@@ -842,6 +847,7 @@ def test_recursive_transmute(annotation, value, expected):
         (objects.D, {"d": {}}),
         (objects.E, {}),
         (objects.E, {"d": {}, "f": {"g": {"h": 1}}},),
+        (objects.ABs, {"a": {}, "bs": [{}]},),
     ],
 )
 def test_recursive_validate(annotation, value):
@@ -862,6 +868,10 @@ def test_recursive_validate(annotation, value):
         (
             objects.E(objects.D(), objects.F(objects.G(1))),
             {"d": {"d": None}, "f": {"g": {"h": 1}}},
+        ),
+        (
+            objects.ABs(a=objects.A(), bs=[objects.B()]),
+            {"a": {"b": None}, "bs": [{"a": None}]},
         ),
     ],
 )
