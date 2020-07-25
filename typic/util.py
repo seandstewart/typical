@@ -412,12 +412,17 @@ def cached_signature(obj: Callable) -> inspect.Signature:
 
 
 def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
-    raw_annotations = getattr(annotation, "__annotations__", None) or {}
-    module_name = getattr(annotation, "__module__", None)
-    if module_name:
-        base_globals: Optional[Dict[str, Any]] = sys.modules[module_name].__dict__
+    raw_annotations: Dict[str, Any] = {}
+    base_globals: Dict[str, Any] = {}
+    if isinstance(annotation, type):
+        for base in reversed(annotation.__mro__):
+            base_globals.update(sys.modules[base.__module__].__dict__)
+            raw_annotations.update(getattr(base, "__annotations__", None) or {})
     else:
-        base_globals = None
+        raw_annotations = getattr(annotation, "__annotations__", None) or {}
+        module_name = getattr(annotation, "__module__", None)
+        if module_name:
+            base_globals = sys.modules[module_name].__dict__
     annotations = {}
     for name, value in raw_annotations.items():
         if isinstance(value, str):
@@ -426,9 +431,9 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
             else:
                 value = ForwardRef(value)
         try:
-            value = _eval_type(value, base_globals, None)
+            value = _eval_type(value, base_globals or None, None)
         except NameError:
-            # this is ok, it can be fixed with update_forward_refs
+            # this is ok, we deal with it later.
             pass
         annotations[name] = value
     return annotations
@@ -549,6 +554,7 @@ class RecursionDetector(bdb.Bdb):  # pragma: nocover
     def user_call(self, frame, argument_list):
         code = frame.f_code
         if code in self.stack:
+            self.stack.clear()
             raise RecursionDetected(f"Caught recursion in: {frame}")
         self.stack.add(code)
 
