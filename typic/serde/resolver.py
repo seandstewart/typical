@@ -47,7 +47,6 @@ from .common import (
 from .des import DesFactory
 from .ser import SerFactory
 from .translator import TranslatorFactory
-from ..util import guard_recursion, RecursionDetected
 
 _T = TypeVar("_T")
 
@@ -69,6 +68,7 @@ class Resolver:
         self.translator = TranslatorFactory(self)
         self.bind = self.binder.bind
         self.__cache = {}
+        self.__stack = set()
         for typ in checks.STDLIB_TYPES:
             self.resolve(typ)
             self.resolve(Optional[typ])
@@ -324,17 +324,15 @@ class Resolver:
         fields: Dict[
             str, Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
         ] = {}
-        for name, anno in util.cached_type_hints(origin).items():
-            kwargs = dict(
+        hints = util.cached_type_hints(origin)
+        for name, anno in hints.items():
+            fields[name] = self.annotation(
+                anno,
                 flags=dataclasses.replace(flags, fields={}),
                 default=getattr(origin, name, EMPTY),
                 namespace=origin,
             )
-            with guard_recursion():  # pragma: nocover
-                try:
-                    fields[name] = self.annotation(anno, **kwargs)
-                except RecursionDetected:
-                    fields[name] = self.annotation(anno, recursive=True, **kwargs)
+
         # Filter out any annotations which aren't part of the object's signature.
         if flags.signature_only:
             fields = {x: fields[x] for x in fields.keys() & params.keys()}
@@ -400,7 +398,6 @@ class Resolver:
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
         namespace: Type = None,
-        recursive: bool = False,
     ) -> Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]:
         """Get a :py:class:`Annotation` for this type.
 
@@ -467,7 +464,8 @@ class Resolver:
                 module=module,
                 localns=localns,
             )
-        elif use is namespace or recursive:
+        elif use is namespace or use in self.__stack:
+            self.__stack.remove(use)
             return DelayedAnnotation(
                 type=use,
                 resolver=self,
@@ -478,6 +476,7 @@ class Resolver:
                 flags=flags,
                 default=default,
             )
+        self.__stack.add(use)
         serde = (
             self._get_configuration(util.origin(use), flags)
             if is_static
@@ -583,6 +582,7 @@ class Resolver:
         --------
         :py:class:`SerdeProtocol`
         """
+        self.__stack.clear()
         # Extract the meta-data.
         anno = self.annotation(
             annotation=annotation,
@@ -594,6 +594,7 @@ class Resolver:
             namespace=namespace,
         )
         resolved = self._resolve_from_annotation(anno, _des, _ser, namespace)
+        self.__stack.clear()
         return resolved
 
     @functools.lru_cache(maxsize=None)

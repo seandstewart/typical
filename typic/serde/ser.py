@@ -641,7 +641,7 @@ class SerFactory:
 
 
 class DelayedSerializer:
-    __slots__ = "anno", "factory", "_serializer"
+    __slots__ = "anno", "factory", "_serializer", "__name__"
 
     def __init__(
         self,
@@ -651,6 +651,7 @@ class DelayedSerializer:
         self.anno = anno
         self.factory = factory
         self._serializer: Optional[SerializerT] = None
+        self.__name__ = anno.name
 
     def __call__(self, *args, **kwargs):
         if self._serializer is None:
