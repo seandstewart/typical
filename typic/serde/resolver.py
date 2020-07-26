@@ -325,9 +325,9 @@ class Resolver:
             str, Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
         ] = {}
         hints = util.cached_type_hints(origin)
-        for name, anno in hints.items():
+        for name, t in hints.items():
             fields[name] = self.annotation(
-                anno,
+                t,
                 flags=dataclasses.replace(flags, fields={}),
                 default=getattr(origin, name, EMPTY),
                 namespace=origin,
@@ -359,6 +359,7 @@ class Resolver:
             type_name_omissions = {util.get_name(o) for o in type_omissions}
             value_omissions = (*(o for o in omit if o not in type_omissions),)
             fields_out_final = {}
+            anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
             for name, out in fields_out.items():
                 anno = fields[name]
                 default = anno.parameter.default if anno.parameter else EMPTY
@@ -648,9 +649,10 @@ class Resolver:
             )
             if repr(param.default) == "<factory>":
                 param = param.replace(default=EMPTY)
-            if annotation is ClassVar:
+            if checks.isclassvartype(annotation):
                 val = getattr(obj, name)
-                annotation = annotation[type(val)]
+                if annotation is ClassVar:
+                    annotation = annotation[type(val)]
                 default = val
                 param = param.replace(default=default)
             if (

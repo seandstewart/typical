@@ -22,12 +22,13 @@ from typing import (
 )
 
 from typic import strict as st, util, constraints as const
+from typic.checks import isclassvartype
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict, ForwardRef, evaluate_forwardref
 from typic.ext import json
 from typic.types import freeze
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
 
 
@@ -195,6 +196,7 @@ class Annotation:
     """Type restriction configuration, if any."""
     generic: Type = dataclasses.field(init=False)
     has_default: bool = dataclasses.field(init=False)
+    is_class_var: bool = dataclasses.field(init=False)
     resolved_origin: Type = dataclasses.field(init=False)
     args: Tuple[Type, ...] = dataclasses.field(init=False)
 
@@ -203,6 +205,7 @@ class Annotation:
         self.args = util.get_args(self.resolved)
         self.resolved_origin = util.origin(self.resolved)
         self.generic = getattr(self.resolved, "__origin__", self.resolved_origin)
+        self.is_class_var = isclassvartype(self.un_resolved)
 
 
 _empty = object()

@@ -20,7 +20,7 @@ from typing import (  # type: ignore  # ironic...
     Type,
     TypeVar,
     Callable,
-    get_type_hints,
+    get_type_hints as _get_type_hints,
     Union,
     MutableMapping,
     MutableSequence,
@@ -45,12 +45,18 @@ __all__ = (
     "cachedmethod",
     "fastcachedmethod",
     "filtered_repr",
+    "guard_recursion",
     "get_args",
     "get_name",
+    "get_defname",
+    "get_qualname",
+    "get_type_hints",
+    "get_unique_name",
     "origin",
     "resolve_supertype",
     "safe_eval",
     "safe_get_params",
+    "signature",
     "simple_attributes",
     "slotted",
     "typed_dict_signature",
@@ -397,18 +403,17 @@ def fastcachedmethod(func):
     return _fast_cached_method_wrapper
 
 
-@functools.lru_cache(maxsize=None)
-def cached_signature(obj: Callable) -> inspect.Signature:
-    """A cached result of :py:func:`inspect.signature`.
+def signature(obj: Union[Callable, Type]) -> inspect.Signature:
+    """Get the signature of a type or callable.
 
-    Building the function signature is notoriously slow, but we can be safe that the
-    signature won't change at runtime, so we cache the result.
-
-    We also provide a little magic so that we can introspect :py:class:`TypedDict`
+    Also supports TypedDict subclasses
     """
     return (
         typed_dict_signature(obj) if checks.istypeddict(obj) else inspect.signature(obj)
     )
+
+
+cached_signature = functools.lru_cache(maxsize=None)(signature)
 
 
 def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
@@ -439,16 +444,14 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
     return annotations
 
 
-@functools.lru_cache(maxsize=None)
-def cached_type_hints(obj: Union[Type, Callable]) -> dict:
-    """A cached result of :py:func:`typing.get_type_hints`.
-
-    We don't want to go through the process of resolving type-hints every time.
-    """
+def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
     try:
-        return get_type_hints(obj)
+        return _get_type_hints(obj)
     except NameError:
         return _safe_get_type_hints(obj)
+
+
+cached_type_hints = functools.lru_cache(maxsize=None)(get_type_hints)
 
 
 @functools.lru_cache(maxsize=None)
@@ -633,7 +636,7 @@ def slotted(
 
 
 class joinedrepr(str):
-    __slots__ = ("fields",)
+    __slots__ = ("fields", "__dict__")
     fields: Iterable[Any]
 
     def __new__(cls, *fields):
@@ -656,6 +659,7 @@ class collectionrepr(str):
     __slots__ = (
         "root_name",
         "keys",
+        "__dict__",
     )
     root_name: str
     keys: Iterable[Any]
