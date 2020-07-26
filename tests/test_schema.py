@@ -188,6 +188,85 @@ class Container:
                 ),
             ),
         ),
+        (
+            objects.KlassVar,
+            typic.ObjectSchemaField(
+                title="KlassVar",
+                description="KlassVar()",
+                properties={
+                    "var": typic.StrSchemaField(
+                        enum=("foo",), default="foo", readOnly=True
+                    )
+                },
+                additionalProperties=False,
+                required=(),
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.KlassVarSubscripted,
+            typic.ObjectSchemaField(
+                title="KlassVarSubscripted",
+                description="KlassVarSubscripted()",
+                properties={
+                    "var": typic.StrSchemaField(
+                        enum=("foo",), default="foo", readOnly=True
+                    )
+                },
+                additionalProperties=False,
+                required=(),
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.A,
+            typic.ObjectSchemaField(
+                title="A",
+                description="A(b: Union[ForwardRef('B'), NoneType] = None)",
+                properties={"b": typic.Ref(ref="#/definitions/B")},
+                additionalProperties=False,
+                required=(),
+                definitions=typic.FrozenDict(
+                    {
+                        "A": typic.ObjectSchemaField(
+                            title="A",
+                            description="A(b: Union[ForwardRef('B'), NoneType] = "
+                            "None)",
+                            properties={"b": typic.Ref(ref="#/definitions/B")},
+                            additionalProperties=False,
+                            required=(),
+                        ),
+                        "B": typic.ObjectSchemaField(
+                            title="B",
+                            description="B(a: Union[ForwardRef('A'), NoneType] = None)",
+                            properties={
+                                "a": typic.MultiSchemaField(
+                                    title="A",
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/A"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
+                            additionalProperties=False,
+                            required=(),
+                        ),
+                    }
+                ),
+            ),
+        ),
+        (
+            objects.ItemizedKeyedValuedDict,
+            typic.ObjectSchemaField(
+                title="ItemizedKeyedValuedDict",
+                properties={"foo": typic.IntSchemaField()},
+                additionalProperties=typic.StrSchemaField(maxLength=5),
+            ),
+        ),
+        (
+            objects.ShortStrList,
+            typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
+        ),
     ],
     ids=repr,
 )
