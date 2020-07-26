@@ -20,6 +20,7 @@ from typing import (
     Dict,
     Hashable,
     cast,
+    Set,
 )
 
 from typic.checks import (
@@ -122,7 +123,7 @@ def _resolve_args(
             else:
                 items.append(c)
             continue
-        items.append(_maybe_get_delayed(arg, cls=cls, nullable=nullable))
+        items.append(get_constraints(arg, cls=cls, nullable=nullable))
     if len(items) == 1:
         return items[0]
     return MultiConstraints((*items,))  # type: ignore
@@ -204,9 +205,7 @@ def _resolve_params(
             items[name] = _from_union(anno, nullable=nullable, name=name, cls=cls)
             continue
         else:
-            items[name] = _maybe_get_delayed(
-                anno, nullable=nullable, name=name, cls=cls
-            )
+            items[name] = get_constraints(anno, nullable=nullable, name=name, cls=cls)
     return items
 
 
@@ -229,11 +228,11 @@ def _from_union(
     nullable = nullable or _nullable
     _args = get_args(t)[:-1] if _nullable else get_args(t)
     if len(_args) == 1:
-        return _maybe_get_delayed(_args[0], nullable=nullable, name=name, cls=cls)
+        return get_constraints(_args[0], nullable=nullable, name=name, cls=cls)
     return MultiConstraints(
         (
             *(
-                _maybe_get_delayed(a, nullable=nullable, cls=cls)  # type: ignore
+                get_constraints(a, nullable=nullable, cls=cls)  # type: ignore
                 for a in _args
             ),
         ),
@@ -324,12 +323,29 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
     }
 )
 
+__stack: Set[Type] = set()
+
 
 @functools.lru_cache(maxsize=None)
-def _maybe_get_delayed(
-    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
-):
+def get_constraints(
+    t: Type[VT],
+    *,
+    nullable: bool = False,
+    name: str = None,
+    cls: Type = ...,  # type: ignore
+) -> ConstraintsT:
+    while should_unwrap(t):
+        nullable = nullable or isoptionaltype(t)
+        t = get_args(t)[0]
+    if t is cls or t in __stack:
+        return DelayedConstraints(
+            t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
+        )
     if t.__class__ is ForwardRef:
+        if cls is ...:  # pragma: nocover
+            raise TypeError(
+                f"Cannot build constraints for {t} without an enclosing class."
+            )
         return ForwardDelayedConstraints(
             t,  # type: ignore
             cls.__module__,
@@ -338,20 +354,6 @@ def _maybe_get_delayed(
             name=name,  # type: ignore
             factory=get_constraints,
         )
-    elif t is cls:
-        return DelayedConstraints(
-            t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
-        )
-    return get_constraints(t, nullable=nullable, name=name, cls=cls)
-
-
-@functools.lru_cache(maxsize=None)
-def get_constraints(
-    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
-) -> ConstraintsT:
-    while should_unwrap(t):
-        nullable = nullable or isoptionaltype(t)
-        t = get_args(t)[0]
     if isconstrained(t):
         c: ConstraintsT = t.__constraints__  # type: ignore
         if (c.name, c.nullable) != (name, nullable):
@@ -363,5 +365,8 @@ def get_constraints(
         handler = _from_class
     else:
         handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(origin(t), _from_class)  # type: ignore
+
+    __stack.add(t)
     c = handler(t, nullable=nullable, name=name, cls=cls)  # type: ignore
+    __stack.clear()
     return c

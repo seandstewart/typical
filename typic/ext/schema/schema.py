@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 import enum
+import warnings
 from typing import (
     Union,
     Type,
@@ -20,7 +21,7 @@ import inflection  # type: ignore
 
 from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
-from typic.serde.common import SerdeProtocol, DelayedSerdeProtocol
+from typic.serde.common import SerdeProtocol
 from typic.compat import Final, TypedDict, ForwardRef
 from typic.util import get_args, origin, get_name
 from typic.checks import istypeddict, isnamedtuple
@@ -71,6 +72,7 @@ class SchemaBuilder:
     def __init__(self):
         self.__cache = {}
         self.__attached = set()
+        self.__stack = set()
 
     def attach(self, t: Type):
         self.__attached.add(t)
@@ -87,52 +89,29 @@ class SchemaBuilder:
             config["description"] = doc
 
         constraints = cast("MappingConstraints", proto.constraints)
-        if constraints.items:
-            config["items"] = {
-                nm: self.get_field(
-                    resolver.resolve(
-                        it.type, namespace=parent, is_optional=it.nullable
-                    ),
-                    parent=parent,
-                )
-                for nm, it in constraints.items.items()
-            }
-        if constraints.patterns:
-            config["patternProperties"] = {
-                p: self.get_field(
-                    resolver.resolve(
-                        it.type, namespace=parent, is_optional=it.nullable
-                    ),
-                    parent=parent,
-                )
-                for p, it in constraints.patterns.items()
-            }
-        if constraints.key_dependencies:
-            config["dependencies"] = {
-                k: it
-                if isinstance(it, tuple)
-                else self.get_field(
-                    resolver.resolve(
-                        it.type, namespace=parent, is_optional=it.nullable
-                    ),
-                    parent=parent,
-                )
-                for k, it in constraints.key_dependencies.items()
-            }
+        attrs = (
+            ("items", "properties"),
+            ("patterns", "patternProperties"),
+            ("key_dependencies", "dependencies"),
+        )
+        for src, target in attrs:
+            items = getattr(constraints, src)
+            if items:
+                config[target] = {
+                    nm: self.get_field(
+                        resolver.resolve(
+                            it.type, namespace=parent, is_optional=it.nullable
+                        ),
+                        parent=parent,
+                    )
+                    for nm, it in items.items()
+                }
         config["additionalProperties"] = not constraints.total
         if args:
             config["additionalProperties"] = self.get_field(
                 resolver.resolve(args[-1], namespace=parent), parent=parent
             )
-        elif constraints.values:
-            config["additionalProperties"] = self.get_field(
-                resolver.resolve(
-                    constraints.values.type,
-                    is_optional=constraints.values.nullable,
-                    namespace=parent,
-                ),
-                parent=parent,
-            )
+
         return config
 
     def _handle_array(
@@ -144,7 +123,6 @@ class SchemaBuilder:
         config = extra
         if has_ellipsis:
             args = args[:-1]
-        constraints = cast("ArrayConstraints", proto.constraints)
         if args:
             constrs = set(
                 self.get_field(resolver.resolve(x, namespace=parent), parent=parent)
@@ -155,11 +133,6 @@ class SchemaBuilder:
                 config["additionalItems"] = False if not has_ellipsis else None
             if anno.origin in {set, frozenset}:
                 config["uniqueItems"] = True
-        elif constraints.values:
-            config["items"] = self.get_field(
-                resolver.resolve(constraints.values.type, namespace=parent),
-                parent=parent,
-            )
         return config
 
     def get_field(
@@ -172,6 +145,10 @@ class SchemaBuilder:
         parent: Type = None,
     ) -> "SchemaFieldT":
         """Get a field definition for a JSON Schema."""
+        if protocol.annotation in self.__stack:
+            name = self.defname(protocol.annotation.resolved_origin, name)
+            return Ref(f"#/definitions/{name}")
+        self.__stack.add(protocol.annotation)
         anno = protocol.annotation
         if anno in self.__cache:
             return self.__cache[anno]
@@ -230,7 +207,6 @@ class SchemaBuilder:
         # we don't currently honor `{'const': <val>}` since it's just syntactic sugar.
         if ro and default:
             enum_ = (default.value if isinstance(default, enum.Enum) else default,)
-            ro = None
 
         # If we've got a base object, use it
         base: Optional[SchemaFieldT]
@@ -255,7 +231,8 @@ class SchemaBuilder:
         else:
             try:
                 schema = self.build_schema(use, name=self.defname(use, name=name))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
+                warnings.warn(f"Couldn't build schema for {use}: {e}")
                 schema = UndeclaredSchemaField(
                     enum=enum_,
                     title=self.defname(use, name=name),
@@ -265,6 +242,7 @@ class SchemaBuilder:
                 )
 
         self.__cache[anno] = schema
+        self.__stack.clear()
         return schema
 
     @staticmethod
@@ -282,8 +260,8 @@ class SchemaBuilder:
         replace = {}
         for field_name in ("items", "contains", "additionalItems"):
             it = getattr(field, field_name)
-            if isinstance(it, ObjectSchemaField):
-                ref = self._flatten_object_definitions(definitions, it)
+            if isinstance(it, (ObjectSchemaField, ArraySchemaField, MultiSchemaField)):
+                ref = self._flatten_definitions(definitions, it)
                 replace[field_name] = ref
         return dataclasses.replace(field, **replace) if replace else field
 
@@ -329,13 +307,11 @@ class SchemaBuilder:
         required: List[str] = []
         total: bool = getattr(obj, "__total__", True)
         for nm, protocol in protocols.items():
-            if isinstance(protocol, DelayedSerdeProtocol):
-                ref = protocol.delayed.name
-                flattened = Ref(f"#/definitions/{self.defname(ref, name=ref)}")
-            elif protocol.annotation.resolved_origin is obj:
+            if protocol.annotation.resolved_origin is obj:
                 flattened = Ref(f"#/definitions/{self.defname(obj)}")
             else:
-                field = self.get_field(protocol, name=nm, parent=obj)
+                ro = protocol.annotation.is_class_var or None
+                field = self.get_field(protocol, name=nm, parent=obj, ro=ro)
                 # If we received an object schema,
                 # figure out a name and inherit the definitions.
                 flattened = self._flatten_definitions(definitions, field)
