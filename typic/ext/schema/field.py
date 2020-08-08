@@ -223,6 +223,7 @@ class StrSchemaField(BaseSchemaField):
     """
 
     type = SchemaType.STR
+    format: Optional[StringFormat] = None
     pattern: Optional[Pattern] = None
     minLength: Optional[int] = None
     maxLength: Optional[int] = None

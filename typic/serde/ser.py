@@ -503,7 +503,7 @@ class SerFactory:
 
         self._finalize_mapping_serializer(func, serdict, annotation)
 
-    def _compile_enum_serializer(self, annotation: "Annotation",) -> SerializerT:
+    def _compile_enum_serializer(self, annotation: "Annotation") -> SerializerT:
         origin: Type[enum.Enum] = cast(Type[enum.Enum], annotation.resolved_origin)
         ts = {type(x.value) for x in origin}
         # If we can predict a single type the return the serializer for that
