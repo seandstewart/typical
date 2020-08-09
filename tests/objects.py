@@ -77,6 +77,12 @@ class FooNum(str, enum.Enum):
     bar = "bar"
 
 
+@dataclasses.dataclass
+class NestedDoubleReference:
+    first: Data
+    second: Data = ...
+
+
 @typic.klass
 class A:
     b: typing.Optional["B"] = None

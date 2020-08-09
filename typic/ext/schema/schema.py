@@ -230,7 +230,7 @@ class SchemaBuilder:
             schema = dataclasses.replace(base, **config)
         else:
             try:
-                schema = self.build_schema(use, name=self.defname(use, name=name))
+                schema = self.build_schema(use)
             except (ValueError, TypeError) as e:
                 warnings.warn(f"Couldn't build schema for {use}: {e}")
                 schema = UndeclaredSchemaField(

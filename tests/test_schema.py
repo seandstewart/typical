@@ -256,6 +256,30 @@ class Container:
             ),
         ),
         (
+            objects.NestedDoubleReference,
+            typic.ObjectSchemaField(
+                title=objects.NestedDoubleReference.__name__,
+                description=objects.NestedDoubleReference.__doc__,
+                properties=typic.FrozenDict(
+                    first=typic.Ref(ref="#/definitions/Data"),
+                    second=typic.Ref(ref="#/definitions/Data"),
+                ),
+                required=("first",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(
+                    {
+                        "Data": typic.ObjectSchemaField(
+                            title="Data",
+                            description="Data(foo: str)",
+                            properties={"foo": typic.StrSchemaField()},
+                            additionalProperties=False,
+                            required=("foo",),
+                        )
+                    }
+                ),
+            ),
+        ),
+        (
             objects.ItemizedKeyedValuedDict,
             typic.ObjectSchemaField(
                 title="ItemizedKeyedValuedDict",
