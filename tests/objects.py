@@ -119,6 +119,13 @@ class G:
     h: typing.Optional[int] = None
 
 
+@dataclasses.dataclass
+class ThreeOptionals:
+    a: typing.Optional[str]
+    b: typing.Optional[str] = None
+    c: typing.Optional[str] = None
+
+
 class Class:
     var: str
 

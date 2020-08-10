@@ -219,6 +219,30 @@ class Container:
             ),
         ),
         (
+            objects.ThreeOptionals,
+            typic.ObjectSchemaField(
+                title=objects.ThreeOptionals.__name__,
+                description=objects.ThreeOptionals.__doc__,
+                properties=typic.FrozenDict(
+                    a=typic.MultiSchemaField(
+                        title="A",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                    b=typic.MultiSchemaField(
+                        title="B",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                    c=typic.MultiSchemaField(
+                        title="C",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                ),
+                required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
             objects.A,
             typic.ObjectSchemaField(
                 title="A",

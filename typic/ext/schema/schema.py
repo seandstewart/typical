@@ -148,7 +148,6 @@ class SchemaBuilder:
         if protocol.annotation in self.__stack:
             name = self.defname(protocol.annotation.resolved_origin, name)
             return Ref(f"#/definitions/{name}")
-        self.__stack.add(protocol.annotation)
         anno = protocol.annotation
         if anno in self.__cache:
             return self.__cache[anno]
@@ -187,6 +186,8 @@ class SchemaBuilder:
             )
             self.__cache[anno] = schema
             return schema
+
+        self.__stack.add(anno)
 
         # Check if this should be ro/wo
         if use in {ReadOnly, WriteOnly, Final}:
