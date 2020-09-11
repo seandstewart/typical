@@ -11,7 +11,7 @@ from typic.ext.schema import (
     UndeclaredSchemaField,
     get_field_type,
 )
-from typic.compat import Final
+from typic.compat import Final, Literal
 from tests import objects
 
 
@@ -300,6 +300,19 @@ class Container:
         (
             objects.ShortStrList,
             typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
+        ),
+        (Literal[1, 2], typic.IntSchemaField(enum=(1, 2))),
+        (
+            Literal[1, 2, None],
+            typic.MultiSchemaField(
+                anyOf=(typic.IntSchemaField(enum=(1, 2)), typic.NullSchemaField(),)
+            ),
+        ),
+        (
+            Literal[1, "foo", None],
+            typic.MultiSchemaField(
+                anyOf=(typic.BaseSchemaField(enum=(1, "foo")), typic.NullSchemaField(),)
+            ),
         ),
     ],
     ids=repr,

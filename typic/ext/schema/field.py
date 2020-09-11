@@ -28,6 +28,7 @@ from typing import (
 
 import pendulum
 
+from typic.compat import Literal
 from typic.ext.json import dumps
 from typic.serde.common import SerdeFlags
 from typic.serde.resolver import resolver
@@ -395,5 +396,6 @@ SCHEMA_FIELD_FORMATS = TypeMap(
         frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
         dict: ObjectSchemaField(),
         type(None): NullSchemaField(),
+        Literal: BaseSchemaField(),
     }
 )

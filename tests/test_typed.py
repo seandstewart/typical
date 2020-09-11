@@ -34,6 +34,7 @@ from typic.api import (
     primitive,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
+from typic.compat import Literal
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
@@ -144,6 +145,55 @@ def test_transmute_simple(annotation, value, expected):
     t = dict if istypeddict(annotation) else annotation
     assert isinstance(transmuted, t)
     assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (Literal[1], 1, 1),
+        (Literal[1], "1", 1),
+        (Literal[1], b"1", 1),
+        (typing.Optional[Literal[1]], b"1", 1),
+        (typing.Optional[Literal[1]], None, None),
+        (Literal[1, None], None, None),
+        (Literal[1, None], "1", 1),
+        (Literal[1, 2, None], "1", 1),
+        (Literal[1, 2, None], "null", None),
+    ],
+)
+def test_transmute_literal(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value"),
+    argvalues=[
+        (Literal[1], 2),
+        (Literal[1], "2"),
+        (Literal[1], b"2"),
+        (typing.Optional[Literal[1]], 2),
+        (Literal[1, None], 2),
+        (Literal[1, None], "2"),
+        (Literal[1, 2, None], 3),
+        (Literal[1, 2, None], "3"),
+    ],
+)
+def test_transmute_literal_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        transmute(annotation, value)
+
+
+def test_invalid_literal():
+    with pytest.raises(TypeError):
+        transmute(Literal[datetime.date.today()], [1])
+
+
+def test_translate_literal():
+    with pytest.raises(TypeError):
+        translate(1, Literal[1])
+    with pytest.raises(TypeError):
+        resolver.translator.factory(resolver.annotation(int), Literal[1])
 
 
 @pytest.mark.parametrize(

@@ -2,12 +2,19 @@
 # -*- coding: UTF-8 -*-
 # flake8: noqa
 import sys
-from typing import TYPE_CHECKING, Any, TypeVar, Optional, Callable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    _SpecialForm as SpecialForm,  # type: ignore
+    TypeVar,
+    Optional,
+    Callable,
+)
 
 try:
-    from typing import Final, TypedDict  # type: ignore
+    from typing import Final, TypedDict, Literal  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict  # type: ignore
+    from typing_extensions import Final, TypedDict, Literal  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover

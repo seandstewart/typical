@@ -26,7 +26,7 @@ import typic.common
 import typic.util as util
 import typic.strict as strict
 
-from typic.compat import Final, lru_cache
+from typic.compat import Final, Literal, lru_cache
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -228,8 +228,11 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
     return (
         len(args) > 1
         and args[-1]
-        is type(None)  # noqa: E721 - we don't know what args[-1] is, so this is safer
-        and getattr(obj, "__origin__", obj) in {Optional, Union}
+        in {
+            type(None),
+            None,
+        }  # noqa: E721 - we don't know what args[-1] is, so this is safer
+        and getattr(obj, "__origin__", obj) in {Optional, Union, Literal}
     )
 
 
@@ -270,6 +273,11 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     True
     """
     return util.origin(obj) is Final
+
+
+@lru_cache(maxsize=None)
+def isliteral(obj: Type) -> bool:
+    return util.origin(obj) is Literal
 
 
 @lru_cache(maxsize=None)
@@ -496,7 +504,7 @@ def should_unwrap(obj: Type[ObjectT]) -> bool:
 
     This is useful for determining what type to use at run-time for coercion.
     """
-    return any(x(obj) for x in _UNWRAPPABLE)
+    return (not isliteral(obj)) and any(x(obj) for x in _UNWRAPPABLE)
 
 
 @lru_cache(maxsize=None)

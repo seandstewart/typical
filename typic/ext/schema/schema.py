@@ -24,9 +24,9 @@ import inflection  # type: ignore
 from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
 from typic.serde.common import SerdeProtocol, Annotation
-from typic.compat import Final, TypedDict, ForwardRef
+from typic.compat import Final, TypedDict, ForwardRef, Literal
 from typic.util import get_args, origin, get_name
-from typic.checks import istypeddict, isnamedtuple
+from typic.checks import istypeddict, isnamedtuple, isliteral
 from typic.types.frozendict import FrozenDict
 
 from .field import (  # type: ignore
@@ -307,7 +307,15 @@ class SchemaBuilder:
 
         # Check for an enumeration
         enum_ = None
-        if issubclass(use, enum.Enum):
+        # Functionally, literals are enumerations.
+        if isliteral(use):
+            enum_ = (*(a for a in anno.args if a is not None),)
+            ts = {a.__class__ for a in enum_}
+            use = Literal
+            if len(ts) == 1:
+                use = ts.pop()
+
+        elif issubclass(use, enum.Enum):
             use = cast(Type[enum.Enum], use)
             enum_ = tuple(x.value for x in use)
             use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore

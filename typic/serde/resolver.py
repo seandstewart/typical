@@ -3,6 +3,7 @@ import functools
 import inspect
 import warnings
 from collections.abc import Callable
+from enum import Enum
 from operator import attrgetter, methodcaller
 from typing import (
     Mapping,
@@ -60,6 +61,7 @@ class Resolver:
     )
     _DYNAMIC = SerFactory._DYNAMIC
     OPTIONALS = (None, ...)
+    LITERALS = (int, bytes, str, bool, Enum, type(None))
 
     def __init__(self):
         self.des = DesFactory(self)
@@ -430,6 +432,7 @@ class Resolver:
         )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC
+        is_literal = checks.isliteral(use)
         # Determine whether we should use the first arg of the annotation
         while checks.should_unwrap(use) and args:
             is_optional = is_optional or checks.isoptionaltype(use)
@@ -446,6 +449,18 @@ class Resolver:
             use = non_super
             args = util.get_args(use)
             is_static = util.origin(use) not in self._DYNAMIC
+            is_literal = is_literal or checks.isliteral(use)
+
+        # Only allow legal parameters at runtime, this has implementation implications.
+        if is_literal:
+            args = util.get_args(use)
+            if any(not isinstance(a, self.LITERALS) for a in args):
+                raise TypeError(
+                    f"PEP 586: Unsupported parameters for 'Literal' type: {args}. "
+                    "See https://www.python.org/dev/peps/pep-0586/"
+                    "#legal-parameters-for-literal-at-type-check-time "
+                    "for more information."
+                )
 
         if use.__class__ is ForwardRef:
             module, localns = self.__module__, {}
@@ -481,7 +496,7 @@ class Resolver:
         self.__stack.add(use)
         serde = (
             self._get_configuration(util.origin(use), flags)
-            if is_static
+            if is_static and not is_literal
             else SerdeConfig(flags)
         )
 

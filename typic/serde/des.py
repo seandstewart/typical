@@ -20,6 +20,7 @@ from typing import (
     cast,
     TYPE_CHECKING,
     Optional,
+    Set,
 )
 
 from pendulum import parse as dateparse, DateTime, instance
@@ -568,6 +569,26 @@ class DesFactory:
                 translate=self.resolver.translate,
             )
 
+    def _build_literal_des(
+        self, annotation: "Annotation", func_name: str, namespace: Type = None
+    ):
+        args = annotation.args
+        types: Set[Type] = {a.__class__ for a in args}
+        t = types.pop() if len(types) == 1 else Union[tuple(types)]
+        t_anno = cast(
+            Annotation,
+            self.resolver.annotation(
+                t,  # type: ignore
+                name=annotation.parameter.name,
+                parameter=annotation.parameter,
+                is_optional=annotation.optional,
+                is_strict=annotation.strict,
+                flags=annotation.serde.flags,
+                default=annotation.parameter.default,
+            ),
+        )
+        return self._build_des(t_anno, func_name, namespace)
+
     def _build_des(
         self, annotation: "Annotation", func_name: str, namespace: Type = None
     ) -> Callable:
@@ -584,6 +605,8 @@ class DesFactory:
             "issubclass": cached_issubclass,
             **annotation.serde.asdict(),
         }
+        if checks.isliteral(origin):
+            return self._build_literal_des(annotation, func_name, namespace)
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
                 if origin not in self.UNRESOLVABLE:
@@ -680,9 +703,15 @@ class DesFactory:
         # Handle *args and **kwargs
         des, validator = self._check_varargs(anno, des, validator)
         # If we have type constraints, override the deserializer for strict annotations.
-        if isinstance(constr, const.TypeConstraints):
+        if isinstance(constr, (const.TypeConstraints, const.LiteralConstraints)):
             if anno.strict:
                 des = validator  # type: ignore
+            elif isinstance(constr, const.LiteralConstraints):
+                __d = des
+
+                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:
+                    return __v(__d(val))
+
         # Otherwise
         else:
             # In strict mode, we validate & coerce if there are constraints
