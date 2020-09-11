@@ -98,6 +98,10 @@ class Ref(_Serializable):
 
     ref: str
 
+    @cached_property
+    def title(self) -> str:
+        return self.ref.rsplit("/", maxsplit=1)[-1]
+
 
 class StringFormat(str, enum.Enum):
     """The official string 'formats' supported by JSON Schema.
@@ -144,7 +148,9 @@ class BaseSchemaField(_Serializable):
 
     @cached_property
     def __str(self) -> str:  # pragma: nocover
-        fields = [f"type={self.type.value!r}"]
+        fields = (
+            [f"type={self.type.value!r}"] if isinstance(self.type, SchemaType) else []
+        )
         for f in dataclasses.fields(self):
             val = getattr(self, f.name)
             if (val or val in {False, 0}) and f.repr:
@@ -318,6 +324,7 @@ class ArraySchemaField(BaseSchemaField):
 
 
 SchemaFieldT = Union[
+    BaseSchemaField,
     StrSchemaField,
     IntSchemaField,
     NumberSchemaField,

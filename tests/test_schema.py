@@ -247,7 +247,15 @@ class Container:
             typic.ObjectSchemaField(
                 title="A",
                 description="A(b: Union[ForwardRef('B'), NoneType] = None)",
-                properties={"b": typic.Ref(ref="#/definitions/B")},
+                properties={
+                    "b": typic.MultiSchemaField(
+                        title="OptionalB",
+                        anyOf=(
+                            typic.Ref(ref="#/definitions/B"),
+                            typic.NullSchemaField(),
+                        ),
+                    )
+                },
                 additionalProperties=False,
                 required=(),
                 definitions=typic.FrozenDict(
@@ -256,7 +264,15 @@ class Container:
                             title="A",
                             description="A(b: Union[ForwardRef('B'), NoneType] = "
                             "None)",
-                            properties={"b": typic.Ref(ref="#/definitions/B")},
+                            properties={
+                                "b": typic.MultiSchemaField(
+                                    title="OptionalB",
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/B"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
                             additionalProperties=False,
                             required=(),
                         ),
@@ -277,6 +293,16 @@ class Container:
                         ),
                     }
                 ),
+            ),
+        ),
+        (
+            Union[int, str, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(),
+                    typic.StrSchemaField(),
+                    typic.NullSchemaField(),
+                )
             ),
         ),
         (
