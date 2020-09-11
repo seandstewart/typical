@@ -162,7 +162,7 @@ idna = ">=2.0.0"
 category = "main"
 description = "Fastest Python implementation of JSON schema"
 name = "fastjsonschema"
-optional = true
+optional = false
 python-versions = "*"
 version = "2.14.5"
 
@@ -937,7 +937,7 @@ schema = ["fastjsonschema"]
 tests = ["fastjsonschema", "ujson", "pydantic", "sqlalchemy", "pandas", "mypy", "pytest", "pytest-cov"]
 
 [metadata]
-content-hash = "8b500160b83fbaafc64ced008c661760b958227855236b667277a039717d8102"
+content-hash = "ca84abb7fa30141131d593e802adbd954ae1ed1e7927ff68c9214af564d8be00"
 python-versions = "^3.7"
 
 [metadata.files]
