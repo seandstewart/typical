@@ -280,6 +280,16 @@ class Container:
             ),
         ),
         (
+            Union[int, str, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(),
+                    typic.StrSchemaField(),
+                    typic.NullSchemaField(),
+                )
+            ),
+        ),
+        (
             objects.ItemizedKeyedValuedDict,
             typic.ObjectSchemaField(
                 title=objects.ItemizedKeyedValuedDict.__name__,
