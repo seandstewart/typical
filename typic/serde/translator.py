@@ -12,7 +12,7 @@ from typing import (
     Any,
 )
 
-from typic.checks import ismappingtype, isiterabletype
+from typic.checks import ismappingtype, isiterabletype, isliteral
 from typic.gen import Block, Keyword
 from typic.util import (
     cached_type_hints,
@@ -180,6 +180,14 @@ class TranslatorFactory:
 
     @functools.lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":
+        if isliteral(target):
+            raise TranslatorTypeError(
+                f"Cannot translate to literal type: {target!r}. "
+            ) from None
+        if isliteral(source):
+            raise TranslatorTypeError(
+                f"Cannot translate from literal type: {source!r}. "
+            ) from None
         # Get the target fields for translation.
         target_fields = self.get_fields(target)
         if target_fields is None:

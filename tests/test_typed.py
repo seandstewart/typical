@@ -34,6 +34,7 @@ from typic.api import (
     primitive,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
+from typic.compat import Literal
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
@@ -112,7 +113,11 @@ def test_isbuiltintype(obj: typing.Any):
             objects.NestedFromDict(objects.Data("bar!")),
         ),
         (objects.FooNum, "bar", objects.FooNum.bar),
-        (objects.Data, objects.Data("bar!"), objects.Data("bar!"),),
+        (
+            objects.Data,
+            objects.Data("bar!"),
+            objects.Data("bar!"),
+        ),
         (NetworkAddress, "localhost", NetworkAddress("localhost")),
         (typing.Pattern, r"\w+", re.compile(r"\w+")),
         (objects.Data, objects.FromDict("bar!"), objects.Data("bar!")),
@@ -140,6 +145,55 @@ def test_transmute_simple(annotation, value, expected):
     t = dict if istypeddict(annotation) else annotation
     assert isinstance(transmuted, t)
     assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (Literal[1], 1, 1),
+        (Literal[1], "1", 1),
+        (Literal[1], b"1", 1),
+        (typing.Optional[Literal[1]], b"1", 1),
+        (typing.Optional[Literal[1]], None, None),
+        (Literal[1, None], None, None),
+        (Literal[1, None], "1", 1),
+        (Literal[1, 2, None], "1", 1),
+        (Literal[1, 2, None], "null", None),
+    ],
+)
+def test_transmute_literal(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value"),
+    argvalues=[
+        (Literal[1], 2),
+        (Literal[1], "2"),
+        (Literal[1], b"2"),
+        (typing.Optional[Literal[1]], 2),
+        (Literal[1, None], 2),
+        (Literal[1, None], "2"),
+        (Literal[1, 2, None], 3),
+        (Literal[1, 2, None], "3"),
+    ],
+)
+def test_transmute_literal_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        transmute(annotation, value)
+
+
+def test_invalid_literal():
+    with pytest.raises(TypeError):
+        transmute(Literal[datetime.date.today()], [1])
+
+
+def test_translate_literal():
+    with pytest.raises(TypeError):
+        translate(1, Literal[1])
+    with pytest.raises(TypeError):
+        resolver.translator.factory(resolver.annotation(int), Literal[1])
 
 
 @pytest.mark.parametrize(
@@ -304,9 +358,18 @@ def test_transmute_collections_subscripted(annotation, value):
         (typing.Dict[bytes, objects.NestedFromDict], {0: "{'data': {'foo': 'bar!'}}"}),
         (objects.DateDict, '{"1970": "foo"}'),
         (typing.DefaultDict[str, int], {}),
-        (typing.DefaultDict[str, typing.DefaultDict[str, int]], {"foo": {}},),
-        (typing.DefaultDict[str, objects.DefaultNone], {"foo": {}},),
-        (typing.DefaultDict[str, objects.DefaultEllipsis], {"foo": {}},),
+        (
+            typing.DefaultDict[str, typing.DefaultDict[str, int]],
+            {"foo": {}},
+        ),
+        (
+            typing.DefaultDict[str, objects.DefaultNone],
+            {"foo": {}},
+        ),
+        (
+            typing.DefaultDict[str, objects.DefaultEllipsis],
+            {"foo": {}},
+        ),
         (typing.Mapping[str, str], objects.TClass(1)),
     ],
     ids=objects.get_id,
@@ -705,7 +768,11 @@ class AddresseMap(dict):
 @pytest.mark.parametrize(
     argnames=("anno", "val", "expected"),
     argvalues=[
-        (Addresses, {"tcp://foo"}, Addresses((NetworkAddress("tcp://foo"),)),),
+        (
+            Addresses,
+            {"tcp://foo"},
+            Addresses((NetworkAddress("tcp://foo"),)),
+        ),
         (
             AddresseMap,
             {"foo": "tcp://foo"},
@@ -747,7 +814,10 @@ def test_validate_transmute(t, v):
 @pytest.mark.parametrize(
     argnames="t, v",
     argvalues=[
-        (int, "",),
+        (
+            int,
+            "",
+        ),
         (str, 0),
         (bytes, ""),
         (float, 1),
@@ -756,7 +826,10 @@ def test_validate_transmute(t, v):
         (objects.Typic, {"var": 1}),
         (objects.TDict, {"a": ""}),
         (typing.Mapping[int, str], {"b": ""}),
-        (typing.Mapping[pathlib.Path, str], {1: ""},),
+        (
+            typing.Mapping[pathlib.Path, str],
+            {1: ""},
+        ),
         (typing.Union[str, pathlib.Path], 1),
     ],
     ids=objects.get_id,
@@ -846,8 +919,14 @@ def test_recursive_transmute(annotation, value, expected):
         (objects.D, {"d": None}),
         (objects.D, {"d": {}}),
         (objects.E, {}),
-        (objects.E, {"d": {}, "f": {"g": {"h": 1}}},),
-        (objects.ABs, {"a": {}, "bs": [{}]},),
+        (
+            objects.E,
+            {"d": {}, "f": {"g": {"h": 1}}},
+        ),
+        (
+            objects.ABs,
+            {"a": {}, "bs": [{}]},
+        ),
     ],
 )
 def test_recursive_validate(annotation, value):
@@ -884,7 +963,10 @@ def test_recursive_primitive(value, expected):
     argnames="annotation,value",
     argvalues=[
         (objects.B, {"a": {"b": {"a": 1}}}),
-        (objects.E, {"d": {}, "f": {"g": {"h": "1"}}},),
+        (
+            objects.E,
+            {"d": {}, "f": {"g": {"h": "1"}}},
+        ),
     ],
 )
 def test_recursive_validate_invalid(annotation, value):

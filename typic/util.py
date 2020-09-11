@@ -34,7 +34,7 @@ from typing import (  # type: ignore  # ironic...
 
 import typic.checks as checks
 from typic.ext import json
-from typic.compat import ForwardRef
+from typic.compat import ForwardRef, SpecialForm
 
 __all__ = (
     "cached_issubclass",
@@ -217,7 +217,7 @@ def get_name(obj: Union[Type, ForwardRef]) -> str:
     'dict'
     """
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name  # type: ignore
+        return obj._name or str(obj)  # type: ignore
     elif isinstance(obj, ForwardRef):
         return obj.__forward_arg__
     elif obj in {NotImplemented, None, Ellipsis}:
@@ -510,7 +510,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
 VT = TypeVar("VT")
 
 
-class TypeMap(Dict[Type, VT]):
+class TypeMap(Dict[Union[Type, SpecialForm], VT]):
     """A mapping of Type -> value."""
 
     def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:

@@ -33,7 +33,7 @@ from typic.checks import (
     isnamedtuple,
     should_unwrap,
 )
-from typic.compat import ForwardRef
+from typic.compat import ForwardRef, Literal
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
@@ -57,6 +57,7 @@ from .common import (
     VT,
     DelayedConstraints,
     ForwardDelayedConstraints,
+    LiteralConstraints,
 )
 from .mapping import (
     MappingConstraints,
@@ -221,6 +222,12 @@ def _from_enum_type(
     return EnumConstraints(t, nullable=nullable, name=name)
 
 
+def _from_literal(
+    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
+) -> LiteralConstraints:
+    return LiteralConstraints(t, nullable=nullable, name=name)
+
+
 def _from_union(
     t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
 ) -> ConstraintsT:
@@ -320,6 +327,7 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         ipaddress.IPv4Address: _from_strict_type,
         ipaddress.IPv6Address: _from_strict_type,
         Union: _from_union,  # type: ignore
+        Literal: _from_literal,
     }
 )
 

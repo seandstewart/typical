@@ -11,7 +11,7 @@ from typic.ext.schema import (
     UndeclaredSchemaField,
     get_field_type,
 )
-from typic.compat import Final
+from typic.compat import Final, Literal
 from tests import objects
 
 
@@ -281,7 +281,7 @@ class Container:
                             description="B(a: Union[ForwardRef('A'), NoneType] = None)",
                             properties={
                                 "a": typic.MultiSchemaField(
-                                    title="A",
+                                    title="OptionalA",
                                     anyOf=(
                                         typic.Ref(ref="#/definitions/A"),
                                         typic.NullSchemaField(),
@@ -316,6 +316,19 @@ class Container:
         (
             objects.ShortStrList,
             typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
+        ),
+        (Literal[1, 2], typic.IntSchemaField(enum=(1, 2))),
+        (
+            Literal[1, 2, None],
+            typic.MultiSchemaField(
+                anyOf=(typic.IntSchemaField(enum=(1, 2)), typic.NullSchemaField(),)
+            ),
+        ),
+        (
+            Literal[1, "foo", None],
+            typic.MultiSchemaField(
+                anyOf=(typic.BaseSchemaField(enum=(1, "foo")), typic.NullSchemaField(),)
+            ),
         ),
     ],
     ids=repr,
