@@ -149,9 +149,21 @@ class CaseDict(Dict):
             {objects.FooNum.bar: objects.Typic(var="foo")},
             {"bar": {"var": "foo"}},
         ),
-        (GenDict[str, int], GenDict(foo_bar=2), {"fooBar": 2},),
-        (SerDict, SerDict(foo_bar=2), {"fooBar": 2},),
-        (CaseDict, CaseDict(foo_bar=2), {"fooBar": 2},),
+        (
+            GenDict[str, int],
+            GenDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
+        (
+            SerDict,
+            SerDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
+        (
+            CaseDict,
+            CaseDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
     ],
 )
 def test_serde_serializer(t, obj, prim):
@@ -172,8 +184,16 @@ def test_serde_serializer(t, obj, prim):
             {objects.FooNum.bar: objects.Typic(var="foo")},
             {"bar": {"var": "foo"}},
         ),
-        (GenDict[str, int], {"foo_bar": 2}, {"fooBar": 2},),
-        (SerDict, {"foo_bar": 2}, {"fooBar": 2},),
+        (
+            GenDict[str, int],
+            {"foo_bar": 2},
+            {"fooBar": 2},
+        ),
+        (
+            SerDict,
+            {"foo_bar": 2},
+            {"fooBar": 2},
+        ),
     ],
 )
 def test_serde_deserializer(t, obj, prim):
@@ -198,7 +218,10 @@ class Bar:
         (None, "null"),
         (MultiNum.INT, "1"),
         (MultiNum.STR, '"str"'),
-        ({objects.FooNum.bar: objects.Typic(var="foo")}, '{"bar":{"var":"foo"}}',),
+        (
+            {objects.FooNum.bar: objects.Typic(var="foo")},
+            '{"bar":{"var":"foo"}}',
+        ),
         ([typic.URL("foo")], '["foo"]'),
         (Omit(), '{"bar":"foo"}'),
         (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),

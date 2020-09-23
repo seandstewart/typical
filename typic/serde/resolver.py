@@ -680,7 +680,11 @@ class Resolver:
                 param = param.replace(default=field.default)
 
             resolved = self.resolve(
-                annotation, parameter=param, name=name, is_strict=strict, namespace=obj,
+                annotation,
+                parameter=param,
+                name=name,
+                is_strict=strict,
+                namespace=obj,
             )
             ann[name] = resolved
         try:

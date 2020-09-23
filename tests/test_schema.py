@@ -321,13 +321,19 @@ class Container:
         (
             Literal[1, 2, None],
             typic.MultiSchemaField(
-                anyOf=(typic.IntSchemaField(enum=(1, 2)), typic.NullSchemaField(),)
+                anyOf=(
+                    typic.IntSchemaField(enum=(1, 2)),
+                    typic.NullSchemaField(),
+                )
             ),
         ),
         (
             Literal[1, "foo", None],
             typic.MultiSchemaField(
-                anyOf=(typic.BaseSchemaField(enum=(1, "foo")), typic.NullSchemaField(),)
+                anyOf=(
+                    typic.BaseSchemaField(enum=(1, "foo")),
+                    typic.NullSchemaField(),
+                )
             ),
         ),
     ],

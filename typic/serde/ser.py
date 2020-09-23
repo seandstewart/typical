@@ -102,7 +102,12 @@ def make_class_serdict(annotation: "Annotation", fields: Mapping[str, Serializer
     else:
 
         def missing(  # type: ignore
-            self, item, *, __fields=fields, __getters=getters, __repr=util.joinedrepr,
+            self,
+            item,
+            *,
+            __fields=fields,
+            __getters=getters,
+            __repr=util.joinedrepr,
         ):
             self[item] = ret = __fields[item](
                 __getters[item](self.instance),
@@ -148,7 +153,11 @@ class ClassFieldSerDict(dict):
     __slots__ = ("instance", "lazy", "_name")
 
     def __init__(
-        self, instance: Any, lazy: bool = False, *, __tfname__: util.ReprT = None,
+        self,
+        instance: Any,
+        lazy: bool = False,
+        *,
+        __tfname__: util.ReprT = None,
     ):
         self._name = __tfname__
         self.instance = instance
@@ -186,7 +195,9 @@ def make_kv_serdict(annotation: "Annotation", kser: SerializerT, vser: Serialize
                 if value in __omit:
                     return Omit
                 newv = __vser(  # type: ignore
-                    value, lazy=self.lazy, name=__repr(self._name, key),
+                    value,
+                    lazy=self.lazy,
+                    name=__repr(self._name, key),
                 )
                 self[key] = newv
                 return newv
@@ -299,7 +310,9 @@ class SerList(list):
     def append(self, object: _T) -> None:  # pragma: nocover
         super().append(
             self.serializer(  # type: ignore
-                object, lazy=self.lazy, name=self.repr(self._name, len(self)),
+                object,
+                lazy=self.lazy,
+                name=self.repr(self._name, len(self)),
             )
         )
 
@@ -407,7 +420,9 @@ class SerFactory:
             )
 
     def _build_list_serializer(
-        self, func: gen.Block, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        annotation: "Annotation",
     ):
         # Check for value types
         line = "[*o]"
@@ -456,7 +471,10 @@ class SerFactory:
         return main.compile(name=name, ns=ns)
 
     def _finalize_mapping_serializer(
-        self, func: gen.Block, serdict: Type, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        serdict: Type,
+        annotation: "Annotation",
     ):
         serdict_name = serdict.__name__
         self._check_add_null_check(func, annotation)
@@ -495,7 +513,9 @@ class SerFactory:
         self._finalize_mapping_serializer(func, serdict, annotation)
 
     def _build_class_serializer(
-        self, func: gen.Block, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        annotation: "Annotation",
     ):
         # Get the field serializers
         fields_ser = {x: self.factory(y) for x, y in annotation.serde.fields.items()}
@@ -523,7 +543,9 @@ class SerFactory:
         return self.resolver.primitive
 
     def _compile_defined_serializer(
-        self, annotation: "Annotation", ser: SerializerT,
+        self,
+        annotation: "Annotation",
+        ser: SerializerT,
     ) -> SerializerT:
         func_name = self._get_name(annotation)
         ser_name = "ser"

@@ -386,10 +386,14 @@ class SerdeProtocol:
 
 
 class DelayedSerdeProtocol(SerdeProtocol):
-    __slots__ = ("delayed", "_protocol",) + tuple(SerdeProtocol.__slots__)
+    __slots__ = (
+        "delayed",
+        "_protocol",
+    ) + tuple(SerdeProtocol.__slots__)
 
     def __init__(
-        self, delayed: Union[ForwardDelayedAnnotation, DelayedAnnotation],
+        self,
+        delayed: Union[ForwardDelayedAnnotation, DelayedAnnotation],
     ):
         self.delayed = delayed
         self._protocol: Optional[SerdeProtocol] = None

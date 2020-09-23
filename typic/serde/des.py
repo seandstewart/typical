@@ -288,7 +288,10 @@ class DesFactory:
         return factory
 
     def _build_text_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
     ):
         origin = annotation.resolved_origin
         # Encode for bytes
@@ -305,7 +308,10 @@ class DesFactory:
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
     def _build_builtin_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
     ):
         origin = annotation.resolved_origin
         if issubclass(origin, (str, bytes)):
@@ -375,7 +381,9 @@ class DesFactory:
             if annotation.serde.fields:
                 self._build_typeddict_des(b, anno_name, annotation, namespace=namespace)
             else:
-                b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
+                b.l(
+                    f"{self.VNAME} = {anno_name}(**{self.VNAME})",
+                )
         with func.b(
             f"elif isinstance({self.VNAME}, (list, set, frozenset, tuple)):"
         ) as b:
@@ -385,7 +393,9 @@ class DesFactory:
                     __bind=self.resolver.bind,
                 )
             else:
-                b.l(f"{self.VNAME} = {anno_name}(*{self.VNAME})",)
+                b.l(
+                    f"{self.VNAME} = {anno_name}(*{self.VNAME})",
+                )
         with func.b("else:") as b:
             b.l(
                 f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
@@ -479,7 +489,10 @@ class DesFactory:
         )
 
     def _build_path_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
     ):
         self._add_type_check(func, anno_name)
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
@@ -668,7 +681,8 @@ class DesFactory:
         return des, validator
 
     def _finalize_validator(
-        self, constr: Optional["const.ConstraintsT"],
+        self,
+        constr: Optional["const.ConstraintsT"],
     ) -> "const.ValidatorT":
         def validate(value, *, field: str = None):
             return value

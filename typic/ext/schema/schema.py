@@ -195,7 +195,8 @@ class SchemaBuilder:
         schema = self._check_optional(
             anno,
             MultiSchemaField(
-                title=name and self.defname(anno.resolved, name=name), anyOf=(*fields,),
+                title=name and self.defname(anno.resolved, name=name),
+                anyOf=(*fields,),
             ),
             ro,
             wo,
