@@ -225,7 +225,9 @@ def _resolve_class(
             @functools.wraps(setter)
             def __setattr_typed__(self, name, item, *, __trans=trans, __setter=setter):
                 __setter(
-                    self, name, __trans[name](item) if name in protos else item,
+                    self,
+                    name,
+                    __trans[name](item) if name in protos else item,
                 )
 
             return __setattr_typed__
@@ -431,11 +433,7 @@ def _handle_constraint_values(constraints, values, args):
     if vcons:
         constraints["values"] = vcons
         if not isinstance(values, tuple) or len(values) == 1:
-            args = (
-                values  # type: ignore
-                if isinstance(values, tuple)
-                else (values,)
-            )
+            args = values if isinstance(values, tuple) else (values,)  # type: ignore
     return args
 
 

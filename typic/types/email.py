@@ -85,8 +85,7 @@ class EmailAddrInfo:
 
     @classmethod
     def from_str(cls, value) -> "EmailAddrInfo":
-        """Parse & validate a string, generate an instance of :py:class:`EmailAddrInfo`.
-        """
+        """Parse & validate a string, generate an instance of :py:class:`EmailAddrInfo`."""
         match: Optional[Match] = cls.PATTERN.match(value)
         if not match or not value:
             err_msg = f"<{value!r}> is not a valid email address."

@@ -7,7 +7,7 @@ import reprlib
 import sys
 import warnings
 from inspect import Signature
-from typing import (
+from typing import (  # type: ignore
     Callable,
     Any,
     ClassVar,
@@ -23,6 +23,7 @@ from typing import (
     Set,
     Optional,
     Mapping,
+    _GenericAlias,  # type: ignore
 )
 
 from typic import gen, util
@@ -35,9 +36,12 @@ if TYPE_CHECKING:  # pragma: nocover
 
 __all__ = (
     "BaseConstraints",
+    "EnumConstraints",
+    "LiteralConstraints",
     "MultiConstraints",
     "TypeConstraints",
     "ValidatorT",
+    "VT",
 )
 
 VT = TypeVar("VT")
@@ -129,7 +133,7 @@ class __AbstractConstraints(abc.ABC):
             valid, value = False, value
 
         if not valid:
-            field = f"{field}:" if field else "Given"
+            field = f"{field}:" if field is not None else "Given"
             raise ConstraintValueError(
                 f"{field} value <{value!r}> fails constraints: {self}"
             ) from None
@@ -277,6 +281,9 @@ class MultiConstraints(__AbstractConstraints):
     def __str__(self) -> str:
         return self.__str
 
+    def __repr__(self):
+        return self.__str
+
     def __type(self) -> Iterator[Type]:
         to_flatten: Set[Union[Type, Iterable[Type]]]
         to_flatten = {x.type for x in self.constraints}
@@ -420,6 +427,9 @@ class EnumConstraints(__AbstractConstraints):
     def __str__(self) -> str:
         return self.__str
 
+    def __repr__(self):
+        return self.__str
+
     @util.cached_property
     def validator(self) -> ValidatorT:
         ns = dict(__t=self.type, VT=VT, __values=(*self.type,))
@@ -428,10 +438,58 @@ class EnumConstraints(__AbstractConstraints):
             with self.define(main, func_name) as f:
                 if self.nullable:
                     with f.b(f"if value in {self.NULLABLES}:") as b:
-                        b.l(f"{gen.Keyword.RET} value")
+                        b.l(f"{gen.Keyword.RET} True, value")
                 # This is O(N), but so is casting to the enum
                 # And handling a ValueError is an order of magnitude heavier
                 f.l(f"{gen.Keyword.RET} value in __values, value")
+
+        validator: ValidatorT = main.compile(name=func_name, ns=ns)
+        return validator
+
+    def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
+        if self.name:
+            return {"title": self.name}
+        return {}
+
+
+@util.slotted
+@dataclasses.dataclass(frozen=True, repr=False)
+class LiteralConstraints(__AbstractConstraints):
+    type: _GenericAlias  # type: ignore  # real-type: Literal
+    nullable: bool = False
+    coerce: bool = False
+    name: Optional[str] = None
+
+    def __post_init__(self):
+        self.validator
+
+    @property
+    def values(self):
+        return util.get_args(self.type)
+
+    @util.cached_property
+    def __str(self) -> str:
+        return f"(type=Literal, " f"values={self.values}, " f"nullable={self.nullable})"
+
+    def __str__(self) -> str:
+        return self.__str
+
+    def __repr__(self):
+        return self.__str
+
+    @util.cached_property
+    def validator(self) -> ValidatorT:
+        ns = dict(__t=self.type, VT=VT, __values=frozenset(self.values))
+        func_name = self._get_validator_name()
+        with gen.Block(ns) as main:
+            with self.define(main, func_name) as f:
+                if self.nullable:
+                    with f.b(f"if value in {self.NULLABLES}:") as b:
+                        b.l(f"{gen.Keyword.RET} True, value")
+                with f.b("try:") as b:
+                    b.l(f"{gen.Keyword.RET} value in __values, value")
+                with f.b("except TypeError:") as b:
+                    b.l(f"{gen.Keyword.RET} False, value")
 
         validator: ValidatorT = main.compile(name=func_name, ns=ns)
         return validator

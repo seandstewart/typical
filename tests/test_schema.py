@@ -11,7 +11,7 @@ from typic.ext.schema import (
     UndeclaredSchemaField,
     get_field_type,
 )
-from typic.compat import Final
+from typic.compat import Final, Literal
 from tests import objects
 
 
@@ -247,7 +247,15 @@ class Container:
             typic.ObjectSchemaField(
                 title="A",
                 description="A(b: Union[ForwardRef('B'), NoneType] = None)",
-                properties={"b": typic.Ref(ref="#/definitions/B")},
+                properties={
+                    "b": typic.MultiSchemaField(
+                        title="OptionalB",
+                        anyOf=(
+                            typic.Ref(ref="#/definitions/B"),
+                            typic.NullSchemaField(),
+                        ),
+                    )
+                },
                 additionalProperties=False,
                 required=(),
                 definitions=typic.FrozenDict(
@@ -256,7 +264,15 @@ class Container:
                             title="A",
                             description="A(b: Union[ForwardRef('B'), NoneType] = "
                             "None)",
-                            properties={"b": typic.Ref(ref="#/definitions/B")},
+                            properties={
+                                "b": typic.MultiSchemaField(
+                                    title="OptionalB",
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/B"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
                             additionalProperties=False,
                             required=(),
                         ),
@@ -265,7 +281,7 @@ class Container:
                             description="B(a: Union[ForwardRef('A'), NoneType] = None)",
                             properties={
                                 "a": typic.MultiSchemaField(
-                                    title="A",
+                                    title="OptionalA",
                                     anyOf=(
                                         typic.Ref(ref="#/definitions/A"),
                                         typic.NullSchemaField(),
@@ -280,6 +296,16 @@ class Container:
             ),
         ),
         (
+            Union[int, str, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(),
+                    typic.StrSchemaField(),
+                    typic.NullSchemaField(),
+                )
+            ),
+        ),
+        (
             objects.ItemizedKeyedValuedDict,
             typic.ObjectSchemaField(
                 title="ItemizedKeyedValuedDict",
@@ -290,6 +316,25 @@ class Container:
         (
             objects.ShortStrList,
             typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
+        ),
+        (Literal[1, 2], typic.IntSchemaField(enum=(1, 2))),
+        (
+            Literal[1, 2, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(enum=(1, 2)),
+                    typic.NullSchemaField(),
+                )
+            ),
+        ),
+        (
+            Literal[1, "foo", None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.BaseSchemaField(enum=(1, "foo")),
+                    typic.NullSchemaField(),
+                )
+            ),
         ),
     ],
     ids=repr,

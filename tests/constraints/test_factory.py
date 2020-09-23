@@ -84,8 +84,14 @@ def test_get_contraints(t, v):
         (Foo, {"bar": "", "unknown": 1}),
         (typing.Optional[Foo], {"bar": 1}),
         (typing.Optional[Foo], 1),
-        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [[]],),
-        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [""],),
+        (
+            typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
+            [[]],
+        ),
+        (
+            typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
+            [""],
+        ),
         (
             typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
             [{"bar": ""}],

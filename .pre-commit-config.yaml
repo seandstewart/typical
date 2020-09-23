@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.780
+    rev: v0.782
     hooks:
       - id: mypy
         exclude: '.*tests/.*|.*docs/.*'
   - repo: https://github.com/ambv/black
-    rev: 19.10b0
+    rev: 20.8b1
     hooks:
     - id: black
       language_version: python3.7
@@ -14,6 +14,6 @@ repos:
     hooks:
     - id: flake8
   - repo: .
-    rev: v2.0.20
+    rev: v2.0.29
     hooks:
     - id: export-requirements-dev
