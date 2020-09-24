@@ -174,13 +174,7 @@ class Container:
                 description=objects.NestedDoubleReference.__doc__,
                 properties=typic.FrozenDict(
                     first=typic.Ref(ref="#/definitions/Data"),
-                    second=typic.MultiSchemaField(
-                        title="OptionalData",
-                        anyOf=(
-                            typic.Ref(ref="#/definitions/Data"),
-                            typic.NullSchemaField(),
-                        ),
-                    ),
+                    second=typic.Ref(ref="#/definitions/Data"),
                 ),
                 required=("first",),
                 additionalProperties=False,
