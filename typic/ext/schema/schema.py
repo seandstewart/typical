@@ -145,7 +145,7 @@ class SchemaBuilder:
         wo: Optional[bool],
         name: Optional[str],
     ) -> SchemaFieldT:
-        if annotation.optional:
+        if annotation.optional and annotation.parameter.default is not ...:
             null = NullSchemaField()
             if isinstance(schema, MultiSchemaField):
                 anyOf = schema.anyOf or ()
