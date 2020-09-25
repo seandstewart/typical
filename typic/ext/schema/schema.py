@@ -145,7 +145,7 @@ class SchemaBuilder:
         wo: Optional[bool],
         name: Optional[str],
     ) -> SchemaFieldT:
-        if annotation.optional:
+        if annotation.optional and annotation.parameter.default is not ...:
             null = NullSchemaField()
             if isinstance(schema, MultiSchemaField):
                 anyOf = schema.anyOf or ()
@@ -238,7 +238,7 @@ class SchemaBuilder:
             schema = dataclasses.replace(base, **config)
         else:
             try:
-                schema = self.build_schema(use, name=self.defname(use, name=name))
+                schema = self.build_schema(use)
             except (ValueError, TypeError) as e:
                 warnings.warn(f"Couldn't build schema for {use}: {e}")
                 schema = UndeclaredSchemaField(
