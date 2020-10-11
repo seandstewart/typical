@@ -357,6 +357,11 @@ class DFClass:
     df: pandas.DataFrame = None
 
 
+@typic.klass
+class MutableClassVar:
+    f: typing.ClassVar[typing.List[str]] = []
+
+
 TYPIC_OBJECTS = [
     Typic,
     Inherited,
