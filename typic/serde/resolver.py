@@ -413,7 +413,7 @@ class Resolver:
                 name or "_",
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 annotation=annotation,
-                default=default,
+                default=default if checks.ishashable(default) else ...,
             )
         # Check for the super-type
         non_super = util.resolve_supertype(annotation)
@@ -663,6 +663,9 @@ class Resolver:
                 if field.init is False and util.origin(annotation) is not ReadOnly:
                     annotation = ReadOnly[annotation]  # type: ignore
                 param = param.replace(default=field.default)
+
+            if not checks.ishashable(param.default):
+                param = param.replace(default=...)
 
             resolved = self.resolve(
                 annotation, parameter=param, name=name, is_strict=strict, namespace=obj,
