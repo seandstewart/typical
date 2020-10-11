@@ -51,6 +51,7 @@ __all__ = (
     "get_name",
     "get_defname",
     "get_qualname",
+    "get_tag_for_types",
     "get_type_hints",
     "get_unique_name",
     "origin",
@@ -60,7 +61,9 @@ __all__ = (
     "signature",
     "simple_attributes",
     "slotted",
+    "TaggedUnion",
     "typed_dict_signature",
+    "TypeMap",
 )
 
 from typic.compat import SQLAMetaData
@@ -689,3 +692,60 @@ class collectionrepr(str):
 
 
 ReprT = Union[str, joinedrepr, collectionrepr]
+
+
+@slotted(dict=False)
+@dataclasses.dataclass(frozen=True)
+class TaggedUnion:
+    tag: str
+    types: Tuple[Type, ...]
+    isliteral: bool
+    types_by_values: Tuple[Tuple[Any, Type], ...]
+
+
+empty = object()
+
+
+@functools.lru_cache(maxsize=None)
+def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
+    if any(
+        t in {None, ...} or not inspect.isclass(t) or checks.isstdlibtype(t)
+        for t in types
+    ):
+        return None
+    if len(types) > 1:
+        root = types[0]
+        root_hints = cached_type_hints(root)
+        intersection = {*root_hints}
+        fields_by_type = {root: root_hints}
+        t: Type
+        for t in types[1:]:
+            hints = cached_type_hints(t)
+            intersection &= hints.keys()
+            fields_by_type[t] = hints
+        tag = None
+        literal = False
+        # If we have an intersection, check if it's constant value we can use
+        # TODO: This won't support Generics in this state.
+        #  We don't support generics yet (#119), but when we do,
+        #  we need to add a branch for tagged unions from generics.
+        while intersection and tag is None:
+            f = intersection.pop()
+            v = getattr(root, f, empty)
+            if v is not empty:
+                tag = f
+                continue
+            rhint = root_hints[f]
+            if checks.isliteral(rhint):
+                tag, literal = f, True
+        if tag:
+            if literal:
+                tbv = (
+                    *((a, t) for t in types for a in get_args(fields_by_type[t][tag])),
+                )
+            else:
+                tbv = (*((getattr(t, tag), t) for t in types),)
+            return TaggedUnion(
+                tag=tag, types=types, isliteral=literal, types_by_values=tbv
+            )
+    return None

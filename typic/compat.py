@@ -31,6 +31,8 @@ if sys.version_info < (3, 7):  # pragma: nocover
     if TYPE_CHECKING:
 
         class ForwardRef:
+            __forward_arg__: str
+
             def _eval_type(self, globalns: Any, localns: Any) -> Any:
                 pass
 

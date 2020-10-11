@@ -32,6 +32,7 @@ from typic.util import (
     cached_issubclass,
     cached_signature,
     get_defname,
+    get_tag_for_types,
     get_unique_name,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
@@ -95,7 +96,6 @@ class DesFactory:
     UNRESOLVABLE = frozenset(
         (
             Any,
-            Union,
             Match,
             re.Match,  # type: ignore
             type(None),
@@ -123,7 +123,9 @@ class DesFactory:
     def _set_checks(self, func: gen.Block, anno_name: str, annotation: "Annotation"):
         _ctx = {}
         # run a safe eval if input is text and anno isn't
-        if issubclass(annotation.resolved_origin, (str, bytes)):
+        if inspect.isclass(annotation.resolved_origin) and issubclass(
+            annotation.resolved_origin, (str, bytes)
+        ):
             self._add_vtype(func)
         else:
             self._add_eval(func)
@@ -488,12 +490,7 @@ class DesFactory:
             },
         )
 
-    def _build_path_des(
-        self,
-        func: gen.Block,
-        anno_name: str,
-        annotation: "Annotation",
-    ):
+    def _build_path_des(self, func: gen.Block, anno_name: str):
         self._add_type_check(func, anno_name)
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
@@ -580,7 +577,7 @@ class DesFactory:
             self.resolver.annotation(
                 t,  # type: ignore
                 name=annotation.parameter.name,
-                parameter=annotation.parameter,
+                # parameter=annotation.parameter,
                 is_optional=annotation.optional,
                 is_strict=annotation.strict,
                 flags=annotation.serde.flags,
@@ -588,6 +585,47 @@ class DesFactory:
             ),
         )
         return self._build_des(t_anno, func_name, namespace)
+
+    def _build_union_des(self, func: gen.Block, annotation: "Annotation", namespace):
+        # Get all types which we may coerce to.
+        args = (*(a for a in annotation.args if a not in {None, Ellipsis, type(None)}),)
+        # Get all custom types, which may have discriminators
+        targets = (*(a for a in args if not checks.isstdlibtype(a)),)
+        # We can only build a tagged union deserializer if all args are valid
+        if args and args == targets:
+            # Try to collect the field which will be the discriminator.
+            # First, get a mapping of Type -> Proto & Type -> Fields
+            tagged = get_tag_for_types(targets)
+            # Just bail out if we can't find a key.
+            if not tagged:
+                func.l("# No-op, couldn't locate a discriminator key.")
+                return
+            # If we got a key, re-map the protocols to the value for each type.
+            deserializers = {
+                value: self.resolver.resolve(t, namespace=namespace)
+                for value, t in tagged.types_by_values
+            }
+            # Finally, build the deserializer
+            func.namespace.update(
+                tag=tagged.tag,
+                desers=deserializers,
+                empty=_empty,
+            )
+            with func.b(
+                f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping
+            ) as b:
+                b.l(f"tag_value = {self.VNAME}.get(tag, empty)")
+            with func.b("else:") as b:
+                b.l(f"tag_value = getattr({self.VNAME}, tag, empty)")
+            with func.b("if tag_value in desers:") as b:
+                b.l(f"{self.VNAME} = desers[tag_value].transmute({self.VNAME})")
+            with func.b("else:") as b:
+                b.l(
+                    "raise ValueError("
+                    'f"Value is missing field {tag!r} with one of '
+                    '{(*desers,)}: {val!r}"'
+                    ")"
+                )
 
     def _build_des(
         self, annotation: "Annotation", func_name: str, namespace: Type = None
@@ -611,14 +649,16 @@ class DesFactory:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, anno_name, annotation)
-                    if checks.isdatetype(origin):
+                    if origin is Union:
+                        self._build_union_des(func, annotation, namespace)
+                    elif checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
                     elif checks.isuuidtype(origin):
                         self._build_uuid_des(func, anno_name, annotation)
                     elif origin in {Pattern, re.Pattern}:  # type: ignore
                         self._build_pattern_des(func, anno_name)
                     elif issubclass(origin, pathlib.Path):
-                        self._build_path_des(func, anno_name, annotation)
+                        self._build_path_des(func, anno_name)
                     elif not args and checks.isbuiltintype(origin):
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.isfromdictclass(origin):

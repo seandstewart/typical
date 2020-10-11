@@ -149,6 +149,13 @@ class SerdeConfig:
     def __hash__(self):
         return hash(f"{self}")
 
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        fs = []
+        for field in dataclasses.fields(self):
+            fs.append(f"{field.name}={getattr(self, field.name)!r}")
+        return f"{self.__class__.__name__}({', '.join(fs)})"
+
     def asdict(self) -> SerdeConfigD:
         return SerdeConfigD(
             fields=self.fields,

@@ -20,6 +20,7 @@ from typing import (
     Hashable,
     cast,
     Set,
+    ClassVar,
 )
 
 from typic.checks import (
@@ -31,16 +32,19 @@ from typic.checks import (
     isbuiltinsubtype,
     isnamedtuple,
     should_unwrap,
+    isclassvartype,
 )
 from typic.compat import ForwardRef, Literal, lru_cache
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
     get_args,
+    get_tag_for_types,
     cached_signature,
     cached_type_hints,
     get_name,
     TypeMap,
+    empty,
 )
 from .array import (
     Array,
@@ -244,6 +248,7 @@ def _from_union(
             ),
         ),
         name=name,
+        tag=get_tag_for_types(_args),
     )
 
 
@@ -259,6 +264,18 @@ def _from_class(
             p = params[x]
             params[x] = inspect.Parameter(
                 p.name, p.kind, default=p.default, annotation=hints[x]
+            )
+        for x in hints.keys() - params.keys():
+            hint = hints[x]
+            if not isclassvartype(hint):
+                continue
+            # Hack in the classvars as "parameters" to allow for validation.
+            default = getattr(t, x, empty)
+            args = get_args(hint)
+            if not args:
+                hint = ClassVar[default.__class__]  # type: ignore
+            params[x] = inspect.Parameter(
+                x, inspect.Parameter.KEYWORD_ONLY, default=default, annotation=hint
             )
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable, name=name)

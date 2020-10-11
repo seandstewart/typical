@@ -26,7 +26,7 @@ import typic.common
 import typic.util as util
 import typic.strict as strict
 
-from typic.compat import Final, Literal, lru_cache
+from typic.compat import Final, ForwardRef, Literal, lru_cache
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -277,7 +277,9 @@ def isfinal(obj: Type[ObjectT]) -> bool:
 
 @lru_cache(maxsize=None)
 def isliteral(obj: Type) -> bool:
-    return util.origin(obj) is Literal
+    return util.origin(obj) is Literal or (
+        obj.__class__ is ForwardRef and obj.__forward_arg__.startswith("Literal")
+    )
 
 
 @lru_cache(maxsize=None)
