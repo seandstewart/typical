@@ -31,7 +31,10 @@ if sys.version_info < (3, 7):  # pragma: nocover
         from typing import _ForwardRef as ForwardRef
 
     def evaluate_forwardref(
-        type_: ForwardRef, globalns: Any, localns: Any, recursive_guard: set = None,
+        type_: ForwardRef,
+        globalns: Any,
+        localns: Any,
+        recursive_guard: set = None,
     ) -> Any:
         return type_._eval_type(globalns, localns)
 
@@ -40,7 +43,10 @@ elif sys.version_info >= (3, 9):
     from typing import ForwardRef
 
     def evaluate_forwardref(
-        type_: ForwardRef, globalns: Any, localns: Any, recursive_guard: set = None,
+        type_: ForwardRef,
+        globalns: Any,
+        localns: Any,
+        recursive_guard: set = None,
     ) -> Any:
         recursive_guard = recursive_guard or set()
         return type_._evaluate(globalns, localns, recursive_guard)
@@ -50,6 +56,9 @@ else:  # pragma: nocover
     from typing import ForwardRef  # type: ignore
 
     def evaluate_forwardref(
-        type_: ForwardRef, globalns: Any, localns: Any, recursive_guard: set = None,
+        type_: ForwardRef,
+        globalns: Any,
+        localns: Any,
+        recursive_guard: set = None,
     ) -> Any:
         return type_._evaluate(globalns, localns)
