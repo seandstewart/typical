@@ -44,6 +44,7 @@ from .common import (
     DelayedSerdeProtocol,
     ForwardDelayedAnnotation,
     DelayedAnnotation,
+    AnnotationT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -401,7 +402,7 @@ class Resolver:
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
         namespace: Type = None,
-    ) -> Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]:
+    ) -> AnnotationT:
         """Get a :py:class:`Annotation` for this type.
 
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
@@ -440,6 +441,7 @@ class Resolver:
             if is_optional and len(args) > 2:
                 # We can't resolve this annotation.
                 is_static = False
+                use = Union[args[:-1]]
                 break
             # Note that we don't re-assign `orig`.
             # This is intentional.
@@ -461,9 +463,10 @@ class Resolver:
                     "#legal-parameters-for-literal-at-type-check-time "
                     "for more information."
                 )
-
+        # The type definition doesn't exist yet.
         if use.__class__ is ForwardRef:
             module, localns = self.__module__, {}
+            # Ideally we have a namespace from a parent class/function to the field
             if namespace:
                 module = namespace.__module__
                 localns = getattr(namespace, "__dict__", {})
@@ -480,8 +483,12 @@ class Resolver:
                 module=module,
                 localns=localns,
             )
+        # The type definition is recursive or within a recursive loop.
         elif use is namespace or use in self.__stack:
-            self.__stack.remove(use)
+            # If detected via stack, we can remove it now.
+            # Otherwise we'll cause another recursive loop.
+            if use in self.__stack:
+                self.__stack.remove(use)
             return DelayedAnnotation(
                 type=use,
                 resolver=self,
@@ -492,7 +499,9 @@ class Resolver:
                 flags=flags,
                 default=default,
             )
-        self.__stack.add(use)
+        # Otherwise, add this type to the stack to prevent a recursive loop from elsewhere.
+        if not checks.isstdlibtype(use):
+            self.__stack.add(use)
         serde = (
             self._get_configuration(util.origin(use), flags)
             if is_static and not is_literal
@@ -515,7 +524,7 @@ class Resolver:
     @functools.lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self,
-        anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation],
+        anno: AnnotationT,
         _des: bool = True,
         _ser: bool = True,
         _namespace: Type = None,
@@ -598,7 +607,6 @@ class Resolver:
         --------
         :py:class:`SerdeProtocol`
         """
-        self.__stack.clear()
         # Extract the meta-data.
         anno = self.annotation(
             annotation=annotation,

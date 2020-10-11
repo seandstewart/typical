@@ -972,3 +972,76 @@ def test_recursive_primitive(value, expected):
 def test_recursive_validate_invalid(annotation, value):
     with pytest.raises(ConstraintValueError):
         validate(annotation, value)
+
+
+# Note - we're testing with recursive tagged unions.
+@pytest.mark.parametrize(
+    argnames="annotation,value,expected",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.ABlah(
+                key=3, field=objects.ABlah(key=3, field=objects.ABar(key=2, field=b""))
+            ),
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.CBlah(field=objects.CBlah(field=objects.CBar(field=b""))),
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.DBlah(field=objects.DBlah(field=objects.DBar(field=b""))),
+        ),
+    ],
+)
+def test_tagged_union_transmute(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+    ],
+)
+def test_tagged_union_validate(annotation, value):
+    validated = validate(annotation, value)
+    assert validated == value
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+    ],
+)
+def test_tagged_union_validate_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        validate(annotation, value)

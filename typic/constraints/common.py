@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import abc
+import collections.abc
 import dataclasses
 import enum
 import reprlib
@@ -26,7 +27,7 @@ from typing import (  # type: ignore
     _GenericAlias,  # type: ignore
 )
 
-from typic import gen, util
+from typic import gen, util, checks
 from typic.compat import ForwardRef, evaluate_forwardref
 from .error import ConstraintValueError
 
@@ -268,6 +269,7 @@ class MultiConstraints(__AbstractConstraints):
     constraints: Tuple["ConstraintsT", ...]
     coerce: bool = False
     name: Optional[str] = None
+    tag: Optional["util.TaggedUnion"] = None
 
     @util.cached_property
     def nullable(self) -> bool:
@@ -315,30 +317,48 @@ class MultiConstraints(__AbstractConstraints):
         If a value does not match any origin-type, as reported by :py:func:`typic.origin`,
         then we will report the value as invalid.
         """
-        vmap = util.TypeMap(
-            {util.origin(c.type): c.validator for c in self.constraints}
-        )
-        if vmap:
-            if self.nullable:
-
-                def multi_validator(value: VT, *, field: str = None) -> Tuple[bool, VT]:
-                    if value is None:
-                        return True, value
-                    v: Optional[ValidatorT] = vmap.get_by_parent(type(value), None)
-                    return v(value, field=field) if v else (False, value)  # type: ignore
-
-            else:
-
-                def multi_validator(value: VT, *, field: str = None) -> Tuple[bool, VT]:
-                    v: Optional[ValidatorT] = vmap.get_by_parent(type(value), None)
-                    return v(value, field=field) if v else (False, value)  # type: ignore
-
-        else:
-
-            def multi_validator(value: VT, *, field: str = None) -> Tuple[bool, VT]:
-                return True, value
-
-        return multi_validator  # type: ignore
+        func_name = self._get_validator_name()
+        vmap = util.TypeMap({c.type: c for c in self.constraints})
+        ns = {"tag": self.tag and self.tag.tag, "empty": util.empty}
+        with gen.Block(ns) as main:
+            with self.define(main, func_name) as f:
+                if not vmap:
+                    f.l(f"return True, {self.VALUE}")
+                else:
+                    f.l(f"{self.VALTNAME} = {self.VALUE}.__class__")
+                    if self.nullable:
+                        with f.b(f"if {self.VALUE} is None:") as b:
+                            b.l(f"return True, {self.VALUE}")
+                    if self.tag:
+                        validators = {
+                            value: vmap[t] for value, t in self.tag.types_by_values
+                        }
+                        f.namespace.update(vmap=validators)
+                        with f.b(
+                            f"if issubclass({self.VALTNAME}, Mapping):",
+                            Mapping=collections.abc.Mapping,
+                        ) as b:
+                            b.l(f"tag_value = {self.VALUE}.get(tag, empty)")
+                        with f.b("else:") as b:
+                            b.l(f"tag_value = getattr({self.VALUE}, tag, empty)")
+                        f.l(
+                            f"valid, {self.VALUE} = "
+                            f"(True, vmap[tag_value].validate({self.VALUE}, field=field)) "
+                            f"if tag_value in vmap else (False, {self.VALUE})"
+                        )
+                    else:
+                        vmap = util.TypeMap(
+                            {util.origin(t): v for t, v in vmap.items()}
+                        )
+                        f.namespace.update(vmap=vmap)
+                        f.l(f"v = vmap.get_by_parent({self.VALTNAME}, None)")
+                        f.l(
+                            f"valid, {self.VALUE} = (True, v.validate(value, field=field)) "
+                            f"if v else (False, value)"
+                        )
+                    f.l(f"return valid, {self.VALUE}")
+        validator = main.compile(name=func_name)
+        return validator  # type: ignore
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         scheme: dict = {
@@ -510,12 +530,20 @@ class DelayedConstraints:
         self.factory = factory
         self._constraints: Optional["__AbstractConstraints"] = None
 
+    def _evaluate_contraints(self):
+        type = self.t
+        if checks.isoptionaltype(type):
+            args = util.get_args(type)[:-1]
+            type = args[0] if len(args) == 1 else Union[args]
+            self.nullable = True
+            self.t = type
+        c = self.factory(type, nullable=self.nullable, name=self.name)
+        return c
+
     @property
     def constraints(self) -> "__AbstractConstraints":
         if self._constraints is None:
-            self._constraints = self.factory(
-                self.t, nullable=self.nullable, name=self.name
-            )
+            self._constraints = self._evaluate_contraints()
         return self._constraints
 
     def validate(self, value: VT, *, field: str = None):
@@ -553,21 +581,27 @@ class ForwardDelayedConstraints:
         self.factory = factory
         self._constraints: Optional["__AbstractConstraints"] = None
 
+    def _evaluate_contraints(self):
+        globalns = sys.modules[self.module].__dict__.copy()
+        try:
+            type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
+        except NameError as e:  # pragma: nocover
+            warnings.warn(
+                f"Counldn't resolve forward reference: {e}. "
+                f"Make sure this type is available in {self.module}."
+            )
+            type = object  # make it a no-op
+        if checks.isoptionaltype(type):
+            args = util.get_args(type)[:-1]
+            type = args[0] if len(args) == 1 else Union[args]
+            self.nullable = True
+        c = self.factory(type, nullable=self.nullable, name=self.name)
+        return c
+
     @property
     def constraints(self) -> "__AbstractConstraints":
         if self._constraints is None:
-            globalns = sys.modules[self.module].__dict__.copy()
-            try:
-                type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
-            except NameError as e:
-                warnings.warn(
-                    f"Counldn't resolve forward reference: {e}. "
-                    f"Make sure this type is available in {self.module}."
-                )
-                type = Any
-            self._constraints = self.factory(
-                type, nullable=self.nullable, name=self.name
-            )
+            self._constraints = self._evaluate_contraints()
         return self._constraints
 
     def validate(self, value: VT, *, field: str = None):
