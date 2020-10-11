@@ -164,7 +164,11 @@ def make_typedclass(
     serde = serde or SerdeFlags()
     serde = serde.merge(SerdeFlags(fields=field_names, exclude=exclude))  # type: ignore
     return wrap_cls(
-        dcls, delay=delay, strict=strict, jsonschema=jsonschema, serde=serde,
+        dcls,
+        delay=delay,
+        strict=strict,
+        jsonschema=jsonschema,
+        serde=serde,
     )
 
 

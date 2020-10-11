@@ -78,7 +78,8 @@ class TranslatorFactory:
 
     @staticmethod
     def _fields_from_hints(
-        kind: inspect._ParameterKind, hints: Mapping[str, Type],
+        kind: inspect._ParameterKind,
+        hints: Mapping[str, Type],
     ) -> Mapping[str, inspect.Parameter]:
         return {x: inspect.Parameter(x, kind, annotation=y) for x, y in hints.items()}
 

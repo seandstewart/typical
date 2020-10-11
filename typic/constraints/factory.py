@@ -192,7 +192,8 @@ def _from_simple_type(
 
 
 def _resolve_params(
-    cls: Type, **param: inspect.Parameter,
+    cls: Type,
+    **param: inspect.Parameter,
 ) -> Mapping[str, ConstraintsT]:
     items: Dict[str, ConstraintsT] = {}
     while param:
@@ -256,9 +257,9 @@ def _from_class(
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable, name=name)
     name = name or get_name(t)
-    items: Optional[
-        frozendict.FrozenDict[Hashable, ConstraintsT]
-    ] = frozendict.FrozenDict(_resolve_params(t, **params)) or None
+    items: Optional[frozendict.FrozenDict[Hashable, ConstraintsT]] = (
+        frozendict.FrozenDict(_resolve_params(t, **params)) or None
+    )
     required = frozenset(
         (
             pname

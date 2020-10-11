@@ -203,7 +203,15 @@ class MappingConstraints(BaseConstraints):
     def _create_item_validator(
         self, func_name: str, ns: dict = None
     ) -> Tuple[Optional[Callable], Optional[str]]:
-        if any((self.items, self.patterns, self.key_pattern, self.keys, self.values,)):
+        if any(
+            (
+                self.items,
+                self.patterns,
+                self.key_pattern,
+                self.keys,
+                self.values,
+            )
+        ):
             if ns is None:
                 ns = {}
             name = f"{func_name}_entries"

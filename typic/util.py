@@ -581,7 +581,10 @@ def guard_recursion():  # pragma: nocover
 
 
 def slotted(
-    _cls: Type = None, *, dict: bool = True, weakref: bool = False,
+    _cls: Type = None,
+    *,
+    dict: bool = True,
+    weakref: bool = False,
 ):
     """Decorator to create a "slotted" version of the provided class.
 
