@@ -7,6 +7,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8, 3.9]
@@ -32,7 +33,7 @@ jobs:
         ./.github/macos-install.sh
 
     - name: Install Poetry
-      uses: dschep/install-poetry-action@v1.2
+      uses: abatilo/actions-poetry@v2.0.0
 
     - name: Cache Poetry virtualenv
       uses: actions/cache@v1

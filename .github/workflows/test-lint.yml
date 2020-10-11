@@ -27,7 +27,7 @@ jobs:
         ./.github/ubuntu-install.sh
 
     - name: Install Poetry
-      uses: dschep/install-poetry-action@v1.2
+      uses: abatilo/actions-poetry@v2.0.0
 
     - name: Cache Poetry virtualenv
       uses: actions/cache@v1
