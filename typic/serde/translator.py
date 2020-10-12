@@ -1,4 +1,3 @@
-import functools
 import inspect
 from operator import methodcaller
 from typing import (
@@ -13,7 +12,8 @@ from typing import (
 )
 
 from typic.checks import ismappingtype, isiterabletype
-from typic.gen import Block, Keyword
+from typic.compat import lru_cache
+from typic.gen import Block, Keyword, ParameterKind
 from typic.util import (
     cached_type_hints,
     cached_simple_attributes,
@@ -78,16 +78,16 @@ class TranslatorFactory:
 
     @staticmethod
     def _fields_from_hints(
-        kind: inspect._ParameterKind,
+        kind: ParameterKind,
         hints: Mapping[str, Type],
     ) -> Mapping[str, inspect.Parameter]:
         return {x: inspect.Parameter(x, kind, annotation=y) for x, y in hints.items()}
 
     @staticmethod
-    def _fields_from_attrs(kind: inspect._ParameterKind, attrs: Tuple[str, ...]):
+    def _fields_from_attrs(kind: ParameterKind, attrs: Tuple[str, ...]):
         return {x: inspect.Parameter(x, kind) for x in attrs}
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def get_fields(
         self, type: Type, as_source: bool = False
     ) -> Optional[Mapping[str, inspect.Parameter]]:
@@ -105,7 +105,7 @@ class TranslatorFactory:
         if not as_source and not undefined:
             return params
         # Now we start building a fake signature
-        k = inspect.Parameter.POSITIONAL_OR_KEYWORD
+        k: ParameterKind = inspect.Parameter.POSITIONAL_OR_KEYWORD
         # **kwargs
         if self.kw_only(params):
             k = inspect.Parameter.KEYWORD_ONLY
@@ -125,7 +125,7 @@ class TranslatorFactory:
         # Can't be done.
         return None if undefined else params
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def iterator(self, type: Type, values: bool = False) -> "FieldIteratorT":
         """Get an iterator function for a given type, if possible."""
 
@@ -179,7 +179,7 @@ class TranslatorFactory:
                 fset = f"{f}={fset}"
             yield fset
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":
         # Get the target fields for translation.
         target_fields = self.get_fields(target)

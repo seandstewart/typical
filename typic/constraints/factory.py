@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 import enum
-import functools
 import inspect
 import datetime
 import ipaddress
@@ -33,7 +32,7 @@ from typic.checks import (
     isnamedtuple,
     should_unwrap,
 )
-from typic.compat import ForwardRef
+from typic.compat import ForwardRef, lru_cache
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
@@ -327,13 +326,13 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
 __stack: Set[Type] = set()
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_constraints(
     t: Type[VT],
     *,
     nullable: bool = False,
     name: str = None,
-    cls: Type = ...,  # type: ignore
+    cls: Optional[Type] = ...,  # type: ignore
 ) -> ConstraintsT:
     while should_unwrap(t):
         nullable = nullable or isoptionaltype(t)

@@ -3,7 +3,6 @@
 import datetime
 import decimal
 import enum
-import functools
 import inspect
 import ipaddress
 import pathlib
@@ -27,7 +26,7 @@ import typic.common
 import typic.util as util
 import typic.strict as strict
 
-from typic.compat import Final
+from typic.compat import Final, lru_cache
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -112,7 +111,7 @@ STDLIB_TYPES = frozenset(
 STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isbuiltintype(obj: Type[ObjectT]) -> bool:
     """Check whether the provided object is a builtin-type.
 
@@ -153,7 +152,7 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isstdlibtype(obj: Type[ObjectT]) -> bool:
     return (
         util.resolve_supertype(obj) in STDLIB_TYPES
@@ -161,7 +160,7 @@ def isstdlibtype(obj: Type[ObjectT]) -> bool:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
     """Check whether the provided type is a subclass of a builtin-type.
 
@@ -189,7 +188,7 @@ def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
     return issubclass(util.resolve_supertype(t), BUILTIN_TYPES_TUPLE)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isstdlibsubtype(t: Type[ObjectT]) -> bool:
     return issubclass(util.resolve_supertype(t), STDLIB_TYPES_TUPLE)
 
@@ -202,7 +201,7 @@ def isstdlibinstance(o: ObjectT) -> bool:
     return _isinstance(o, STDLIB_TYPES_TUPLE)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isoptionaltype(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
 
@@ -234,7 +233,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isreadonly(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is marked as :py:class:`typic.ReadOnly`
 
@@ -255,7 +254,7 @@ def isreadonly(obj: Type[ObjectT]) -> bool:
     return util.origin(obj) is typic.common.ReadOnly
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isfinal(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is :py:class:`typing.Final`.
 
@@ -273,7 +272,7 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     return util.origin(obj) is Final
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def iswriteonly(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
@@ -294,7 +293,7 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
     return util.origin(obj) is typic.common.WriteOnly
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isstrict(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
@@ -315,7 +314,7 @@ def isstrict(obj: Type[ObjectT]) -> bool:
     return util.origin(obj) is strict.Strict
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isdatetype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a a date/datetime object.
 
@@ -339,7 +338,7 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     return _issubclass(util.origin(obj), (datetime.datetime, datetime.date))
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isuuidtype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a a date/datetime object.
 
@@ -368,13 +367,13 @@ def isuuidtype(obj: Type[ObjectT]) -> bool:
 _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isiterabletype(obj: Type[ObjectT]):
     obj = util.origin(obj)
     return _issubclass(obj, Iterable)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def iscollectiontype(obj: Type[ObjectT]):
     """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
 
@@ -406,7 +405,7 @@ def iscollectiontype(obj: Type[ObjectT]):
     return obj in _COLLECTIONS or _issubclass(obj, Collection)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def ismappingtype(obj: Type[ObjectT]):
     """Test whether this annotation is a subtype of :py:class:`typing.Mapping`.
 
@@ -442,7 +441,7 @@ def ismappingtype(obj: Type[ObjectT]):
     return _issubclass(obj, dict) or _issubclass(obj, Mapping)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isenumtype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a subclass of :py:class:`enum.Enum`
 
@@ -464,7 +463,7 @@ def isenumtype(obj: Type[ObjectT]) -> bool:
     return issubclass(obj, enum.Enum)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isclassvartype(obj: Type[ObjectT]) -> bool:
     """Test whether an annotation is a ClassVar annotation.
 
@@ -491,7 +490,7 @@ _UNWRAPPABLE = (
 )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def should_unwrap(obj: Type[ObjectT]) -> bool:
     """Test whether we should use the __args__ attr for resolving the type.
 
@@ -500,13 +499,13 @@ def should_unwrap(obj: Type[ObjectT]) -> bool:
     return any(x(obj) for x in _UNWRAPPABLE)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isfromdictclass(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a class with a `from_dict()` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isfrozendataclass(obj: Type[ObjectT]) -> bool:
     """Test whether this is a dataclass and whether it's frozen."""
     return getattr(getattr(obj, "__dataclass_params__", None), "frozen", False)
@@ -515,7 +514,7 @@ def isfrozendataclass(obj: Type[ObjectT]) -> bool:
 _isinstance = isinstance
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def _type_check(t) -> bool:
     if _isinstance(t, tuple):
         return all(_type_check(x) for x in t)
@@ -582,7 +581,7 @@ def issubclass(
     return _type_check(t) and _type_check(o) and _issubclass(o, t)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isconstrained(obj: Type[ObjectT]) -> bool:
     """Test whether a type is restricted.
 
@@ -633,7 +632,7 @@ def ishashable(obj: ObjectT) -> bool:
     return __hashgetter(obj) is not None
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def istypeddict(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a :py:class:`typing.TypedDict`.
 
@@ -659,7 +658,7 @@ def istypeddict(obj: Type[ObjectT]) -> bool:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def istypedtuple(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`).
 
@@ -685,7 +684,7 @@ def istypedtuple(obj: Type[ObjectT]) -> bool:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def isnamedtuple(obj: Type[ObjectT]) -> bool:
     """Check whether an object is a "named" tuple (:py:func:`collections.namedtuple`).
 

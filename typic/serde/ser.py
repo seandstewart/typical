@@ -398,7 +398,7 @@ class SerFactory:
         resolved_name = util.get_name(annotation.resolved)
         func.l(f"{self._FNAME} = name or {resolved_name!r}")
         line = "if not tcheck(o.__class__, t):"
-        check: Callable[[Any], bool] = util.cached_issubclass
+        check: Callable[..., bool] = util.cached_issubclass
         if checks.isbuiltinsubtype(annotation.generic):
             line = "if not tcheck(o, t):"
             check = isinstance  # type: ignore

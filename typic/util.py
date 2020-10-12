@@ -33,8 +33,8 @@ from typing import (  # type: ignore  # ironic...
 )
 
 import typic.checks as checks
+from typic.compat import ForwardRef, lru_cache
 from typic.ext import json
-from typic.compat import ForwardRef
 
 __all__ = (
     "cached_issubclass",
@@ -87,7 +87,7 @@ GENERIC_TYPE_MAP = {
 }
 
 
-@functools.lru_cache(maxsize=2000, typed=True)
+@lru_cache(maxsize=2000, typed=True)
 def safe_eval(string: str) -> Tuple[bool, Any]:
     """Try a few methods to evaluate a string and get the correct Python data-type.
 
@@ -138,7 +138,7 @@ def filtered_str(self) -> str:
     return f"({', '.join(fields)})"
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def origin(annotation: Any) -> Any:
     """Get the highest-order 'origin'-type for subclasses of typing._SpecialForm.
 
@@ -179,7 +179,7 @@ def origin(annotation: Any) -> Any:
     return actual
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_args(annotation: Any) -> Tuple[Any, ...]:
     """Get the args supplied to an annotation, excluding :py:class:`typing.TypeVar`.
 
@@ -200,8 +200,8 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
     )
 
 
-@functools.lru_cache(maxsize=None)
-def get_name(obj: Union[Type, ForwardRef]) -> str:
+@lru_cache(maxsize=None)
+def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     """Safely retrieve the name of either a standard object or a type annotation.
 
     Examples
@@ -225,7 +225,7 @@ def get_name(obj: Union[Type, ForwardRef]) -> str:
     return obj.__name__
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_qualname(obj: Type) -> str:
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return repr(obj)
@@ -239,17 +239,17 @@ def get_qualname(obj: Type) -> str:
     return qualname
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_unique_name(obj: Type) -> str:
     return f"{get_name(obj)}_{id(obj)}".replace("-", "_")
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_defname(pre: str, obj: Hashable) -> str:
     return f"{pre}_{hash(obj)}".replace("-", "_")
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def resolve_supertype(annotation: Type[Any]) -> Any:
     """Get the highest-order supertype for a NewType.
 
@@ -409,11 +409,13 @@ def signature(obj: Union[Callable, Type]) -> inspect.Signature:
     Also supports TypedDict subclasses
     """
     return (
-        typed_dict_signature(obj) if checks.istypeddict(obj) else inspect.signature(obj)
+        typed_dict_signature(obj)
+        if checks.istypeddict(obj)  # type: ignore
+        else inspect.signature(obj)
     )
 
 
-cached_signature = functools.lru_cache(maxsize=None)(signature)
+cached_signature = lru_cache(maxsize=None)(signature)
 
 
 def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
@@ -451,10 +453,10 @@ def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
         return _safe_get_type_hints(obj)
 
 
-cached_type_hints = functools.lru_cache(maxsize=None)(get_type_hints)
+cached_type_hints = lru_cache(maxsize=None)(get_type_hints)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
     """A cached result of :py:func:`issubclass`."""
     return issubclass(st, t)
@@ -471,7 +473,7 @@ def simple_attributes(t: Type) -> Tuple[str, ...]:
     )
 
 
-cached_simple_attributes = functools.lru_cache(maxsize=None)(simple_attributes)
+cached_simple_attributes = lru_cache(maxsize=None)(simple_attributes)
 """A cached result of :py:func:`simple_attributes`."""
 
 
@@ -495,7 +497,7 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
     try:

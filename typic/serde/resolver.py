@@ -30,7 +30,7 @@ from typic.common import (
     Case,
     ReadOnly,
 )
-from typic.compat import ForwardRef
+from typic.compat import ForwardRef, lru_cache
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
@@ -180,7 +180,7 @@ class Resolver:
     def delayed(self, t: Type) -> bool:
         return getattr(t, "__delayed__", False)
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
         tname = util.get_name(t)
         if hasattr(t, SERDE_ATTR):
@@ -314,7 +314,7 @@ class Resolver:
         proto: SerdeProtocol = self._get_serializer_proto(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
             flags = getattr(origin, SERDE_FLAGS_ATTR)
@@ -497,7 +497,7 @@ class Resolver:
         anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
         return anno
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self,
         anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation],
@@ -535,7 +535,7 @@ class Resolver:
         self.__cache[anno] = proto
         return proto
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def resolve(
         self,
         annotation: Type[ObjectT],
@@ -598,7 +598,7 @@ class Resolver:
         self.__stack.clear()
         return resolved
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def protocols(self, obj, *, strict: bool = False) -> SerdeProtocolsT:
         """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 

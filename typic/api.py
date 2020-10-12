@@ -24,6 +24,7 @@ from typing import (
 
 import typic.constraints as c
 from typic.checks import issubclass, ishashable, isfrozendataclass
+from typic.compat import lru_cache
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
     Annotation,
@@ -190,7 +191,7 @@ def _bind_proto(cls, proto: SerdeProtocol):
         setattr(cls, n, attr)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def _resolve_class(
     cls: Type[ObjectT],
     *,
@@ -199,6 +200,7 @@ def _resolve_class(
     serde: SerdeFlags = None,
 ) -> Type[WrappedObjectT]:
     # Build the namespace for the new class
+    strict = cast(bool, strict)
     protos = protocols(cls, strict=strict)
     if hasattr(cls, SERDE_FLAGS_ATTR):
         pserde: SerdeFlags = getattr(cls, SERDE_FLAGS_ATTR)
@@ -702,7 +704,7 @@ SchemaPrimitiveT = Dict[str, PrimitiveT]
 SchemaReturnT = Union[SchemaPrimitiveT, ObjectSchemaField]
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
     """Get a JSON schema for object for the given object.
 

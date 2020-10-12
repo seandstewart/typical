@@ -15,6 +15,7 @@ from typing import (
     cast,
     AnyStr,
     TYPE_CHECKING,
+    MutableMapping,
 )
 
 import inflection  # type: ignore
@@ -79,7 +80,7 @@ class SchemaBuilder:
 
     def _handle_mapping(
         self, proto: "SerdeProtocol", parent: Type = None, *, name: str = None, **extra
-    ) -> Mapping:
+    ) -> MutableMapping:
         anno = proto.annotation
         args = anno.args
         config = extra
@@ -116,7 +117,7 @@ class SchemaBuilder:
 
     def _handle_array(
         self, proto: "SerdeProtocol", parent: Type = None, **extra
-    ) -> Mapping:
+    ) -> MutableMapping:
         anno = proto.annotation
         args = anno.args
         has_ellipsis = args[-1] is Ellipsis if args else False
@@ -218,7 +219,9 @@ class SchemaBuilder:
         else:
             base = cast(SchemaFieldT, SCHEMA_FIELD_FORMATS.get_by_parent(use))
         if base:
-            config = protocol.constraints.for_schema() if protocol.constraints else {}
+            config: MutableMapping = (
+                protocol.constraints.for_schema() if protocol.constraints else {}
+            )
             config.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
             # `use` should always be a dict if the annotation is a Mapping,
             # thanks to `origin()` & `resolve()`.

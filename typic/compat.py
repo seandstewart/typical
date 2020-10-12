@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 # flake8: noqa
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar, Optional, Callable
 
 try:
     from typing import Final, TypedDict  # type: ignore
@@ -62,3 +62,16 @@ else:  # pragma: nocover
         recursive_guard: set = None,
     ) -> Any:
         return type_._evaluate(globalns, localns)
+
+
+if TYPE_CHECKING:
+    F = TypeVar("F", bound=Callable)
+
+    def lru_cache(
+        maxsize: Optional[int] = 128, typed: bool = False
+    ) -> Callable[[F], F]:
+        pass
+
+
+else:
+    from functools import lru_cache

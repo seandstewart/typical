@@ -53,7 +53,7 @@ jobs:
       run: "poetry run black . --check"
 
     - name: Static type-check with MyPy
-      run: "poetry run mypy typic --ignore-missing-imports"
+      run: "poetry run mypy typic"
 
     - name: Test with pytest + coverage
       run: "poetry run pytest tests typic --doctest-modules --cov --cov-report xml"
