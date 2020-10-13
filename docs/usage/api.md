@@ -33,6 +33,8 @@ As you've seen previously, defining your data is as simple as
 following the now-familiar pattern across many libraries:
 
 ```python
+from __future__ import annotations
+
 import enum
 import typic
 from typing import Iterable, Optional
@@ -311,6 +313,8 @@ only use the Functional API for interaction.
 
 
 ```python
+from __future__ import annotations
+
 import enum
 import dataclasses
 from typing import Iterable, Optional

@@ -8,12 +8,14 @@ Typical natively supports type annotations defined with forward references for a
 interfaces. This support is automatic and requires no additional configuration:
 
 ```python
+from __future__ import annotations
+
 import typic
 
 
 @typic.klass
 class A:
-    b: "B"
+    b: B
 
 
 @typic.klass
@@ -38,6 +40,8 @@ As a side-effect of our support for postponed annotations, Typical also supports
 self-referential (recursive) types:
 
 ```python
+from __future__ import annotations
+
 import typic
 import dataclasses
 from typing import Optional
@@ -46,7 +50,7 @@ from typing import Optional
 @dataclasses.dataclass
 class Node:
     pos: int
-    child: Optional["Node"] = None
+    child: Optional[Node] = None
 
 
 n = typic.transmute(Node, {"pos": 0, "child": {"pos": 1}})
@@ -64,18 +68,20 @@ As another side-effect of postponed annotation support, Typical also handles typ
 have circular dependencies upon each other:
 
 ```python
+from __future__ import annotations
+
 import typic
 from typing import Optional
 
 
 @typic.klass
 class A:
-    b: Optional["B"] = None
+    b: Optional[B] = None
 
 
 @typic.klass
 class B:
-    a: Optional["A"] = None
+    a: Optional[A] = None
 
 
 a = A.transmute({"b": {"a": {}}})
@@ -86,16 +92,25 @@ print(a.tojson())
 #> {"b":{"a":{"b":null}}}
 ```
 
+!!! note "About those \_\_future__ imports"
+
+    [PEP 563](https://www.python.org/dev/peps/pep-0563) introduced a new methodology for
+    the analysis of annotations at runtime which treats all annotations as strings 
+    until the runtime types are explicitly fetched. This greatly simplifies the 
+    development overhead for type resolution and also removes the need for wrapping
+    annotations referencing potentially undefined or recursive types in quotes `""`. 
+    
+    *You're **highly encouraged** to adopt this import in your Python3.7-8 code. Starting
+    with **Python 3.9**, it will become the default behavior.*
+
 
 ## The Standard Library
 
-Typical is built upon the standard `typing` library. Virtually any
-valid static type may be reflected and managed by Typical. Just
-follow the rules defined by
-[PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good
-to go!
+Typical is built upon the standard `typing` library. Virtually any valid static type may
+be reflected and managed by Typical. Just follow the rules defined by
+[PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good to go!
 
-!!! important "Handling Unions"
+!!! important "Primitive Unions"
 
     `Union` types will not be proactively transmuted to a type within 
      union's definition. This is because the resolution of a Union
@@ -106,9 +121,15 @@ to go!
     This is a defined use-case for union-types which as a clear 
     resolution.
 
-Beyond classes, standard types, and the annotation syntax provided by
-the `typing` library, Typical also natively supports extended types
-defined in the following standard modules & bases:
+!!! important "Tagged Unions"
+
+    Tagged Unions, i.e., Polymorphic or Discriminated Types, are now supported as an
+    experimental feature. See our docs on [Experimental Features](experimental.md) for 
+    more.
+
+Beyond classes, standard types, and the annotation syntax provided by the `typing`
+library, Typical also natively supports extended types defined in the following standard
+modules & bases:
 
 - [datetime](https://docs.python.org/3.9/library/datetime.html)
 
