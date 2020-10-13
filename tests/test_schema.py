@@ -174,8 +174,8 @@ class Container:
         (
             Container,
             typic.ObjectSchemaField(
-                title="Container",
-                description="Container(data: DefaultDict[str, int])",
+                title=Container.__name__,
+                description=Container.__doc__,
                 properties={"data": typic.Ref(ref="#/definitions/Data")},
                 additionalProperties=False,
                 required=("data",),
@@ -191,8 +191,8 @@ class Container:
         (
             objects.KlassVar,
             typic.ObjectSchemaField(
-                title="KlassVar",
-                description="KlassVar()",
+                title=objects.KlassVar.__name__,
+                description=objects.KlassVar.__doc__,
                 properties={
                     "var": typic.StrSchemaField(
                         enum=("foo",), default="foo", readOnly=True
@@ -206,8 +206,8 @@ class Container:
         (
             objects.KlassVarSubscripted,
             typic.ObjectSchemaField(
-                title="KlassVarSubscripted",
-                description="KlassVarSubscripted()",
+                title=objects.KlassVarSubscripted.__name__,
+                description=objects.KlassVarSubscripted.__doc__,
                 properties={
                     "var": typic.StrSchemaField(
                         enum=("foo",), default="foo", readOnly=True
@@ -245,27 +245,26 @@ class Container:
         (
             objects.A,
             typic.ObjectSchemaField(
-                title="A",
-                description="A(b: Union[ForwardRef('B'), NoneType] = None)",
+                title=objects.A.__name__,
+                description=objects.A.__doc__,
                 properties={"b": typic.Ref(ref="#/definitions/B")},
                 additionalProperties=False,
                 required=(),
                 definitions=typic.FrozenDict(
                     {
                         "A": typic.ObjectSchemaField(
-                            title="A",
-                            description="A(b: Union[ForwardRef('B'), NoneType] = "
-                            "None)",
+                            title=objects.A.__name__,
+                            description=objects.A.__doc__,
                             properties={"b": typic.Ref(ref="#/definitions/B")},
                             additionalProperties=False,
                             required=(),
                         ),
                         "B": typic.ObjectSchemaField(
-                            title="B",
-                            description="B(a: Union[ForwardRef('A'), NoneType] = None)",
+                            title=objects.B.__name__,
+                            description=objects.B.__doc__,
                             properties={
                                 "a": typic.MultiSchemaField(
-                                    title="A",
+                                    title=objects.A.__name__,
                                     anyOf=(
                                         typic.Ref(ref="#/definitions/A"),
                                         typic.NullSchemaField(),
@@ -282,7 +281,7 @@ class Container:
         (
             objects.ItemizedKeyedValuedDict,
             typic.ObjectSchemaField(
-                title="ItemizedKeyedValuedDict",
+                title=objects.ItemizedKeyedValuedDict.__name__,
                 properties={"foo": typic.IntSchemaField()},
                 additionalProperties=typic.StrSchemaField(maxLength=5),
             ),
