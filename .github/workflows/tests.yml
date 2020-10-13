@@ -51,6 +51,8 @@ jobs:
 
     - name: Install Dependencies
       run: poetry install --no-dev -E tests
+      env:
+        OPENBLAS: "$(brew --prefix openblas)"
 
     - name: Test with pytest
       run: "poetry run pytest tests typic --doctest-modules"
