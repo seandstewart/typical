@@ -50,11 +50,11 @@ jobs:
         poetry config virtualenvs.path ~/.virtualenvs
 
     - name: Install Dependencies
-      if: !(startsWith(matrix.os, 'macos') && matrix.python-version == 3.9)
+      if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version == 3.9) }}
       run: poetry install --no-dev -E tests
 
     - name: Install Dependencies (MacOS + Py3.9)
-      if: startsWith(matrix.os, 'macos') && matrix.python-version == 3.9
+      if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version == 3.9 }}
       run: |
         OPENBLAS="$(brew --prefix openblas)" poetry install --no-dev -E tests
 
