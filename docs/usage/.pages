@@ -6,4 +6,4 @@ arrange:
   - serdes.md
   - validation.md
   - experimental.md
-  - integrations.md
+  - external.md
