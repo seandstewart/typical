@@ -163,11 +163,19 @@ name = "fastjsonschema"
 version = "2.14.5"
 description = "Fastest Python implementation of JSON schema"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.extras]
 devel = ["colorama", "jsonschema", "json-spec", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
+
+[[package]]
+category = "dev"
+description = "A platform independent file lock."
+name = "filelock"
+optional = false
+python-versions = "*"
+version = "3.0.12"
 
 [[package]]
 name = "filelock"
@@ -992,6 +1000,10 @@ email-validator = [
 fastjsonschema = [
     {file = "fastjsonschema-2.14.5-py3-none-any.whl", hash = "sha256:467593c61f5ba8307205a3536313a774b37df91c9a937c5267c11aee5256e77e"},
     {file = "fastjsonschema-2.14.5.tar.gz", hash = "sha256:afbc235655f06356e46caa80190512e4d9222abfaca856041be5a74c665fa094"},
+]
+filelock = [
+    {file = "filelock-3.0.12-py3-none-any.whl", hash = "sha256:929b7d63ec5b7d6b71b0fa5ac14e030b3f70b75747cef1b10da9b879fef15836"},
+    {file = "filelock-3.0.12.tar.gz", hash = "sha256:18d82244ee114f543149c66a6e0c14e9c4f8a1044b5cdaadd0f82159d6a6ff59"},
 ]
 flake8 = [
     {file = "flake8-3.8.4-py2.py3-none-any.whl", hash = "sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839"},

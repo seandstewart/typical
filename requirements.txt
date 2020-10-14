@@ -55,6 +55,9 @@ coverage==5.3 \
     --hash=sha256:cb7df71de0af56000115eafd000b867d1261f786b5eebd88a0ca6360cccfaca7 \
     --hash=sha256:47a11bdbd8ada9b7ee628596f9d97fbd3851bd9999d398e9436bd67376dbece7 \
     --hash=sha256:280baa8ec489c4f542f8940f9c4c2181f0306a8ee1a54eceba071a449fb870a0
+distlib==0.3.1 \
+    --hash=sha256:8c09de2c67b3e7deef7184574fc060ab8a793e7adbb183d942c389c8b13c52fb \
+    --hash=sha256:edf6116872c863e1aa9d5bb7cb5e05a022c519a4594dc703843343a9ddd9bff1
 django==2.2.16 \
     --hash=sha256:83ced795a0f239f41d8ecabf51cc5fad4b97462a6008dc12e5af3cb9288724ec \
     --hash=sha256:62cf45e5ee425c52e411c0742e641a6588b7e8af0d2c274a27940931b2786594
@@ -70,6 +73,9 @@ email-validator==1.1.1 \
 fastjsonschema==2.14.5 \
     --hash=sha256:467593c61f5ba8307205a3536313a774b37df91c9a937c5267c11aee5256e77e \
     --hash=sha256:afbc235655f06356e46caa80190512e4d9222abfaca856041be5a74c665fa094
+filelock==3.0.12 \
+    --hash=sha256:929b7d63ec5b7d6b71b0fa5ac14e030b3f70b75747cef1b10da9b879fef15836 \
+    --hash=sha256:18d82244ee114f543149c66a6e0c14e9c4f8a1044b5cdaadd0f82159d6a6ff59
 flake8==3.8.4 \
     --hash=sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839 \
     --hash=sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b

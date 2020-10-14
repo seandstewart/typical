@@ -258,7 +258,7 @@ class Container:
                 description=objects.A.__doc__,
                 properties={
                     "b": typic.MultiSchemaField(
-                        title=objects.B.__name__,
+                        title=f"Optional{objects.B.__name__}",
                         anyOf=(
                             typic.Ref(ref="#/definitions/B"),
                             typic.NullSchemaField(),
@@ -274,7 +274,7 @@ class Container:
                             description=objects.A.__doc__,
                             properties={
                                 "b": typic.MultiSchemaField(
-                                    title=objects.B.__name__,
+                                    title=f"Optional{objects.B.__name__}",
                                     anyOf=(
                                         typic.Ref(ref="#/definitions/B"),
                                         typic.NullSchemaField(),
@@ -289,7 +289,7 @@ class Container:
                             description=objects.B.__doc__,
                             properties={
                                 "a": typic.MultiSchemaField(
-                                    title=objects.A.__name__,
+                                    title=f"Optional{objects.A.__name__}",
                                     anyOf=(
                                         typic.Ref(ref="#/definitions/A"),
                                         typic.NullSchemaField(),

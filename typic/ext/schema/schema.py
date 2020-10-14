@@ -227,9 +227,7 @@ class SchemaBuilder:
             base = cast(SchemaFieldT, SCHEMA_FIELD_FORMATS.get_by_parent(use))
         if base:
             config: MutableMapping = (
-                protocol.constraints.for_schema()
-                if protocol.constraints
-                else {}
+                protocol.constraints.for_schema() if protocol.constraints else {}
             )
             config.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
             # `use` should always be a dict if the annotation is a Mapping,

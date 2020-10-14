@@ -33,9 +33,8 @@ from typing import (  # type: ignore  # ironic...
 )
 
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import ForwardRef, lru_cache, SpecialForm
 from typic.ext import json
-from typic.compat import ForwardRef, SpecialForm
 
 __all__ = (
     "cached_issubclass",
