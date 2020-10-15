@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.31"
+version = "2.0.32"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -91,6 +91,7 @@ tests = [
     "pytest-cov",
 ]
 benchmarks = [
+    "pytest-benchmark",
     "marshmallow",
     "toastedmarshmallow",
     "djangorestframework",
