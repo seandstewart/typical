@@ -534,7 +534,6 @@ def test_typic_frozen():
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "type"),
     argvalues=[
-        (objects.KlassVar(), "var", str),
         (objects.KlassVarSubscripted(), "var", str),
     ],
     ids=objects.get_id,
@@ -851,6 +850,16 @@ def test_prevent_recursion_with_slots():
             {"a": {}, "bs": [{}]},
             objects.ABs(a=objects.A(), bs=[objects.B()]),
         ),
+        (
+            objects.H,
+            {"hs": [{"hs": []}]},
+            objects.H(hs=[objects.H(hs=[])]),
+        ),
+        (
+            objects.J,
+            {"js": [{"js": []}]},
+            objects.J(js=[objects.J(js=[])]),
+        ),
     ],
 )
 def test_recursive_transmute(annotation, value, expected):
@@ -877,6 +886,14 @@ def test_recursive_transmute(annotation, value, expected):
             objects.ABs,
             {"a": {}, "bs": [{}]},
         ),
+        (
+            objects.H,
+            {"hs": [{"hs": []}]},
+        ),
+        (
+            objects.J,
+            {"js": [{"js": []}]},
+        ),
     ],
 )
 def test_recursive_validate(annotation, value):
@@ -901,6 +918,14 @@ def test_recursive_validate(annotation, value):
         (
             objects.ABs(a=objects.A(), bs=[objects.B()]),
             {"a": {"b": None}, "bs": [{"a": None}]},
+        ),
+        (
+            objects.H(hs=[objects.H(hs=[])]),
+            {"hs": [{"hs": []}]},
+        ),
+        (
+            objects.J(js=[objects.J(js=[])]),
+            {"js": [{"js": []}]},
         ),
     ],
 )
