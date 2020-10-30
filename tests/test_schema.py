@@ -189,21 +189,6 @@ class Container:
             ),
         ),
         (
-            objects.KlassVar,
-            typic.ObjectSchemaField(
-                title=objects.KlassVar.__name__,
-                description=objects.KlassVar.__doc__,
-                properties={
-                    "var": typic.StrSchemaField(
-                        enum=("foo",), default="foo", readOnly=True
-                    )
-                },
-                additionalProperties=False,
-                required=(),
-                definitions=typic.FrozenDict(),
-            ),
-        ),
-        (
             objects.KlassVarSubscripted,
             typic.ObjectSchemaField(
                 title=objects.KlassVarSubscripted.__name__,
@@ -247,7 +232,15 @@ class Container:
             typic.ObjectSchemaField(
                 title=objects.A.__name__,
                 description=objects.A.__doc__,
-                properties={"b": typic.Ref(ref="#/definitions/B")},
+                properties={
+                    "b": typic.MultiSchemaField(
+                        title=objects.B.__name__,
+                        anyOf=(
+                            typic.Ref(ref="#/definitions/B"),
+                            typic.NullSchemaField(),
+                        ),
+                    )
+                },
                 additionalProperties=False,
                 required=(),
                 definitions=typic.FrozenDict(
@@ -255,7 +248,15 @@ class Container:
                         "A": typic.ObjectSchemaField(
                             title=objects.A.__name__,
                             description=objects.A.__doc__,
-                            properties={"b": typic.Ref(ref="#/definitions/B")},
+                            properties={
+                                "b": typic.MultiSchemaField(
+                                    title=objects.B.__name__,
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/B"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
                             additionalProperties=False,
                             required=(),
                         ),

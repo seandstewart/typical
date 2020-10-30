@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import dataclasses
 import datetime
@@ -79,12 +81,12 @@ class FooNum(str, enum.Enum):
 
 @typic.klass
 class A:
-    b: typing.Optional["B"] = None
+    b: typing.Optional[B] = None
 
 
 @typic.klass
 class B:
-    a: typing.Optional["A"] = None
+    a: typing.Optional[A] = None
 
 
 @typic.klass
@@ -95,18 +97,18 @@ class ABs:
 
 @typic.klass
 class C:
-    c: typing.Optional["C"] = None
+    c: typing.Optional[C] = None
 
 
 @dataclasses.dataclass
 class D:
-    d: typing.Optional["D"] = None
+    d: typing.Optional[D] = None
 
 
 @dataclasses.dataclass
 class E:
     d: typing.Optional[D] = None
-    f: typing.Optional["F"] = None
+    f: typing.Optional[F] = None
 
 
 @dataclasses.dataclass
@@ -117,6 +119,16 @@ class F:
 @typic.klass
 class G:
     h: typing.Optional[int] = None
+
+
+@typic.klass
+class H:
+    hs: typing.Iterable[H]
+
+
+@dataclasses.dataclass
+class J:
+    js: typing.Iterable[J]
 
 
 @dataclasses.dataclass
@@ -187,11 +199,6 @@ class Inherited(Typic):
 @typic.klass
 class KlassVarSubscripted:
     var: typing.ClassVar[str] = "foo"
-
-
-@typic.klass
-class KlassVar:
-    var: typing.ClassVar = "foo"
 
 
 def func(bar: int):
@@ -367,7 +374,6 @@ TYPIC_OBJECTS = [
     Inherited,
     FrozenTypic,
     KlassDelayed,
-    KlassVar,
     KlassVarSubscripted,
     Delayed,
     Constrained,

@@ -466,7 +466,8 @@ class Resolver:
                 localns=localns,
             )
         elif use is namespace or use in self.__stack:
-            self.__stack.remove(use)
+            if use in self.__stack:
+                self.__stack.remove(use)
             return DelayedAnnotation(
                 type=use,
                 resolver=self,
@@ -583,7 +584,7 @@ class Resolver:
         --------
         :py:class:`SerdeProtocol`
         """
-        self.__stack.clear()
+        # self.__stack.clear()
         # Extract the meta-data.
         anno = self.annotation(
             annotation=annotation,
