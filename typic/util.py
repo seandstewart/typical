@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import inspect
 import sys
+from datetime import date, datetime, timedelta, time
 from threading import RLock
 from types import MappingProxyType
 from typing import (  # type: ignore  # ironic...
@@ -32,6 +33,8 @@ from typing import (  # type: ignore  # ironic...
     _eval_type,
 )
 
+import pendulum
+
 import typic.checks as checks
 from typic.compat import ForwardRef, lru_cache, SpecialForm
 from typic.ext import json
@@ -53,6 +56,7 @@ __all__ = (
     "get_tag_for_types",
     "get_type_hints",
     "get_unique_name",
+    "isoformat",
     "origin",
     "resolve_supertype",
     "safe_eval",
@@ -691,6 +695,40 @@ class collectionrepr(str):
 
 
 ReprT = Union[str, joinedrepr, collectionrepr]
+
+
+@functools.lru_cache(maxsize=100_000)
+def isoformat(t: Union[date, datetime, time, timedelta]) -> str:
+    if isinstance(t, (date, datetime, time)):
+        return t.isoformat()
+    d = t
+    if not isinstance(d, pendulum.Duration):
+        d = pendulum.duration(
+            days=t.days,
+            seconds=t.seconds,
+            microseconds=t.microseconds,
+        )
+
+    periods = [
+        ("Y", d.years),
+        ("M", d.months),
+        ("D", d.remaining_days),
+    ]
+    period = "P"
+    for sym, val in periods:
+        period += f"{val}{sym}"
+    times = [
+        ("H", d.hours),
+        ("M", d.minutes),
+        ("S", d.remaining_seconds),
+    ]
+    time_ = "T"
+    for sym, val in times:
+        time_ += f"{val}{sym}"
+    if d.microseconds:
+        time_ = time_[:-1]
+        time_ += f".{d.microseconds:06}S"
+    return period + time_
 
 
 @slotted(dict=False)

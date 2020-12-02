@@ -75,7 +75,7 @@ class SubURL(typic.URL):
         (typic.FrozenDict({"foo": 1}), {"foo": 1}),
         (ipaddress.IPv4Address("0.0.0.0"), "0.0.0.0"),
         (re.compile(r"foo"), "foo"),
-        (datetime.datetime(1970, 1, 1), "1970-01-01T00:00:00+00:00"),
+        (datetime.datetime(1970, 1, 1), "1970-01-01T00:00:00"),
         (
             datetime.datetime(
                 1970, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(hours=1))

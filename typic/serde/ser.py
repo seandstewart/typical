@@ -317,14 +317,7 @@ class SerList(list):
         )
 
 
-def _iso(o) -> str:
-    if isinstance(o, (datetime.datetime, datetime.time)) and not o.tzinfo:
-        return f"{o.isoformat()}+00:00"
-    return o.isoformat()
-
-
 _decode = methodcaller("decode", DEFAULT_ENCODING)
-_total_secs = methodcaller("total_seconds")
 _pattern = attrgetter("pattern")
 
 
@@ -359,10 +352,10 @@ class SerFactory:
         decimal.Decimal: float,
         bytes: _decode,
         bytearray: _decode,
-        datetime.date: _iso,
-        datetime.datetime: _iso,
-        datetime.time: _iso,
-        datetime.timedelta: _total_secs,
+        datetime.date: util.isoformat,
+        datetime.datetime: util.isoformat,
+        datetime.time: util.isoformat,
+        datetime.timedelta: util.isoformat,
     }
 
     _LISTITER = (

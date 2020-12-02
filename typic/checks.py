@@ -60,6 +60,7 @@ __all__ = (
     "isfrozendataclass",
     "ishashable",
     "isinstance",
+    "isiterabletype",
     "ismappingtype",
     "isnamedtuple",
     "isoptionaltype",
@@ -70,6 +71,8 @@ __all__ = (
     "isstdlibtype",
     "isstdlibsubtype",
     "issubclass",
+    "istimetype",
+    "istimedeltatype",
     "istypeddict",
     "istypedtuple",
     "isuuidtype",
@@ -102,10 +105,14 @@ STDLIB_TYPES = frozenset(
         *BUILTIN_TYPES,
         datetime.datetime,
         datetime.date,
+        datetime.timedelta,
+        datetime.time,
         decimal.Decimal,
-        pathlib.Path,
         ipaddress.IPv4Address,
         ipaddress.IPv6Address,
+        pathlib.Path,
+        uuid.UUID,
+        uuid.SafeUUID,
     )
 )
 STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
@@ -346,6 +353,50 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     True
     """
     return _issubclass(util.origin(obj), (datetime.datetime, datetime.date))
+
+
+@lru_cache(maxsize=None)
+def istimetype(obj: Type[ObjectT]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.istimetype(datetime.time)
+    True
+    >>> typic.isdatetype(NewType("Foo", datetime.time))
+    True
+    """
+    return _issubclass(util.origin(obj), datetime.time)
+
+
+@lru_cache(maxsize=None)
+def istimedeltatype(obj: Type[ObjectT]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.isdatetype(datetime.timedelta)
+    True
+    >>> typic.isdatetype(NewType("Foo", datetime.timedelta))
+    True
+    """
+    return _issubclass(util.origin(obj), datetime.timedelta)
 
 
 @lru_cache(maxsize=None)

@@ -171,6 +171,13 @@ class DesFactory:
         self, func: gen.Block, anno_name: str, annotation: "Annotation"
     ):
         origin = annotation.resolved_origin
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME})"
+            b.l(line, dateparse=dateparse)
         if issubclass(origin, datetime.datetime):
             with func.b(
                 f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
@@ -211,11 +218,37 @@ class DesFactory:
         with func.b(f"elif isinstance({self.VNAME}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
         with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
-            line = f"{self.VNAME} = dateparse({self.VNAME})"
-            # We do the negative assertion here because all datetime objects are
-            # subclasses of date.
-            if not issubclass(origin, datetime.datetime):
-                line = f"{line}.date()"
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
+            b.l(line, dateparse=dateparse)
+
+    def _build_time_des(
+        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+    ):
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int({self.VNAME}))")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
+            b.l(line, dateparse=dateparse)
+        # From a datetime
+        with func.b(
+            f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
+        ) as b:
+            b.l(f"{self.VNAME} = {self.VNAME}.time()")
+        # From a date
+        with func.b(f"if isinstance({self.VNAME}, date):", date=datetime.date) as b:
+            b.l(f"{self.VNAME} = {anno_name}(0)")
+
+    def _build_timedelta_des(
+        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+    ):
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int({self.VNAME}))")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
             b.l(line, dateparse=dateparse)
 
     def _build_uuid_des(
@@ -653,6 +686,10 @@ class DesFactory:
                         self._build_union_des(func, annotation, namespace)
                     elif checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
+                    elif checks.istimetype(origin):
+                        self._build_time_des(func, anno_name, annotation)
+                    elif checks.istimedeltatype(origin):
+                        self._build_timedelta_des(func, anno_name, annotation)
                     elif checks.isuuidtype(origin):
                         self._build_uuid_des(func, anno_name, annotation)
                     elif origin in {Pattern, re.Pattern}:  # type: ignore

@@ -181,8 +181,8 @@ class Container:
                 definitions=typic.FrozenDict(
                     {
                         "Data": typic.ObjectSchemaField(
-                            title="Data",
-                            description="Data(foo: str)",
+                            title=objects.Data.__name__,
+                            description=objects.Data.__doc__,
                             properties={"foo": typic.StrSchemaField()},
                             additionalProperties=False,
                             required=("foo",),
