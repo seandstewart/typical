@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import dataclasses
 import functools
 import inspect
-import dataclasses
-import os
 from operator import attrgetter
 from types import FunctionType, MethodType
 from typing import (
@@ -23,8 +22,9 @@ from typing import (
 )
 
 import typic.constraints as c
-from typic.checks import issubclass, ishashable, isfrozendataclass
+from typic.checks import issubclass, isfrozendataclass
 from typic.compat import lru_cache
+from typic.env import Environ, EnvironmentTypeError, EnvironmentValueError
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
     Annotation,
@@ -67,6 +67,9 @@ __all__ = (
     "Case",
     "coerce",
     "constrained",
+    "environ",
+    "EnvironmentTypeError",
+    "EnvironmentValueError",
     "is_strict_mode",
     "iterate",
     "tojson",
@@ -196,6 +199,7 @@ def _resolve_class(
     cls: Type[ObjectT],
     *,
     strict: StrictModeT = STRICT_MODE,
+    always: bool = True,
     jsonschema: bool = True,
     serde: SerdeFlags = None,
 ) -> Type[WrappedObjectT]:
@@ -229,7 +233,7 @@ def _resolve_class(
                 __setter(
                     self,
                     name,
-                    __trans[name](item) if name in protos else item,
+                    __trans[name](item) if name in __trans else item,
                 )
 
             return __setattr_typed__
@@ -579,39 +583,7 @@ def constrained(
     return constr_wrapper(_klass) if _klass else constr_wrapper
 
 
-def _resolve_from_env(
-    cls: Type[ObjectT],
-    prefix: str,
-    case_sensitive: bool,
-    aliases: Mapping[str, str],
-    *,
-    environ: Mapping[str, str] = None,
-) -> Type[ObjectT]:
-    environ = environ or os.environ
-    env = {(x.lower() if not case_sensitive else x): y for x, y in environ.items()}
-    fields = {
-        (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
-        for x, y in cls.__annotations__.items()
-    }
-    names = {*fields, *aliases}
-    sentinel = object()
-    for k in env.keys() & names:
-        name = aliases.get(k, k)
-        attr, typ = fields[name]
-        val = transmute(typ, env[k])
-        use_factory = not ishashable(val)
-        field = getattr(cls, attr, sentinel)
-        if not isinstance(field, dataclasses.Field):
-            field = dataclasses.field()
-        if use_factory:
-            field.default_factory = lambda x=val: x
-            field.default = dataclasses.MISSING
-        else:
-            field.default = val
-            field.default_factory = dataclasses.MISSING
-        setattr(cls, attr, field)
-
-    return cls
+environ = Environ(resolver)
 
 
 def settings(
@@ -622,7 +594,7 @@ def settings(
     frozen: bool = True,
     aliases: Mapping = None,
 ) -> Type[ObjectT]:
-    """Create a typed class which sets its defaults from env vars.
+    """Create a typed class which fetches its defaults from env vars.
 
     The resolution order of values is `default(s) -> env value(s) -> passed value(s)`.
 
@@ -642,31 +614,6 @@ def settings(
         An optional mapping of potential aliases for your dataclass's fields.
         `{'other_foo': 'foo'}` will locate the env var `OTHER_FOO` and place it
         on the `Bar.foo` attribute.
-
-    Notes
-    -----
-    Environment variables are resolved at compile-time, so updating your env after your
-    typed classes are loaded into the namespace will not work.
-
-    If you are using dotenv based configuration, you should read your dotenv file(s)
-    into the env *before* initializing the module where your settings are located.
-
-    A structure might look like:
-
-    ::
-
-        my-project/
-        -- env/
-        ..  -- .env.default
-        ..  -- .env.local
-        ..      ...
-        ..  -- __init__.py  # load your dotenv files here
-        ..  -- settings.py  # define your classes
-
-
-    This will ensure your dotenv files are loaded into the environment before the Python
-    interpreter parses & compiles your config classes, since the Python parser parses
-    the init file before parsing anything else under the directory.
 
     Examples
     --------
@@ -697,6 +644,38 @@ def settings(
         return cls
 
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper
+
+
+def _resolve_from_env(
+    cls: Type[ObjectT],
+    prefix: str,
+    case_sensitive: bool,
+    aliases: Mapping[str, str],
+) -> Type[ObjectT]:
+    fields = {
+        (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
+        for x, y in cls.__annotations__.items()
+    }
+    names = {*fields, *aliases}
+    sentinel = object()
+    for k in names:
+        name = aliases.get(k, k)
+        attr, typ = fields[name]
+        field = getattr(cls, attr, sentinel)
+        if field is sentinel:
+            field = dataclasses.field()
+        elif not isinstance(field, dataclasses.Field):
+            field = dataclasses.field(default=field)
+        if (
+            field.default != dataclasses.MISSING
+            or field.default_factory != dataclasses.MISSING
+        ):
+            continue
+        factory = environ.register(t=typ, name=name)
+        field.default_factory = functools.partial(factory, var=k, ci=not case_sensitive)
+        setattr(cls, attr, field)
+
+    return cls
 
 
 PrimitiveT = Union[Dict, List, str, int, bool]
