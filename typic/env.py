@@ -38,8 +38,12 @@ class Environ:
             self.register(t, name=name)
 
     def __getattr__(self, item):
-        t: Type[_ET] = getattr(builtins, item, globals().get(item))
-        return self.register(t, name=item)
+        if inspect.isclass(item):
+            t: Type[_ET] = getattr(builtins, item, None) or globals().get(item)
+            return self.register(t, name=item)
+        raise AttributeError(
+            f"{self.__class__.__name__!r} object has no attribute {item!r}"
+        )
 
     def __contains__(self, item):
         return os.environ.__contains__(item)
