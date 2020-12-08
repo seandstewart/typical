@@ -7,3 +7,4 @@ omit =
     tests*
     benchmark*
     docs*
+    mypy.py
