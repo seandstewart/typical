@@ -371,7 +371,7 @@ def istimetype(obj: Type[ObjectT]) -> bool:
     >>> from typing import NewType
     >>> typic.istimetype(datetime.time)
     True
-    >>> typic.isdatetype(NewType("Foo", datetime.time))
+    >>> typic.istimetype(NewType("Foo", datetime.time))
     True
     """
     return _issubclass(util.origin(obj), datetime.time)
@@ -391,9 +391,9 @@ def istimedeltatype(obj: Type[ObjectT]) -> bool:
     >>> import typic
     >>> import datetime
     >>> from typing import NewType
-    >>> typic.isdatetype(datetime.timedelta)
+    >>> typic.istimedeltatype(datetime.timedelta)
     True
-    >>> typic.isdatetype(NewType("Foo", datetime.timedelta))
+    >>> typic.istimedeltatype(NewType("Foo", datetime.timedelta))
     True
     """
     return _issubclass(util.origin(obj), datetime.timedelta)

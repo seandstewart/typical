@@ -240,8 +240,8 @@ class Resolver:
         'foo'
         >>> typic.primitive(("foo",))  # containers are converted to lists/dicts
         ['foo']
-        >>> typic.primitive(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '1970-01-01T00:00:00+00:00'
+        >>> typic.primitive(datetime.datetime(1970, 1, 1))
+        '1970-01-01T00:00:00'
         >>> typic.primitive(b"foo")
         'foo'
         >>> typic.primitive(ipaddress.IPv4Address("0.0.0.0"))
@@ -288,8 +288,8 @@ class Resolver:
         '"foo"'
         >>> typic.tojson(("foo",))
         '["foo"]'
-        >>> typic.tojson(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '"1970-01-01T00:00:00+00:00"'
+        >>> typic.tojson(datetime.datetime(1970, 1, 1))
+        '"1970-01-01T00:00:00"'
         >>> typic.tojson(b"foo")
         '"foo"'
         >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
