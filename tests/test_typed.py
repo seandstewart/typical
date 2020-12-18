@@ -346,6 +346,20 @@ def test_transmute_collections_subscripted(annotation, value):
 
 
 @pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (typing.Tuple[str, int], '["1", "2"]', ("1", 2)),
+        (typing.Tuple[int, str], '["1", "2"]', (1, "2")),
+        (typing.Tuple[int, str], '["1", "2", "ignore"]', (1, "2")),
+        (typing.Tuple[str, int, bytes], '["1", "2", "foo"]', ("1", 2, b"foo")),
+    ],
+)
+def test_transmute_tuple_subscripted(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
     argnames=("annotation", "value"),
     argvalues=[
         (typing.Mapping[int, str], '{"1": 0}'),

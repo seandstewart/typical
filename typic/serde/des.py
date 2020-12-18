@@ -491,6 +491,43 @@ class DesFactory:
             },
         )
 
+    def _build_tuple_des(
+        self,
+        func: gen.Block,
+        anno_name: str,
+        annotation: "Annotation",
+        namespace: Type = None,
+    ):
+        if annotation.args and annotation.args[-1] is not ...:
+            item_des = {
+                ix: self.resolver.resolve(
+                    t, flags=annotation.serde.flags, namespace=namespace
+                )
+                for ix, t in enumerate(annotation.args)
+            }
+            item_des_name = "item_des"
+            iterate = f"iterate({self.VNAME}, values=True)"
+            line = (
+                f"{anno_name}"
+                f"({item_des_name}[ix](v) for ix, v in enumerate({iterate})"
+                f"if ix in {item_des_name})"
+            )
+            func.l(
+                f"{self.VNAME} = {line}",
+                level=None,
+                **{
+                    item_des_name: item_des,
+                    "iterate": self.resolver.iterate,
+                },
+            )
+        else:
+            self._build_collection_des(
+                func=func,
+                anno_name=anno_name,
+                annotation=annotation,
+                namespace=namespace,
+            )
+
     def _build_collection_des(
         self,
         func: gen.Block,
@@ -660,7 +697,7 @@ class DesFactory:
                     ")"
                 )
 
-    def _build_des(
+    def _build_des(  # noqa: C901
         self, annotation: "Annotation", func_name: str, namespace: Type = None
     ) -> Callable:
         args = annotation.args
@@ -718,6 +755,10 @@ class DesFactory:
                         self._build_builtin_des(func, anno_name, annotation)
                     elif checks.ismappingtype(origin):
                         self._build_mapping_des(
+                            func, anno_name, annotation, namespace=namespace
+                        )
+                    elif checks.istupletype(origin):
+                        self._build_tuple_des(
                             func, anno_name, annotation, namespace=namespace
                         )
                     elif checks.iscollectiontype(origin):

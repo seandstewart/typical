@@ -61,9 +61,11 @@ __all__ = (
     "ishashable",
     "isinstance",
     "isiterabletype",
+    "isliteral",
     "ismappingtype",
     "isnamedtuple",
     "isoptionaltype",
+    "isproperty",
     "isreadonly",
     "issimpleattribute",
     "isstrict",
@@ -73,6 +75,7 @@ __all__ = (
     "issubclass",
     "istimetype",
     "istimedeltatype",
+    "istupletype",
     "istypeddict",
     "istypedtuple",
     "isuuidtype",
@@ -429,13 +432,19 @@ _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
 @lru_cache(maxsize=None)
-def isiterabletype(obj: Type[ObjectT]):
+def isiterabletype(obj: Type[ObjectT]) -> bool:
     obj = util.origin(obj)
     return _issubclass(obj, Iterable)
 
 
 @lru_cache(maxsize=None)
-def iscollectiontype(obj: Type[ObjectT]):
+def istupletype(obj: Type[ObjectT]) -> bool:
+    obj = util.origin(obj)
+    return obj is tuple or issubclass(obj, tuple)
+
+
+@lru_cache(maxsize=None)
+def iscollectiontype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
 
     Includes builtins.
