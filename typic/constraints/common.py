@@ -59,7 +59,7 @@ class ValidatorT(Protocol):
         ...
 
 
-class __AbstractConstraints(abc.ABC):
+class _AbstractConstraints(abc.ABC):
     type: ClassVar[Type[Any]]
     VALUE = "value"
     VALTNAME = "valtname"
@@ -68,13 +68,17 @@ class __AbstractConstraints(abc.ABC):
     NULLABLES = (None, Ellipsis)
 
     __slots__ = ("__dict__",)
+    __ignore_repr__ = frozenset(("type",))
+
+    def __init_subclass__(cls, **kwargs):
+        cls.__ignore_repr__ = _AbstractConstraints.__ignore_repr__ | cls.__ignore_repr__
 
     @util.cached_property
     @reprlib.recursive_repr()
     def __str(self) -> str:
         fields = [f"type={self.type_qualname}"]
         for f in dataclasses.fields(self):
-            if f.name == "type":
+            if f.name in self.__ignore_repr__:
                 continue
 
             val = getattr(self, f.name)
@@ -175,7 +179,7 @@ class InstanceCheck(enum.IntEnum):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)  # type: ignore
-class BaseConstraints(__AbstractConstraints):
+class BaseConstraints(_AbstractConstraints):
     """A base constraints object. Shouldn't be used directly.
 
     Notes
@@ -202,6 +206,8 @@ class BaseConstraints(__AbstractConstraints):
     Even in `strict` mode, we may still want to coerce after validation.
     """
     name: Optional[str] = None
+
+    __ignore_repr__ = frozenset(("coerce", "name", "instancecheck"))
 
     def __post_init__(self):
         self.validator
@@ -280,7 +286,7 @@ class BaseConstraints(__AbstractConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class MultiConstraints(__AbstractConstraints):
+class MultiConstraints(_AbstractConstraints):
     """A container for multiple constraints for a single field."""
 
     constraints: Tuple["ConstraintsT", ...]
@@ -388,7 +394,7 @@ class MultiConstraints(__AbstractConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class TypeConstraints(__AbstractConstraints):
+class TypeConstraints(_AbstractConstraints):
     """A container for simple types. Validation is limited to instance checks.
 
     Examples
@@ -441,7 +447,7 @@ class TypeConstraints(__AbstractConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class EnumConstraints(__AbstractConstraints):
+class EnumConstraints(_AbstractConstraints):
     type: Type[enum.Enum]  # type: ignore
     """The enum to check for."""
     nullable: bool = False
@@ -491,7 +497,7 @@ class EnumConstraints(__AbstractConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class LiteralConstraints(__AbstractConstraints):
+class LiteralConstraints(_AbstractConstraints):
     type: _GenericAlias  # type: ignore  # real-type: Literal
     nullable: bool = False
     coerce: bool = False
@@ -545,7 +551,7 @@ class DelayedConstraints:
         self.nullable = nullable
         self.name = name
         self.factory = factory
-        self._constraints: Optional["__AbstractConstraints"] = None
+        self._constraints: Optional["_AbstractConstraints"] = None
 
     def _evaluate_contraints(self):
         type = self.t
@@ -558,7 +564,7 @@ class DelayedConstraints:
         return c
 
     @property
-    def constraints(self) -> "__AbstractConstraints":
+    def constraints(self) -> "_AbstractConstraints":
         if self._constraints is None:
             self._constraints = self._evaluate_contraints()
         return self._constraints
@@ -596,7 +602,7 @@ class ForwardDelayedConstraints:
         self.nullable = nullable
         self.name = name
         self.factory = factory
-        self._constraints: Optional["__AbstractConstraints"] = None
+        self._constraints: Optional["_AbstractConstraints"] = None
 
     def _evaluate_contraints(self):
         globalns = sys.modules[self.module].__dict__.copy()
@@ -616,7 +622,7 @@ class ForwardDelayedConstraints:
         return c
 
     @property
-    def constraints(self) -> "__AbstractConstraints":
+    def constraints(self) -> "_AbstractConstraints":
         if self._constraints is None:
             self._constraints = self._evaluate_contraints()
         return self._constraints

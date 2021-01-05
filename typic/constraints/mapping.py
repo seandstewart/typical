@@ -321,6 +321,8 @@ class TypedDictConstraints(ObjectConstraints):
     instancecheck: ClassVar[InstanceCheck] = InstanceCheck.NOT
     ttype: Type = dict
 
+    __ignore_repr__ = frozenset(("ttype",)) | ObjectConstraints.__ignore_repr__
+
     @util.cached_property
     def type_name(self):
         return util.get_name(self.ttype)
