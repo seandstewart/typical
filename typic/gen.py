@@ -1,17 +1,23 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
 import dataclasses
 import enum
 import inspect
 import linecache
 import pathlib
 import uuid
-from typing import List, Union, Type, Tuple, Optional
+from typing import List, Union, Type, Tuple, Optional, TypeVar
 
 import typic
+from .util import slotted
 
 _empty = inspect.Parameter.empty
 ParameterKind = inspect._ParameterKind
+
+
+class rawstr(str):
+    def __repr__(self):
+        return super().__repr__().strip("'\"")
 
 
 class Keyword(str, enum.Enum):
@@ -27,6 +33,7 @@ class Keyword(str, enum.Enum):
     DEC = "@"
 
 
+@slotted(dict=False)
 @dataclasses.dataclass(frozen=True)
 class Line:
     INDENT = "    "
@@ -39,12 +46,16 @@ class Line:
         return self.code
 
 
+_BT = TypeVar("_BT")
+
+
+@slotted(dict=False)
 @dataclasses.dataclass
 class Block:
     namespace: dict = dataclasses.field(default_factory=dict)
-    body: List[Union[Line, "Block"]] = dataclasses.field(default_factory=list)
+    body: List[Union[Line, Block]] = dataclasses.field(default_factory=list)
     level: int = 0
-    name: Optional[str] = None
+    name: str = ""
 
     def line(self, line: str, *, level: int = None, **context):
         if level is None:
@@ -54,9 +65,7 @@ class Block:
 
     l = line  # noqa: E741
 
-    def block(
-        self, *lines: str, level: int = None, name: str = None, **context
-    ) -> "Block":
+    def block(self, *lines: str, level: int = None, name: str = "", **context) -> Block:
         level = (self.level + 1) if level is None else level
         self.namespace.update(context)
         block = Block(self.namespace, level=level, name=name)
@@ -89,34 +98,40 @@ class Block:
         returns: Type = _empty,
         coro: bool = False,
         **context,
-    ) -> "Block":
-        sig = inspect.Signature(parameters=params or None, return_annotation=returns)
-        defn = f"{Keyword.DEF} {name}"
-        if coro:
-            defn = f"{Keyword.ASN} {defn}"
-        funcsig = f"{defn}{str(sig)}:"
-        lines = ["\n", funcsig]
-        if decorator:
-            lines = ["\n", f"{Keyword.DEC}{decorator}", funcsig]
-        return self.b(*lines, name=name, **context)
+    ) -> Function:
+        self.namespace.update(context)
+        func = Function(
+            namespace=self.namespace,
+            level=self.level + 1,
+            name=name,
+            parameters=[*params],
+            returns=returns,
+            coro=coro,
+            decorator=decorator,
+        )
+        self.body.append(func)
+        return func
 
     f = func
 
     def cls(
-        self, name: str, *, base: str = None, decorator: str = None, **context
-    ) -> "Block":  # pragma: nocover
-        decl = f"{Keyword.CLS} {name}"
-        if base:
-            decl = f"{decl}({base})"
-        decl = f"{decl}:"
-        lines = ["\n", decl]
-        if decorator:
-            lines = ["\n", f"{Keyword.DEC}{decorator}", decl]
-        return self.b(*lines, name=name, **context)
+        self, name: str, *params, base: str = None, decorator: str = None, **context
+    ) -> Class:  # pragma: nocover
+        self.namespace.update(context)
+        cls = Class(
+            namespace=self.namespace,
+            level=self.level + 1,
+            name=name,
+            parameters=[*params],
+            base=base,
+            decorator=decorator,
+        )
+        self.body.append(cls)
+        return cls
 
     c = cls
 
-    def __enter__(self) -> "Block":
+    def __enter__(self: _BT) -> _BT:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -128,7 +143,7 @@ class Block:
 
         Notes
         -----
-        Taken aproximately from `attrs`.
+        Taken approximately from `attrs`.
 
         See Also
         --------
@@ -159,9 +174,15 @@ class Block:
             fname,
         )
 
+    def _render_head(self) -> str:
+        return ""
+
+    def _render_body(self) -> str:
+        block = "".join(str(x.render()) for x in self.body)
+        return block or "..."
+
     def render(self) -> str:
-        block = "".join(x.render() for x in self.body)
-        return f"{block}" if block else ""
+        return self._render_head() + self._render_body()
 
     def compile(self, *, name: str, ns: dict = None):
         ns = {} if ns is None else ns
@@ -174,6 +195,68 @@ class Block:
         target.__raw__ = code
         self._add_to_linecache(fname, code)
         return target
+
+
+@slotted(dict=False)
+@dataclasses.dataclass
+class Function(Block):
+    parameters: List[inspect.Parameter] = dataclasses.field(default_factory=list)
+    returns: Optional[Type] = None
+    coro: bool = False
+    decorator: Optional[str] = None
+
+    def _render_head(self) -> str:
+        defn = f"{Keyword.DEF} {self.name}"
+        if self.coro:
+            defn = f"{Keyword.ASN} {defn}"
+        funcsig = f"{defn}{str(inspect.Signature(self.parameters))}:"
+        lines = ["\n", funcsig, "\n"]
+        if self.decorator:
+            lines = ["\n", f"{Keyword.DEC}{self.decorator}", funcsig, "\n"]
+
+        return "".join(lines)
+
+    def localize_context(self, *context: str):
+        """A byte-code hack to inject variables into the local namespace."""
+        self.parameters.extend(
+            (
+                self.param(name=n, kind=ParameterKind.KEYWORD_ONLY, default=rawstr(n))
+                for n in context
+            )
+        )
+
+    def add_param(
+        self,
+        name: str,
+        kind: ParameterKind = ParameterKind.POSITIONAL_OR_KEYWORD,  # type: ignore
+        *,
+        default=_empty,
+        annotation=_empty,
+    ):
+        self.parameters.append(
+            self.param(name=name, kind=kind, default=default, annotation=annotation)
+        )
+
+
+@slotted(dict=False)
+@dataclasses.dataclass
+class Class(Block):
+    parameters: List[inspect.Parameter] = dataclasses.field(default_factory=list)
+    decorator: Optional[str] = None
+    base: Optional[str] = None
+
+    def _render_head(self) -> str:
+        decl = f"{Keyword.CLS} {self.name}"
+        if self.base:
+            decl = f"{decl}({self.base})"
+        initfn = ""
+        if self.parameters:
+            sig = inspect.Signature(parameters=self.parameters)
+            initfn = f"\n{Keyword.DEF} __init__{str(sig)}:"
+        lines = ["\n", decl, "\n", initfn, "\n"]
+        if self.decorator:
+            lines = ["\n", f"{Keyword.DEC}{self.decorator}", *lines]
+        return "".join(lines)
 
 
 # This isn't used or tested. It's just here for API completion.
