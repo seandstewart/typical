@@ -8,6 +8,7 @@ import ipaddress
 import pathlib
 import re
 import uuid
+from collections import deque
 from decimal import Decimal
 from typing import (
     Mapping,
@@ -21,6 +22,7 @@ from typing import (
     cast,
     Set,
     ClassVar,
+    Deque,
 )
 
 from typic.checks import (
@@ -111,18 +113,18 @@ ArrayConstraintsT = Union[
 
 
 def _resolve_args(
-    *args, cls: Type = None, nullable: bool = False
+    *args, cls: Type = None, nullable: bool = False, multi: bool = True
 ) -> Optional[ConstraintsT]:
-    largs: List = [*args]
+    largs: Deque = deque(args)
     items: List[ConstraintsT] = []
-
     while largs:
-        arg = largs.pop()
+        arg = largs.popleft()
         if arg in {Any, Ellipsis}:
             continue
         if origin(arg) is Union:
             c = _from_union(arg, cls=cls, nullable=nullable)
-            if isinstance(c, MultiConstraints):
+            # just extend the outer multi constraints if that's what we're building
+            if isinstance(c, MultiConstraints) and multi:
                 items.extend(c.constraints)
             else:
                 items.append(c)
@@ -130,7 +132,7 @@ def _resolve_args(
         items.append(get_constraints(arg, cls=cls, nullable=nullable))
     if len(items) == 1:
         return items[0]
-    return MultiConstraints((*items,))  # type: ignore
+    return MultiConstraints((*items,)) if multi else (*items,)  # type: ignore
 
 
 def _from_array_type(
@@ -140,10 +142,13 @@ def _from_array_type(
     constr_class = cast(
         Type[ArrayConstraintsT], _ARRAY_CONSTRAINTS_BY_TYPE.get_by_parent(origin(t))
     )
+    multi = True
+    if constr_class is TupleConstraints and ... not in args:
+        multi = False
     # If we don't have args, then return a naive constraint
     if not args:
         return constr_class(nullable=nullable, name=name)
-    items = _resolve_args(*args, cls=cls, nullable=nullable)
+    items = _resolve_args(*args, cls=cls, nullable=nullable, multi=multi)
 
     return constr_class(nullable=nullable, values=items, name=name)
 

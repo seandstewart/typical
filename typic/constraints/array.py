@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from types import MappingProxyType
 from typing import (
     Type,
     ClassVar,
@@ -191,6 +192,41 @@ class TupleConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`tuple`."""
 
     type: ClassVar[Type[tuple]] = tuple
+    values: Union[Optional[ConstraintsT], Sequence[ConstraintsT]] = None  # type: ignore
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        if isinstance(self.values, Sequence):
+            if self.unique is True:
+                func.l(
+                    f"{self.VALUE} = unique({self.VALUE}, ret_type=tuple)",
+                    unique=unique,
+                )
+            item_validators = MappingProxyType(
+                {i: c.validate for i, c in enumerate(self.values)}
+            )
+            o = util.origin(self.type)
+            itval = "__item_validators"
+            ctx = {
+                "unique": unique,
+                itval: item_validators,
+                o.__name__: o,
+                "_lazy_repr": util.collectionrepr,
+            }
+            field = f"_lazy_repr({self.FNAME}, i)"
+            func.l(
+                f"{self.VALUE} = "
+                f"{o.__name__}("
+                f"({itval}[i](x, field={field}) if i in {itval} else x "
+                f"for i, x in enumerate({self.VALUE}))"
+                f")",
+                **ctx,  # type: ignore
+            )
+            return ctx
+        return ArrayConstraints._build_validator(
+            self, func=func, context=context, assertions=assertions
+        )
 
 
 @util.slotted

@@ -6,6 +6,7 @@ import pytest
 
 from typic.constraints import (
     ListConstraints,
+    TupleConstraints,
     StrConstraints,
     IntContraints,
     ConstraintValueError,
@@ -36,6 +37,16 @@ def test_validate_values(val: str, constraint: ListConstraints, expected: list):
     argvalues=[
         ([], ListConstraints(min_items=1), ConstraintValueError),
         ([1, 2, 3], ListConstraints(max_items=2), ConstraintValueError),
+        (
+            (1, 2),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ConstraintValueError,
+        ),
+        (
+            ("foo", "bar"),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ConstraintValueError,
+        ),
     ],
 )
 def test_validate_values_error(
@@ -72,6 +83,11 @@ def test_validate_values_multi(val: str, constraint: ListConstraints, expected: 
                 values=StrConstraints(strip_whitespace=True, min_length=2),
             ),
             ["foo"],
+        ),
+        (
+            ("foo", 2),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ("foo", 2),
         ),
     ],
 )
