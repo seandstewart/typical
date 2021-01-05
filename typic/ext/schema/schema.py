@@ -16,16 +16,17 @@ from typing import (
     AnyStr,
     TYPE_CHECKING,
     MutableMapping,
+    Tuple,
 )
 
 import inflection  # type: ignore
 
 from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
-from typic.serde.common import SerdeProtocol
-from typic.compat import Final, TypedDict, ForwardRef
+from typic.serde.common import SerdeProtocol, Annotation
+from typic.compat import Final, TypedDict, ForwardRef, Literal
 from typic.util import get_args, origin, get_name
-from typic.checks import istypeddict, isnamedtuple
+from typic.checks import istypeddict, isnamedtuple, isliteral
 from typic.types.frozendict import FrozenDict
 
 from .field import (  # type: ignore
@@ -37,6 +38,7 @@ from .field import (  # type: ignore
     SCHEMA_FIELD_FORMATS,
     SchemaType,
     ArraySchemaField,
+    NullSchemaField,
 )
 
 if TYPE_CHECKING:
@@ -136,80 +138,85 @@ class SchemaBuilder:
                 config["uniqueItems"] = True
         return config
 
-    def get_field(
+    def _check_optional(
         self,
-        protocol: SerdeProtocol,
-        *,
-        ro: bool = None,
-        wo: bool = None,
-        name: str = None,
-        parent: Type = None,
-    ) -> "SchemaFieldT":
-        """Get a field definition for a JSON Schema."""
-        if protocol.annotation in self.__stack:
-            name = self.defname(protocol.annotation.resolved_origin, name)
-            return Ref(f"#/definitions/{name}")
-        anno = protocol.annotation
-        if anno in self.__cache:
-            return self.__cache[anno]
-        # Get the default value
-        # `None` gets filtered out down the line. this is okay.
-        # If a field isn't required an empty default is functionally the same
-        # as a default to None for the JSON schema.
-        default = anno.parameter.default if anno.has_default else None
-        # `use` is the based annotation we will use for building the schema
-        use = getattr(anno.origin, "__parent__", anno.origin)
-        # If there's not a static annotation, short-circuit the rest of the checks.
-        schema: SchemaFieldT
-        if use in {Any, anno.EMPTY}:
-            schema = UndeclaredSchemaField()
-            self.__cache[anno] = schema
-            return schema
-
-        # Unions are `anyOf`, get a new field for each arg and return.
-        # {'type': ['string', 'integer']} ==
-        #   {'oneOf': [{'type': 'string'}, {'type': 'integer'}]}
-        # We don't care about syntactic sugar if it's functionally the same.
-        if use is Union:
-            fields: List[SchemaFieldT] = []
-            args = get_args(anno.un_resolved)
-            for t in args:
-                if t.__class__ is ForwardRef or t is parent:
-                    n = name or get_name(t)
-                    fields.append(Ref(f"#/definitions/{n}"))
-                    continue
-                fields.append(
-                    self.get_field(resolver.resolve(t, namespace=parent), parent=parent)
+        annotation: Annotation,
+        schema: SchemaFieldT,
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+    ) -> SchemaFieldT:
+        if annotation.optional and annotation.parameter.default is not ...:
+            null = NullSchemaField()
+            if isinstance(schema, MultiSchemaField):
+                anyOf = schema.anyOf or ()
+                if null not in {*anyOf}:
+                    schema = dataclasses.replace(schema, anyOf=(*anyOf, null))
+                return schema
+            # Primitives are generally defined as anonymous types
+            title = subtitle = schema.title or self.defname(annotation.resolved, name)
+            # If we have an object with this name, make this an 'Optional' reference.
+            if isinstance(schema, (Ref, ObjectSchemaField)):
+                title = subtitle and f"Optional{subtitle}"
+            default = getattr(schema, "default", None)
+            child: SchemaFieldT = (
+                schema
+                if isinstance(schema, Ref)
+                else dataclasses.replace(
+                    schema, default=None, readOnly=ro, writeOnly=wo
                 )
-            schema = MultiSchemaField(
-                title=self.defname(anno.resolved, name=name) if name else None,
-                anyOf=(*fields,),
             )
-            self.__cache[anno] = schema
-            return schema
+            return MultiSchemaField(
+                title=title,
+                default=default,
+                readOnly=ro,
+                writeOnly=wo,
+                anyOf=(child, NullSchemaField()),
+            )
+        return schema
 
-        self.__stack.add(anno)
+    def _handle_union(
+        self,
+        anno: Annotation,
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+        parent: Optional[Type],
+    ):
+        fields: List[SchemaFieldT] = []
+        args = get_args(anno.un_resolved)
+        for t in args:
+            if t.__class__ is ForwardRef or t is parent:
+                n = name or get_name(t)
+                fields.append(Ref(f"#/definitions/{n}"))
+                continue
+            fields.append(
+                self.get_field(resolver.resolve(t, namespace=parent), parent=parent)
+            )
+        schema = self._check_optional(
+            anno,
+            MultiSchemaField(
+                title=name and self.defname(anno.resolved, name=name),
+                anyOf=(*fields,),
+            ),
+            ro,
+            wo,
+            name,
+        )
+        self.__cache[anno] = schema
+        return schema
 
-        # Check if this should be ro/wo
-        if use in {ReadOnly, WriteOnly, Final}:
-            ro = (use in {ReadOnly, Final}) or None
-            wo = (use is WriteOnly) or None
-            use = origin(anno.resolved)
-            use = getattr(use, "__parent__", use)
-
-        # Check for an enumeration
-        enum_ = None
-        if issubclass(use, enum.Enum):
-            use = cast(Type[enum.Enum], use)
-            enum_ = tuple(x.value for x in use)
-            use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
-
-        # If this is ro with a default, we can consider this a const
-        # Which is an enum with a single value -
-        # we don't currently honor `{'const': <val>}` since it's just syntactic sugar.
-        if ro and default:
-            enum_ = (default.value if isinstance(default, enum.Enum) else default,)
-
+    def _build_field(
+        self,
+        use: Type,
+        protocol: SerdeProtocol,
+        parent: Optional[Type],
+        enum_: Optional[Tuple[Any, ...]],
+        default: Optional[Any],
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+    ) -> SchemaFieldT:
         # If we've got a base object, use it
         base: Optional[SchemaFieldT]
         if use is object:
@@ -234,7 +241,7 @@ class SchemaBuilder:
             schema = dataclasses.replace(base, **config)
         else:
             try:
-                schema = self.build_schema(use, name=self.defname(use, name=name))
+                schema = self.build_schema(use)
             except (ValueError, TypeError) as e:
                 warnings.warn(f"Couldn't build schema for {use}: {e}")
                 schema = UndeclaredSchemaField(
@@ -244,7 +251,90 @@ class SchemaBuilder:
                     readOnly=ro,
                     writeOnly=wo,
                 )
+        schema = self._check_optional(protocol.annotation, schema, ro, wo, name)
+        return schema
 
+    def get_field(
+        self,
+        protocol: SerdeProtocol,
+        *,
+        ro: bool = None,
+        wo: bool = None,
+        name: str = None,
+        parent: Type = None,
+    ) -> "SchemaFieldT":
+        """Get a field definition for a JSON Schema."""
+        if protocol.annotation in self.__stack:
+            name = self.defname(protocol.annotation.resolved_origin, name)
+            return self._check_optional(
+                protocol.annotation, Ref(f"#/definitions/{name}"), ro, wo, name
+            )
+        anno = protocol.annotation
+        if anno in self.__cache:
+            return self.__cache[anno]
+        # Get the default value
+        # `None` gets filtered out down the line. this is okay.
+        # If a field isn't required an empty default is functionally the same
+        # as a default to None for the JSON schema.
+        default = anno.parameter.default if anno.has_default else None
+        # `use` is the based annotation we will use for building the schema
+        use = getattr(anno.origin, "__parent__", anno.origin)
+        # This is a flat optional, handle it separately from the Union block.
+        use = anno.resolved if use is Union and not anno.args else use
+        # If there's not a static annotation, short-circuit the rest of the checks.
+        schema: SchemaFieldT
+        if use in {Any, anno.EMPTY}:
+            schema = self._check_optional(anno, UndeclaredSchemaField(), ro, wo, name)
+            self.__cache[anno] = schema
+            return schema
+
+        # Unions are `anyOf`, get a new field for each arg and return.
+        # {'type': ['string', 'integer']} ==
+        #   {'anyOf': [{'type': 'string'}, {'type': 'integer'}]}
+        # We don't care about syntactic sugar if it's functionally the same.
+        if use is Union:
+            return self._handle_union(anno=anno, ro=ro, wo=wo, name=name, parent=parent)
+
+        self.__stack.add(anno)
+
+        # Check if this should be ro/wo
+        if use in {ReadOnly, WriteOnly, Final}:
+            ro = (use in {ReadOnly, Final}) or None
+            wo = (use is WriteOnly) or None
+            use = origin(anno.resolved)
+            use = getattr(use, "__parent__", use)
+
+        # Check for an enumeration
+        enum_ = None
+        # Functionally, literals are enumerations.
+        if isliteral(use):
+            enum_ = (*(a for a in anno.args if a is not None),)
+            ts = {a.__class__ for a in enum_}
+            use = Literal
+            if len(ts) == 1:
+                use = ts.pop()
+
+        elif issubclass(use, enum.Enum):
+            use = cast(Type[enum.Enum], use)
+            enum_ = tuple(x.value for x in use)
+            use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
+
+        # If this is ro with a default, we can consider this a const
+        # Which is an enum with a single value -
+        # we don't currently honor `{'const': <val>}` since it's just syntactic sugar.
+        if ro and default:
+            enum_ = (default.value if isinstance(default, enum.Enum) else default,)
+
+        schema = self._build_field(
+            use=use,
+            protocol=protocol,
+            parent=parent,
+            enum_=enum_,
+            default=default,
+            ro=ro,
+            wo=wo,
+            name=name,
+        )
         self.__cache[anno] = schema
         self.__stack.clear()
         return schema

@@ -2,11 +2,10 @@
 # -*- coding: UTF-8 -*-
 import dataclasses
 import decimal
-import warnings
-from typing import Union, Type, ClassVar, Tuple, Optional, Dict, Any, List
+from typing import Union, Type, ClassVar, Optional, Dict, List
 
 from typic import gen, util
-from .common import BaseConstraints, ContextT, ChecksT
+from .common import BaseConstraints, ContextT, AssertionsT
 from .error import ConstraintSyntaxError, ConstraintValueError
 
 NumberT = Union[int, float, decimal.Decimal]
@@ -82,69 +81,19 @@ class NumberConstraints(BaseConstraints):
                 )
                 raise ConstraintSyntaxError(msg) from None
 
-    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
-        # Sanity check the syntax
-        self._check_syntax()
-        # Generate the validator
-        checks: List[str] = []
-        context: Dict[str, Any] = {}
+    def _get_assertions(self) -> AssertionsT:
+        asserts: List[str] = []
         if self.gt is not None:
-            checks.append(f"{self.VALUE} > {self.gt}")
+            asserts.append(f"{self.VALUE} > {self.gt}")
         if self.ge is not None:
-            checks.append(f"{self.VALUE} >= {self.ge}")
+            asserts.append(f"{self.VALUE} >= {self.ge}")
         if self.lt is not None:
-            checks.append(f"{self.VALUE} < {self.lt}")
+            asserts.append(f"{self.VALUE} < {self.lt}")
         if self.le is not None:
-            checks.append(f"{self.VALUE} <= {self.le}")
+            asserts.append(f"{self.VALUE} <= {self.le}")
         if self.mul is not None:
-            checks.append(f"{self.VALUE} % {self.mul} == 0")
-
-        if util.origin(self.type) is decimal.Decimal:
-            max_digits, decimal_places = (
-                getattr(self, "max_digits", None),
-                getattr(self, "decimal_places", None),
-            )
-            context.update(decimal=decimal, Decimal=decimal.Decimal)
-            if {max_digits, decimal_places} != {None, None}:
-                # Update the global namespace for the validator
-                # Add setup/sanity checks for decimals.
-                func.l(f"{self.VALUE} = decimal.Decimal({self.VALUE})")
-                with func.b(
-                    f"if {self.VALUE}.is_infinite():",
-                    ConstraintValueError=ConstraintValueError,
-                ) as b:
-                    b.l(
-                        "raise ConstraintValueError('Cannot validate infinite values.')"
-                    )
-                func.l(f"tup = {self.VALUE}.as_tuple()")
-                func.l(
-                    "whole, digits, decimals = _get_digits(tup)",
-                    _get_digits=_get_digits,
-                )
-                if max_digits is not None:
-                    checks.append(f"digits <= {max_digits}")
-                if decimal_places is not None:
-                    checks.append(f"decimals <= {decimal_places}")
-                # Special syntax rules for Decimals
-                if decimal_places is not None and max_digits is not None:
-                    if max_digits < decimal_places:
-                        msg = (
-                            f"Contraint <decimal_places={decimal_places!r}> "
-                            f"should never be greater than "
-                            f"Constraint <max_digits={max_digits!r}>"
-                        )
-                        raise ConstraintSyntaxError(msg) from None
-                    elif max_digits == decimal_places:
-                        msg = (
-                            f"Contraint <decimal_places={decimal_places!r}> equals "
-                            f"Constraint <max_digits={max_digits!r}>. "
-                            f"This may be unintentional. "
-                            "Only partial numbers < '1.0' will be allowed."
-                        )
-                        warnings.warn(msg)
-                    checks.append(f"whole <= ({max_digits} - {decimal_places})")
-
-        return checks, context
+            asserts.append(f"{self.VALUE} % {self.mul} == 0")
+        return asserts
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Union[None, NumberT, str]] = dict(
@@ -207,3 +156,60 @@ class DecimalContraints(NumberConstraints):
     """The maximum allowed digits for the input."""
     decimal_places: Optional[int] = None
     """The maximum allowed decimal places for the input."""
+
+    def _check_syntax(self):
+        NumberConstraints._check_syntax(self)
+        if None in {self.max_digits, self.decimal_places}:
+            return
+        if self.max_digits < self.decimal_places:
+            msg = (
+                f"Contraint <decimal_places={self.decimal_places!r}> "
+                f"should never be greater than "
+                f"Constraint <max_digits={self.max_digits!r}>"
+            )
+            raise ConstraintSyntaxError(msg) from None
+
+    def _get_assertions(self) -> AssertionsT:
+        asserts = NumberConstraints._get_assertions(self)
+        if (self.max_digits, self.decimal_places) == (None, None):
+            return asserts
+
+        if self.max_digits is not None:
+            asserts.append(f"digits <= {self.max_digits}")
+        if self.decimal_places is not None:
+            asserts.append(f"decimals <= {self.decimal_places}")
+        if self.decimal_places is not None and self.max_digits is not None:
+            asserts.append(f"whole <= ({self.max_digits} - {self.decimal_places})")
+        return asserts
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        if (self.max_digits, self.decimal_places) == (None, None):
+            context = NumberConstraints._build_validator(
+                self, func, context=context, assertions=assertions
+            )
+            context.update(
+                decimal=decimal, Decimal=decimal.Decimal, _get_digits=_get_digits
+            )
+            return context
+        # Update the global namespace for the validator
+        # Add setup/sanity checks for decimals.
+        func.l(f"{self.VALUE} = decimal.Decimal({self.VALUE})")
+        with func.b(
+            f"if {self.VALUE}.is_infinite():",
+            ConstraintValueError=ConstraintValueError,
+        ) as b:
+            b.l("raise ConstraintValueError('Cannot validate infinite values.')")
+        func.l(f"tup = {self.VALUE}.as_tuple()")
+        func.l(
+            "whole, digits, decimals = _get_digits(tup)",
+            _get_digits=_get_digits,
+        )
+        context = NumberConstraints._build_validator(
+            self, func, context=context, assertions=assertions
+        )
+        context.update(
+            decimal=decimal, Decimal=decimal.Decimal, _get_digits=_get_digits
+        )
+        return context

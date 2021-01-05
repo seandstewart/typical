@@ -3,6 +3,7 @@ import functools
 import inspect
 import warnings
 from collections.abc import Callable
+from enum import Enum
 from operator import attrgetter, methodcaller
 from typing import (
     Mapping,
@@ -43,6 +44,7 @@ from .common import (
     DelayedSerdeProtocol,
     ForwardDelayedAnnotation,
     DelayedAnnotation,
+    AnnotationT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -60,6 +62,7 @@ class Resolver:
     )
     _DYNAMIC = SerFactory._DYNAMIC
     OPTIONALS = (None, ...)
+    LITERALS = (int, bytes, str, bool, Enum, type(None))
 
     def __init__(self):
         self.des = DesFactory(self)
@@ -237,8 +240,8 @@ class Resolver:
         'foo'
         >>> typic.primitive(("foo",))  # containers are converted to lists/dicts
         ['foo']
-        >>> typic.primitive(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '1970-01-01T00:00:00+00:00'
+        >>> typic.primitive(datetime.datetime(1970, 1, 1))
+        '1970-01-01T00:00:00'
         >>> typic.primitive(b"foo")
         'foo'
         >>> typic.primitive(ipaddress.IPv4Address("0.0.0.0"))
@@ -285,8 +288,8 @@ class Resolver:
         '"foo"'
         >>> typic.tojson(("foo",))
         '["foo"]'
-        >>> typic.tojson(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '"1970-01-01T00:00:00+00:00"'
+        >>> typic.tojson(datetime.datetime(1970, 1, 1))
+        '"1970-01-01T00:00:00"'
         >>> typic.tojson(b"foo")
         '"foo"'
         >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
@@ -399,7 +402,7 @@ class Resolver:
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
         namespace: Type = None,
-    ) -> Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]:
+    ) -> AnnotationT:
         """Get a :py:class:`Annotation` for this type.
 
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
@@ -430,6 +433,7 @@ class Resolver:
         )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC
+        is_literal = checks.isliteral(use)
         # Determine whether we should use the first arg of the annotation
         while checks.should_unwrap(use) and args:
             is_optional = is_optional or checks.isoptionaltype(use)
@@ -437,6 +441,7 @@ class Resolver:
             if is_optional and len(args) > 2:
                 # We can't resolve this annotation.
                 is_static = False
+                use = Union[args[:-1]]
                 break
             # Note that we don't re-assign `orig`.
             # This is intentional.
@@ -446,9 +451,22 @@ class Resolver:
             use = non_super
             args = util.get_args(use)
             is_static = util.origin(use) not in self._DYNAMIC
+            is_literal = is_literal or checks.isliteral(use)
 
+        # Only allow legal parameters at runtime, this has implementation implications.
+        if is_literal:
+            args = util.get_args(use)
+            if any(not isinstance(a, self.LITERALS) for a in args):
+                raise TypeError(
+                    f"PEP 586: Unsupported parameters for 'Literal' type: {args}. "
+                    "See https://www.python.org/dev/peps/pep-0586/"
+                    "#legal-parameters-for-literal-at-type-check-time "
+                    "for more information."
+                )
+        # The type definition doesn't exist yet.
         if use.__class__ is ForwardRef:
             module, localns = self.__module__, {}
+            # Ideally we have a namespace from a parent class/function to the field
             if namespace:
                 module = namespace.__module__
                 localns = getattr(namespace, "__dict__", {})
@@ -465,7 +483,10 @@ class Resolver:
                 module=module,
                 localns=localns,
             )
+        # The type definition is recursive or within a recursive loop.
         elif use is namespace or use in self.__stack:
+            # If detected via stack, we can remove it now.
+            # Otherwise we'll cause another recursive loop.
             if use in self.__stack:
                 self.__stack.remove(use)
             return DelayedAnnotation(
@@ -478,10 +499,12 @@ class Resolver:
                 flags=flags,
                 default=default,
             )
-        self.__stack.add(use)
+        # Otherwise, add this type to the stack to prevent a recursive loop from elsewhere.
+        if not checks.isstdlibtype(use):
+            self.__stack.add(use)
         serde = (
             self._get_configuration(util.origin(use), flags)
-            if is_static
+            if is_static and not is_literal
             else SerdeConfig(flags)
         )
 
@@ -501,7 +524,7 @@ class Resolver:
     @lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self,
-        anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation],
+        anno: AnnotationT,
         _des: bool = True,
         _ser: bool = True,
         _namespace: Type = None,
@@ -584,7 +607,6 @@ class Resolver:
         --------
         :py:class:`SerdeProtocol`
         """
-        # self.__stack.clear()
         # Extract the meta-data.
         anno = self.annotation(
             annotation=annotation,

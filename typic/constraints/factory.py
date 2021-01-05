@@ -8,6 +8,7 @@ import ipaddress
 import pathlib
 import re
 import uuid
+from collections import deque
 from decimal import Decimal
 from typing import (
     Mapping,
@@ -20,6 +21,8 @@ from typing import (
     Hashable,
     cast,
     Set,
+    ClassVar,
+    Deque,
 )
 
 from typic.checks import (
@@ -31,23 +34,26 @@ from typic.checks import (
     isbuiltinsubtype,
     isnamedtuple,
     should_unwrap,
+    isclassvartype,
 )
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import ForwardRef, Literal, lru_cache
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
     get_args,
+    get_tag_for_types,
     cached_signature,
     cached_type_hints,
     get_name,
     TypeMap,
+    empty,
 )
 from .array import (
     Array,
     FrozenSetConstraints,
-    ListContraints,
+    ListConstraints,
     SetContraints,
-    TupleContraints,
+    TupleConstraints,
 )
 from .common import (
     MultiConstraints,
@@ -56,6 +62,7 @@ from .common import (
     VT,
     DelayedConstraints,
     ForwardDelayedConstraints,
+    LiteralConstraints,
 )
 from .mapping import (
     MappingConstraints,
@@ -82,42 +89,42 @@ ConstraintsT = Union[
     ForwardDelayedConstraints,
     FrozenSetConstraints,
     IntContraints,
-    ListContraints,
+    ListConstraints,
     MappingConstraints,
     MultiConstraints,
     ObjectConstraints,
     SetContraints,
     StrConstraints,
-    TupleContraints,
+    TupleConstraints,
     TypeConstraints,
 ]
 
 _ARRAY_CONSTRAINTS_BY_TYPE = TypeMap(
     {
         set: SetContraints,
-        list: ListContraints,
-        tuple: TupleContraints,
+        list: ListConstraints,
+        tuple: TupleConstraints,
         frozenset: FrozenSetConstraints,
     }
 )
 ArrayConstraintsT = Union[
-    SetContraints, ListContraints, TupleContraints, FrozenSetConstraints
+    SetContraints, ListConstraints, TupleConstraints, FrozenSetConstraints
 ]
 
 
 def _resolve_args(
-    *args, cls: Type = None, nullable: bool = False
+    *args, cls: Type = None, nullable: bool = False, multi: bool = True
 ) -> Optional[ConstraintsT]:
-    largs: List = [*args]
+    largs: Deque = deque(args)
     items: List[ConstraintsT] = []
-
     while largs:
-        arg = largs.pop()
+        arg = largs.popleft()
         if arg in {Any, Ellipsis}:
             continue
         if origin(arg) is Union:
             c = _from_union(arg, cls=cls, nullable=nullable)
-            if isinstance(c, MultiConstraints):
+            # just extend the outer multi constraints if that's what we're building
+            if isinstance(c, MultiConstraints) and multi:
                 items.extend(c.constraints)
             else:
                 items.append(c)
@@ -125,7 +132,7 @@ def _resolve_args(
         items.append(get_constraints(arg, cls=cls, nullable=nullable))
     if len(items) == 1:
         return items[0]
-    return MultiConstraints((*items,))  # type: ignore
+    return MultiConstraints((*items,)) if multi else (*items,)  # type: ignore
 
 
 def _from_array_type(
@@ -135,10 +142,13 @@ def _from_array_type(
     constr_class = cast(
         Type[ArrayConstraintsT], _ARRAY_CONSTRAINTS_BY_TYPE.get_by_parent(origin(t))
     )
+    multi = True
+    if constr_class is TupleConstraints and ... not in args:
+        multi = False
     # If we don't have args, then return a naive constraint
     if not args:
         return constr_class(nullable=nullable, name=name)
-    items = _resolve_args(*args, cls=cls, nullable=nullable)
+    items = _resolve_args(*args, cls=cls, nullable=nullable, multi=multi)
 
     return constr_class(nullable=nullable, values=items, name=name)
 
@@ -221,6 +231,12 @@ def _from_enum_type(
     return EnumConstraints(t, nullable=nullable, name=name)
 
 
+def _from_literal(
+    t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
+) -> LiteralConstraints:
+    return LiteralConstraints(t, nullable=nullable, name=name)
+
+
 def _from_union(
     t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
 ) -> ConstraintsT:
@@ -237,6 +253,7 @@ def _from_union(
             ),
         ),
         name=name,
+        tag=get_tag_for_types(_args),
     )
 
 
@@ -252,6 +269,18 @@ def _from_class(
             p = params[x]
             params[x] = inspect.Parameter(
                 p.name, p.kind, default=p.default, annotation=hints[x]
+            )
+        for x in hints.keys() - params.keys():
+            hint = hints[x]
+            if not isclassvartype(hint):
+                continue
+            # Hack in the classvars as "parameters" to allow for validation.
+            default = getattr(t, x, empty)
+            args = get_args(hint)
+            if not args:
+                hint = ClassVar[default.__class__]  # type: ignore
+            params[x] = inspect.Parameter(
+                x, inspect.Parameter.KEYWORD_ONLY, default=default, annotation=hint
             )
     except (ValueError, TypeError):
         return _from_strict_type(t, nullable=nullable, name=name)
@@ -320,6 +349,7 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         ipaddress.IPv4Address: _from_strict_type,
         ipaddress.IPv6Address: _from_strict_type,
         Union: _from_union,  # type: ignore
+        Literal: _from_literal,
     }
 )
 

@@ -26,7 +26,7 @@ import typic.common
 import typic.util as util
 import typic.strict as strict
 
-from typic.compat import Final, lru_cache
+from typic.compat import Final, ForwardRef, Literal, lru_cache
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -60,9 +60,12 @@ __all__ = (
     "isfrozendataclass",
     "ishashable",
     "isinstance",
+    "isiterabletype",
+    "isliteral",
     "ismappingtype",
     "isnamedtuple",
     "isoptionaltype",
+    "isproperty",
     "isreadonly",
     "issimpleattribute",
     "isstrict",
@@ -70,6 +73,9 @@ __all__ = (
     "isstdlibtype",
     "isstdlibsubtype",
     "issubclass",
+    "istimetype",
+    "istimedeltatype",
+    "istupletype",
     "istypeddict",
     "istypedtuple",
     "isuuidtype",
@@ -102,10 +108,14 @@ STDLIB_TYPES = frozenset(
         *BUILTIN_TYPES,
         datetime.datetime,
         datetime.date,
+        datetime.timedelta,
+        datetime.time,
         decimal.Decimal,
-        pathlib.Path,
         ipaddress.IPv4Address,
         ipaddress.IPv6Address,
+        pathlib.Path,
+        uuid.UUID,
+        uuid.SafeUUID,
     )
 )
 STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
@@ -228,8 +238,11 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
     return (
         len(args) > 1
         and args[-1]
-        is type(None)  # noqa: E721 - we don't know what args[-1] is, so this is safer
-        and getattr(obj, "__origin__", obj) in {Optional, Union}
+        in {
+            type(None),
+            None,
+        }  # noqa: E721 - we don't know what args[-1] is, so this is safer
+        and getattr(obj, "__origin__", obj) in {Optional, Union, Literal}
     )
 
 
@@ -270,6 +283,13 @@ def isfinal(obj: Type[ObjectT]) -> bool:
     True
     """
     return util.origin(obj) is Final
+
+
+@lru_cache(maxsize=None)
+def isliteral(obj: Type) -> bool:
+    return util.origin(obj) is Literal or (
+        obj.__class__ is ForwardRef and obj.__forward_arg__.startswith("Literal")
+    )
 
 
 @lru_cache(maxsize=None)
@@ -339,6 +359,50 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
+def istimetype(obj: Type[ObjectT]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.istimetype(datetime.time)
+    True
+    >>> typic.istimetype(NewType("Foo", datetime.time))
+    True
+    """
+    return _issubclass(util.origin(obj), datetime.time)
+
+
+@lru_cache(maxsize=None)
+def istimedeltatype(obj: Type[ObjectT]) -> bool:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.istimedeltatype(datetime.timedelta)
+    True
+    >>> typic.istimedeltatype(NewType("Foo", datetime.timedelta))
+    True
+    """
+    return _issubclass(util.origin(obj), datetime.timedelta)
+
+
+@lru_cache(maxsize=None)
 def isuuidtype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a a date/datetime object.
 
@@ -368,13 +432,19 @@ _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
 @lru_cache(maxsize=None)
-def isiterabletype(obj: Type[ObjectT]):
+def isiterabletype(obj: Type[ObjectT]) -> bool:
     obj = util.origin(obj)
     return _issubclass(obj, Iterable)
 
 
 @lru_cache(maxsize=None)
-def iscollectiontype(obj: Type[ObjectT]):
+def istupletype(obj: Type[ObjectT]) -> bool:
+    obj = util.origin(obj)
+    return obj is tuple or issubclass(obj, tuple)
+
+
+@lru_cache(maxsize=None)
+def iscollectiontype(obj: Type[ObjectT]) -> bool:
     """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
 
     Includes builtins.
@@ -496,7 +566,7 @@ def should_unwrap(obj: Type[ObjectT]) -> bool:
 
     This is useful for determining what type to use at run-time for coercion.
     """
-    return any(x(obj) for x in _UNWRAPPABLE)
+    return (not isliteral(obj)) and any(x(obj) for x in _UNWRAPPABLE)
 
 
 @lru_cache(maxsize=None)

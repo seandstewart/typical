@@ -15,6 +15,6 @@ repos:
     hooks:
     - id: flake8
   - repo: .
-    rev: v2.0.30
+    rev: v2.0.33
     hooks:
     - id: export-requirements-dev

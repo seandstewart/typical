@@ -34,6 +34,7 @@ from typic.api import (
     primitive,
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
+from typic.compat import Literal
 from typic.constraints import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
@@ -73,15 +74,25 @@ def test_isbuiltintype(obj: typing.Any):
         (bool, "False", False),
         (bool, "0", False),
         (bool, 0, False),
-        (datetime.datetime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
+        (
+            datetime.datetime,
+            "1970-01-01",
+            datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc),
+        ),
         (pendulum.DateTime, "1970-01-01", pendulum.datetime(1970, 1, 1)),
         (datetime.datetime, 0, datetime.datetime.fromtimestamp(0)),
         (datetime.datetime, NOW, NOW),
         (pendulum.DateTime, NOW, NOW),
-        (datetime.date, "1970-01-01", pendulum.date(1970, 1, 1)),
+        (datetime.date, "1970-01-01", datetime.date(1970, 1, 1)),
         (datetime.date, 0, datetime.date.fromtimestamp(0)),
         (datetime.datetime, datetime.date(1980, 1, 1), datetime.datetime(1980, 1, 1)),
         (datetime.date, datetime.datetime(1980, 1, 1), datetime.date(1980, 1, 1)),
+        (pendulum.Time, "01:00:00", pendulum.time(1)),
+        (datetime.time, "01:00:00", datetime.time(1)),
+        (datetime.time, pendulum.time(1), datetime.time(1)),
+        (datetime.time, datetime.datetime(1980, 1, 1, 1), datetime.time(1)),
+        (datetime.time, datetime.date(1980, 1, 1), datetime.time(0)),
+        (datetime.time, 0, datetime.time(0)),
         (uuid.UUID, 1, uuid.UUID(int=1)),
         (uuid.UUID, uuid.UUID(int=1).bytes, uuid.UUID(int=1)),
         (uuid.UUID, str(uuid.UUID(int=1)), uuid.UUID(int=1)),
@@ -137,13 +148,61 @@ def test_isbuiltintype(obj: typing.Any):
         (defaultdict, {}, defaultdict(None)),
         (list, (x for x in range(10)), [*range(10)]),
     ],
-    ids=objects.get_id,
 )
 def test_transmute_simple(annotation, value, expected):
     transmuted = transmute(annotation, value)
     t = dict if istypeddict(annotation) else annotation
     assert isinstance(transmuted, t)
     assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (Literal[1], 1, 1),
+        (Literal[1], "1", 1),
+        (Literal[1], b"1", 1),
+        (typing.Optional[Literal[1]], b"1", 1),
+        (typing.Optional[Literal[1]], None, None),
+        (Literal[1, None], None, None),
+        (Literal[1, None], "1", 1),
+        (Literal[1, 2, None], "1", 1),
+        (Literal[1, 2, None], "null", None),
+    ],
+)
+def test_transmute_literal(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value"),
+    argvalues=[
+        (Literal[1], 2),
+        (Literal[1], "2"),
+        (Literal[1], b"2"),
+        (typing.Optional[Literal[1]], 2),
+        (Literal[1, None], 2),
+        (Literal[1, None], "2"),
+        (Literal[1, 2, None], 3),
+        (Literal[1, 2, None], "3"),
+    ],
+)
+def test_transmute_literal_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        transmute(annotation, value)
+
+
+def test_invalid_literal():
+    with pytest.raises(TypeError):
+        transmute(Literal[datetime.date.today()], [1])
+
+
+def test_translate_literal():
+    with pytest.raises(TypeError):
+        translate(1, Literal[1])
+    with pytest.raises(TypeError):
+        resolver.translator.factory(resolver.annotation(int), Literal[1])
 
 
 @pytest.mark.parametrize(
@@ -284,6 +343,20 @@ def test_transmute_collections_subscripted(annotation, value):
     assert isinstance(transmuted, annotation.__origin__) and all(
         isinstance(x, arg) for x in transmuted
     )
+
+
+@pytest.mark.parametrize(
+    argnames=("annotation", "value", "expected"),
+    argvalues=[
+        (typing.Tuple[str, int], '["1", "2"]', ("1", 2)),
+        (typing.Tuple[int, str], '["1", "2"]', (1, "2")),
+        (typing.Tuple[int, str], '["1", "2", "ignore"]', (1, "2")),
+        (typing.Tuple[str, int, bytes], '["1", "2", "foo"]', ("1", 2, b"foo")),
+    ],
+)
+def test_transmute_tuple_subscripted(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
 
 
 @pytest.mark.parametrize(
@@ -945,5 +1018,78 @@ def test_recursive_primitive(value, expected):
     ],
 )
 def test_recursive_validate_invalid(annotation, value):
+    with pytest.raises(ConstraintValueError):
+        validate(annotation, value)
+
+
+# Note - we're testing with recursive tagged unions.
+@pytest.mark.parametrize(
+    argnames="annotation,value,expected",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.ABlah(
+                key=3, field=objects.ABlah(key=3, field=objects.ABar(key=2, field=b""))
+            ),
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.CBlah(field=objects.CBlah(field=objects.CBar(field=b""))),
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": 0}}},
+            objects.DBlah(field=objects.DBlah(field=objects.DBar(field=b""))),
+        ),
+    ],
+)
+def test_tagged_union_transmute(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert isinstance(transmuted, annotation)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": b""}}},
+        ),
+    ],
+)
+def test_tagged_union_validate(annotation, value):
+    validated = validate(annotation, value)
+    assert validated == value
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value",
+    argvalues=[
+        (
+            objects.ABlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+        (
+            objects.CBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+        (
+            objects.DBlah,
+            {"key": 3, "field": {"key": 3, "field": {"key": 2, "field": None}}},
+        ),
+    ],
+)
+def test_tagged_union_validate_invalid(annotation, value):
     with pytest.raises(ConstraintValueError):
         validate(annotation, value)

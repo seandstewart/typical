@@ -2,12 +2,19 @@
 # -*- coding: UTF-8 -*-
 # flake8: noqa
 import sys
-from typing import TYPE_CHECKING, Any, TypeVar, Optional, Callable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    _SpecialForm as SpecialForm,  # type: ignore
+    TypeVar,
+    Optional,
+    Callable,
+)
 
 try:
-    from typing import Final, TypedDict  # type: ignore
+    from typing import Final, TypedDict, Literal, Protocol  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict  # type: ignore
+    from typing_extensions import Final, TypedDict, Literal, Protocol  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover
@@ -24,6 +31,8 @@ if sys.version_info < (3, 7):  # pragma: nocover
     if TYPE_CHECKING:
 
         class ForwardRef:
+            __forward_arg__: str
+
             def _eval_type(self, globalns: Any, localns: Any) -> Any:
                 pass
 

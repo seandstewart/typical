@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import inspect
 import sys
+from datetime import date, datetime, timedelta, time
 from threading import RLock
 from types import MappingProxyType
 from typing import (  # type: ignore  # ironic...
@@ -32,8 +33,10 @@ from typing import (  # type: ignore  # ironic...
     _eval_type,
 )
 
+import pendulum
+
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import ForwardRef, lru_cache, SpecialForm
 from typic.ext import json
 
 __all__ = (
@@ -50,8 +53,10 @@ __all__ = (
     "get_name",
     "get_defname",
     "get_qualname",
+    "get_tag_for_types",
     "get_type_hints",
     "get_unique_name",
+    "isoformat",
     "origin",
     "resolve_supertype",
     "safe_eval",
@@ -59,7 +64,9 @@ __all__ = (
     "signature",
     "simple_attributes",
     "slotted",
+    "TaggedUnion",
     "typed_dict_signature",
+    "TypeMap",
 )
 
 from typic.compat import SQLAMetaData
@@ -217,7 +224,7 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     'dict'
     """
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name  # type: ignore
+        return obj._name or str(obj)  # type: ignore
     elif isinstance(obj, ForwardRef):
         return obj.__forward_arg__
     elif obj in {NotImplemented, None, Ellipsis}:
@@ -512,7 +519,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
 VT = TypeVar("VT")
 
 
-class TypeMap(Dict[Type, VT]):
+class TypeMap(Dict[Union[Type, SpecialForm], VT]):
     """A mapping of Type -> value."""
 
     def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:
@@ -688,3 +695,94 @@ class collectionrepr(str):
 
 
 ReprT = Union[str, joinedrepr, collectionrepr]
+
+
+@functools.lru_cache(maxsize=100_000)
+def isoformat(t: Union[date, datetime, time, timedelta]) -> str:
+    if isinstance(t, (date, datetime, time)):
+        return t.isoformat()
+    d = t
+    if not isinstance(d, pendulum.Duration):
+        d = pendulum.duration(
+            days=t.days,
+            seconds=t.seconds,
+            microseconds=t.microseconds,
+        )
+
+    periods = [
+        ("Y", d.years),
+        ("M", d.months),
+        ("D", d.remaining_days),
+    ]
+    period = "P"
+    for sym, val in periods:
+        period += f"{val}{sym}"
+    times = [
+        ("H", d.hours),
+        ("M", d.minutes),
+        ("S", d.remaining_seconds),
+    ]
+    time_ = "T"
+    for sym, val in times:
+        time_ += f"{val}{sym}"
+    if d.microseconds:
+        time_ = time_[:-1]
+        time_ += f".{d.microseconds:06}S"
+    return period + time_
+
+
+@slotted(dict=False)
+@dataclasses.dataclass(frozen=True)
+class TaggedUnion:
+    tag: str
+    types: Tuple[Type, ...]
+    isliteral: bool
+    types_by_values: Tuple[Tuple[Any, Type], ...]
+
+
+empty = object()
+
+
+@functools.lru_cache(maxsize=None)
+def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
+    if any(
+        t in {None, ...} or not inspect.isclass(t) or checks.isstdlibtype(t)
+        for t in types
+    ):
+        return None
+    if len(types) > 1:
+        root = types[0]
+        root_hints = cached_type_hints(root)
+        intersection = {*root_hints}
+        fields_by_type = {root: root_hints}
+        t: Type
+        for t in types[1:]:
+            hints = cached_type_hints(t)
+            intersection &= hints.keys()
+            fields_by_type[t] = hints
+        tag = None
+        literal = False
+        # If we have an intersection, check if it's constant value we can use
+        # TODO: This won't support Generics in this state.
+        #  We don't support generics yet (#119), but when we do,
+        #  we need to add a branch for tagged unions from generics.
+        while intersection and tag is None:
+            f = intersection.pop()
+            v = getattr(root, f, empty)
+            if v is not empty:
+                tag = f
+                continue
+            rhint = root_hints[f]
+            if checks.isliteral(rhint):
+                tag, literal = f, True
+        if tag:
+            if literal:
+                tbv = (
+                    *((a, t) for t in types for a in get_args(fields_by_type[t][tag])),
+                )
+            else:
+                tbv = (*((getattr(t, tag), t) for t in types),)
+            return TaggedUnion(
+                tag=tag, types=types, isliteral=literal, types_by_values=tbv
+            )
+    return None

@@ -37,6 +37,7 @@ from typing import (
 from typic import util, checks, gen, types
 from typic.ext import json
 from typic.common import DEFAULT_ENCODING
+from typic.compat import Literal
 from .common import (
     SerializerT,
     SerdeConfig,
@@ -316,14 +317,7 @@ class SerList(list):
         )
 
 
-def _iso(o) -> str:
-    if isinstance(o, (datetime.datetime, datetime.time)) and not o.tzinfo:
-        return f"{o.isoformat()}+00:00"
-    return o.isoformat()
-
-
 _decode = methodcaller("decode", DEFAULT_ENCODING)
-_total_secs = methodcaller("total_seconds")
 _pattern = attrgetter("pattern")
 
 
@@ -358,10 +352,10 @@ class SerFactory:
         decimal.Decimal: float,
         bytes: _decode,
         bytearray: _decode,
-        datetime.date: _iso,
-        datetime.datetime: _iso,
-        datetime.time: _iso,
-        datetime.timedelta: _total_secs,
+        datetime.date: util.isoformat,
+        datetime.datetime: util.isoformat,
+        datetime.time: util.isoformat,
+        datetime.timedelta: util.isoformat,
     }
 
     _LISTITER = (
@@ -377,7 +371,7 @@ class SerFactory:
     _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict)
     _PRIMITIVES = (str, int, bool, float, type(None), type(...))
     _DYNAMIC = frozenset(
-        {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar}
+        {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar, Literal}
     )
     _FNAME = "fname"
 
@@ -389,12 +383,12 @@ class SerFactory:
     def _get_name(annotation: "Annotation") -> str:
         return util.get_defname("serializer", annotation)
 
-    def _check_add_null_check(self, func: gen.Block, annotation: "Annotation"):
+    def _check_add_null_check(self, func: gen.Function, annotation: "Annotation"):
         if annotation.optional:
             with func.b(f"if o in {self.resolver.OPTIONALS}:") as b:
                 b.l(f"{gen.Keyword.RET}")
 
-    def _add_type_check(self, func: gen.Block, annotation: "Annotation"):
+    def _add_type_check(self, func: gen.Function, annotation: "Annotation"):
         resolved_name = util.get_name(annotation.resolved)
         func.l(f"{self._FNAME} = name or {resolved_name!r}")
         line = "if not tcheck(o.__class__, t):"
@@ -420,7 +414,7 @@ class SerFactory:
 
     def _build_list_serializer(
         self,
-        func: gen.Block,
+        func: gen.Function,
         annotation: "Annotation",
     ):
         # Check for value types
@@ -471,7 +465,7 @@ class SerFactory:
 
     def _finalize_mapping_serializer(
         self,
-        func: gen.Block,
+        func: gen.Function,
         serdict: Type,
         annotation: "Annotation",
     ):
@@ -489,7 +483,7 @@ class SerFactory:
         line = "d if lazy else {**d}"
         func.l(f"{gen.Keyword.RET} {line}")
 
-    def _build_dict_serializer(self, func: gen.Block, annotation: "Annotation"):
+    def _build_dict_serializer(self, func: gen.Function, annotation: "Annotation"):
         # Check for args
         kser_: SerializerT
         vser_: SerializerT
@@ -513,7 +507,7 @@ class SerFactory:
 
     def _build_class_serializer(
         self,
-        func: gen.Block,
+        func: gen.Function,
         annotation: "Annotation",
     ):
         # Get the field serializers

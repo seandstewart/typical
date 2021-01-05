@@ -17,6 +17,7 @@ import pandas
 import pydantic
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
+from typic.compat import Literal
 
 
 def get_id(x) -> str:
@@ -77,6 +78,12 @@ class Forward:
 
 class FooNum(str, enum.Enum):
     bar = "bar"
+
+
+@dataclasses.dataclass
+class NestedDoubleReference:
+    first: Data
+    second: Data = ...
 
 
 @typic.klass
@@ -362,6 +369,60 @@ class Dest:
 @typic.klass
 class DFClass:
     df: pandas.DataFrame = None
+
+
+@typic.klass
+class ABlah:
+    key: Literal[3]
+    field: "typing.Union[AFoo, ABar, ABlah, None]"
+
+
+@typic.klass
+class AFoo:
+    key: Literal[1]
+    field: str
+
+
+@typic.klass
+class ABar:
+    key: Literal[2]
+    field: bytes
+
+
+@typic.klass
+class CBlah:
+    key: typing.ClassVar[int] = 3
+    field: "typing.Union[CFoo, CBar, CBlah, None]"
+
+
+@typic.klass
+class CFoo:
+    key: typing.ClassVar[int] = 1
+    field: str
+
+
+@typic.klass
+class CBar:
+    key: typing.ClassVar[int] = 2
+    field: bytes
+
+
+@dataclasses.dataclass
+class DBlah:
+    key: typing.ClassVar[int] = 3
+    field: "typing.Union[DFoo, DBar, DBlah, None]"
+
+
+@dataclasses.dataclass
+class DFoo:
+    key: typing.ClassVar[int] = 1
+    field: str
+
+
+@dataclasses.dataclass
+class DBar:
+    key: typing.ClassVar[int] = 2
+    field: bytes
 
 
 @typic.klass
