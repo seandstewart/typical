@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 from typing import (
     Type,
@@ -114,7 +116,7 @@ class ArrayConstraints(BaseConstraints):
     -----
     Rather than reject arrays which are not unique, we will simply make the array unique.
     """
-    values: Optional["ConstraintsT"] = None
+    values: Optional[ConstraintsT] = None
     """The constraints for which the items in the array must adhere.
 
     This can be a single type-constraint, or a tuple of multiple constraints.
@@ -177,7 +179,7 @@ class ArrayConstraints(BaseConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class ListContraints(ArrayConstraints):
+class ListConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`list`."""
 
     type: ClassVar[Type[list]] = list
@@ -185,7 +187,7 @@ class ListContraints(ArrayConstraints):
 
 @util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class TupleContraints(ArrayConstraints):
+class TupleConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`tuple`."""
 
     type: ClassVar[Type[tuple]] = tuple

@@ -49,9 +49,9 @@ from typic.util import (
 from .array import (
     Array,
     FrozenSetConstraints,
-    ListContraints,
+    ListConstraints,
     SetContraints,
-    TupleContraints,
+    TupleConstraints,
 )
 from .common import (
     MultiConstraints,
@@ -87,26 +87,26 @@ ConstraintsT = Union[
     ForwardDelayedConstraints,
     FrozenSetConstraints,
     IntContraints,
-    ListContraints,
+    ListConstraints,
     MappingConstraints,
     MultiConstraints,
     ObjectConstraints,
     SetContraints,
     StrConstraints,
-    TupleContraints,
+    TupleConstraints,
     TypeConstraints,
 ]
 
 _ARRAY_CONSTRAINTS_BY_TYPE = TypeMap(
     {
         set: SetContraints,
-        list: ListContraints,
-        tuple: TupleContraints,
+        list: ListConstraints,
+        tuple: TupleConstraints,
         frozenset: FrozenSetConstraints,
     }
 )
 ArrayConstraintsT = Union[
-    SetContraints, ListContraints, TupleContraints, FrozenSetConstraints
+    SetContraints, ListConstraints, TupleConstraints, FrozenSetConstraints
 ]
 
 

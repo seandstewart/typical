@@ -3,8 +3,8 @@
 # flake8: noqa
 
 from .array import (
-    ListContraints,
-    TupleContraints,
+    ListConstraints,
+    TupleConstraints,
     SetContraints,
     FrozenSetConstraints,
     Array,
@@ -36,12 +36,12 @@ __all__ = (
     "FloatContraints",
     "FrozenSetConstraints",
     "IntContraints",
-    "ListContraints",
+    "ListConstraints",
     "LiteralConstraints",
     "NumberT",
     "SetContraints",
     "StrConstraints",
-    "TupleContraints",
+    "TupleConstraints",
     "ValidatorT",
     "BaseConstraints",
     "get_constraints",
