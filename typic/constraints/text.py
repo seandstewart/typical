@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import dataclasses
-from typing import ClassVar, Type, Pattern, Tuple, Optional, Union, Dict, Any, Text
+from typing import ClassVar, Type, Pattern, Optional, Union, Text
 
 from typic import gen, util
-from .common import BaseConstraints, ContextT, ChecksT
+from .common import BaseConstraints, ContextT, AssertionsT
 
 
 @util.slotted
@@ -32,7 +32,19 @@ class TextConstraints(BaseConstraints):
     regex: Optional[Pattern[Text]] = None
     """A regex pattern which the input must match."""
 
-    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
+    def _get_assertions(self) -> AssertionsT:
+        asserts = []
+        if self.max_length is not None:
+            asserts.append(f"size <= {self.max_length}")
+        if self.min_length is not None:
+            asserts.append(f"size >= {self.min_length}")
+        if self.regex is not None:
+            asserts.append(f"__pattern.match({self.VALUE})")
+        return asserts
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
         # Set up the local env.
         if self.curtail_length is not None:
             func.l(f"{self.VALUE} = {self.VALUE}[:{self.curtail_length}]")
@@ -40,18 +52,14 @@ class TextConstraints(BaseConstraints):
             func.l(f"{self.VALUE} = {self.VALUE}.strip()")
         if {self.min_length, self.max_length} != {None, None}:
             func.l(f"size = len({self.VALUE})")
+        BaseConstraints._build_validator(
+            self, func, context=context, assertions=assertions
+        )
         # Build the validation.
-        checks = []
-        context: Dict[str, Any] = {}
-        if self.max_length is not None:
-            checks.append(f"size <= {self.max_length}")
-        if self.min_length is not None:
-            checks.append(f"size >= {self.min_length}")
         if self.regex is not None:
             context.update(__pattern=self.regex)
-            checks.append(f"__pattern.match({self.VALUE})")
 
-        return checks, context
+        return context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema = dict(

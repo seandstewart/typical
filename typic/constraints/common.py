@@ -28,7 +28,7 @@ from typing import (  # type: ignore
 )
 
 from typic import gen, util, checks
-from typic.compat import ForwardRef, evaluate_forwardref
+from typic.compat import ForwardRef, evaluate_forwardref, Protocol
 from .error import ConstraintValueError
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -47,11 +47,16 @@ __all__ = (
 
 VT = TypeVar("VT")
 """A generic type-var for values passed to a validator."""
-ValidatorT = Callable[[VT, Optional[str]], Tuple[bool, VT]]
-"""The expected signature of a value validator."""
-ChecksT = List[str]
+AssertionsT = List[str]
 ContextT = Dict[str, Any]
 _T = TypeVar("_T")
+
+
+class ValidatorT(Protocol):
+    """The expected signature of a value validator."""
+
+    def __call__(self, value: VT, *, field: str = None, **kwargs) -> Tuple[bool, VT]:
+        ...
 
 
 class __AbstractConstraints(abc.ABC):
@@ -83,8 +88,8 @@ class __AbstractConstraints(abc.ABC):
     def __repr__(self):
         return self.__str
 
-    def define(self, block: gen.Block, name: str) -> gen.Block:
-        return block.f(
+    def define(self, block: gen.Block, name: str) -> gen.Function:
+        f: gen.Function = block.f(
             name,
             block.param(self.VALUE, annotation="VT"),
             block.param(
@@ -94,6 +99,7 @@ class __AbstractConstraints(abc.ABC):
                 default=None,
             ),
         )
+        return f
 
     @util.cached_property
     def type_name(self) -> str:
@@ -201,22 +207,30 @@ class BaseConstraints(__AbstractConstraints):
         self.validator
 
     def _build_validator(
-        self, func: gen.Block
-    ) -> Tuple[ChecksT, ContextT]:  # pragma: nocover
-        raise NotImplementedError
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        if assertions:
+            self._build_assertions(func=func, assertions=assertions)
+        return context
 
-    def _set_return(self, func: gen.Block, checks: ChecksT, context: ContextT):
-        if checks:
-            check = " and ".join(checks)
-            func.l(f"valid = {check}", **context)
-            func.l(f"return valid, {self.VALUE}")
-        else:
-            func.l(f"return True, {self.VALUE}", **context)
+    def _build_assertions(self, func: gen.Block, assertions: AssertionsT):
+        check = " and ".join(assertions)
+        with func.b(f"if not ({check}):") as b:
+            b.l(f"return False, {self.VALUE}")
+
+    def _check_syntax(self):
+        return
+
+    def _get_assertions(self) -> AssertionsT:
+        raise NotImplementedError
 
     def _compile_validator(self) -> ValidatorT:
         func_name = self._get_validator_name()
         origin = util.origin(self.type)
         type_name = self.type_name
+        self._check_syntax()
+        assertions = self._get_assertions()
+        context: ContextT = {type_name: self.type}
         with gen.Block() as main:
             with self.define(main, func_name) as f:
                 # This is a signal that -*-anything can happen...-*-
@@ -233,18 +247,21 @@ class BaseConstraints(__AbstractConstraints):
                             f"if {self.VALUE} in {self.NULLABLES} "
                             f"or isinstance({self.VALUE}, {type_name}):"
                         )
-                    with f.b(line, **{type_name: self.type}) as b:  # type: ignore
+                    with f.b(line, **context) as b:  # type: ignore
                         b.l(f"return True, {self.VALUE}")
                 else:
                     if self.nullable:
                         with f.b(f"if {self.VALUE} in {self.NULLABLES}:") as b:
                             b.l(f"return True, {self.VALUE}")
                     line = f"if not isinstance({self.VALUE}, {type_name}):"
-                    with f.b(line, **{type_name: self.type}) as b:  # type: ignore
+                    with f.b(line, **context) as b:  # type: ignore
                         b.l(f"return False, {self.VALUE}")
-                checks, context = self._build_validator(f)
-                # Write the line.
-                self._set_return(func=f, checks=checks, context=context)
+                context = self._build_validator(
+                    f, context=context, assertions=assertions
+                )
+                f.namespace.update(context)
+                f.localize_context(*context)
+                f.l(f"return True, {self.VALUE}")
         return main.compile(name=func_name)
 
     @util.cached_property

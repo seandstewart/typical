@@ -12,9 +12,9 @@ from typing import (
 )
 
 try:
-    from typing import Final, TypedDict, Literal  # type: ignore
+    from typing import Final, TypedDict, Literal, Protocol  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict, Literal  # type: ignore
+    from typing_extensions import Final, TypedDict, Literal, Protocol  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover

@@ -20,7 +20,7 @@ from typing import (
 
 from typic import gen, checks, util
 from typic.types.frozendict import freeze
-from .common import BaseConstraints, ContextT, ChecksT
+from .common import BaseConstraints, ContextT, AssertionsT
 
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
@@ -120,27 +120,34 @@ class ArrayConstraints(BaseConstraints):
     This can be a single type-constraint, or a tuple of multiple constraints.
     """
 
-    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
-        # No need to sanity check the config.
-        # Build the code.
-        # Only make it unique if we have to. This preserves order as well.
-        if self.unique is True and util.origin(self.type) not in {set, frozenset}:
-            func.l(f"{self.VALUE} = __unique({self.VALUE})", __unique=unique)
-        # Only get the size if we have to.
-        if {self.max_items, self.min_items} != {None, None}:
-            func.l(f"size = len({self.VALUE})")
-        # Get the validation checks and context
+    def _get_assertions(self) -> AssertionsT:
         asserts: List[str] = []
-        context: Dict[str, Any] = {}
         if self.min_items is not None:
             asserts.append(f"size >= {self.min_items}")
         if self.max_items is not None:
             asserts.append(f"size <= {self.max_items}")
+        return asserts
+
+    def _build_assertions(self, func: gen.Block, assertions: AssertionsT):
+        # Only get the size if we have to.
+        if assertions:
+            if (self.max_items, self.min_items) != (None, None):
+                func.l(f"size = len({self.VALUE})")
+            BaseConstraints._build_assertions(self, func=func, assertions=assertions)
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        # If we don't have a natively unique type and we're supposed to be unique, make it so.
+        if self.unique is True and util.origin(self.type) not in {set, frozenset}:
+            func.l(f"{self.VALUE} = unique({self.VALUE})", unique=unique)
+        context = BaseConstraints._build_validator(self, func, context, assertions)
         # Validate the items if necessary.
         if self.values:
             o = util.origin(self.type)
             itval = "__item_validator"
             ctx = {
+                "unique": unique,
                 itval: self.values.validate,
                 o.__name__: o,
                 "_lazy_repr": util.collectionrepr,
@@ -154,7 +161,7 @@ class ArrayConstraints(BaseConstraints):
                 f")",
                 **ctx,  # type: ignore
             )
-        return asserts, context
+        return context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Any] = dict(
