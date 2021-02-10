@@ -24,6 +24,7 @@ class EmailValueError(NetworkAddressValueError):
 
 
 # http://emailregex.com/
+# https://help.returnpath.com/hc/en-us/articles/220560587-What-are-the-rules-for-email-address-syntax-
 # expanding a bit for more specific detection
 # also violating DRY :'( by copying the host regex from URL,
 # but hey, this means we're more compliant with RFC 5322,
@@ -34,7 +35,7 @@ EMAIL_PATTERN = re.compile(
         ^
         ((?P<name>([A-Z]+\s?)+)\s<)?
         # user
-        (?P<username>([A-Z0-9]([_.+-])?)*[A-Z0-9]+)
+        (?P<username>([A-Z0-9]([!#$%&'*=?^`{|_.+-])?)*[A-Z0-9]+)
         @
         # host
         (?P<host>(?:
