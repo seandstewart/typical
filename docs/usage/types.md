@@ -100,8 +100,8 @@ print(a.tojson())
     development overhead for type resolution and also removes the need for wrapping
     annotations referencing potentially undefined or recursive types in quotes `""`. 
     
-    *You're **highly encouraged** to adopt this import in your Python3.7-8 code. Starting
-    with **Python 3.9**, it will become the default behavior.*
+    *You're __highly encouraged__ to adopt this import in your Python3.7-8 code. Starting 
+    with __Python 3.9__, it is the default behavior.*
 
 
 ## The Standard Library
@@ -347,7 +347,7 @@ member_proto = typic.protocol(BandMemberT)
 
 member = member_proto.transmute({"instrument": "bass", "name": "Robert"})
 print(member.play())
-#> Robert slapped the bass! 
+#> Robert slapped the bass!
 ```
 
 ???+ warning "Gotcha!"
