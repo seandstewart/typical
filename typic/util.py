@@ -608,6 +608,16 @@ def slotted(
                 object.__setattr__(self, slot, value)
 
     def wrap(cls):
+        key = repr(cls)
+        if key in _stack:
+            raise TypeError(
+                f"{cls!r} uses a custom metaclass {cls.__class__!r} "
+                "which is not compatible with automatic slots. "
+                "See Issue #104 on GitHub for more information."
+            ) from None
+
+        _stack.add(key)
+
         cls_dict = {**cls.__dict__}
         # Create only missing slots
         inherited_slots = set().union(
@@ -642,9 +652,13 @@ def slotted(
         new_cls.__qualname__ = cls.__qualname__
         new_cls.__module__ = cls.__module__
 
+        _stack.clear()
         return new_cls
 
     return wrap if _cls is None else wrap(_cls)
+
+
+_stack: MutableSet[Type] = set()
 
 
 class joinedrepr(str):
