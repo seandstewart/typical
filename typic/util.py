@@ -10,7 +10,7 @@ import inspect
 import sys
 from datetime import date, datetime, timedelta, time
 from threading import RLock
-from types import MappingProxyType
+from types import MappingProxyType, MemberDescriptorType
 from typing import (  # type: ignore  # ironic...
     Tuple,
     Any,
@@ -769,7 +769,7 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
         while intersection and tag is None:
             f = intersection.pop()
             v = getattr(root, f, empty)
-            if v is not empty:
+            if v is not empty and not isinstance(v, MemberDescriptorType):
                 tag = f
                 continue
             rhint = root_hints[f]
