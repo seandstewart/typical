@@ -39,15 +39,14 @@ jobs:
       uses: actions/cache@v1
       id: cache
       with:
-        path: ~/.virtualenvs
+        path: ./.venv
         key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
         restore-keys: |
           ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
-        poetry config virtualenvs.in-project false
-        poetry config virtualenvs.path ~/.virtualenvs
+        poetry config virtualenvs.in-project true
 
     - name: Install Dependencies
       if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version == 3.9) }}
