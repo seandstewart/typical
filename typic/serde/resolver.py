@@ -465,11 +465,10 @@ class Resolver:
                 )
         # The type definition doesn't exist yet.
         if use.__class__ is ForwardRef:
-            module, localns = self.__module__, {}
+            module = self.__module__
             # Ideally we have a namespace from a parent class/function to the field
             if namespace:
                 module = namespace.__module__
-                localns = getattr(namespace, "__dict__", {})
 
             return ForwardDelayedAnnotation(
                 ref=use,
@@ -481,7 +480,7 @@ class Resolver:
                 flags=flags,
                 default=default,
                 module=module,
-                localns=localns,
+                frame=inspect.currentframe(),
             )
         # The type definition is recursive or within a recursive loop.
         elif use is namespace or use in self.__stack:

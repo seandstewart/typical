@@ -1093,3 +1093,18 @@ def test_tagged_union_validate(annotation, value):
 def test_tagged_union_validate_invalid(annotation, value):
     with pytest.raises(ConstraintValueError):
         validate(annotation, value)
+
+
+def test_local_namespace():
+    @dataclasses.dataclass
+    class Inner:
+        field: str
+
+    @dataclasses.dataclass
+    class Outer:
+        inner: Inner
+
+    proto = resolver.resolve(Outer)
+
+    obj = proto.transmute({"inner": {"field": "value"}})
+    assert isinstance(obj.inner, Inner)

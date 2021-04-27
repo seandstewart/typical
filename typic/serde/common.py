@@ -3,6 +3,7 @@ import inspect
 import reprlib
 import sys
 import warnings
+from types import FrameType
 from typing import (
     Callable,
     Union,
@@ -229,7 +230,7 @@ class ForwardDelayedAnnotation:
     is_strict: Optional[st.StrictModeT] = None
     flags: Optional["SerdeFlags"] = None
     default: Any = _empty
-    localns: Optional[Mapping] = dataclasses.field(hash=False, default=None)
+    frame: Optional[FrameType] = dataclasses.field(default=None, hash=False)
     _name: Optional[str] = None
     _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
 
@@ -251,13 +252,16 @@ class ForwardDelayedAnnotation:
         if self._resolved is None:
             globalns = sys.modules[self.module].__dict__.copy()
             try:
-                type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
+                type = evaluate_forwardref(self.ref, globalns, globalns)
             except NameError as e:
-                warnings.warn(
-                    f"Couldn't resolve forward reference: {e}. "
-                    f"Make sure this type is available in {self.module}."
-                )
-                type = Any
+                name = self.ref.__forward_arg__
+                type = util.extract(name, frame=self.frame)
+                if not type:
+                    warnings.warn(
+                        f"Couldn't resolve forward reference: {e}. "
+                        f"Make sure this type is available in {self.module}."
+                    )
+                    type = Any
             anno = self.resolver.annotation(
                 type,
                 name=self._name,
