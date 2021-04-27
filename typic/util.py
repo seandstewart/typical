@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import inspect
 import sys
+import types
 from datetime import date, datetime, timedelta, time
 from threading import RLock
 from types import MappingProxyType, MemberDescriptorType
@@ -46,6 +47,7 @@ __all__ = (
     "cached_simple_attributes",
     "cached_type_hints",
     "cachedmethod",
+    "extract",
     "fastcachedmethod",
     "filtered_repr",
     "guard_recursion",
@@ -799,4 +801,22 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
             return TaggedUnion(
                 tag=tag, types=types, isliteral=literal, types_by_values=tbv
             )
+    return None
+
+
+def extract(name: str, *, frame: types.FrameType = None) -> Optional[Any]:
+    """Extract `name` from the stacktrace of `frame`.
+
+    If `frame` is not provided, this function will use the current frame.
+    """
+    frame = frame or inspect.currentframe()
+    seen = set()
+    while frame and frame not in seen:
+        if name in frame.f_globals:
+            return frame.f_globals[name]
+        if name in frame.f_locals:
+            return frame.f_locals[name]
+        seen.add(frame)
+        frame = frame.f_back
+
     return None
