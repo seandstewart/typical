@@ -12,7 +12,6 @@ from typing import (
     Optional,
     ClassVar,
     Tuple,
-    Iterable,
     cast,
     Union,
     TypeVar,
@@ -24,7 +23,6 @@ from typic import checks, constraints as constr, util, strict as st
 from typic.common import (
     EMPTY,
     ORIG_SETTER_NAME,
-    SERDE_ATTR,
     SERDE_FLAGS_ATTR,
     TYPIC_ANNOS_NAME,
     ObjectT,
@@ -183,46 +181,6 @@ class Resolver:
     def delayed(self, t: Type) -> bool:
         return getattr(t, "__delayed__", False)
 
-    @lru_cache(maxsize=None)
-    def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
-        tname = util.get_name(t)
-        if hasattr(t, SERDE_ATTR):
-            return getattr(t, SERDE_ATTR)
-        for attr, caller in self._DICT_FACTORY_METHODS:
-            if hasattr(t, attr):
-
-                def serializer(
-                    val,
-                    lazy: bool = False,
-                    name: util.ReprT = None,
-                    *,
-                    __prim=self.primitive,
-                    __call=caller,
-                    __tname=tname,
-                    __repr=util.joinedrepr,
-                ):
-                    name = name or __tname
-                    return {
-                        __prim(x): __prim(y, lazy=lazy, name=__repr(name, x))
-                        for x, y in __call(val).items()
-                    }
-
-                return SerdeProtocol(
-                    self.annotation(t),  # type: ignore
-                    deserializer=None,
-                    serializer=serializer,
-                    constraints=None,
-                    validator=None,
-                )
-
-        if checks.ismappingtype(t):
-            t = Mapping[Any, Any]
-        elif checks.iscollectiontype(t) and not issubclass(t, (str, bytes, bytearray)):
-            t = Iterable[Any]
-        settings = getattr(t, SERDE_FLAGS_ATTR, None)
-        serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
-        return serde
-
     def primitive(self, obj: Any, lazy: bool = False, name: util.ReprT = None) -> Any:
         """A method for converting an object to its primitive equivalent.
 
@@ -261,7 +219,7 @@ class Resolver:
         if checks.isenumtype(t):
             obj = obj.value
             t = obj.__class__
-        proto: SerdeProtocol = self._get_serializer_proto(t)
+        proto: SerdeProtocol = self.resolve(t)
         return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
@@ -314,7 +272,7 @@ class Resolver:
         if checks.isenumtype(t):
             obj = obj.value
             t = obj.__class__
-        proto: SerdeProtocol = self._get_serializer_proto(t)
+        proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
     @lru_cache(maxsize=None)
