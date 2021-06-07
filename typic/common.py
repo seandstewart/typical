@@ -39,10 +39,20 @@ class Case(str, enum.Enum):
     PASCAL = "PascalCase"
     KEBAB = "kebab-case"
     DOT = "dot.case"
+    UPPER_KEBAB = 'UPPER-KEBAB-CASE'
+    UPPER_DOT = 'UPPER.DOTA.CASE'
 
     @property
     def transformer(self) -> CaseTransformerT:
         return _TRANSFORMERS[self]
+
+
+def upper_kebab_case(s: str) -> str:
+    return inflection.dasherize(s).upper()
+
+
+def upper_dot_case(s: str) -> str:
+    return inflection.dasherize(s, separator=".").upper()
 
 
 _TRANSFORMERS = {
@@ -51,6 +61,8 @@ _TRANSFORMERS = {
     Case.PASCAL: inflection.camelize,
     Case.KEBAB: inflection.dasherize,
     Case.DOT: partial(inflection.parameterize, separator="."),
+    Case.UPPER_KEBAB: upper_kebab_case,
+    Case.UPPER_DOT: upper_dot_case,
 }
 T = TypeVar("T")
 
