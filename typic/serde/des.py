@@ -384,7 +384,7 @@ class DesFactory:
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             fields_deser = {
                 x: self.resolver._resolve_from_annotation(
-                    y, _namespace=namespace
+                    y, namespace=namespace
                 ).transmute
                 for x, y in annotation.serde.fields.items()
             }
@@ -607,7 +607,7 @@ class DesFactory:
                 if serde.fields and len(matched) == len(serde.fields_in):
                     desers = {
                         f: self.resolver._resolve_from_annotation(
-                            serde.fields[f], _namespace=namespace
+                            serde.fields[f], namespace=namespace
                         ).transmute
                         for f in matched
                     }

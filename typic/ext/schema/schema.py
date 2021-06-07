@@ -103,7 +103,7 @@ class SchemaBuilder:
                 config[target] = {
                     nm: self.get_field(
                         resolver.resolve(
-                            it.type, namespace=parent, is_optional=it.nullable
+                            it.type, is_optional=it.nullable, namespace=parent
                         ),
                         parent=parent,
                     )

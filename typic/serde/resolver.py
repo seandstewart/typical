@@ -2,7 +2,6 @@ import dataclasses
 import functools
 import inspect
 import warnings
-from collections.abc import Callable
 from enum import Enum
 from operator import attrgetter, methodcaller
 from typing import (
@@ -478,39 +477,32 @@ class Resolver:
         anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
         return anno
 
-    @lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self,
         anno: AnnotationT,
-        _des: bool = True,
-        _ser: bool = True,
-        _namespace: Type = None,
+        *,
+        namespace: Type = None,
     ) -> SerdeProtocol:
         if anno in self.__cache:
             return self.__cache[anno]
         if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
             return DelayedSerdeProtocol(anno)
 
-        # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
-        if anno.origin is Callable:
-            _des, _ser = False, False
         # Build the deserializer
-        deserializer, validator, constraints = None, None, None
-        if _des:
-            constraints = constr.get_constraints(
-                anno.resolved, nullable=anno.optional, cls=_namespace
-            )
-            deserializer, validator = self.des.factory(
-                anno, constraints, namespace=_namespace
-            )
+        constraints = constr.get_constraints(
+            anno.resolved, nullable=anno.optional, cls=namespace
+        )
+        deserializer, validator = self.des.factory(
+            anno, constraints, namespace=namespace
+        )
         # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
+        serializer: Optional[SerializerT] = self.ser.factory(anno)
         # Put it all together
         proto = SerdeProtocol(
             annotation=anno,
+            constraints=constraints,
             deserializer=deserializer,
             serializer=serializer,
-            constraints=constraints,
             validator=validator,
         )
         self.__cache[anno] = proto
@@ -527,8 +519,6 @@ class Resolver:
         is_optional: bool = None,
         is_strict: bool = None,
         namespace: Type = None,
-        _des: bool = True,
-        _ser: bool = True,
     ) -> SerdeProtocol:
         """Get a :py:class:`SerdeProtocol` from a given annotation or type.
 
@@ -574,7 +564,7 @@ class Resolver:
             flags=flags,
             namespace=namespace,
         )
-        resolved = self._resolve_from_annotation(anno, _des, _ser, namespace)
+        resolved = self._resolve_from_annotation(anno, namespace=namespace)
         self.__stack.clear()
         return resolved
 
