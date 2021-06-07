@@ -39,8 +39,8 @@ class Case(str, enum.Enum):
     PASCAL = "PascalCase"
     KEBAB = "kebab-case"
     DOT = "dot.case"
-    UPPER_KEBAB = 'UPPER-KEBAB-CASE'
-    UPPER_DOT = 'UPPER.DOTA.CASE'
+    UPPER_KEBAB = "UPPER-KEBAB-CASE"
+    UPPER_DOT = "UPPER.DOTA.CASE"
 
     @property
     def transformer(self) -> CaseTransformerT:
