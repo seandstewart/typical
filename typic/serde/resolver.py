@@ -29,6 +29,7 @@ from typic.common import (
     ReadOnly,
 )
 from typic.compat import ForwardRef, lru_cache
+from typic.ext import json
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
@@ -42,6 +43,7 @@ from .common import (
     ForwardDelayedAnnotation,
     DelayedAnnotation,
     AnnotationT,
+    DeserializerT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -498,7 +500,7 @@ class Resolver:
         # Build the serializer
         serializer: Optional[SerializerT] = self.ser.factory(anno)
         # Put it all together
-        proto = SerdeProtocol(
+        proto = self._build_protocol(
             annotation=anno,
             constraints=constraints,
             deserializer=deserializer,
@@ -507,6 +509,61 @@ class Resolver:
         )
         self.__cache[anno] = proto
         return proto
+
+    def _build_protocol(
+        self,
+        annotation: Annotation,
+        constraints: constr.ConstraintsT,
+        *,
+        deserializer: DeserializerT = None,
+        validator: constr.ValidatorT = None,
+        serializer: SerializerT = None,
+    ) -> SerdeProtocol:
+        # Pass through if for some reason there's no coercer.
+        deserialize = deserializer or (lambda o: o)
+        # Set the validator
+        validate = validator or (lambda value, *, field=None, **kwargs: value)
+        # Set the serializer
+        serialize = serializer or (lambda o, lazy=False, name=None: o)
+
+        def tojson(
+            val: ObjectT,
+            *,
+            indent: int = 0,
+            ensure_ascii: bool = False,
+            __prim=serialize,
+            __dumps=json.dumps,
+            **kwargs,
+        ) -> str:
+            return __dumps(
+                __prim(val, lazy=True),
+                indent=indent,
+                ensure_ascii=ensure_ascii,
+                **kwargs,
+            )
+
+        tojson.__qualname__ = f"{SerdeProtocol.__name__}.{tojson.__name__}"
+        tojson.__module__ = SerdeProtocol.__module__
+
+        # Create the translator
+        def translate(
+            val: Any, target: Type[_T], *, __factory=annotation.translator
+        ) -> _T:
+            trans = __factory(target)
+            return trans(val)
+
+        translate.__qualname__ = f"{SerdeProtocol.__name__}.{translate.__name__}"
+        translate.__module__ = SerdeProtocol.__module__
+
+        return SerdeProtocol(
+            annotation=annotation,
+            constraints=constraints,
+            deserialize=deserialize,
+            serialize=serialize,
+            validate=validate,
+            translate=translate,  # type: ignore
+            tojson=tojson,  # type: ignore
+        )
 
     @lru_cache(maxsize=None)
     def resolve(

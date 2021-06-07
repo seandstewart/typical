@@ -166,9 +166,9 @@ class CaseDict(Dict):
         ),
     ],
 )
-def test_serde_serializer(t, obj, prim):
+def test_serde_serialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.primitive(obj) == prim
+    assert r.serialize(obj) == prim
 
 
 @pytest.mark.parametrize(
@@ -196,9 +196,9 @@ def test_serde_serializer(t, obj, prim):
         ),
     ],
 )
-def test_serde_deserializer(t, obj, prim):
+def test_serde_deserialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.deserializer(prim) == obj
+    assert r.deserialize(prim) == obj
 
 
 @typic.klass

@@ -26,7 +26,6 @@ from typic import strict as st, util, constraints as const
 from typic.checks import isclassvartype
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict, ForwardRef, evaluate_forwardref
-from typic.ext import json
 from typic.types import freeze
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -337,60 +336,27 @@ class SerdeProtocol:
 
     annotation: Annotation
     """The target annotation and various meta-data."""
-    deserializer: Optional[DeserializerT] = dataclasses.field(repr=False)
-    """The deserializer for the annotation."""
-    serializer: Optional[SerializerT] = dataclasses.field(repr=False)
-    """The serializer for the given annotation."""
     constraints: Optional[const.ConstraintsT]
     """Type restriction configuration, if any."""
-    validator: Optional[const.ValidatorT] = dataclasses.field(repr=False)
-    """The type validator, if any"""
-    validate: const.ValidatorT = dataclasses.field(init=False)
+    deserialize: Optional[DeserializerT] = dataclasses.field(repr=False)
+    """The callable to deserialize data into the annotation."""
+    serialize: Optional[SerializerT] = dataclasses.field(repr=False)
+    """The callable to serialize an instance of the annotation."""
+    validate: const.ValidatorT = dataclasses.field(repr=False)
     """Validate an input against the annotation."""
-    transmute: DeserializerT = dataclasses.field(init=False)
+    translate: TranslatorT = dataclasses.field(repr=False)
+    """Translate an instance of the annotation into another type."""
+    tojson: Callable[..., AnyStr]
+    """Dump an instance of the annotation to valid JSON."""
+    transmute: DeserializerT = dataclasses.field(repr=False, init=False)
     """Transmute an input into the annotation."""
-    primitive: SerializerT = dataclasses.field(init=False)
+    primitive: SerializerT = dataclasses.field(repr=False, init=False)
     """Get the "primitive" representation of the annotation."""
-    tojson: Callable[..., AnyStr] = dataclasses.field(init=False)
-    translate: TranslatorT = dataclasses.field(init=False)
 
     def __post_init__(self):
-        # Pass through if for some reason there's no coercer.
-        deserialize = self.deserializer or (lambda o: o)
-        # Set the validator
-        self.validate: const.ValidatorT = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
-        self.transmute = deserialize
-        self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
-
-        def _json(
-            val: ObjectT,
-            *,
-            indent: int = 0,
-            ensure_ascii: bool = False,
-            __prim=self.primitive,
-            __dumps=json.dumps,
-            **kwargs,
-        ) -> str:
-            return __dumps(
-                __prim(val, lazy=True),
-                indent=indent,
-                ensure_ascii=ensure_ascii,
-                **kwargs,
-            )
-
-        _json.__name__ = "tojson"
-        _json.__qualname__ = f"{self.__class__}.{_json.__name__}"
-        _json.__module__ = self.__class__.__module__
-        self.tojson = _json
-
-        def translate(
-            val: Any, target: Type[_T], *, __factory=self.annotation.translator
-        ) -> _T:
-            trans = __factory(target)
-            return trans(val)
-
-        self.translate = translate
+        self.transmute = self.deserialize
+        self.primitive = self.serialize
 
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)  # type: ignore
