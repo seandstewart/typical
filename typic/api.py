@@ -70,6 +70,7 @@ __all__ = (
     "environ",
     "EnvironmentTypeError",
     "EnvironmentValueError",
+    "flags",
     "is_strict_mode",
     "iterate",
     "tojson",
@@ -115,6 +116,7 @@ protocols = resolver.protocols
 protocol = resolver.resolve
 tojson = resolver.tojson
 iterate = resolver.iterate
+flags = SerdeFlags
 
 # TBDeprecated
 coerce = resolver.coerce_value

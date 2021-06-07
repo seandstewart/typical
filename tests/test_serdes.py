@@ -23,20 +23,20 @@ class FieldMapp:
     foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass(serde=typic.SerdeFlags(case=typic.common.Case.CAMEL))
+@typic.klass(serde=typic.flags(case=typic.common.Case.CAMEL))
 class Camel:
 
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(signature_only=True))
+@typic.klass(serde=typic.flags(signature_only=True))
 class SigOnly:
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(omit=("bar",)))
+@typic.klass(serde=typic.flags(omit=("bar",)))
 class Omit:
 
     bar: str = "foo"
@@ -121,19 +121,15 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class SerDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class CaseDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(case=typic.common.Case.CAMEL)
 
 
 @pytest.mark.parametrize(
@@ -288,12 +284,12 @@ def test_invalid_serializer(type, value):
 
 
 def test_inherited_serde_flags():
-    @typic.klass(serde=typic.SerdeFlags(omit=(1,)))
+    @typic.klass(serde=typic.flags(omit=(1,)))
     class Foo:
         a: str
         b: str = typic.field(exclude=True)
 
-    @typic.klass(serde=typic.SerdeFlags(omit=(2,)))
+    @typic.klass(serde=typic.flags(omit=(2,)))
     class Bar(Foo):
         c: int
 
