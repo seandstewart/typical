@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import dataclasses
 import datetime
 import decimal
 import enum
@@ -10,6 +11,7 @@ from types import MappingProxyType
 from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
 import pytest
+import ujson
 
 import typic
 import typic.api
@@ -296,3 +298,67 @@ def test_inherited_serde_flags():
     assert Bar.__serde_flags__.fields.keys() == {"a", "b", "c"}
     assert Bar.__serde_flags__.exclude == {"b"}
     assert Bar.__serde_flags__.omit == (1, 2)
+
+
+def test_custom_encode():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(encoder=encode))
+    enc = proto.encode(Foo())
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+
+
+def test_custom_decode():
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(decoder=decode))
+    inp = '{"bar":null}'.encode("utf-8-sig")
+    dec = proto.decode(inp)
+    assert dec == Foo()
+
+
+def test_klass_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @typic.klass(serde=typic.flags(encoder=encode, decoder=decode))
+    class Foo:
+        bar: str = None
+
+    enc = Foo().encode()
+    dec = Foo.decode(enc)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()
+
+
+def test_functional_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    enc = typic.encode(Foo(), encoder=encode)
+    dec = typic.decode(Foo, enc, decoder=decode)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()

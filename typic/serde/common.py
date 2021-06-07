@@ -38,7 +38,11 @@ SerializerT = Union[Callable[[Any, bool, str], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
-TranslatorT = Callable[[Any], Any]
+EncoderT = Callable[..., bytes]
+"""The signature of an on-the-wire encoder for an output."""
+DecoderT = Callable[..., Any]
+"""The signature of an on-the-wire decoder for an input."""
+TranslatorT = Callable[..., Any]
 """The signature of a type translator."""
 FieldIteratorT = Callable[[Any], Iterator[Union[Tuple[str, Any], Any]]]
 FieldSerializersT = Mapping[str, SerializerT]
@@ -62,7 +66,7 @@ A mapping should be of attribute name -> out/in field name.
 """
 
 
-@util.slotted
+@util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeFlags:
     """Optional settings for a Ser-ialization/de-serialization protocol."""
@@ -80,20 +84,29 @@ class SerdeFlags:
     """
     exclude: Optional[Iterable[str]] = None
     """Provide a set of fields which will be excluded from the output."""
+    encoder: Optional[EncoderT] = None
+    """Provide a callable which can encode your data to a bytes/binary output."""
+    decoder: Optional[DecoderT] = None
+    """Provide a callable with can decode a bytes/binary input for deserialization."""
 
     def __init__(
         self,
+        *,
         signature_only: bool = False,
         case: Case = None,
         omit: OmitSettingsT = None,
         fields: FieldSettingsT = None,
         exclude: Iterable[str] = None,
+        encoder: EncoderT = None,
+        decoder: DecoderT = None,
     ):
         self.signature_only = signature_only
         self.case = case
         self.omit = freeze(omit)  # type: ignore
         self.fields = cast(FieldSettingsT, freeze(fields))
         self.exclude = cast(Iterable[str], freeze(exclude))
+        self.encoder = encoder
+        self.decoder = decoder
 
     def merge(self, other: "SerdeFlags") -> "SerdeFlags":
         """Merge the values of another SerdeFlags instance into this one."""
@@ -117,12 +130,16 @@ class SerdeFlags:
             exclude = {*self.exclude, *other.exclude}
         else:
             exclude = other.exclude or self.exclude  # type: ignore
+        encoder = other.encoder or self.encoder
+        decoder = other.decoder or self.decoder
         return SerdeFlags(
             signature_only=signature_only,
             case=case,
             omit=omit,
             fields=fields,
             exclude=exclude,
+            encoder=encoder,
+            decoder=decoder,
         )
 
 
@@ -132,6 +149,8 @@ class SerdeConfigD(TypedDict):
     fields_in: Mapping[str, str]
     fields_getters: Mapping[str, Callable[[str], Any]]
     omit_values: Tuple[Any, ...]
+    encoder: Optional[EncoderT]
+    decoder: Optional[DecoderT]
 
 
 @util.slotted
@@ -145,6 +164,8 @@ class SerdeConfig:
         default_factory=dict
     )
     omit_values: Tuple[Any, ...] = dataclasses.field(default_factory=tuple)
+    encoder: Optional[EncoderT] = None
+    decoder: Optional[DecoderT] = None
 
     def __hash__(self):
         return hash(f"{self}")
@@ -163,6 +184,8 @@ class SerdeConfig:
             fields_in=self.fields_in,
             fields_getters=self.fields_getters,
             omit_values=self.omit_values,
+            encoder=self.encoder,
+            decoder=self.decoder,
         )
 
 
@@ -340,8 +363,12 @@ class SerdeProtocol:
     """Type restriction configuration, if any."""
     deserialize: Optional[DeserializerT] = dataclasses.field(repr=False)
     """The callable to deserialize data into the annotation."""
+    decode: DecoderT = dataclasses.field(repr=False)
+    """Decode an input from the on-the-wire format to the annotation."""
     serialize: Optional[SerializerT] = dataclasses.field(repr=False)
     """The callable to serialize an instance of the annotation."""
+    encode: EncoderT = dataclasses.field(repr=False)
+    """Encode an instance of the annotation into the provided on-the-wire format."""
     validate: const.ValidatorT = dataclasses.field(repr=False)
     """Validate an input against the annotation."""
     translate: TranslatorT = dataclasses.field(repr=False)

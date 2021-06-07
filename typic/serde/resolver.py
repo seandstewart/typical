@@ -44,6 +44,8 @@ from .common import (
     DelayedAnnotation,
     AnnotationT,
     DeserializerT,
+    EncoderT,
+    DecoderT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -276,6 +278,20 @@ class Resolver:
         proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
+    def decode(
+        self, annotation: Type[ObjectT], value: Any, decoder: DecoderT, **kwargs
+    ) -> ObjectT:
+        proto: SerdeProtocol = self.resolve(annotation)
+        return proto.transmute(decoder(value, **kwargs))  # type: ignore
+
+    def encode(self, obj: Any, encoder: EncoderT, **kwargs) -> bytes:
+        t = obj.__class__
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = obj.__class__
+        proto: SerdeProtocol = self.resolve(t)
+        return encoder(proto.primitive(obj), **kwargs)  # type: ignore
+
     @lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
@@ -349,6 +365,8 @@ class Resolver:
             fields_in=fields_in,
             fields_getters=fields_getters,
             omit_values=value_omissions,
+            encoder=flags.encoder,
+            decoder=flags.decoder,
         )
 
     def annotation(
@@ -545,6 +563,39 @@ class Resolver:
         tojson.__qualname__ = f"{SerdeProtocol.__name__}.{tojson.__name__}"
         tojson.__module__ = SerdeProtocol.__module__
 
+        # Set the encoder/decoder protocols.
+        # Default to JSON for wire-format
+        encode = tojson
+        if annotation.serde.encoder:
+
+            def encode(  # type: ignore
+                val: ObjectT,
+                *,
+                __prim=serialize,
+                __encode=annotation.serde.encoder,
+                **kwargs,
+            ) -> bytes:
+                return __encode(__prim(val), **kwargs)
+
+            encode.__qualname__ = f"{SerdeProtocol.__name__}.{encode.__name__}"
+            encode.__module__ = self.__class__.__module__
+
+        # Default to JSON for wire-format
+        decode = deserialize
+        if annotation.serde.decoder:
+
+            def decode(
+                val: bytes,
+                *,
+                __trans=deserialize,
+                __decode=annotation.serde.decoder,
+                **kwargs,
+            ) -> ObjectT:
+                return __trans(__decode(val, **kwargs))
+
+            decode.__qualname__ = f"{SerdeProtocol.__name__}.{decode.__name__}"
+            decode.__module__ = SerdeProtocol.__module__
+
         # Create the translator
         def translate(
             val: Any, target: Type[_T], *, __factory=annotation.translator
@@ -559,7 +610,9 @@ class Resolver:
             annotation=annotation,
             constraints=constraints,
             deserialize=deserialize,
+            decode=decode,
             serialize=serialize,
+            encode=encode,  # type: ignore
             validate=validate,
             translate=translate,  # type: ignore
             tojson=tojson,  # type: ignore
@@ -695,11 +748,7 @@ class Resolver:
                 param = param.replace(default=...)
 
             resolved = self.resolve(
-                annotation,
-                parameter=param,
-                name=name,
-                is_strict=strict,
-                namespace=obj,
+                annotation, name=name, parameter=param, is_strict=strict, namespace=obj
             )
             ann[name] = resolved
         try:
