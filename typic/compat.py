@@ -27,6 +27,14 @@ except ImportError:  # pragma: nocover
         ...
 
 
+try:
+    from sqlalchemy.orm import registry as sqla_registry
+except ImportError:  # pragma: nocover
+
+    class sqla_registry:  # type: ignore
+        ...
+
+
 if sys.version_info < (3, 7):  # pragma: nocover
     if TYPE_CHECKING:
 

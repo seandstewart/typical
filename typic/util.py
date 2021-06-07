@@ -71,7 +71,7 @@ __all__ = (
     "TypeMap",
 )
 
-from typic.compat import SQLAMetaData
+from typic.compat import SQLAMetaData, sqla_registry
 
 
 GENERIC_TYPE_MAP = {
@@ -477,9 +477,12 @@ def simple_attributes(t: Type) -> Tuple[str, ...]:
         *(
             x
             for x, y in inspect.getmembers(t, predicate=checks.issimpleattribute)
-            if not x.startswith("_") and not isinstance(y, SQLAMetaData)
+            if not x.startswith("_") and not isinstance(y, _DYNAMIC_ATTRIBUTES)
         ),
     )
+
+
+_DYNAMIC_ATTRIBUTES = (SQLAMetaData, sqla_registry)
 
 
 cached_simple_attributes = lru_cache(maxsize=None)(simple_attributes)
