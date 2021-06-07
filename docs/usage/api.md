@@ -266,6 +266,61 @@ will bind to your object when it is wrapped with `@typic.al` or
 >     It's possible to customize your serialized representation. See
 >     [SerDes](serdes.md).
 
+#### `.decode(...)`
+
+> Decode on-the-wire data into your Model.
+>
+> This is useful if you plan to use a wire-format such as Avro, protocol buffers, etc.
+>
+> To use custom decoders, pass in a callable which takes the input as its first
+> argument. All other keyword-arguments are passed on to the decoder function.
+>
+> ??? example "Decode Binary Data to Member"
+>
+>     ```python
+>     
+>     def decode(o: bytes, *, encoding: str = None):
+>         # Pretend we're using something other than a basic .decode()...
+>         return o.decode(encoding=encoding)
+>     
+>     @typic.klass(serde=typic.flags(decoder=decode)
+>     class Member:
+>         name: str
+>         instrument: Instrument
+>         id: int = None
+>     
+>     input = '{"name":"Ben","instrument":"piano","id":1}'.encode("utf-8-sig")
+>     Member.decode(input, encoding="utf-8-sig")
+>     #> Member(name='Ben', instrument=<Instrument.PIAN: 'piano'>, id=1)
+>     ```
+
+#### `.encode(...)`
+
+> Encode your Model to a custom wire-format.
+>
+> This is useful if you plan to use a wire-format such as Avro, protocol buffers, etc.
+>
+> To use custom encoders, pass in a callable which takes the Model instance as its first
+> argument. All other keyword-arguments are passed on to the encoder function.
+>
+> ??? example "Encode a Member to Binary Data"
+>
+>     ```python
+>     
+>     def encode(o: bytes, *, encoding: str = None):
+>         # Pretend we're using something other than a basic .decode()...
+>         return o.encode(encoding=encoding)
+>     
+>     @typic.klass(serde=typic.flags(encoder=encode)
+>     class Member:
+>         name: str
+>         instrument: Instrument
+>         id: int = None
+>     
+>     m = Member(name="Ben", instrument="piano", id=1)
+>     m.encode()
+>     #> b'{"name":"Ben","instrument":"piano","id":1}'
+>     ```
 
 ## The Functional API
 
@@ -524,6 +579,52 @@ class Song:
 >
 >     It's possible to customize your serialized representation. See
 >     [SerDes](serdes.md).
+
+#### `typic.decode(...)`
+
+> Decode on-the-wire data into your Model.
+>
+> This is useful if you plan to use a wire-format such as Avro, protocol buffers, etc.
+>
+> To use custom decoders, pass in a callable which takes the input as its first
+> argument. All other keyword-arguments are passed on to the decoder function.
+>
+> ??? example "Decode Binary Data to Member"
+>
+>     ```python
+>     
+>     def decode(o: bytes, *, encoding: str = None):
+>         # Pretend we're using something other than a basic .decode()...
+>         return o.decode(encoding=encoding)
+>     
+>     input = '{"name":"Ben","instrument":"piano","id":1}'.encode("utf-8-sig")
+>     typic.decode(Member, input, decoder=decode, encoding="utf-8-sig")
+>     #> Member(name='Ben', instrument=<Instrument.PIAN: 'piano'>, id=1)
+>     ```
+
+#### `typic.encode(...)`
+
+> Encode your Model to a custom wire-format.
+>
+> This is useful if you plan to use a wire-format such as Avro, protocol buffers, etc.
+>
+> To use custom encoders, pass in a callable which takes the primitive representation of
+> your Model as the first argument. All other keyword-arguments are passed on to the
+> encoder function.
+>
+> ??? example "Encode a Member to Binary Data"
+>
+>     ```python
+>     import ujson
+>     
+>     def encode(o: Any, *, encoding: str = None) -> bytes:
+>         # Pretend we're using something other than a basic dumps().encode()...
+>         return ujson.dumps(o).encode(encoding=encoding)
+>     
+>     m = Member(name="Ben", instrument=Instrument.PIAN, id=1)
+>     typic.encode(m, encoder=encode)
+>     #> b'{"name":"Ben","instrument":"piano","id":1}'
+>     ```
 
 
 ## The Protocol API

@@ -67,9 +67,12 @@ __all__ = (
     "Case",
     "coerce",
     "constrained",
+    "decode",
+    "encode",
     "environ",
     "EnvironmentTypeError",
     "EnvironmentValueError",
+    "flags",
     "is_strict_mode",
     "iterate",
     "tojson",
@@ -115,6 +118,9 @@ protocols = resolver.protocols
 protocol = resolver.resolve
 tojson = resolver.tojson
 iterate = resolver.iterate
+flags = SerdeFlags
+encode = resolver.encode
+decode = resolver.decode
 
 # TBDeprecated
 coerce = resolver.coerce_value
@@ -190,6 +196,8 @@ def _bind_proto(cls, proto: SerdeProtocol):
         ("transmute", staticmethod(proto.transmute)),
         ("validate", staticmethod(proto.validate)),
         ("translate", proto.translate),
+        ("encode", proto.encode),
+        ("decode", staticmethod(proto.decode)),
     ):
         setattr(cls, n, attr)
 

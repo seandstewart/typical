@@ -571,7 +571,7 @@ def test_register():
         return args.issubset({*MyCustomType.__args__})
 
     register(MyCustomClass, ismycustomclass)
-    assert resolver.resolve(MyCustomType).deserializer is MyCustomClass
+    assert resolver.resolve(MyCustomType).deserialize is MyCustomClass
 
 
 @pytest.mark.parametrize(argnames=("val",), argvalues=[(1,), ("foo",)])

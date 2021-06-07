@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import dataclasses
 import datetime
 import decimal
 import enum
@@ -10,6 +11,7 @@ from types import MappingProxyType
 from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
 import pytest
+import ujson
 
 import typic
 import typic.api
@@ -23,20 +25,20 @@ class FieldMapp:
     foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass(serde=typic.SerdeFlags(case=typic.common.Case.CAMEL))
+@typic.klass(serde=typic.flags(case=typic.common.Case.CAMEL))
 class Camel:
 
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(signature_only=True))
+@typic.klass(serde=typic.flags(signature_only=True))
 class SigOnly:
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(omit=("bar",)))
+@typic.klass(serde=typic.flags(omit=("bar",)))
 class Omit:
 
     bar: str = "foo"
@@ -121,19 +123,15 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class SerDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class CaseDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(case=typic.common.Case.CAMEL)
 
 
 @pytest.mark.parametrize(
@@ -166,9 +164,9 @@ class CaseDict(Dict):
         ),
     ],
 )
-def test_serde_serializer(t, obj, prim):
+def test_serde_serialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.primitive(obj) == prim
+    assert r.serialize(obj) == prim
 
 
 @pytest.mark.parametrize(
@@ -196,9 +194,9 @@ def test_serde_serializer(t, obj, prim):
         ),
     ],
 )
-def test_serde_deserializer(t, obj, prim):
+def test_serde_deserialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.deserializer(prim) == obj
+    assert r.deserialize(prim) == obj
 
 
 @typic.klass
@@ -288,15 +286,79 @@ def test_invalid_serializer(type, value):
 
 
 def test_inherited_serde_flags():
-    @typic.klass(serde=typic.SerdeFlags(omit=(1,)))
+    @typic.klass(serde=typic.flags(omit=(1,)))
     class Foo:
         a: str
         b: str = typic.field(exclude=True)
 
-    @typic.klass(serde=typic.SerdeFlags(omit=(2,)))
+    @typic.klass(serde=typic.flags(omit=(2,)))
     class Bar(Foo):
         c: int
 
     assert Bar.__serde_flags__.fields.keys() == {"a", "b", "c"}
     assert Bar.__serde_flags__.exclude == {"b"}
     assert Bar.__serde_flags__.omit == (1, 2)
+
+
+def test_custom_encode():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(encoder=encode))
+    enc = proto.encode(Foo())
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+
+
+def test_custom_decode():
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(decoder=decode))
+    inp = '{"bar":null}'.encode("utf-8-sig")
+    dec = proto.decode(inp)
+    assert dec == Foo()
+
+
+def test_klass_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @typic.klass(serde=typic.flags(encoder=encode, decoder=decode))
+    class Foo:
+        bar: str = None
+
+    enc = Foo().encode()
+    dec = Foo.decode(enc)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()
+
+
+def test_functional_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    enc = typic.encode(Foo(), encoder=encode)
+    dec = typic.decode(Foo, enc, decoder=decode)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()

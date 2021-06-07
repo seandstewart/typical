@@ -26,7 +26,6 @@ from typic import strict as st, util, constraints as const
 from typic.checks import isclassvartype
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
 from typic.compat import TypedDict, ForwardRef, evaluate_forwardref
-from typic.ext import json
 from typic.types import freeze
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -39,7 +38,11 @@ SerializerT = Union[Callable[[Any, bool, str], Any], Callable[[Any], Any]]
 """The signature of a type serializer."""
 DeserializerT = Callable[[Any], Any]
 """The signature of a type deserializer."""
-TranslatorT = Callable[[Any], Any]
+EncoderT = Callable[..., bytes]
+"""The signature of an on-the-wire encoder for an output."""
+DecoderT = Callable[..., Any]
+"""The signature of an on-the-wire decoder for an input."""
+TranslatorT = Callable[..., Any]
 """The signature of a type translator."""
 FieldIteratorT = Callable[[Any], Iterator[Union[Tuple[str, Any], Any]]]
 FieldSerializersT = Mapping[str, SerializerT]
@@ -63,7 +66,7 @@ A mapping should be of attribute name -> out/in field name.
 """
 
 
-@util.slotted
+@util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
 class SerdeFlags:
     """Optional settings for a Ser-ialization/de-serialization protocol."""
@@ -81,20 +84,29 @@ class SerdeFlags:
     """
     exclude: Optional[Iterable[str]] = None
     """Provide a set of fields which will be excluded from the output."""
+    encoder: Optional[EncoderT] = None
+    """Provide a callable which can encode your data to a bytes/binary output."""
+    decoder: Optional[DecoderT] = None
+    """Provide a callable with can decode a bytes/binary input for deserialization."""
 
     def __init__(
         self,
+        *,
         signature_only: bool = False,
         case: Case = None,
         omit: OmitSettingsT = None,
         fields: FieldSettingsT = None,
         exclude: Iterable[str] = None,
+        encoder: EncoderT = None,
+        decoder: DecoderT = None,
     ):
         self.signature_only = signature_only
         self.case = case
         self.omit = freeze(omit)  # type: ignore
         self.fields = cast(FieldSettingsT, freeze(fields))
         self.exclude = cast(Iterable[str], freeze(exclude))
+        self.encoder = encoder
+        self.decoder = decoder
 
     def merge(self, other: "SerdeFlags") -> "SerdeFlags":
         """Merge the values of another SerdeFlags instance into this one."""
@@ -118,12 +130,16 @@ class SerdeFlags:
             exclude = {*self.exclude, *other.exclude}
         else:
             exclude = other.exclude or self.exclude  # type: ignore
+        encoder = other.encoder or self.encoder
+        decoder = other.decoder or self.decoder
         return SerdeFlags(
             signature_only=signature_only,
             case=case,
             omit=omit,
             fields=fields,
             exclude=exclude,
+            encoder=encoder,
+            decoder=decoder,
         )
 
 
@@ -133,6 +149,8 @@ class SerdeConfigD(TypedDict):
     fields_in: Mapping[str, str]
     fields_getters: Mapping[str, Callable[[str], Any]]
     omit_values: Tuple[Any, ...]
+    encoder: Optional[EncoderT]
+    decoder: Optional[DecoderT]
 
 
 @util.slotted
@@ -146,6 +164,8 @@ class SerdeConfig:
         default_factory=dict
     )
     omit_values: Tuple[Any, ...] = dataclasses.field(default_factory=tuple)
+    encoder: Optional[EncoderT] = None
+    decoder: Optional[DecoderT] = None
 
     def __hash__(self):
         return hash(f"{self}")
@@ -164,6 +184,8 @@ class SerdeConfig:
             fields_in=self.fields_in,
             fields_getters=self.fields_getters,
             omit_values=self.omit_values,
+            encoder=self.encoder,
+            decoder=self.decoder,
         )
 
 
@@ -337,60 +359,31 @@ class SerdeProtocol:
 
     annotation: Annotation
     """The target annotation and various meta-data."""
-    deserializer: Optional[DeserializerT] = dataclasses.field(repr=False)
-    """The deserializer for the annotation."""
-    serializer: Optional[SerializerT] = dataclasses.field(repr=False)
-    """The serializer for the given annotation."""
     constraints: Optional[const.ConstraintsT]
     """Type restriction configuration, if any."""
-    validator: Optional[const.ValidatorT] = dataclasses.field(repr=False)
-    """The type validator, if any"""
-    validate: const.ValidatorT = dataclasses.field(init=False)
+    deserialize: Optional[DeserializerT] = dataclasses.field(repr=False)
+    """The callable to deserialize data into the annotation."""
+    decode: DecoderT = dataclasses.field(repr=False)
+    """Decode an input from the on-the-wire format to the annotation."""
+    serialize: Optional[SerializerT] = dataclasses.field(repr=False)
+    """The callable to serialize an instance of the annotation."""
+    encode: EncoderT = dataclasses.field(repr=False)
+    """Encode an instance of the annotation into the provided on-the-wire format."""
+    validate: const.ValidatorT = dataclasses.field(repr=False)
     """Validate an input against the annotation."""
-    transmute: DeserializerT = dataclasses.field(init=False)
+    translate: TranslatorT = dataclasses.field(repr=False)
+    """Translate an instance of the annotation into another type."""
+    tojson: Callable[..., AnyStr]
+    """Dump an instance of the annotation to valid JSON."""
+    transmute: DeserializerT = dataclasses.field(repr=False, init=False)
     """Transmute an input into the annotation."""
-    primitive: SerializerT = dataclasses.field(init=False)
+    primitive: SerializerT = dataclasses.field(repr=False, init=False)
     """Get the "primitive" representation of the annotation."""
-    tojson: Callable[..., AnyStr] = dataclasses.field(init=False)
-    translate: TranslatorT = dataclasses.field(init=False)
 
     def __post_init__(self):
-        # Pass through if for some reason there's no coercer.
-        deserialize = self.deserializer or (lambda o: o)
-        # Set the validator
-        self.validate: const.ValidatorT = self.validator or (lambda o: o)
         # Pin the transmuter and the primitiver
-        self.transmute = deserialize
-        self.primitive = self.serializer or (lambda o, lazy=False, name=None: o)
-
-        def _json(
-            val: ObjectT,
-            *,
-            indent: int = 0,
-            ensure_ascii: bool = False,
-            __prim=self.primitive,
-            __dumps=json.dumps,
-            **kwargs,
-        ) -> str:
-            return __dumps(
-                __prim(val, lazy=True),
-                indent=indent,
-                ensure_ascii=ensure_ascii,
-                **kwargs,
-            )
-
-        _json.__name__ = "tojson"
-        _json.__qualname__ = f"{self.__class__}.{_json.__name__}"
-        _json.__module__ = self.__class__.__module__
-        self.tojson = _json
-
-        def translate(
-            val: Any, target: Type[_T], *, __factory=self.annotation.translator
-        ) -> _T:
-            trans = __factory(target)
-            return trans(val)
-
-        self.translate = translate
+        self.transmute = self.deserialize
+        self.primitive = self.serialize
 
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)  # type: ignore

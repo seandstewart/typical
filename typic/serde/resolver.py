@@ -2,7 +2,6 @@ import dataclasses
 import functools
 import inspect
 import warnings
-from collections.abc import Callable
 from enum import Enum
 from operator import attrgetter, methodcaller
 from typing import (
@@ -30,6 +29,7 @@ from typic.common import (
     ReadOnly,
 )
 from typic.compat import ForwardRef, lru_cache
+from typic.ext import json
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
@@ -43,6 +43,9 @@ from .common import (
     ForwardDelayedAnnotation,
     DelayedAnnotation,
     AnnotationT,
+    DeserializerT,
+    EncoderT,
+    DecoderT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -275,6 +278,20 @@ class Resolver:
         proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
+    def decode(
+        self, annotation: Type[ObjectT], value: Any, decoder: DecoderT, **kwargs
+    ) -> ObjectT:
+        proto: SerdeProtocol = self.resolve(annotation)
+        return proto.transmute(decoder(value, **kwargs))  # type: ignore
+
+    def encode(self, obj: Any, encoder: EncoderT, **kwargs) -> bytes:
+        t = obj.__class__
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = obj.__class__
+        proto: SerdeProtocol = self.resolve(t)
+        return encoder(proto.primitive(obj), **kwargs)  # type: ignore
+
     @lru_cache(maxsize=None)
     def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
         if hasattr(origin, SERDE_FLAGS_ATTR):
@@ -348,6 +365,8 @@ class Resolver:
             fields_in=fields_in,
             fields_getters=fields_getters,
             omit_values=value_omissions,
+            encoder=flags.encoder,
+            decoder=flags.decoder,
         )
 
     def annotation(
@@ -478,43 +497,126 @@ class Resolver:
         anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
         return anno
 
-    @lru_cache(maxsize=None)
     def _resolve_from_annotation(
         self,
         anno: AnnotationT,
-        _des: bool = True,
-        _ser: bool = True,
-        _namespace: Type = None,
+        *,
+        namespace: Type = None,
     ) -> SerdeProtocol:
         if anno in self.__cache:
             return self.__cache[anno]
         if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
             return DelayedSerdeProtocol(anno)
 
-        # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
-        if anno.origin is Callable:
-            _des, _ser = False, False
         # Build the deserializer
-        deserializer, validator, constraints = None, None, None
-        if _des:
-            constraints = constr.get_constraints(
-                anno.resolved, nullable=anno.optional, cls=_namespace
-            )
-            deserializer, validator = self.des.factory(
-                anno, constraints, namespace=_namespace
-            )
+        constraints = constr.get_constraints(
+            anno.resolved, nullable=anno.optional, cls=namespace
+        )
+        deserializer, validator = self.des.factory(
+            anno, constraints, namespace=namespace
+        )
         # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
+        serializer: Optional[SerializerT] = self.ser.factory(anno)
         # Put it all together
-        proto = SerdeProtocol(
+        proto = self._build_protocol(
             annotation=anno,
+            constraints=constraints,
             deserializer=deserializer,
             serializer=serializer,
-            constraints=constraints,
             validator=validator,
         )
         self.__cache[anno] = proto
         return proto
+
+    def _build_protocol(
+        self,
+        annotation: Annotation,
+        constraints: constr.ConstraintsT,
+        *,
+        deserializer: DeserializerT = None,
+        validator: constr.ValidatorT = None,
+        serializer: SerializerT = None,
+    ) -> SerdeProtocol:
+        # Pass through if for some reason there's no coercer.
+        deserialize = deserializer or (lambda o: o)
+        # Set the validator
+        validate = validator or (lambda value, *, field=None, **kwargs: value)
+        # Set the serializer
+        serialize = serializer or (lambda o, lazy=False, name=None: o)
+
+        def tojson(
+            val: ObjectT,
+            *,
+            indent: int = 0,
+            ensure_ascii: bool = False,
+            __prim=serialize,
+            __dumps=json.dumps,
+            **kwargs,
+        ) -> str:
+            return __dumps(
+                __prim(val, lazy=True),
+                indent=indent,
+                ensure_ascii=ensure_ascii,
+                **kwargs,
+            )
+
+        tojson.__qualname__ = f"{SerdeProtocol.__name__}.{tojson.__name__}"
+        tojson.__module__ = SerdeProtocol.__module__
+
+        # Set the encoder/decoder protocols.
+        # Default to JSON for wire-format
+        encode = tojson
+        if annotation.serde.encoder:
+
+            def encode(  # type: ignore
+                val: ObjectT,
+                *,
+                __prim=serialize,
+                __encode=annotation.serde.encoder,
+                **kwargs,
+            ) -> bytes:
+                return __encode(__prim(val), **kwargs)
+
+            encode.__qualname__ = f"{SerdeProtocol.__name__}.{encode.__name__}"
+            encode.__module__ = self.__class__.__module__
+
+        # Default to JSON for wire-format
+        decode = deserialize
+        if annotation.serde.decoder:
+
+            def decode(
+                val: bytes,
+                *,
+                __trans=deserialize,
+                __decode=annotation.serde.decoder,
+                **kwargs,
+            ) -> ObjectT:
+                return __trans(__decode(val, **kwargs))
+
+            decode.__qualname__ = f"{SerdeProtocol.__name__}.{decode.__name__}"
+            decode.__module__ = SerdeProtocol.__module__
+
+        # Create the translator
+        def translate(
+            val: Any, target: Type[_T], *, __factory=annotation.translator
+        ) -> _T:
+            trans = __factory(target)
+            return trans(val)
+
+        translate.__qualname__ = f"{SerdeProtocol.__name__}.{translate.__name__}"
+        translate.__module__ = SerdeProtocol.__module__
+
+        return SerdeProtocol(
+            annotation=annotation,
+            constraints=constraints,
+            deserialize=deserialize,
+            decode=decode,
+            serialize=serialize,
+            encode=encode,  # type: ignore
+            validate=validate,
+            translate=translate,  # type: ignore
+            tojson=tojson,  # type: ignore
+        )
 
     @lru_cache(maxsize=None)
     def resolve(
@@ -527,8 +629,6 @@ class Resolver:
         is_optional: bool = None,
         is_strict: bool = None,
         namespace: Type = None,
-        _des: bool = True,
-        _ser: bool = True,
     ) -> SerdeProtocol:
         """Get a :py:class:`SerdeProtocol` from a given annotation or type.
 
@@ -574,7 +674,7 @@ class Resolver:
             flags=flags,
             namespace=namespace,
         )
-        resolved = self._resolve_from_annotation(anno, _des, _ser, namespace)
+        resolved = self._resolve_from_annotation(anno, namespace=namespace)
         self.__stack.clear()
         return resolved
 
@@ -648,11 +748,7 @@ class Resolver:
                 param = param.replace(default=...)
 
             resolved = self.resolve(
-                annotation,
-                parameter=param,
-                name=name,
-                is_strict=strict,
-                namespace=obj,
+                annotation, name=name, parameter=param, is_strict=strict, namespace=obj
             )
             ann[name] = resolved
         try:
