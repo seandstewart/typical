@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import pytest
 
 from typic.types import FilePath, DirectoryPath

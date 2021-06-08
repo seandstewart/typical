@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 import enum
 import warnings
@@ -81,7 +81,7 @@ class SchemaBuilder:
         self.__attached.add(t)
 
     def _handle_mapping(
-        self, proto: "SerdeProtocol", parent: Type = None, *, name: str = None, **extra
+        self, proto: SerdeProtocol, parent: Type = None, *, name: str = None, **extra
     ) -> MutableMapping:
         anno = proto.annotation
         args = anno.args
@@ -118,7 +118,7 @@ class SchemaBuilder:
         return config
 
     def _handle_array(
-        self, proto: "SerdeProtocol", parent: Type = None, **extra
+        self, proto: SerdeProtocol, parent: Type = None, **extra
     ) -> MutableMapping:
         anno = proto.annotation
         args = anno.args
@@ -390,7 +390,7 @@ class SchemaBuilder:
             defname = name
         return inflection.camelize(defname) if defname else None
 
-    def build_schema(self, obj: Type, *, name: str = None) -> "ObjectSchemaField":
+    def build_schema(self, obj: Type, *, name: str = None) -> ObjectSchemaField:
         """Build a valid JSON Schema, including nested schemas."""
         if obj in self.__cache:  # pragma: nocover
             return self.__cache[obj]

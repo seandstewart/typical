@@ -10,7 +10,7 @@ from typic.checks import STDLIB_TYPES
 from typic.util import get_name
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: nocover
     from typic.serde.resolver import Resolver
 
 

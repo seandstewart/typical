@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 import uuid
 from types import MappingProxyType
@@ -35,16 +35,9 @@ from .error import ConstraintSyntaxError
 if TYPE_CHECKING:  # pragma: nocover
     from typic.constraints.factory import ConstraintsT  # noqa: F401
 
-KeyDependency = Union[Tuple[str], "MappingConstraints"]
-"""A 'key dependency' defines constraints which are applied *only* if a key is present.
-
-This can be either a tuple of dependent keys, or an additional MappingConstraints, which
-is treated as a sub-schema to the parent MappingConstraints.
-"""
-
 
 def validate_pattern_constraints(
-    constraints: Dict[Pattern, "ConstraintsT"], key: str, val: VT
+    constraints: Dict[Pattern, ConstraintsT], key: str, val: VT
 ) -> VT:
     for pattern, const in constraints.items():
         if pattern.match(key):
@@ -79,18 +72,18 @@ class MappingConstraints(BaseConstraints):
     """A frozenset of keys which must be present in the mapping."""
     key_pattern: Optional[Pattern] = None
     """A regex pattern for which all keys must match."""
-    items: Optional[FrozenDict[Hashable, "ConstraintsT"]] = None
+    items: Optional[FrozenDict[Hashable, ConstraintsT]] = None
     """A mapping of constraints associated to specific keys."""
-    patterns: Optional[FrozenDict[Pattern, "ConstraintsT"]] = None
+    patterns: Optional[FrozenDict[Pattern, ConstraintsT]] = None
     """A mapping of constraints associated to any key which match the regex pattern."""
-    values: Optional["ConstraintsT"] = None
+    values: Optional[ConstraintsT] = None
     """Whether values not defined as required are allowed.
 
     May be a boolean, or more constraints which are applied to all additional values.
     """
-    keys: Optional["ConstraintsT"] = None
+    keys: Optional[ConstraintsT] = None
     """Constraints to apply to any additional keys not explicitly defined."""
-    key_dependencies: Optional[FrozenDict[str, KeyDependency]] = None
+    key_dependencies: Optional[FrozenDict[str, KeyDependencyT]] = None
     """A mapping of keys and their dependent restrictions if they are present."""
     total: Optional[bool] = False
     """Whether to consider this schema as the 'total' representation.
@@ -326,3 +319,11 @@ class TypedDictConstraints(ObjectConstraints):
     @util.cached_property
     def type_name(self):
         return util.get_name(self.ttype)
+
+
+KeyDependencyT = Union[Tuple[str], MappingConstraints]
+"""A 'key dependency' defines constraints which are applied *only* if a key is present.
+
+This can be either a tuple of dependent keys, or an additional MappingConstraints, which
+is treated as a sub-schema to the parent MappingConstraints.
+"""

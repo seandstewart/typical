@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 from typing import Sized, Union
 
 __all__ = ("SecretMixin", "SecretStr", "SecretBytes")

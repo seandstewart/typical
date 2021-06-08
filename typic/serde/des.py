@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import inspect
@@ -107,7 +109,7 @@ class DesFactory:
     __DES_CACHE: Dict[str, Tuple[DeserializerT, "const.ValidatorT"]] = {}
     __USER_DESS: DeserializerRegistryT = deque()
 
-    def __init__(self, resolver: "Resolver"):
+    def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
     def register(self, deserializer: DeserializerT, check: DeserializerT):
@@ -120,7 +122,7 @@ class DesFactory:
         """
         self.__USER_DESS.appendleft((check, deserializer))
 
-    def _set_checks(self, func: gen.Block, anno_name: str, annotation: "Annotation"):
+    def _set_checks(self, func: gen.Block, anno_name: str, annotation: Annotation):
         _ctx = {}
         # run a safe eval if input is text and anno isn't
         if inspect.isclass(annotation.resolved_origin) and issubclass(
@@ -162,14 +164,10 @@ class DesFactory:
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
-    def _get_name(
-        annotation: "Annotation", constr: Optional["const.ConstraintsT"]
-    ) -> str:
+    def _get_name(annotation: Annotation, constr: Optional[const.ConstraintsT]) -> str:
         return get_defname("deserializer", (annotation, constr))
 
-    def _build_date_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_date_des(self, func: gen.Block, anno_name: str, annotation: Annotation):
         origin = annotation.resolved_origin
         # From an int
         with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
@@ -221,9 +219,7 @@ class DesFactory:
             line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
             b.l(line, dateparse=dateparse)
 
-    def _build_time_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_time_des(self, func: gen.Block, anno_name: str, annotation: Annotation):
         # From an int
         with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}(int({self.VNAME}))")
@@ -241,7 +237,7 @@ class DesFactory:
             b.l(f"{self.VNAME} = {anno_name}(0)")
 
     def _build_timedelta_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
+        self, func: gen.Block, anno_name: str, annotation: Annotation
     ):
         # From an int
         with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
@@ -251,9 +247,7 @@ class DesFactory:
             line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
             b.l(line, dateparse=dateparse)
 
-    def _build_uuid_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_uuid_des(self, func: gen.Block, anno_name: str, annotation: Annotation):
         self._add_type_check(func, anno_name)
         with func.b(f"if issubclass({self.VTYPE}, UUID):", UUID=uuid.UUID) as b:
             b.l(f"{self.VNAME} = {anno_name}(int={self.VNAME}.int)")
@@ -326,7 +320,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
     ):
         origin = annotation.resolved_origin
         # Encode for bytes
@@ -346,7 +340,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
     ):
         origin = annotation.resolved_origin
         if issubclass(origin, (str, bytes)):
@@ -375,7 +369,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         *,
         total: bool = True,
         namespace: Type = None,
@@ -409,7 +403,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         namespace: Type = None,
     ):
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
@@ -441,7 +435,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         namespace: Type = None,
     ):
         key_des, item_des = None, None
@@ -495,7 +489,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         namespace: Type = None,
     ):
         if annotation.args and annotation.args[-1] is not ...:
@@ -532,7 +526,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         namespace: Type = None,
     ):
         item_des = None
@@ -568,7 +562,7 @@ class DesFactory:
         self,
         func: gen.Block,
         anno_name: str,
-        annotation: "Annotation",
+        annotation: Annotation,
         namespace: Type = None,
     ):
         serde = annotation.serde
@@ -604,10 +598,11 @@ class DesFactory:
             # Secondary happy path! We know how to deserialize already.
             else:
                 fields_in = serde.fields_in
+                fnamespace = namespace or resolved
                 if serde.fields and len(matched) == len(serde.fields_in):
                     desers = {
                         f: self.resolver._resolve_from_annotation(
-                            serde.fields[f], namespace=namespace
+                            serde.fields[f], namespace=fnamespace
                         ).transmute
                         for f in matched
                     }
@@ -637,7 +632,7 @@ class DesFactory:
             )
 
     def _build_literal_des(
-        self, annotation: "Annotation", func_name: str, namespace: Type = None
+        self, annotation: Annotation, func_name: str, namespace: Type = None
     ):
         args = annotation.args
         types: Set[Type] = {a.__class__ for a in args}
@@ -656,7 +651,7 @@ class DesFactory:
         )
         return self._build_des(t_anno, func_name, namespace)
 
-    def _build_union_des(self, func: gen.Block, annotation: "Annotation", namespace):
+    def _build_union_des(self, func: gen.Block, annotation: Annotation, namespace):
         # Get all types which we may coerce to.
         args = (*(a for a in annotation.args if a not in {None, Ellipsis, type(None)}),)
         # Get all custom types, which may have discriminators
@@ -698,7 +693,7 @@ class DesFactory:
                 )
 
     def _build_des(  # noqa: C901
-        self, annotation: "Annotation", func_name: str, namespace: Type = None
+        self, annotation: Annotation, func_name: str, namespace: Type = None
     ) -> Callable:
         args = annotation.args
         # Get the "origin" of the annotation.
@@ -774,7 +769,7 @@ class DesFactory:
         return deserializer
 
     def _check_varargs(
-        self, anno: "Annotation", des: DeserializerT, validator: "const.ValidatorT"
+        self, anno: Annotation, des: DeserializerT, validator: const.ValidatorT
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         if anno.parameter.kind == VAR_POSITIONAL:
             __des = des
@@ -800,8 +795,8 @@ class DesFactory:
 
     def _finalize_validator(
         self,
-        constr: Optional["const.ConstraintsT"],
-    ) -> "const.ValidatorT":
+        constr: Optional[const.ConstraintsT],
+    ) -> const.ValidatorT:
         def validate(value, *, field: str = None):
             return value
 
@@ -812,10 +807,10 @@ class DesFactory:
 
     def _finalize_deserializer(
         self,
-        anno: "Annotation",
+        anno: Annotation,
         des: DeserializerT,
-        constr: Optional["const.ConstraintsT"],
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+        constr: Optional[const.ConstraintsT],
+    ) -> Tuple[DeserializerT, const.ValidatorT]:
         # Determine how to run in "strict-mode"
         validator = self._finalize_validator(constr)
         # Handle *args and **kwargs
@@ -846,8 +841,8 @@ class DesFactory:
 
     def factory(
         self,
-        annotation: "Annotation",
-        constr: Optional["const.ConstraintsT"] = None,
+        annotation: Annotation,
+        constr: Optional[const.ConstraintsT] = None,
         namespace: Type = None,
     ) -> Tuple[DeserializerT, "const.ValidatorT"]:
         annotation.serde = annotation.serde or SerdeConfig()

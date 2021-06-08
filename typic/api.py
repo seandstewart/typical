@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations as a
+
 import dataclasses
 import functools
 import inspect
@@ -56,7 +56,7 @@ from typic.strict import (
     StrictModeT,
 )
 from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
-from typic.util import origin
+from typic.util import origin, cached_type_hints
 from typic.types import FrozenDict, freeze
 
 __all__ = (
@@ -662,7 +662,7 @@ def _resolve_from_env(
 ) -> Type[ObjectT]:
     fields = {
         (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
-        for x, y in cls.__annotations__.items()
+        for x, y in cached_type_hints(cls).items()
     }
     names = {*fields, *aliases}
     sentinel = object()
