@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import inspect
 import reprlib
@@ -20,6 +22,7 @@ from typing import (
     AnyStr,
     Iterator,
     TYPE_CHECKING,
+    Generic,
 )
 
 from typic import strict as st, util, constraints as const
@@ -190,11 +193,12 @@ class SerdeConfig:
 
 
 _T = TypeVar("_T")
+_AT = TypeVar("_AT")
 
 
 @util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
-class Annotation:
+class Annotation(Generic[_AT]):
     """The resolved, actionable annotation for a given annotation."""
 
     EMPTY = EMPTY
@@ -305,7 +309,7 @@ class ForwardDelayedAnnotation:
 @dataclasses.dataclass(unsafe_hash=True)
 class DelayedAnnotation:
     type: Type
-    resolver: "Resolver"
+    resolver: Resolver
     parameter: Optional[inspect.Parameter] = None
     is_optional: Optional[bool] = None
     is_strict: Optional[st.StrictModeT] = None
@@ -354,7 +358,7 @@ AnnotationT = Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
 
 @util.slotted(dict=False)
 @dataclasses.dataclass(unsafe_hash=True)
-class SerdeProtocol:
+class SerdeProtocol(Generic[_T]):
     """An actionable run-time serialization & deserialization protocol for a type."""
 
     annotation: Annotation

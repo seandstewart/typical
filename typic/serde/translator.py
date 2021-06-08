@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 from operator import methodcaller
 from typing import (
@@ -58,7 +60,7 @@ class TranslatorFactory:
         {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}
     )
 
-    def __init__(self, resolver: "Resolver"):
+    def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
     def sig_is_undef(self, params: Mapping[str, inspect.Parameter]) -> bool:
@@ -126,7 +128,7 @@ class TranslatorFactory:
         return None if undefined else params
 
     @lru_cache(maxsize=None)
-    def iterator(self, type: Type, values: bool = False) -> "FieldIteratorT":
+    def iterator(self, type: Type, values: bool = False) -> FieldIteratorT:
         """Get an iterator function for a given type, if possible."""
 
         if ismappingtype(type):
@@ -165,7 +167,7 @@ class TranslatorFactory:
     def _iter_field_assigns(
         fields: Mapping[str, inspect.Parameter],
         oname: str,
-        protos: Mapping[str, "SerdeProtocol"],
+        protos: Mapping[str, SerdeProtocol],
         ctx: Dict[str, Any],
     ):
         for f, p in fields.items():
@@ -180,7 +182,7 @@ class TranslatorFactory:
             yield fset
 
     @lru_cache(maxsize=None)
-    def _compile_translator(self, source: Type, target: Type) -> "TranslatorT":
+    def _compile_translator(self, source: Type, target: Type) -> TranslatorT:
         if isliteral(target):
             raise TranslatorTypeError(
                 f"Cannot translate to literal type: {target!r}. "
@@ -226,6 +228,6 @@ class TranslatorFactory:
         trans = main.compile(name=func_name, ns=ctx)
         return trans
 
-    def factory(self, annotation: "Annotation", target: Type) -> "TranslatorT":
+    def factory(self, annotation: "Annotation", target: Type) -> TranslatorT:
         """Generate a translator for :py:class:`typic.Annotation` -> ``type``."""
         return self._compile_translator(annotation.resolved, target)

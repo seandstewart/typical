@@ -1,6 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # flake8: noqa
+# pragma: nocover
+from __future__ import annotations
+
 import sys
 from typing import (
     TYPE_CHECKING,

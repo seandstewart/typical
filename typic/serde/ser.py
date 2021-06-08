@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import datetime
 import decimal
@@ -59,7 +61,7 @@ if TYPE_CHECKING:  # pragma: nocover
 _T = TypeVar("_T")
 
 
-def make_class_serdict(annotation: "Annotation", fields: Mapping[str, SerializerT]):
+def make_class_serdict(annotation: Annotation, fields: Mapping[str, SerializerT]):
     name = f"{util.get_name(annotation.resolved_origin)}SerDict"
     bases = (ClassFieldSerDict,)
     getters = annotation.serde.fields_getters
@@ -178,7 +180,7 @@ class ClassFieldSerDict(dict):
         return ValuesView(self)  # type: ignore
 
 
-def make_kv_serdict(annotation: "Annotation", kser: SerializerT, vser: SerializerT):
+def make_kv_serdict(annotation: Annotation, kser: SerializerT, vser: SerializerT):
     name = f"{util.get_name(annotation.resolved_origin)}KVSerDict"
     bases = (KVSerDict,)
     omit = (*annotation.serde.omit_values,)
@@ -270,7 +272,7 @@ class KVSerDict(dict):
         return ValuesView(self)  # type: ignore
 
 
-def make_serlist(annotation: "Annotation", serializer: SerializerT):
+def make_serlist(annotation: Annotation, serializer: SerializerT):
     name = f"{util.get_name(annotation.resolved_origin)}SerList"
     bases = (SerList,)
     ns = dict(
@@ -375,20 +377,20 @@ class SerFactory:
     )
     _FNAME = "fname"
 
-    def __init__(self, resolver: "Resolver"):
+    def __init__(self, resolver: Resolver):
         self.resolver = resolver
         self._serializer_cache: MutableMapping[str, SerializerT] = {}
 
     @staticmethod
-    def _get_name(annotation: "Annotation") -> str:
+    def _get_name(annotation: Annotation) -> str:
         return util.get_defname("serializer", annotation)
 
-    def _check_add_null_check(self, func: gen.Function, annotation: "Annotation"):
+    def _check_add_null_check(self, func: gen.Function, annotation: Annotation):
         if annotation.optional:
             with func.b(f"if o in {self.resolver.OPTIONALS}:") as b:
                 b.l(f"{gen.Keyword.RET}")
 
-    def _add_type_check(self, func: gen.Function, annotation: "Annotation"):
+    def _add_type_check(self, func: gen.Function, annotation: Annotation):
         resolved_name = util.get_name(annotation.resolved)
         func.l(f"{self._FNAME} = name or {resolved_name!r}")
         line = "if not tcheck(o.__class__, t):"
@@ -415,7 +417,7 @@ class SerFactory:
     def _build_list_serializer(
         self,
         func: gen.Function,
-        annotation: "Annotation",
+        annotation: Annotation,
     ):
         # Check for value types
         line = "[*o]"
@@ -438,7 +440,7 @@ class SerFactory:
         func.l(f"{gen.Keyword.RET} {line}", level=None, **ns)
 
     def _build_key_serializer(
-        self, name: str, kser: SerializerT, annotation: "Annotation"
+        self, name: str, kser: SerializerT, annotation: Annotation
     ) -> SerializerT:
         kser_name = util.get_name(kser)
         # Build the namespace
@@ -467,7 +469,7 @@ class SerFactory:
         self,
         func: gen.Function,
         serdict: Type,
-        annotation: "Annotation",
+        annotation: Annotation,
     ):
         serdict_name = serdict.__name__
         self._check_add_null_check(func, annotation)
@@ -483,7 +485,7 @@ class SerFactory:
         line = "d if lazy else {**d}"
         func.l(f"{gen.Keyword.RET} {line}")
 
-    def _build_dict_serializer(self, func: gen.Function, annotation: "Annotation"):
+    def _build_dict_serializer(self, func: gen.Function, annotation: Annotation):
         # Check for args
         kser_: SerializerT
         vser_: SerializerT
@@ -508,7 +510,7 @@ class SerFactory:
     def _build_class_serializer(
         self,
         func: gen.Function,
-        annotation: "Annotation",
+        annotation: Annotation,
     ):
         # Get the field serializers
         fields_ser = {x: self.factory(y) for x, y in annotation.serde.fields.items()}
@@ -517,7 +519,7 @@ class SerFactory:
 
         self._finalize_mapping_serializer(func, serdict, annotation)
 
-    def _compile_enum_serializer(self, annotation: "Annotation") -> SerializerT:
+    def _compile_enum_serializer(self, annotation: Annotation) -> SerializerT:
         origin: Type[enum.Enum] = cast(Type[enum.Enum], annotation.resolved_origin)
         ts = {type(x.value) for x in origin}
         # If we can predict a single type the return the serializer for that
@@ -537,7 +539,7 @@ class SerFactory:
 
     def _compile_defined_serializer(
         self,
-        annotation: "Annotation",
+        annotation: Annotation,
         ser: SerializerT,
     ) -> SerializerT:
         func_name = self._get_name(annotation)
@@ -561,7 +563,7 @@ class SerFactory:
         return serializer
 
     def _compile_defined_subclass_serializer(
-        self, origin: Type, annotation: "Annotation"
+        self, origin: Type, annotation: Annotation
     ):
         for t, s in self._DEFINED.items():
             if issubclass(origin, t):
@@ -569,14 +571,14 @@ class SerFactory:
         # pragma: nocover
 
     def _compile_primitive_subclass_serializer(
-        self, origin: Type, annotation: "Annotation"
+        self, origin: Type, annotation: Annotation
     ):
         for t in self._PRIMITIVES:
             if issubclass(origin, t):
                 return self._compile_defined_serializer(annotation, t)
         # pragma: nocover
 
-    def _compile_serializer(self, annotation: "Annotation") -> SerializerT:
+    def _compile_serializer(self, annotation: Annotation) -> SerializerT:
         # Check for an optional and extract the type if possible.
         func_name = self._get_name(annotation)
         # We've been here before...
@@ -661,7 +663,7 @@ class DelayedSerializer:
 
     def __init__(
         self,
-        anno: Union["DelayedAnnotation", "ForwardDelayedAnnotation"],
+        anno: Union[DelayedAnnotation, ForwardDelayedAnnotation],
         factory: SerFactory,
     ):
         self.anno = anno

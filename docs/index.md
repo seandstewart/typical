@@ -17,6 +17,8 @@ validation, and enforcement of Python types,
 [PEP 484](https://www.python.org/dev/peps/pep-0484/) Type Hints, and
 custom user-defined data-types.
 
+It is also fully compliant with [PEP 563](https://www.python.org/dev/peps/pep-0563/).
+
 It provides a high-level Functional API and Object API to suite most
 any occasion.
 

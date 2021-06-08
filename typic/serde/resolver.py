@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import functools
 import inspect
@@ -484,7 +486,7 @@ class Resolver:
             else SerdeConfig(flags)
         )
 
-        anno = Annotation(
+        anno: Annotation = Annotation(
             resolved=use,
             origin=orig,
             un_resolved=annotation,

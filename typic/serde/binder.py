@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import inspect
 from collections import deque
@@ -36,7 +38,7 @@ if TYPE_CHECKING:  # pragma: nocover
 class BoundArguments:
     obj: Union[Type, Callable]
     """The object we "bound" the input to."""
-    annotations: "SerdeProtocolsT"
+    annotations: SerdeProtocolsT
     """A mapping of the resolved annotations."""
     parameters: Mapping[str, inspect.Parameter]
     """A mapping of the parameters."""
@@ -99,7 +101,7 @@ class BoundArguments:
 
 
 class Binder:
-    def __init__(self, resolver: "Resolver"):
+    def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
     def _bind_posargs(
@@ -125,7 +127,7 @@ class Binder:
             val = argspop()
             param: inspect.Parameter = paramspop()
             name = param.name
-            anno: Optional["SerdeProtocol"] = annosget(name)
+            anno: Optional[SerdeProtocol] = annosget(name)
             kind = param.kind
             # We've got varargs, so push all supplied args to that param.
             if kind == VAR_POSITIONAL:
@@ -159,7 +161,7 @@ class Binder:
         self,
         arguments: Dict[str, Any],
         params: Deque[inspect.Parameter],
-        annos: Dict[str, "SerdeProtocol"],
+        annos: Dict[str, SerdeProtocol],
         kwargs: Dict[str, Any],
         partial: bool = False,
     ) -> Tuple[str, ...]:
