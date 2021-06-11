@@ -42,6 +42,8 @@ __all__ = (
     "MultiConstraints",
     "TypeConstraints",
     "ValidatorT",
+    "ValidateT",
+    "ConstraintsProtocolT",
     "VT",
 )
 
@@ -50,12 +52,36 @@ VT = TypeVar("VT")
 AssertionsT = List[str]
 ContextT = Dict[str, Any]
 _T = TypeVar("_T")
+_T_co = TypeVar("_T_co", covariant=True)
 
 
-class ValidatorT(Protocol):
+class ValidatorT(Protocol[_T_co]):
     """The expected signature of a value validator."""
 
-    def __call__(self, value: VT, *, field: str = None, **kwargs) -> Tuple[bool, VT]:
+    def __call__(
+        self, value: Any, *, field: str = None, **kwargs
+    ) -> Tuple[bool, _T_co]:
+        ...
+
+
+class ValidateT(Protocol[_T_co]):
+    """The signature of the public validate callable for a Constraint."""
+
+    def __call__(self, value: Any, *, field: str = None) -> _T_co:
+        ...
+
+
+class ConstraintsProtocolT(Protocol[_T]):
+    """The guaranteed protocol for a Constraints instance."""
+
+    type: Type
+    nullable: bool
+    coerce: bool
+    name: Optional[str]
+    validator: ValidatorT[_T]
+    validate: ValidateT[_T]
+
+    def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
         ...
 
 
@@ -289,10 +315,10 @@ class BaseConstraints(_AbstractConstraints):
 class MultiConstraints(_AbstractConstraints):
     """A container for multiple constraints for a single field."""
 
-    constraints: Tuple["ConstraintsT", ...]
+    constraints: Tuple[ConstraintsProtocolT, ...]
     coerce: bool = False
     name: Optional[str] = None
-    tag: Optional["util.TaggedUnion"] = None
+    tag: Optional[util.TaggedUnion] = None
 
     @util.cached_property
     def nullable(self) -> bool:
@@ -546,7 +572,7 @@ class LiteralConstraints(_AbstractConstraints):
 class DelayedConstraints:
     __slots__ = "t", "nullable", "name", "factory", "_constraints"
 
-    def __init__(self, t: Type, nullable: bool, name: str, factory: Callable):
+    def __init__(self, t: Type, nullable: bool, name: Optional[str], factory: Callable):
         self.t = t
         self.nullable = nullable
         self.name = name
@@ -593,7 +619,7 @@ class ForwardDelayedConstraints:
         module: str,
         localns: Mapping,
         nullable: bool,
-        name: str,
+        name: Optional[str],
         factory: Callable,
     ):
         self.ref = ref

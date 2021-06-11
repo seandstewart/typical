@@ -427,8 +427,8 @@ def _get_constraint_cls(cls: Type) -> Optional[Type[c.ConstraintsT]]:
 
 def _get_maybe_multi_constraints(
     v,
-) -> Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]:
-    cons: Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]
+) -> Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]:
+    cons: Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]
     if isinstance(v, Iterable):
         cons_gen = (c.get_constraints(x) for x in v)
         cons = tuple((x for x in cons_gen if x is not None))

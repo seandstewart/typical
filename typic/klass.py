@@ -60,8 +60,8 @@ class Field(dataclasses.Field):
         exclude: bool = False,
         name: str = None,
     ):
-        super(Field, self).__init__(  # type: ignore
-            default, default_factory, init, repr, hash, compare, metadata
+        super(Field, self).__init__(
+            default, default_factory, init, repr, hash, compare, metadata  # type: ignore
         )
         self.exclude = exclude
         self.external_name = name

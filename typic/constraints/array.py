@@ -16,15 +16,11 @@ from typing import (
     Hashable,
     Set,
     FrozenSet,
-    TYPE_CHECKING,
 )
 
 from typic import gen, checks, util
 from typic.types.frozendict import freeze
-from .common import BaseConstraints, ContextT, AssertionsT
-
-if TYPE_CHECKING:  # pragma: nocover
-    from typic.constraints.factory import ConstraintsT  # noqa: F401
+from .common import BaseConstraints, ContextT, AssertionsT, ConstraintsProtocolT
 
 Array = Union[FrozenSet, Set, List, Tuple]
 """The supported builtin types for defining restricted array-types."""
@@ -115,7 +111,7 @@ class ArrayConstraints(BaseConstraints):
     -----
     Rather than reject arrays which are not unique, we will simply make the array unique.
     """
-    values: Optional[ConstraintsT] = None
+    values: Optional[ConstraintsProtocolT] = None
     """The constraints for which the items in the array must adhere.
 
     This can be a single type-constraint, or a tuple of multiple constraints.
@@ -190,7 +186,7 @@ class TupleConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`tuple`."""
 
     type: ClassVar[Type[tuple]] = tuple
-    values: Union[Optional[ConstraintsT], Sequence[ConstraintsT]] = None  # type: ignore
+    values: Union[Optional[ConstraintsProtocolT], Sequence[ConstraintsProtocolT]] = None  # type: ignore
 
     def _build_validator(
         self, func: gen.Block, context: ContextT, assertions: AssertionsT

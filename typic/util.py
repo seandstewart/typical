@@ -39,7 +39,7 @@ import pendulum
 from future_typing import transform_annotation
 
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache, SpecialForm
+from typic.compat import ForwardRef, lru_cache
 from typic.ext import json
 
 __all__ = (
@@ -527,7 +527,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
 VT = TypeVar("VT")
 
 
-class TypeMap(Dict[Union[Type, SpecialForm], VT]):
+class TypeMap(Dict[Union[Any], VT]):
     """A mapping of Type -> value."""
 
     def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:

@@ -30,6 +30,7 @@ from typing import (
     MutableMapping,
     Dict,
     Optional,
+    TypeVar,
 )
 
 from typic import util, checks, gen, types
@@ -41,9 +42,7 @@ from .common import (
     Annotation,
     ForwardDelayedAnnotation,
     DelayedAnnotation,
-    AnnotationT,
 )
-
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
@@ -55,17 +54,17 @@ class SerializationValueError(ValueError):
 
 _decode = methodcaller("decode", DEFAULT_ENCODING)
 _pattern = attrgetter("pattern")
+_T = TypeVar("_T")
 
 
 class SerFactory:
     """A factory for generating high-performance serializers.
-
     Notes
     -----
     Should not be used directly.
     """
 
-    _DEFINED: Mapping[Type, Callable[[Any], Any]] = {
+    _DEFINED: Mapping[Type, SerializerT] = {
         ipaddress.IPv4Address: str,
         ipaddress.IPv4Network: str,
         ipaddress.IPv6Address: str,
@@ -81,17 +80,17 @@ class SerFactory:
         types.HostName: str,
         types.NetworkAddress: str,
         types.RelativeURL: str,
-        types.SecretBytes: lambda o: _decode(o.secret),
-        types.SecretStr: attrgetter("secret"),
+        types.SecretBytes: cast(SerializerT, lambda o: _decode(o.secret)),
+        types.SecretStr: cast(SerializerT, attrgetter("secret")),
         types.URL: str,
         uuid.UUID: str,
         decimal.Decimal: float,
-        bytes: _decode,
-        bytearray: _decode,
-        datetime.date: util.isoformat,
-        datetime.datetime: util.isoformat,
-        datetime.time: util.isoformat,
-        datetime.timedelta: util.isoformat,
+        bytes: cast(SerializerT, _decode),
+        bytearray: cast(SerializerT, _decode),
+        datetime.date: cast(SerializerT, util.isoformat),
+        datetime.datetime: cast(SerializerT, util.isoformat),
+        datetime.time: cast(SerializerT, util.isoformat),
+        datetime.timedelta: cast(SerializerT, util.isoformat),
     }
 
     _LISTITER = (
@@ -159,7 +158,7 @@ class SerFactory:
         self._check_add_null_check(func, annotation)
         self._add_type_check(func, annotation)
         if annotation.args:
-            arg_a: "AnnotationT" = self.resolver.annotation(
+            arg_a: Annotation = self.resolver.annotation(
                 annotation.args[0], flags=annotation.serde.flags
             )
             arg_ser = self.factory(arg_a)
@@ -174,16 +173,14 @@ class SerFactory:
         # Check for args
         kser_: SerializerT
         vser_: SerializerT
-        kser_, vser_ = self.resolver.primitive, self.resolver.primitive
+        kser_, vser_ = cast(SerializerT, self.resolver.primitive), cast(
+            SerializerT, self.resolver.primitive
+        )
         args = util.get_args(annotation.resolved)
         if args:
             kt, vt = args
-            ktr: "AnnotationT" = self.resolver.annotation(
-                kt, flags=annotation.serde.flags
-            )
-            vtr: "AnnotationT" = self.resolver.annotation(
-                vt, flags=annotation.serde.flags
-            )
+            ktr: Annotation = self.resolver.annotation(kt, flags=annotation.serde.flags)
+            vtr: Annotation = self.resolver.annotation(vt, flags=annotation.serde.flags)
             kser_, vser_ = (self.factory(ktr), self.factory(vtr))
         # Add sanity checks.
         self._check_add_null_check(func, annotation)
@@ -255,15 +252,15 @@ class SerFactory:
             ):
                 return _vser(o.value, lazy=lazy, name=name)
 
-            return serializer
+            return cast(SerializerT, serializer)
         # Else default to lazy serialization
-        return self.resolver.primitive
+        return cast(SerializerT, self.resolver.primitive)
 
     def _compile_defined_serializer(
         self,
-        annotation: Annotation,
-        ser: SerializerT,
-    ) -> SerializerT:
+        annotation: Annotation[Type[_T]],
+        ser: SerializerT[_T],
+    ) -> SerializerT[_T]:
         func_name = self._get_name(annotation)
         ser_name = "ser"
         ns = {ser_name: ser}
@@ -300,7 +297,7 @@ class SerFactory:
                 return self._compile_defined_serializer(annotation, t)
         # pragma: nocover
 
-    def _compile_serializer(self, annotation: Annotation) -> SerializerT:
+    def _compile_serializer(self, annotation: Annotation[Type[_T]]) -> SerializerT[_T]:
         # Check for an optional and extract the type if possible.
         func_name = self._get_name(annotation)
         # We've been here before...
@@ -311,7 +308,7 @@ class SerFactory:
         origin = annotation.resolved_origin
         # Lazy shortcut for messy paths (Union, Any, ...)
         if origin in self._DYNAMIC or not annotation.static:
-            serializer = self.resolver.primitive
+            serializer = cast(SerializerT, self.resolver.primitive)
         # Enums are special
         elif checks.isenumtype(annotation.resolved):
             serializer = self._compile_enum_serializer(annotation)
@@ -373,9 +370,9 @@ class SerFactory:
             self._serializer_cache[func_name] = serializer
         return serializer
 
-    def factory(self, annotation: "AnnotationT"):
+    def factory(self, annotation: Annotation[Type[_T]]) -> SerializerT[_T]:
         if isinstance(annotation, (DelayedAnnotation, ForwardDelayedAnnotation)):
-            return DelayedSerializer(annotation, self)
+            return cast(SerializerT, DelayedSerializer(annotation, self))
         annotation.serde = annotation.serde or SerdeConfig()
         return self._compile_serializer(annotation)
 
