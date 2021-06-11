@@ -57,7 +57,7 @@ if sys.version_info < (3, 7):  # pragma: nocover
         return type_._eval_type(globalns, localns)
 
 
-elif sys.version_info >= (3, 9):
+elif sys.version_info >= (3, 9):  # pragma: nocover
     from typing import ForwardRef
 
     def evaluate_forwardref(
