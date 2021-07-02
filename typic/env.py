@@ -56,17 +56,18 @@ class Environ:
 
     def register(self, t: Type[_ET], *, name: str = None):
         """Register a handler for the target type `t`."""
-        name = name or get_name(t)
+        anno = self.resolver.annotation(t)
+        name = name or get_name(anno.resolved)
         if name in self.__dict__:
             return self.__dict__[name]
 
-        if not inspect.isclass(t):
+        if not inspect.isclass(anno.resolved):
             raise EnvironmentTypeError(
                 f"Can't coerce to target {name!r} with t: {t!r}."
             ) from None
 
-        def get(var: str, *, ci: bool = True):
-            return self.getenv(var, t=t, ci=ci)
+        def get(var: str, *, ci: bool = True, default: _ET = ...):  # type: ignore
+            return self.getenv(var, t=t, ci=ci, default=default)
 
         setattr(self, name, get)
         return get
@@ -74,7 +75,7 @@ class Environ:
     def getenv(
         self,
         var: str,
-        default: _ET = None,
+        default: _ET = ...,  # type: ignore
         *,
         t: Type[_ET] = Any,  # type: ignore
         ci: bool = True,
@@ -86,17 +87,19 @@ class Environ:
             ci: Whether the variable should be considered case-insensitive.
         """
         proto = self.resolver.resolve(t)
-        value = os.environ.get(var)
-        if value is None and ci:
+        value = os.environ.get(var, default)
+        if value == default and ci:
             value = next(
-                (v for k, v in os.environ.items() if k.lower() == var.lower()), None
+                (v for k, v in os.environ.items() if k.lower() == var.lower()), default
             )
-        if value is None and t is Any:
-            return default  # type: ignore
-        if value is None and not proto.annotation.optional:
+        if value is ... and t is Any:
+            return None  # type: ignore
+        if value is ... and not proto.annotation.optional:
             raise EnvironmentValueError(
                 f"{var!r} should be of {t!r}, got nothing."
             ) from None
+        if value == default:
+            return value  # type: ignore
         try:
             return proto.transmute(value)  # type: ignore
         except (TypeError, ValueError) as err:

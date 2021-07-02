@@ -674,13 +674,16 @@ def _resolve_from_env(
             field = dataclasses.field()
         elif not isinstance(field, dataclasses.Field):
             field = dataclasses.field(default=field)
-        if (
-            field.default != dataclasses.MISSING
-            or field.default_factory != dataclasses.MISSING
-        ):
+        if field.default_factory != dataclasses.MISSING:
             continue
+
+        kwargs = dict(var=k, ci=not case_sensitive)
+        if field.default != dataclasses.MISSING:
+            kwargs["default"] = field.default
+            field.default = dataclasses.MISSING
+
         factory = environ.register(t=typ, name=name)
-        field.default_factory = functools.partial(factory, var=k, ci=not case_sensitive)
+        field.default_factory = functools.partial(factory, **kwargs)
         setattr(cls, attr, field)
 
     return cls
