@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import inspect
 from functools import partial
-from typing import Union, Type, Any, TypeVar, Callable, Generic
+from typing import Union, Type, Any, TypeVar, Callable, Generic, Mapping
 
 import inflection
 
@@ -54,10 +54,10 @@ def upper_kebab_case(s: str) -> str:
 
 
 def upper_dot_case(s: str) -> str:
-    return inflection.dasherize(s, separator=".").upper()
+    return inflection.parameterize(s, separator=".").upper()
 
 
-_TRANSFORMERS = {
+_TRANSFORMERS: Mapping[Case, CaseTransformerT] = {
     Case.CAMEL: partial(inflection.camelize, uppercase_first_letter=False),
     Case.SNAKE: inflection.underscore,
     Case.PASCAL: inflection.camelize,
