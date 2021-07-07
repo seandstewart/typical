@@ -430,6 +430,26 @@ class MutableClassVar:
     f: typing.ClassVar[typing.List[str]] = []
 
 
+@dataclasses.dataclass
+class Pep585:
+    data: dict[str, int]
+
+
+@dataclasses.dataclass
+class Pep604:
+    union: DFoo | DBar
+
+
+@typic.al
+def pep585(data: dict[str, int]) -> dict[str, int]:
+    return data
+
+
+@typic.al
+def pep604(union: DFoo | DBar) -> DFoo | DBar:
+    return union
+
+
 TYPIC_OBJECTS = [
     Typic,
     Inherited,

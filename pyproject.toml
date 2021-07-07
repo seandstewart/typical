@@ -54,6 +54,7 @@ mkdocs = {version = "^1.1", optional = true}
 mkdocs-material = {version = "^5.5", optional = true}
 mkdocs-awesome-pages-plugin = {version = "^2.2.1", optional = true}
 pymdown-extensions = {version = "^7.0", optional = true}
+future-typing = "^0.4.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
