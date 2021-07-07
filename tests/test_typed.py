@@ -862,7 +862,16 @@ def test_validate_invalid(t, v):
 
 
 @pytest.mark.parametrize(
-    argnames="target", argvalues=[objects.Alchemy, objects.Pydantic, objects.Typical]
+    argnames="target",
+    argvalues=[
+        dict,
+        list,
+        tuple,
+        typing.Iterator,
+        objects.Alchemy,
+        objects.Pydantic,
+        objects.Typical,
+    ],
 )
 @pytest.mark.parametrize(
     argnames="value",
