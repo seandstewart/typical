@@ -170,32 +170,6 @@ class SerFactory:
 
         func.l(f"{gen.Keyword.RET} {line}", level=None, **ns)
 
-    def _build_key_serializer(
-        self, name: str, kser: SerializerT, annotation: Annotation
-    ) -> SerializerT:
-        kser_name = util.get_name(kser)
-        # Build the namespace
-        ns: Dict[str, Any] = {
-            kser_name: kser,
-        }
-        kvar = "k_"
-        with gen.Block(ns) as main:
-            with main.f(
-                name, main.param(kvar), main.param("lazy", default=False)
-            ) as kf:
-                k = f"{kser_name}({kvar})"
-                # If there are args & field mapping, get the correct field name
-                # AND serialize the key.
-                if annotation.serde.fields_out:
-                    ns["fields_out"] = annotation.serde.fields_out
-                    k = f"{kser_name}(fields_out.get({kvar}, {kvar}))"
-                # If there are only serializers, get the serialized value
-                if annotation.serde.flags.case:
-                    ns.update(case=annotation.serde.flags.case.transformer)
-                    k = f"case({k})"
-                kf.l(f"{gen.Keyword.RET} {k}")
-        return main.compile(name=name, ns=ns)
-
     def _build_dict_serializer(self, func: gen.Function, annotation: Annotation):
         # Check for args
         kser_: SerializerT
