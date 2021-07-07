@@ -254,9 +254,7 @@ class Bar:
     ],
 )
 def test_tojson_native(obj, expected):
-    native = (
-        json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
-    )
+    native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
     assert typic.tojson(obj) == native == expected
 
 

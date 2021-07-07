@@ -556,7 +556,7 @@ class Resolver:
             **kwargs,
         ) -> str:
             return __dumps(
-                __prim(val, lazy=True),
+                __prim(val),
                 indent=indent,
                 ensure_ascii=ensure_ascii,
                 **kwargs,

@@ -26,18 +26,13 @@ from typing import (
     ClassVar,
     cast,
     TYPE_CHECKING,
-    TypeVar,
     Iterable,
     MutableMapping,
-    ItemsView,
-    KeysView,
-    ValuesView,
     Dict,
     Optional,
 )
 
 from typic import util, checks, gen, types
-from typic.ext import json
 from typic.common import DEFAULT_ENCODING
 from typic.compat import Literal
 from .common import (
@@ -45,10 +40,6 @@ from .common import (
     SerdeConfig,
     Annotation,
     ForwardDelayedAnnotation,
-    Unprocessed,
-    Omit,
-    KT,
-    VT,
     DelayedAnnotation,
     AnnotationT,
 )
@@ -58,265 +49,8 @@ if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
 
 
-_T = TypeVar("_T")
-
-
-def make_class_serdict(annotation: Annotation, fields: Mapping[str, SerializerT]):
-    name = f"{util.get_name(annotation.resolved_origin)}SerDict"
-    bases = (ClassFieldSerDict,)
-    getters = annotation.serde.fields_getters
-    omit = (*annotation.serde.omit_values,)
-    if annotation.serde.fields_out:
-        fout = annotation.serde.fields_out
-        getters = {y: getters[x] for x, y in fout.items()}
-        fields = {y: fields[x] for x, y in fout.items()}
-
-    def getitem(self, key):
-        v = dict.__getitem__(self, key)
-        return self.__missing__(key) if v is Unprocessed else v
-
-    if omit:
-
-        def missing(
-            self,
-            item,
-            *,
-            __fields=fields,
-            __getters=getters,
-            __repr=util.joinedrepr,
-            __omit=omit,
-        ):
-            raw = __getters[item](self.instance)
-            if raw not in __omit:
-                self[item] = ret = __fields[item](
-                    raw, lazy=self.lazy, name=__repr(self._name, item)
-                )
-                return ret
-            return Omit
-
-        def iter(self, *, __fields=fields.keys(), Omit=Omit):
-            for k in fields:
-                v = self.__missing__(k)
-                if v is Omit:
-                    continue
-                yield k
-
-    else:
-
-        def missing(  # type: ignore
-            self,
-            item,
-            *,
-            __fields=fields,
-            __getters=getters,
-            __repr=util.joinedrepr,
-        ):
-            self[item] = ret = __fields[item](
-                __getters[item](self.instance),
-                lazy=self.lazy,
-                name=__repr(self._name, item),
-            )
-            return ret
-
-        def iter(self, *, __fields=fields.keys()):  # type: ignore
-            for k in __fields:
-                self.__missing__(k)
-                yield k
-
-    stdlib = json.using_stdlib()
-    ns = dict(
-        lazy=False,
-        getters=getters,
-        fields=fields,
-        omit=(*annotation.serde.omit_values,),
-        type=annotation.resolved_origin,
-        __missing__=missing,
-        __iter__=iter,
-        stdlib=stdlib,
-    )
-    if stdlib:
-        ns["__getitem__"] = getitem
-    return type(name, bases, ns)
-
-
 class SerializationValueError(ValueError):
     ...
-
-
-class ClassFieldSerDict(dict):
-    type: Type
-    instance: Any
-    lazy: bool
-    getters: Mapping[str, Callable[[str], Any]]
-    fields: Mapping[str, SerializerT]
-    omit: Iterable[Any]
-    stdlib: bool
-
-    __slots__ = ("instance", "lazy", "_name")
-
-    def __init__(
-        self,
-        instance: Any,
-        lazy: bool = False,
-        *,
-        __tfname__: util.ReprT = None,
-    ):
-        self._name = __tfname__
-        self.instance = instance
-        self.lazy = lazy
-        if self.stdlib:
-            dict.__init__(self, dict.fromkeys(self.fields, Unprocessed))
-
-    def __hash__(self):
-        return self.instance.__hash__()
-
-    def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
-        return ItemsView(self)  # type: ignore
-
-    def keys(self) -> KeysView[KT]:  # pragma: nocover
-        return KeysView(self)  # type: ignore
-
-    def values(self) -> ValuesView[VT]:  # pragma: nocover
-        return ValuesView(self)  # type: ignore
-
-
-def make_kv_serdict(annotation: Annotation, kser: SerializerT, vser: SerializerT):
-    name = f"{util.get_name(annotation.resolved_origin)}KVSerDict"
-    bases = (KVSerDict,)
-    omit = (*annotation.serde.omit_values,)
-
-    def getitem(self, key):
-        v = dict.__getitem__(self, key)
-        return self.__missing__(key) if v is Unprocessed else v
-
-    if omit:
-
-        def missing(self, key, *, __repr=util.collectionrepr, __vser=vser, __omit=omit):
-            if key in self._unprocessed:
-                value = self._unprocessed[key]
-                if value in __omit:
-                    return Omit
-                newv = __vser(  # type: ignore
-                    value,
-                    lazy=self.lazy,
-                    name=__repr(self._name, key),
-                )
-                self[key] = newv
-                return newv
-            raise KeyError(f"{__repr(self._name, key)!r}")
-
-        def iter(self, *, Omit=Omit, __kser=kser):  # type: ignore
-            for k in self._unprocessed:
-                if self[k] is Omit:
-                    continue
-                yield k
-
-    else:
-
-        def missing(self, key, *, __repr=util.collectionrepr, __vser=vser):  # type: ignore
-            if key in self._unprocessed:
-                newv = vser(  # type: ignore
-                    self._unprocessed[key],
-                    lazy=self.lazy,
-                    name=__repr(self._name, key),
-                )
-                self[key] = newv
-                return newv
-            raise KeyError(f"{__repr(self._name, key)!r}")
-
-        def iter(self, *, __kser=kser):  # type: ignore
-            for k in self._unprocessed:
-                self[k]
-                yield k
-
-    stdlib = json.using_stdlib()
-    ns = dict(
-        type=annotation.generic,
-        lazy=False,
-        kser=staticmethod(kser),
-        vser=staticmethod(vser),
-        omit=omit,
-        __missing__=missing,
-        __iter__=iter,
-        stdlib=stdlib,
-    )
-    if stdlib:
-        ns["__getitem__"] = getitem
-    return type(name, bases, ns)
-
-
-class KVSerDict(dict):
-    kser: SerializerT
-    vser: SerializerT
-    lazy: bool
-    omit: Iterable[Any]
-    stdlib: bool
-
-    __slots__ = ("_unprocessed", "_name")
-
-    def __init__(self, mapping: Mapping, *, lazy: bool = False, __tfname__: util.ReprT):
-        kser = self.kser
-        self._name = __tfname__
-        self._unprocessed = {kser(k): v for k, v in mapping.items()}  # type: ignore
-        self.lazy = lazy
-        if self.stdlib:
-            dict.__init__(self, dict.fromkeys(self._unprocessed, Unprocessed))
-
-    def items(self) -> ItemsView[KT, VT]:  # pragma: nocover
-        return ItemsView(self)  # type: ignore
-
-    def keys(self) -> KeysView[KT]:
-        return KeysView(self)  # type: ignore
-
-    def values(self) -> ValuesView[VT]:  # pragma: nocover
-        return ValuesView(self)  # type: ignore
-
-
-def make_serlist(annotation: Annotation, serializer: SerializerT):
-    name = f"{util.get_name(annotation.resolved_origin)}SerList"
-    bases = (SerList,)
-    ns = dict(
-        lazy=False,
-        serializer=staticmethod(serializer),
-        omit=(*annotation.serde.omit_values,),
-    )
-    return type(name, bases, ns)
-
-
-class SerList(list):
-    serializer: SerializerT
-    omit: Iterable[Any]
-    lazy: bool
-
-    __slots__ = ("repr", "_name")
-
-    def __init__(self, seq=(), *, __tfname__: util.ReprT, lazy: bool = False):
-        self.repr = util.collectionrepr
-        self.lazy = lazy
-        self._name = __tfname__
-        ser = self.serializer
-        list.__init__(
-            self,
-            (
-                ser(x, lazy=lazy, name=self.repr(self._name, i))  # type: ignore
-                for i, x in enumerate(seq)
-            ),
-        )
-
-    def __setitem__(self, key, value):  # pragma: nocover
-        super().__setitem__(
-            key,
-            self.serializer(value, lazy=self.lazy, name=self.repr(self._name, key)),
-        )
-
-    def append(self, object: _T) -> None:  # pragma: nocover
-        super().append(
-            self.serializer(  # type: ignore
-                object,
-                lazy=self.lazy,
-                name=self.repr(self._name, len(self)),
-            )
-        )
 
 
 _decode = methodcaller("decode", DEFAULT_ENCODING)
@@ -422,21 +156,18 @@ class SerFactory:
         # Check for value types
         line = "[*o]"
         ns: Dict[str, Any] = {}
+        self._check_add_null_check(func, annotation)
+        self._add_type_check(func, annotation)
         if annotation.args:
             arg_a: "AnnotationT" = self.resolver.annotation(
                 annotation.args[0], flags=annotation.serde.flags
             )
             arg_ser = self.factory(arg_a)
             arg_ser_name = "arg_ser"
+            ns[arg_ser_name] = arg_ser
+            func.l(f"gen = ({arg_ser_name}(v) for v in o)")
+            line = "gen if lazy else [*gen]"
 
-            serlist = make_serlist(annotation, arg_ser)
-            serlist_name = serlist.__name__
-
-            ns = {serlist_name: serlist, arg_ser_name: arg_ser}
-            line = f"{serlist_name}(o, lazy=lazy, __tfname__={self._FNAME})"
-
-        self._check_add_null_check(func, annotation)
-        self._add_type_check(func, annotation)
         func.l(f"{gen.Keyword.RET} {line}", level=None, **ns)
 
     def _build_key_serializer(
@@ -465,26 +196,6 @@ class SerFactory:
                 kf.l(f"{gen.Keyword.RET} {k}")
         return main.compile(name=name, ns=ns)
 
-    def _finalize_mapping_serializer(
-        self,
-        func: gen.Function,
-        serdict: Type,
-        annotation: Annotation,
-    ):
-        serdict_name = serdict.__name__
-        self._check_add_null_check(func, annotation)
-        self._add_type_check(func, annotation)
-
-        ns: Dict[str, Any] = {serdict_name: serdict}
-        func.l(
-            f"d = {serdict_name}(o, lazy=lazy, __tfname__={self._FNAME})",
-            level=None,
-            **ns,
-        )
-        # Write the line.
-        line = "d if lazy else {**d}"
-        func.l(f"{gen.Keyword.RET} {line}")
-
     def _build_dict_serializer(self, func: gen.Function, annotation: Annotation):
         # Check for args
         kser_: SerializerT
@@ -500,12 +211,29 @@ class SerFactory:
                 vt, flags=annotation.serde.flags
             )
             kser_, vser_ = (self.factory(ktr), self.factory(vtr))
-        kser_ = self._build_key_serializer(f"{func.name}_kser", kser_, annotation)
-        # Get the names for our important variables
-
-        serdict = make_kv_serdict(annotation, kser_, vser_)
-
-        self._finalize_mapping_serializer(func, serdict, annotation)
+        # Add sanity checks.
+        self._check_add_null_check(func, annotation)
+        self._add_type_check(func, annotation)
+        ns: Dict[str, Any] = {
+            "kser": kser_,
+            "vser": vser_,
+        }
+        ksercall = "kser(k)"
+        if annotation.serde.fields_out:
+            ns["fields_out"] = annotation.serde.fields_out
+            ksercall = "kser(fields_out.get(k, k))"
+        if annotation.serde.flags.case:
+            ns["case"] = annotation.serde.flags.case.transformer
+            ksercall = f"case({ksercall})"
+        gencall = f"({ksercall}, vser(v)) for k, v in o.items()"
+        if annotation.serde.flags.omit:
+            ns["omit"] = annotation.serde.flags.omit
+            gencall = f"{gencall} if v not in omit"
+        func.l(
+            f"gen = ({gencall})",
+            **ns,
+        )
+        func.l(f"{gen.Keyword.RET} gen if lazy else {{k: v for k, v in gen}}")
 
     def _build_class_serializer(
         self,
@@ -514,10 +242,30 @@ class SerFactory:
     ):
         # Get the field serializers
         fields_ser = {x: self.factory(y) for x, y in annotation.serde.fields.items()}
+        iterator = self.resolver.translator.iterator(annotation.resolved, relaxed=True)
+        self._check_add_null_check(func, annotation)
+        self._add_type_check(func, annotation)
+        ns: Dict[str, Any] = {
+            "fields_ser": fields_ser,
+            "fields_out": annotation.serde.fields_out.keys(),
+            "iterator": iterator,
+        }
+        # Determine how to dump the field.
+        f = "f"
+        # Get the mapping of attr->out
+        # If we have transforms, make sure we use them on dump.
+        transforms = {f: t for f, t in annotation.serde.fields_out.items() if f != t}
+        if transforms:
+            ns["transforms"] = transforms
+            f = "transforms.get(f, f)"
+        # Define the generator expression.
+        gencall = f"({f}, fields_ser[f](v)) for f, v in iterator(o) if f in fields_out"
+        if annotation.serde.flags.omit:
+            ns["omit"] = annotation.serde.flags.omit
+            gencall = f"{gencall} and v not in omit"
 
-        serdict = make_class_serdict(annotation, fields_ser)
-
-        self._finalize_mapping_serializer(func, serdict, annotation)
+        func.l(f"gen = ({gencall})", **ns)
+        func.l(f"{gen.Keyword.RET} gen if lazy else {{f: v for f, v in gen}}")
 
     def _compile_enum_serializer(self, annotation: Annotation) -> SerializerT:
         origin: Type[enum.Enum] = cast(Type[enum.Enum], annotation.resolved_origin)
