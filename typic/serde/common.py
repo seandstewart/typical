@@ -23,6 +23,7 @@ from typing import (
     Iterator,
     TYPE_CHECKING,
     Generic,
+    Protocol,
 )
 
 from typic import strict as st, util, constraints as const
@@ -47,7 +48,6 @@ DecoderT = Callable[..., Any]
 """The signature of an on-the-wire decoder for an input."""
 TranslatorT = Callable[..., Any]
 """The signature of a type translator."""
-FieldIteratorT = Callable[[Any], Iterator[Union[Tuple[str, Any], Any]]]
 FieldSerializersT = Mapping[str, SerializerT]
 """A mapping of field names to their serializer functions."""
 FieldDeserializersT = Mapping[str, DeserializerT]
@@ -67,6 +67,18 @@ FieldSettingsT = Union[Tuple[str, ...], Mapping[str, str]]
 
 A mapping should be of attribute name -> out/in field name.
 """
+
+
+class FieldIteratorT(Protocol):
+    """The type-signature for a FieldIterator function."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(
+        self, o: ObjectT, *, values: bool = False, **kwargs
+    ) -> Iterator[Union[Tuple[str, Any], Any]]:
+        ...
 
 
 @util.slotted(dict=False)
@@ -377,8 +389,10 @@ class SerdeProtocol(Generic[_T]):
     """Validate an input against the annotation."""
     translate: TranslatorT = dataclasses.field(repr=False)
     """Translate an instance of the annotation into another type."""
-    tojson: Callable[..., AnyStr]
+    tojson: Callable[..., AnyStr] = dataclasses.field(repr=False)
     """Dump an instance of the annotation to valid JSON."""
+    iterate: FieldIteratorT = dataclasses.field(repr=False)
+    """Iterate over an instance of the annotation, if possible."""
     transmute: DeserializerT = dataclasses.field(repr=False, init=False)
     """Transmute an input into the annotation."""
     primitive: SerializerT = dataclasses.field(repr=False, init=False)
