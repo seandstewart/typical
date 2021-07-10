@@ -54,36 +54,41 @@ The simplest method for customizing your protocol is via the Protocol API.
 ??? example "Customizing a dataclass Protocol"
 
     ```python
-    import typic
+    import dataclasses
     import json
-    
-    
+
+    import typic
+
+
     def encode(o):
-        return json.encode(o).encode("utf-8-sig")
+        return json.dumps(o).encode("utf-8-sig")
     
     
     def decode(o):
-        return o.decode("utf-8-sig")
+        return json.loads(o.decode("utf-8-sig"))
     
     
     @dataclasses.dataclass
     class Foo:
-       bar: str
-       exclude: str
+        bar: str
+        exclude: str = None
     
     
     foo = Foo("bar", "exc")
-    flags = typic.flags(fields={"bar": "Bar"}, decoder=decode, encoder=encode)
+    flags = typic.flags(fields={"bar": "Bar"}, exclude=("exclude",), decoder=decode, encoder=encode)
     proto = typic.protocol(Foo, flags=flags)
-
-    print(proto.primitive(foo)
+    
+    print(proto.primitive(foo))
     #> {'Bar': 'bar'}
     
     print(proto.tojson(foo))
     #> '{"Bar":"bar"}'
     
     print(proto.encode(foo))
-    #> b'\xef\xbb\xbf{"Bar":bar}'
+    #> b'\xef\xbb\xbf{"Bar": "bar"}'
+    
+    print(proto.decode(b'\xef\xbb\xbf{"Bar": "bar"}'))
+    #> Foo(bar='bar', exclude=None)
     ```
 
 You can also assign the `__serde_flags__` attribute on any class.
