@@ -11,9 +11,18 @@ from typing import (
     Set,
     Dict,
     Any,
+    Callable,
+    Iterator,
+    Union,
 )
 
-from typic.checks import ismappingtype, isiterabletype, isliteral
+from typic.checks import (
+    ismappingtype,
+    isiterabletype,
+    isliteral,
+    isnamedtuple,
+    isiteratortype,
+)
 from typic.compat import lru_cache
 from typic.gen import Block, Keyword, ParameterKind
 from typic.util import (
@@ -22,10 +31,11 @@ from typic.util import (
     safe_get_params,
     get_unique_name,
     get_defname,
+    get_name,
 )
 
 if TYPE_CHECKING:
-    from .common import Annotation, TranslatorT, SerdeProtocol, FieldIteratorT
+    from .common import Annotation, TranslatorT, SerdeProtocol
     from .resolver import Resolver
 
 
@@ -128,36 +138,41 @@ class TranslatorFactory:
         return None if undefined else params
 
     @lru_cache(maxsize=None)
-    def iterator(self, type: Type, values: bool = False) -> FieldIteratorT:
+    def iterator(
+        self, type: Type, values: bool = False, relaxed: bool = False
+    ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
 
         if ismappingtype(type):
             iter = _valuescaller if values else _itemscaller
             return iter
 
-        if isiterabletype(type):
+        if isiterabletype(type) and not isnamedtuple(type):
             return _iter
 
         fields = self.get_fields(type, as_source=True) or {}
 
-        if fields:
-            func_name = get_defname("iterator", (type, values))
-            oname = "o"
-            ctx: dict = {}
-            with Block(ctx) as main:
-                with main.f(func_name, Block.p(oname)) as func:
+        if not fields and not relaxed:
+            raise TranslatorTypeError(
+                f"Cannot get iterator for type {type!r}, unable to determine fields."
+            ) from None
+
+        func_name = get_defname("iterator", (type, values))
+        oname = "o"
+        ctx: dict = {}
+        with Block(ctx) as main:
+            with main.f(func_name, Block.p(oname)) as func:
+                if fields:
                     if values:
                         for f in fields:
                             func.l(f"{Keyword.YLD} {oname}.{f}")
                     else:
                         for f in fields:
                             func.l(f"{Keyword.YLD} {f!r}, {oname}.{f}")
+                else:
+                    func.l(f"{Keyword.YLD}")
 
-            return main.compile(name=func_name, ns=ctx)
-
-        raise TranslatorTypeError(
-            f"Cannot get iterator for type {type!r}, unable to determine fields."
-        ) from None
+        return main.compile(name=func_name, ns=ctx)
 
     @staticmethod
     def _get_name(source: Type, target: Type) -> str:
@@ -181,6 +196,21 @@ class TranslatorFactory:
                 fset = f"{f}={fset}"
             yield fset
 
+    def _compile_iterable_translator(self, source: Type, target: Type) -> TranslatorT:
+        func_name = self._get_name(source, target)
+        target_name = get_name(target)
+        oname = "o"
+        ismapping = ismappingtype(target)
+        iterator = self.iterator(source, not ismapping)
+        ctx = {"iterator": iterator, target_name: target}
+        with Block(ctx) as main:
+            with main.f(func_name, Block.p(oname)) as func:
+                retval = f"iterator({oname})"
+                if not isiteratortype(target):
+                    retval = f"{target_name}({retval})"
+                func.l(f"{Keyword.RET} {retval}")
+        return main.compile(name=func_name)
+
     @lru_cache(maxsize=None)
     def _compile_translator(self, source: Type, target: Type) -> TranslatorT:
         if isliteral(target):
@@ -194,6 +224,8 @@ class TranslatorFactory:
         # Get the target fields for translation.
         target_fields = self.get_fields(target)
         if target_fields is None:
+            if isiterabletype(target):
+                return self._compile_iterable_translator(source, target)
             raise TranslatorTypeError(
                 f"Cannot translate to type {target!r}. "
                 f"Unable to determine target fields."
@@ -231,3 +263,6 @@ class TranslatorFactory:
     def factory(self, annotation: "Annotation", target: Type) -> TranslatorT:
         """Generate a translator for :py:class:`typic.Annotation` -> ``type``."""
         return self._compile_translator(annotation.resolved, target)
+
+
+IteratorT = Union[Callable[[Any], Iterator[Any]], Callable[[Any], Tuple[str, Any]]]

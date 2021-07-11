@@ -80,7 +80,7 @@ class _Serializable:
 
     def tojson(self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs) -> str:
         return dumps(
-            self.primitive(lazy=True),
+            self.primitive(),
             indent=indent,
             ensure_ascii=ensure_ascii,
             **kwargs,

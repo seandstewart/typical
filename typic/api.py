@@ -3,7 +3,6 @@ from __future__ import annotations as a
 import dataclasses
 import functools
 import inspect
-from operator import attrgetter
 from types import FunctionType, MethodType
 from typing import (
     Union,
@@ -34,6 +33,7 @@ from typic.serde.common import (
     SerdeProtocolsT,
     DeserializerT,
     TranslatorT,
+    FieldIteratorT,
 )
 from typic.common import (
     ORIG_SETTER_NAME,
@@ -136,12 +136,14 @@ class TypicObjectT:
     __serde_protocols__: SerdeProtocolsT
     __setattr_original__: Callable[["WrappedObjectT", str, Any], None]
     __typic_resolved__: bool
+    __iter__: FieldIteratorT
     schema: SchemaGenT
     primitive: SerializerT
     transmute: DeserializerT
     translate: TranslatorT
     validate: "c.ValidatorT"
     tojson: Callable[..., str]
+    iterate: FieldIteratorT
 
 
 WrappedObjectT = Union[TypicObjectT, ObjectT]
@@ -179,15 +181,6 @@ def wrap(
     return func_wrapper
 
 
-_sentinel = object()
-_origsettergetter: Callable[[Any], Callable[[str, Any], None]] = attrgetter(
-    ORIG_SETTER_NAME
-)
-_typic_attrs = frozenset(
-    (SERDE_ATTR, "primitive", "tojson", "transmute", "validate", "translate")
-)
-
-
 def _bind_proto(cls, proto: SerdeProtocol):
     for n, attr in (
         (SERDE_ATTR, proto),
@@ -198,6 +191,8 @@ def _bind_proto(cls, proto: SerdeProtocol):
         ("translate", proto.translate),
         ("encode", proto.encode),
         ("decode", staticmethod(proto.decode)),
+        ("iterate", proto.iterate),
+        ("__iter__", proto.iterate),
     ):
         setattr(cls, n, attr)
 

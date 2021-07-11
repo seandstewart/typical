@@ -15,6 +15,7 @@ import pandas
 import pendulum
 import pytest
 
+import typic
 from tests import objects
 from tests.module.index import MyClass
 from tests.module.other import factory
@@ -838,10 +839,7 @@ def test_validate_transmute(t, v):
 @pytest.mark.parametrize(
     argnames="t, v",
     argvalues=[
-        (
-            int,
-            "",
-        ),
+        (int, ""),
         (str, 0),
         (bytes, ""),
         (float, 1),
@@ -864,7 +862,16 @@ def test_validate_invalid(t, v):
 
 
 @pytest.mark.parametrize(
-    argnames="target", argvalues=[objects.Alchemy, objects.Pydantic, objects.Typical]
+    argnames="target",
+    argvalues=[
+        dict,
+        list,
+        tuple,
+        typing.Iterator,
+        objects.Alchemy,
+        objects.Pydantic,
+        objects.Typical,
+    ],
 )
 @pytest.mark.parametrize(
     argnames="value",
@@ -1110,3 +1117,17 @@ def test_local_namespace():
 
     obj = proto.transmute({"inner": {"field": "value"}})
     assert isinstance(obj.inner, Inner)
+
+
+def test_pep_585():
+    assert typic.transmute(objects.Pep585, {"data": {"foo": "1"}}) == objects.Pep585(
+        data={"foo": 1}
+    )
+    assert objects.pep585({"foo": "1"}) == {"foo": 1}
+
+
+def test_pep_604():
+    assert typic.transmute(
+        objects.Pep604, {"union": {"key": 1, "field": "blah"}}
+    ) == objects.Pep604(union=objects.DFoo("blah"))
+    assert objects.pep604({"key": 2, "field": "blah"}) == objects.DBar(b"blah")

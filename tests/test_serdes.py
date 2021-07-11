@@ -254,9 +254,7 @@ class Bar:
     ],
 )
 def test_tojson_native(obj, expected):
-    native = (
-        json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
-    )
+    native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
     assert typic.tojson(obj) == native == expected
 
 
@@ -362,3 +360,32 @@ def test_functional_custom_encdec():
     assert isinstance(enc, bytes)
     assert enc.decode("utf-8-sig") == '{"bar":null}'
     assert dec == Foo()
+
+
+def test_proto_iterate():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo)
+
+    assert dict(proto.iterate(Foo())) == {"bar": None}
+    assert [*proto.iterate(Foo(), values=True)] == [None]
+
+
+def test_functional_iterate():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    assert dict(typic.iterate(Foo())) == {"bar": None}
+    assert [*typic.iterate(Foo(), values=True)] == [None]
+
+
+def test_klass_iterate():
+    @typic.klass
+    class Foo:
+        bar: str = None
+
+    assert dict(Foo().iterate()) == dict(Foo()) == {"bar": None}
+    assert [*Foo().iterate(values=True)] == [None]

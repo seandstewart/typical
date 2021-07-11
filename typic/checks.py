@@ -19,6 +19,7 @@ from typing import (
     Tuple,
     TypeVar,
     Iterable,
+    Iterator,
 )
 
 import typic
@@ -435,6 +436,12 @@ _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 def isiterabletype(obj: Type[ObjectT]) -> bool:
     obj = util.origin(obj)
     return _issubclass(obj, Iterable)
+
+
+@lru_cache(maxsize=None)
+def isiteratortype(obj: Type[ObjectT]) -> bool:
+    obj = util.origin(obj)
+    return _issubclass(obj, Iterator)
 
 
 @lru_cache(maxsize=None)

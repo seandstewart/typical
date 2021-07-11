@@ -48,6 +48,7 @@ from .common import (
     DeserializerT,
     EncoderT,
     DecoderT,
+    FieldIteratorT,
 )
 from .des import DesFactory
 from .ser import SerFactory
@@ -556,7 +557,7 @@ class Resolver:
             **kwargs,
         ) -> str:
             return __dumps(
-                __prim(val, lazy=True),
+                __prim(val),
                 indent=indent,
                 ensure_ascii=ensure_ascii,
                 **kwargs,
@@ -608,6 +609,18 @@ class Resolver:
         translate.__qualname__ = f"{SerdeProtocol.__name__}.{translate.__name__}"
         translate.__module__ = SerdeProtocol.__module__
 
+        # Create the iterator, if possible.
+        try:
+            iterator = self._iterator_from_annotation(annotation)
+        except TypeError as e:
+            msg = str(e)
+
+            def iterator(o: ObjectT, *, values: bool = False):  # type: ignore
+                raise TypeError(msg)
+
+        iterator.__qualname__ = f"{SerdeProtocol.__name__}.{iterator.__name__}"
+        iterator.__module__ = SerdeProtocol.__module__
+
         return SerdeProtocol(
             annotation=annotation,
             constraints=constraints,
@@ -618,7 +631,23 @@ class Resolver:
             validate=validate,
             translate=translate,  # type: ignore
             tojson=tojson,  # type: ignore
+            iterate=iterator,
         )
+
+    def _iterator_from_annotation(self, annotation: Annotation) -> FieldIteratorT:
+        fiterator = self.translator.iterator(annotation.resolved_origin, relaxed=True)
+        viterator = self.translator.iterator(
+            annotation.resolved_origin, values=True, relaxed=True
+        )
+
+        def iterator(
+            o: ObjectT, *, values: bool = False, __fields=fiterator, __values=viterator
+        ) -> Iterator[Union[Tuple[str, Any], Any]]:
+            if values:
+                return __values(o)
+            return __fields(o)
+
+        return cast(FieldIteratorT, iterator)
 
     @lru_cache(maxsize=None)
     def resolve(

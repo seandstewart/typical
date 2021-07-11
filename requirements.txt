@@ -101,6 +101,9 @@ filelock==3.0.12 \
 flake8==3.9.2 \
     --hash=sha256:bf8fd333346d844f616e8d47905ef3a3384edae6b4e9beb0c5101e25e3110907 \
     --hash=sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b
+future-typing==0.4.1 \
+    --hash=sha256:af19e06b7fe6fdfb8d83c265a2688cba9ac74b0a6a2dac14c268910ecd14ac8d \
+    --hash=sha256:65fdc5034a95db212790fee5e977fb0a2df8deb60dccf3bac17d6d2b1a9bbacd
 ghp-import==2.0.1 \
     --hash=sha256:753de2eace6e0f7d4edfb3cce5e3c3b98cd52aadb80163303d1d036bda7b4483
 greenlet==1.1.0; python_version >= "3" \
