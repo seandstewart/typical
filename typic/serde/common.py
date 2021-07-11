@@ -23,13 +23,12 @@ from typing import (
     Iterator,
     TYPE_CHECKING,
     Generic,
-    Protocol,
 )
 
 from typic import strict as st, util, constraints as const
 from typic.checks import isclassvartype
 from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
-from typic.compat import TypedDict, ForwardRef, evaluate_forwardref
+from typic.compat import TypedDict, ForwardRef, evaluate_forwardref, Protocol
 from typic.types import freeze
 
 if TYPE_CHECKING:  # pragma: nocover
