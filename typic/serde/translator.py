@@ -11,6 +11,9 @@ from typing import (
     Set,
     Dict,
     Any,
+    Callable,
+    Iterator,
+    Union,
 )
 
 from typic.checks import (
@@ -32,7 +35,7 @@ from typic.util import (
 )
 
 if TYPE_CHECKING:
-    from .common import Annotation, TranslatorT, SerdeProtocol, FieldIteratorT
+    from .common import Annotation, TranslatorT, SerdeProtocol
     from .resolver import Resolver
 
 
@@ -137,7 +140,7 @@ class TranslatorFactory:
     @lru_cache(maxsize=None)
     def iterator(
         self, type: Type, values: bool = False, relaxed: bool = False
-    ) -> FieldIteratorT:
+    ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
 
         if ismappingtype(type):
@@ -260,3 +263,6 @@ class TranslatorFactory:
     def factory(self, annotation: "Annotation", target: Type) -> TranslatorT:
         """Generate a translator for :py:class:`typic.Annotation` -> ``type``."""
         return self._compile_translator(annotation.resolved, target)
+
+
+IteratorT = Union[Callable[[Any], Iterator[Any]], Callable[[Any], Tuple[str, Any]]]
