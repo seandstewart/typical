@@ -17,18 +17,21 @@ validation, and enforcement of Python types,
 [PEP 484](https://www.python.org/dev/peps/pep-0484/) Type Hints, and
 custom user-defined data-types.
 
-It is also fully compliant with [PEP 563](https://www.python.org/dev/peps/pep-0563/).
+Typical is fully compliant with the following Python Typing PEPs:
 
-It provides a high-level Functional API and Object API to suite most
-any occasion.
+- [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/)
+- [PEP 563 -- Postponed Evaluation of Annotations](https://www.python.org/dev/peps/pep-0563/)
+- [PEP 585 -- Type Hinting Generics In Standard Collections](https://www.python.org/dev/peps/pep-0585/)
+- [PEP 586 -- Literal Types](https://www.python.org/dev/peps/pep-0586/)
+- [PEP 589 -- TypedDict: Type Hints for Dictionaries with a Fixed Set of Keys](https://www.python.org/dev/peps/pep-0589/)
+- [PEP 604 -- Allow writing union types as X | Y](https://www.python.org/dev/peps/pep-0604/)
+
+It provides a high-level Protocol API, Functional API, and Object API to suit most any
+occasion.
 
 ## Getting Started
 
-Installation is as simple as `pip install -U typical`. For more
-installation options to make *typical* even faster, see the
-[Install](https://typical-python.org/usage/install.md) section in the
-documentation.
-
+Installation is as simple as `pip install -U typical`.
 ## Help
 
 The latest documentation is hosted at
@@ -73,6 +76,87 @@ Typical has both a high-level *Object API* and high-level
 *Functional API*. In general, any method registered to one API is also
 available to the other.
 
+### The Protocol API
+
+```python
+import dataclasses
+from typing import Iterable
+
+import typic
+
+
+@typic.constrained(ge=1)
+class ID(int):
+    ...
+
+
+@typic.constrained(max_length=280)
+class Tweet(str):
+    ...
+
+
+@dataclasses.dataclass # or typing.TypedDict or typing.NamedTuple or annotated class...
+class Tweeter:
+    id: ID
+    tweets: Iterable[Tweet]
+
+
+json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
+protocol = typic.protocol(Tweeter)
+
+t = protocol.transmute(json)
+print(t)
+#> Tweeter(id=1, tweets=["I don't understand Twitter"])
+
+print(protocol.tojson(t))
+#> '{"id":1,"tweets":["I don\'t understand Twitter"]}'
+
+protocol.validate({"id": 0, "tweets": []})
+#> Traceback (most recent call last):
+#>  ...
+#> typic.constraints.error.ConstraintValueError: Tweeter.id: value <0> fails constraints: (type=int, nullable=False, coerce=False, ge=1)
+```
+
+### The Functional API
+
+```python
+import dataclasses
+from typing import Iterable
+
+import typic
+
+
+@typic.constrained(ge=1)
+class ID(int):
+    ...
+
+
+@typic.constrained(max_length=280)
+class Tweet(str):
+    ...
+
+
+@dataclasses.dataclass # or typing.TypedDict or typing.NamedTuple or annotated class...
+class Tweeter:
+    id: ID
+    tweets: Iterable[Tweet]
+
+
+json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
+
+t = typic.transmute(Tweeter, json)
+print(t)
+#> Tweeter(id=1, tweets=["I don't understand Twitter"])
+
+print(typic.tojson(t))
+#> '{"id":1,"tweets":["I don\'t understand Twitter"]}'
+
+typic.validate(Tweeter, {"id": 0, "tweets": []})
+#> Traceback (most recent call last):
+#>  ...
+#> typic.constraints.error.ConstraintValueError: Tweeter.id: value <0> fails constraints: (type=int, nullable=False, coerce=False, ge=1)
+```
+
 ### The Object API
 
 ```python
@@ -112,51 +196,8 @@ Tweeter.validate({"id": 0, "tweets": []})
 #> typic.constraints.error.ConstraintValueError: Given value <0> fails constraints: (type=int, nullable=False, coerce=False, ge=1)
 ```
 
-### The Functional API
-
-```python
-import dataclasses
-from typing import Iterable
-
-import typic
-
-
-@typic.constrained(ge=1)
-class ID(int):
-    ...
-
-
-@typic.constrained(max_length=280)
-class Tweet(str):
-    ...
-
-
-@dataclasses.dataclass # or typing.TypedDict or typing.NamedTuple or annotated class...
-class Tweeter:
-    id: ID
-    tweets: Iterable[Tweet]
-
-
-json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
-protocol = typic.protocol(Tweeter)
-
-t = protocol.transmute(json)  # or typic.transmute()
-print(t)
-#> Tweeter(id=1, tweets=["I don't understand Twitter"])
-
-print(protocol.tojson(t))
-#> '{"id":1,"tweets":["I don\'t understand Twitter"]}'
-
-protocol.validate({"id": 0, "tweets": []})  # or typic.validate()
-#> Traceback (most recent call last):
-#>  ...
-#> typic.constraints.error.ConstraintValueError: Tweeter.id: value <0> fails constraints: (type=int, nullable=False, coerce=False, ge=1)
-```
-
-
 
 ## Changelog
 
 See our
 [Releases](https://github.com/seandstewart/typical/releases).
-
