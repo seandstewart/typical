@@ -123,7 +123,12 @@ def get_constraints(
     if isnamedtuple(t) or istypeddict(t):
         handler = _from_class
     else:
-        handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(origin(t), _from_class)  # type: ignore
+        ot = origin(t)
+        if ot is type:
+            handler = _from_strict_type  # type: ignore
+            t = ot
+        else:
+            handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(origin(t), _from_class)  # type: ignore
 
     __stack.add(t)
     c = handler(t, nullable=nullable, name=name, cls=cls)
