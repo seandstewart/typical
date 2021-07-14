@@ -280,7 +280,7 @@ class Resolver:
         """
         t = obj.__class__
         if checks.isenumtype(t):
-            obj = obj.value
+            obj = obj.value  # type: ignore
             t = obj.__class__
         proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
