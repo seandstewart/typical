@@ -23,20 +23,22 @@ from typing import (
     Set,
     ClassVar,
     Deque,
+    Tuple,
 )
 
 from typic.checks import (
     isoptionaltype,
     isbuiltintype,
     isconstrained,
-    issubclass,
+    isforwardref,
     istypeddict,
     isbuiltinsubtype,
     isnamedtuple,
     should_unwrap,
     isclassvartype,
+    isenumtype,
 )
-from typic.compat import ForwardRef, Literal, lru_cache
+from typic.compat import Literal, lru_cache
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
@@ -60,6 +62,7 @@ from .common import (
     TypeConstraints,
     EnumConstraints,
     VT,
+    ConstraintsProtocolT,
     DelayedConstraints,
     ForwardDelayedConstraints,
     LiteralConstraints,
@@ -77,6 +80,63 @@ from .number import (
     NumberT,
 )
 from .text import BytesConstraints, StrConstraints
+
+
+@lru_cache(maxsize=None)
+def get_constraints(
+    t: Type[VT],
+    *,
+    nullable: bool = False,
+    name: str = None,
+    cls: Optional[Type] = ...,  # type: ignore
+) -> ConstraintsProtocolT[VT]:
+    while should_unwrap(t):
+        nullable = nullable or isoptionaltype(t)
+        t = get_args(t)[0]
+    if t is cls or t in __stack:
+        dc = DelayedConstraints(
+            t, nullable=nullable, name=name, factory=get_constraints
+        )
+        return cast(ConstraintsProtocolT, dc)
+    if isforwardref(t):
+        if cls is ...:  # pragma: nocover
+            raise TypeError(
+                f"Cannot build constraints for {t} without an enclosing class."
+            )
+        fdc = ForwardDelayedConstraints(
+            t,  # type: ignore
+            cls.__module__,
+            localns=getattr(cls, "__dict__", {}).copy(),
+            nullable=nullable,
+            name=name,
+            factory=get_constraints,
+        )
+        return cast(ConstraintsProtocolT, fdc)
+    if isconstrained(t):
+        c: ConstraintsProtocolT = t.__constraints__  # type: ignore
+        if (c.name, c.nullable) != (name, nullable):
+            return dataclasses.replace(c, name=name, nullable=nullable)
+        return c
+    if isenumtype(t):
+        ec = _from_enum_type(t, nullable=nullable, name=name)  # type: ignore
+        return cast(ConstraintsProtocolT, ec)
+    if isnamedtuple(t) or istypeddict(t):
+        handler = _from_class
+    else:
+        ot = origin(t)
+        if ot is type:
+            handler = _from_strict_type  # type: ignore
+            t = ot
+        else:
+            handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(origin(t), _from_class)  # type: ignore
+
+    __stack.add(t)
+    c = handler(t, nullable=nullable, name=name, cls=cls)
+    __stack.clear()
+    return c
+
+
+__stack: Set[Type] = set()
 
 
 ConstraintsT = Union[
@@ -114,9 +174,9 @@ ArrayConstraintsT = Union[
 
 def _resolve_args(
     *args, cls: Type = None, nullable: bool = False, multi: bool = True
-) -> Optional[ConstraintsT]:
+) -> Optional[Union[ConstraintsProtocolT, Tuple[ConstraintsProtocolT, ...]]]:
     largs: Deque = deque(args)
-    items: List[ConstraintsT] = []
+    items: List[ConstraintsProtocolT] = []
     while largs:
         arg = largs.popleft()
         if arg in {Any, Ellipsis}:
@@ -132,7 +192,9 @@ def _resolve_args(
         items.append(get_constraints(arg, cls=cls, nullable=nullable))
     if len(items) == 1:
         return items[0]
-    return MultiConstraints((*items,)) if multi else (*items,)  # type: ignore
+    if multi:
+        return cast(ConstraintsProtocolT, MultiConstraints((*items,)))
+    return (*items,)
 
 
 def _from_array_type(
@@ -142,15 +204,16 @@ def _from_array_type(
     constr_class = cast(
         Type[ArrayConstraintsT], _ARRAY_CONSTRAINTS_BY_TYPE.get_by_parent(origin(t))
     )
-    multi = True
-    if constr_class is TupleConstraints and ... not in args:
-        multi = False
     # If we don't have args, then return a naive constraint
     if not args:
         return constr_class(nullable=nullable, name=name)
-    items = _resolve_args(*args, cls=cls, nullable=nullable, multi=multi)
 
-    return constr_class(nullable=nullable, values=items, name=name)
+    if constr_class is TupleConstraints and ... not in args:
+        items = _resolve_args(*args, cls=cls, nullable=nullable, multi=False)
+        return constr_class(nullable=nullable, values=items, name=name)  # type: ignore
+
+    items = _resolve_args(*args, cls=cls, nullable=nullable, multi=True)
+    return constr_class(nullable=nullable, values=items, name=name)  # type: ignore
 
 
 def _from_mapping_type(
@@ -172,7 +235,7 @@ def _from_mapping_type(
         _resolve_args(value_arg, cls=cls),
     )
     return constr_class(
-        keys=key_items, values=value_items, nullable=nullable, name=name
+        keys=key_items, values=value_items, nullable=nullable, name=name  # type: ignore
     )
 
 
@@ -203,8 +266,8 @@ def _from_simple_type(
 def _resolve_params(
     cls: Type,
     **param: inspect.Parameter,
-) -> Mapping[str, ConstraintsT]:
-    items: Dict[str, ConstraintsT] = {}
+) -> Mapping[str, ConstraintsProtocolT]:
+    items: Dict[str, ConstraintsProtocolT] = {}
     while param:
         name, p = param.popitem()
         anno = p.annotation
@@ -239,29 +302,27 @@ def _from_literal(
 
 def _from_union(
     t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
-) -> ConstraintsT:
+) -> ConstraintsProtocolT:
     _nullable: bool = isoptionaltype(t)
     nullable = nullable or _nullable
     _args = get_args(t)[:-1] if _nullable else get_args(t)
     if len(_args) == 1:
         return get_constraints(_args[0], nullable=nullable, name=name, cls=cls)
-    return MultiConstraints(
-        (
-            *(
-                get_constraints(a, nullable=nullable, cls=cls)  # type: ignore
-                for a in _args
-            ),
-        ),
+    c = MultiConstraints(
+        (*(get_constraints(a, nullable=nullable, cls=cls) for a in _args),),
         name=name,
         tag=get_tag_for_types(_args),
     )
+    return cast(ConstraintsProtocolT, c)
 
 
 def _from_class(
     t: Type[VT], *, nullable: bool = False, name: str = None, cls: Type = None
-) -> Union[ObjectConstraints, TypeConstraints, MappingConstraints]:
+) -> ConstraintsProtocolT[VT]:
     if not istypeddict(t) and not isnamedtuple(t) and isbuiltinsubtype(t):
-        return _from_strict_type(t, nullable=nullable, name=name)
+        return cast(
+            ConstraintsProtocolT, _from_strict_type(t, nullable=nullable, name=name)
+        )
     try:
         params: Dict[str, inspect.Parameter] = {**cached_signature(t).parameters}
         hints = cached_type_hints(t)
@@ -283,7 +344,9 @@ def _from_class(
                 x, inspect.Parameter.KEYWORD_ONLY, default=default, annotation=hint
             )
     except (ValueError, TypeError):
-        return _from_strict_type(t, nullable=nullable, name=name)
+        return cast(
+            ConstraintsProtocolT, _from_strict_type(t, nullable=nullable, name=name)
+        )
     name = name or get_name(t)
     items: Optional[frozendict.FrozenDict[Hashable, ConstraintsT]] = (
         frozendict.FrozenDict(_resolve_params(t, **params)) or None
@@ -312,7 +375,8 @@ def _from_class(
     if istypeddict(t):
         cls = TypedDictConstraints
         kwargs.update(type=dict, ttype=t, total=getattr(t, "__total__", bool(required)))
-    return cls(**kwargs)  # type: ignore
+    c = cls(**kwargs)  # type: ignore
+    return cast(ConstraintsProtocolT, c)
 
 
 _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
@@ -321,7 +385,7 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         frozenset: _from_array_type,
         list: _from_array_type,
         tuple: _from_array_type,
-        dict: _from_mapping_type,
+        dict: _from_mapping_type,  # type: ignore
         int: _from_simple_type,
         float: _from_simple_type,
         Decimal: _from_simple_type,
@@ -352,58 +416,3 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         Literal: _from_literal,
     }
 )
-
-__stack: Set[Type] = set()
-
-
-@lru_cache(maxsize=None)
-def get_constraints(
-    t: Type[VT],
-    *,
-    nullable: bool = False,
-    name: str = None,
-    cls: Optional[Type] = ...,  # type: ignore
-) -> ConstraintsT:
-    while should_unwrap(t):
-        nullable = nullable or isoptionaltype(t)
-        t = get_args(t)[0]
-    if t is cls or t in __stack:
-        return DelayedConstraints(
-            t, nullable=nullable, name=name, factory=get_constraints  # type: ignore
-        )
-    if t.__class__ is ForwardRef:
-        if cls is ...:  # pragma: nocover
-            raise TypeError(
-                f"Cannot build constraints for {t} without an enclosing class."
-            )
-        return ForwardDelayedConstraints(
-            t,  # type: ignore
-            cls.__module__,
-            localns=getattr(cls, "__dict__", {}).copy(),
-            nullable=nullable,
-            name=name,  # type: ignore
-            factory=get_constraints,
-        )
-    if isconstrained(t):
-        c: ConstraintsT = t.__constraints__  # type: ignore
-        if (c.name, c.nullable) != (name, nullable):
-            return dataclasses.replace(c, name=name, nullable=nullable)
-        return c
-    if issubclass(t, enum.Enum):
-        return _from_enum_type(t, nullable=nullable, name=name)  # type: ignore
-    if isnamedtuple(t) or istypeddict(t):
-        handler = _from_class
-    else:
-        ot = origin(t)
-        if ot is type:
-            handler = _from_strict_type
-            t = ot
-        else:
-            handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(  # type: ignore
-                origin(t), _from_class
-            )
-
-    __stack.add(t)
-    c = handler(t, nullable=nullable, name=name, cls=cls)  # type: ignore
-    __stack.clear()
-    return c

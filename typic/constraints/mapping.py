@@ -29,6 +29,7 @@ from .common import (
     AssertionsT,
     VT,
     InstanceCheck,
+    ConstraintsProtocolT,
 )
 from .error import ConstraintSyntaxError
 
@@ -72,16 +73,16 @@ class MappingConstraints(BaseConstraints):
     """A frozenset of keys which must be present in the mapping."""
     key_pattern: Optional[Pattern] = None
     """A regex pattern for which all keys must match."""
-    items: Optional[FrozenDict[Hashable, ConstraintsT]] = None
+    items: Optional[FrozenDict[Hashable, ConstraintsProtocolT]] = None
     """A mapping of constraints associated to specific keys."""
-    patterns: Optional[FrozenDict[Pattern, ConstraintsT]] = None
+    patterns: Optional[FrozenDict[Pattern, ConstraintsProtocolT]] = None
     """A mapping of constraints associated to any key which match the regex pattern."""
-    values: Optional[ConstraintsT] = None
+    values: Optional[ConstraintsProtocolT] = None
     """Whether values not defined as required are allowed.
 
     May be a boolean, or more constraints which are applied to all additional values.
     """
-    keys: Optional[ConstraintsT] = None
+    keys: Optional[ConstraintsProtocolT] = None
     """Constraints to apply to any additional keys not explicitly defined."""
     key_dependencies: Optional[FrozenDict[str, KeyDependencyT]] = None
     """A mapping of keys and their dependent restrictions if they are present."""

@@ -30,7 +30,7 @@ from typic.common import (
     Case,
     ReadOnly,
 )
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import lru_cache
 from typic.ext import json
 from typic.strict import StrictModeT
 from .binder import Binder
@@ -44,10 +44,11 @@ from .common import (
     DelayedSerdeProtocol,
     ForwardDelayedAnnotation,
     DelayedAnnotation,
-    AnnotationT,
     DeserializerT,
     EncoderT,
     DecoderT,
+    TranslatorT,
+    PrimitiveT,
     FieldIteratorT,
 )
 from .des import DesFactory
@@ -104,7 +105,7 @@ class Resolver:
             The value to be transmuted
         """
         resolved: SerdeProtocol = self.resolve(annotation)
-        transmuted: ObjectT = resolved.transmute(value)  # type: ignore
+        transmuted: ObjectT = resolved.transmute(value)
 
         return transmuted
 
@@ -126,8 +127,9 @@ class Resolver:
         target
             The higher-order class to translate into.
         """
-        resolved: SerdeProtocol = self.resolve(type(value))
-        return resolved.translate(value, target)  # type: ignore
+        t = value.__class__
+        resolved: SerdeProtocol = self.resolve(t)
+        return resolved.translate(value, target)
 
     def validate(
         self, annotation: Type[ObjectT], value: Any, *, transmute: bool = False
@@ -146,7 +148,7 @@ class Resolver:
         resolved: SerdeProtocol = self.resolve(annotation)
         value = resolved.validate(value)
         if transmute:
-            return resolved.transmute(value)  # type: ignore
+            return resolved.transmute(value)
         return value
 
     def iterate(
@@ -187,7 +189,9 @@ class Resolver:
     def delayed(self, t: Type) -> bool:
         return getattr(t, "__delayed__", False)
 
-    def primitive(self, obj: Any, lazy: bool = False, name: util.ReprT = None) -> Any:
+    def primitive(
+        self, obj: ObjectT, *, lazy: bool = False, name: util.ReprT = None
+    ) -> PrimitiveT:
         """A method for converting an object to its primitive equivalent.
 
         Useful for encoding data to JSON.
@@ -223,13 +227,13 @@ class Resolver:
         """
         t = obj.__class__
         if checks.isenumtype(t):
-            obj = obj.value
+            obj = obj.value  # type: ignore
             t = obj.__class__
         proto: SerdeProtocol = self.resolve(t)
         return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
-        self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
+        self, obj: ObjectT, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
     ) -> str:
         """A method for dumping any object to a valid JSON string.
 
@@ -276,18 +280,18 @@ class Resolver:
         """
         t = obj.__class__
         if checks.isenumtype(t):
-            obj = obj.value
+            obj = obj.value  # type: ignore
             t = obj.__class__
         proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
     def decode(
-        self, annotation: Type[ObjectT], value: Any, decoder: DecoderT, **kwargs
+        self, annotation: Type[ObjectT], value: Any, decoder: DecoderT[bytes], **kwargs
     ) -> ObjectT:
         proto: SerdeProtocol = self.resolve(annotation)
         return proto.transmute(decoder(value, **kwargs))  # type: ignore
 
-    def encode(self, obj: Any, encoder: EncoderT, **kwargs) -> bytes:
+    def encode(self, obj: Any, encoder: EncoderT[PrimitiveT], **kwargs) -> bytes:
         t = obj.__class__
         if checks.isenumtype(t):
             obj = obj.value
@@ -296,15 +300,13 @@ class Resolver:
         return encoder(proto.primitive(obj), **kwargs)  # type: ignore
 
     @lru_cache(maxsize=None)
-    def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
+    def _get_configuration(self, origin: Type, flags: SerdeFlags) -> SerdeConfig:
         if hasattr(origin, SERDE_FLAGS_ATTR):
             flags = getattr(origin, SERDE_FLAGS_ATTR)
         # Get all the annotated fields
         params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
-        fields: Dict[
-            str, Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
-        ] = {}
+        fields: Dict[str, Annotation] = {}
         hints = util.cached_type_hints(origin)
         for name, t in hints.items():
             fields[name] = self.annotation(
@@ -382,7 +384,7 @@ class Resolver:
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
         namespace: Type = None,
-    ) -> AnnotationT:
+    ) -> Annotation[Type[ObjectT]]:
         """Get a :py:class:`Annotation` for this type.
 
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
@@ -444,13 +446,13 @@ class Resolver:
                     "for more information."
                 )
         # The type definition doesn't exist yet.
-        if use.__class__ is ForwardRef:
+        if checks.isforwardref(use):
             module = self.__module__
             # Ideally we have a namespace from a parent class/function to the field
             if namespace:
                 module = namespace.__module__
 
-            return ForwardDelayedAnnotation(
+            fda = ForwardDelayedAnnotation(
                 ref=use,
                 resolver=self,
                 _name=name,
@@ -462,13 +464,14 @@ class Resolver:
                 module=module,
                 frame=inspect.currentframe(),
             )
+            return cast(Annotation, fda)
         # The type definition is recursive or within a recursive loop.
         elif use is namespace or use in self.__stack:
             # If detected via stack, we can remove it now.
             # Otherwise we'll cause another recursive loop.
             if use in self.__stack:
                 self.__stack.remove(use)
-            return DelayedAnnotation(
+            da = DelayedAnnotation(
                 type=use,
                 resolver=self,
                 _name=name,
@@ -478,6 +481,7 @@ class Resolver:
                 flags=flags,
                 default=default,
             )
+            return cast(Annotation, da)
         # Otherwise, add this type to the stack to prevent a recursive loop from elsewhere.
         if not checks.isstdlibtype(use):
             self.__stack.add(use)
@@ -497,15 +501,17 @@ class Resolver:
             static=is_static,
             serde=serde,
         )
-        anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
+        anno.translator = cast(
+            TranslatorT, functools.partial(self.translator.factory, anno)
+        )
         return anno
 
     def _resolve_from_annotation(
         self,
-        anno: AnnotationT,
+        anno: Annotation[Type[ObjectT]],
         *,
         namespace: Type = None,
-    ) -> SerdeProtocol:
+    ) -> SerdeProtocol[ObjectT]:
         if anno in self.__cache:
             return self.__cache[anno]
         if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
@@ -519,40 +525,33 @@ class Resolver:
             anno, constraints, namespace=namespace
         )
         # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno)
+        serializer = self.ser.factory(anno)
         # Put it all together
         proto = self._build_protocol(
             annotation=anno,
             constraints=constraints,
             deserializer=deserializer,
-            serializer=serializer,
             validator=validator,
+            serializer=serializer,
         )
         self.__cache[anno] = proto
         return proto
 
     def _build_protocol(
         self,
-        annotation: Annotation,
-        constraints: constr.ConstraintsT,
         *,
-        deserializer: DeserializerT = None,
-        validator: constr.ValidatorT = None,
-        serializer: SerializerT = None,
-    ) -> SerdeProtocol:
-        # Pass through if for some reason there's no coercer.
-        deserialize = deserializer or (lambda o: o)
-        # Set the validator
-        validate = validator or (lambda value, *, field=None, **kwargs: value)
-        # Set the serializer
-        serialize = serializer or (lambda o, lazy=False, name=None: o)
-
+        annotation: Annotation[Type[ObjectT]],
+        constraints: constr.ConstraintsProtocolT[ObjectT],
+        deserializer: DeserializerT[ObjectT],
+        validator: constr.ValidateT[ObjectT],
+        serializer: SerializerT[ObjectT],
+    ) -> SerdeProtocol[ObjectT]:
         def tojson(
             val: ObjectT,
             *,
             indent: int = 0,
             ensure_ascii: bool = False,
-            __prim=serialize,
+            __prim=serializer,
             __dumps=json.dumps,
             **kwargs,
         ) -> str:
@@ -568,13 +567,13 @@ class Resolver:
 
         # Set the encoder/decoder protocols.
         # Default to JSON for wire-format
-        encode = tojson
+        encode: EncoderT = cast(EncoderT, tojson)
         if annotation.serde.encoder:
 
             def encode(  # type: ignore
                 val: ObjectT,
                 *,
-                __prim=serialize,
+                __prim=serializer,
                 __encode=annotation.serde.encoder,
                 **kwargs,
             ) -> bytes:
@@ -584,13 +583,13 @@ class Resolver:
             encode.__module__ = self.__class__.__module__
 
         # Default to JSON for wire-format
-        decode = deserialize
+        decode: DecoderT = cast(DecoderT, deserializer)
         if annotation.serde.decoder:
 
-            def decode(
+            def decode(  # type: ignore
                 val: bytes,
                 *,
-                __trans=deserialize,
+                __trans=deserializer,
                 __decode=annotation.serde.decoder,
                 **kwargs,
             ) -> ObjectT:
@@ -601,10 +600,10 @@ class Resolver:
 
         # Create the translator
         def translate(
-            val: Any, target: Type[_T], *, __factory=annotation.translator
+            value: ObjectT, target: Type[_T], *, __factory=annotation.translator
         ) -> _T:
             trans = __factory(target)
-            return trans(val)
+            return trans(value)
 
         translate.__qualname__ = f"{SerdeProtocol.__name__}.{translate.__name__}"
         translate.__module__ = SerdeProtocol.__module__
@@ -624,17 +623,19 @@ class Resolver:
         return SerdeProtocol(
             annotation=annotation,
             constraints=constraints,
-            deserialize=deserialize,
+            deserialize=deserializer,
             decode=decode,
-            serialize=serialize,
-            encode=encode,  # type: ignore
-            validate=validate,
-            translate=translate,  # type: ignore
-            tojson=tojson,  # type: ignore
+            serialize=serializer,
+            encode=encode,
+            validate=validator,
+            translate=cast(TranslatorT, translate),
+            tojson=cast(EncoderT, tojson),
             iterate=iterator,
         )
 
-    def _iterator_from_annotation(self, annotation: Annotation) -> FieldIteratorT:
+    def _iterator_from_annotation(
+        self, annotation: Annotation[Type[ObjectT]]
+    ) -> FieldIteratorT[ObjectT]:
         fiterator = self.translator.iterator(annotation.resolved_origin, relaxed=True)
         viterator = self.translator.iterator(
             annotation.resolved_origin, values=True, relaxed=True
@@ -660,7 +661,7 @@ class Resolver:
         is_optional: bool = None,
         is_strict: bool = None,
         namespace: Type = None,
-    ) -> SerdeProtocol:
+    ) -> SerdeProtocol[ObjectT]:
         """Get a :py:class:`SerdeProtocol` from a given annotation or type.
 
         Parameters

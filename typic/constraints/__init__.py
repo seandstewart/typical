@@ -12,7 +12,9 @@ from .array import (
 )
 from .common import (
     ValidatorT,
+    ValidateT,
     BaseConstraints,
+    ConstraintsProtocolT,
     VT,
     MultiConstraints,
     TypeConstraints,
@@ -29,7 +31,7 @@ __all__ = (
     "BytesConstraints",
     "ConstraintValueError",
     "ConstraintSyntaxError",
-    "ConstraintsT",
+    "ConstraintsProtocolT",
     "DecimalContraints",
     "DictConstraints",
     "EnumConstraints",

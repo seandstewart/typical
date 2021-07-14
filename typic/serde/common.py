@@ -27,7 +27,7 @@ from typing import (
 
 from typic import strict as st, util, constraints as const
 from typic.checks import isclassvartype
-from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT
+from typic.common import AnyOrTypeT, Case, EMPTY, ObjectT, OriginT
 from typic.compat import TypedDict, ForwardRef, evaluate_forwardref, Protocol
 from typic.types import freeze
 
@@ -35,18 +35,117 @@ if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
 
 
+@util.slotted(dict=False)
+@dataclasses.dataclass(unsafe_hash=True)
+class SerdeProtocol(Generic[OriginT]):
+    """An actionable run-time serialization & deserialization protocol for a type."""
+
+    annotation: Annotation[Type[OriginT]]
+    """The target annotation and various meta-data."""
+    constraints: Optional[const.ConstraintsProtocolT[OriginT]]
+    """Type restriction configuration, if any."""
+    deserialize: DeserializerT[OriginT] = dataclasses.field(repr=False)
+    """The callable to deserialize data into the annotation."""
+    decode: DecoderT[OriginT] = dataclasses.field(repr=False)
+    """Decode an input from the on-the-wire format to the annotation."""
+    serialize: SerializerT[OriginT] = dataclasses.field(repr=False)
+    """The callable to serialize an instance of the annotation."""
+    encode: EncoderT[OriginT] = dataclasses.field(repr=False)
+    """Encode an instance of the annotation into the provided on-the-wire format."""
+    validate: const.ValidateT[OriginT] = dataclasses.field(repr=False)
+    """Validate an input against the annotation."""
+    translate: TranslatorT[OriginT] = dataclasses.field(repr=False)
+    """Translate an instance of the annotation into another type."""
+    iterate: FieldIteratorT = dataclasses.field(repr=False)
+    """Iterate over an instance of the annotation, if possible."""
+    tojson: EncoderT[OriginT] = dataclasses.field(repr=False)
+    """Dump an instance of the annotation to valid JSON."""
+    transmute: DeserializerT[OriginT] = dataclasses.field(repr=False, init=False)
+    """Transmute an input into the annotation."""
+    primitive: SerializerT[OriginT] = dataclasses.field(repr=False, init=False)
+    """Get the "primitive" representation of the annotation."""
+
+    def __post_init__(self):
+        # Pin the transmuter and the primitiver
+        self.transmute = self.deserialize
+        self.primitive = self.serialize
+
+    def __call__(self, val: ObjectT) -> OriginT:
+        return self.transmute(val)  # type: ignore
+
+
+_OutputT = TypeVar("_OutputT", covariant=True)
+_InputT = TypeVar("_InputT", contravariant=True)
+
+
+class EncoderT(Protocol[_InputT]):
+    """The signature of an on-the-wire encoder for an output."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self, value: _InputT, **kwargs) -> AnyStr:
+        ...
+
+
+class DecoderT(Protocol[_OutputT]):
+    """The signature of an on-the-wire decoder for an input."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self, value: AnyStr, **kwargs) -> _OutputT:
+        ...
+
+
+class TranslatorT(Protocol[_InputT]):
+    """The signature of a type translator pinned to the origin type of `InputT`."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self, value: _InputT, target: Type[_OutputT]) -> _OutputT:
+        ...
+
+
+class SerializerT(Protocol[_InputT]):
+    """The signature of a type serializer."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(
+        self, obj: _InputT, *, lazy: bool = False, name: util.ReprT = None
+    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
+        ...
+
+
+class DeserializerT(Protocol[_OutputT]):
+    """The signature of a type deserializer."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self, val: Any) -> _OutputT:
+        ...
+
+
+class FieldIteratorT(Protocol[_InputT]):
+    """The type-signature for a FieldIterator function."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(
+        self, o: _InputT, *, values: bool = False, **kwargs
+    ) -> Iterator[Union[Tuple[str, Any], Any]]:
+        ...
+
+
+PrimitiveT = TypeVar("PrimitiveT", str, int, float, list, dict)
+""""""
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
 """Specify types or values which you wish to omit from the output."""
-SerializerT = Union[Callable[[Any, bool, str], Any], Callable[[Any], Any]]
-"""The signature of a type serializer."""
-DeserializerT = Callable[[Any], Any]
-"""The signature of a type deserializer."""
-EncoderT = Callable[..., bytes]
-"""The signature of an on-the-wire encoder for an output."""
-DecoderT = Callable[..., Any]
-"""The signature of an on-the-wire decoder for an input."""
-TranslatorT = Callable[..., Any]
-"""The signature of a type translator."""
 FieldSerializersT = Mapping[str, SerializerT]
 """A mapping of field names to their serializer functions."""
 FieldDeserializersT = Mapping[str, DeserializerT]
@@ -66,18 +165,6 @@ FieldSettingsT = Union[Tuple[str, ...], Mapping[str, str]]
 
 A mapping should be of attribute name -> out/in field name.
 """
-
-
-class FieldIteratorT(Protocol):
-    """The type-signature for a FieldIterator function."""
-
-    __name__: str
-    __qualname__: str
-
-    def __call__(
-        self, o: ObjectT, *, values: bool = False, **kwargs
-    ) -> Iterator[Union[Tuple[str, Any], Any]]:
-        ...
 
 
 @util.slotted(dict=False)
@@ -171,7 +258,7 @@ class SerdeConfigD(TypedDict):
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)
-    fields: Mapping[str, "AnnotationT"] = dataclasses.field(default_factory=dict)
+    fields: Mapping[str, Annotation] = dataclasses.field(default_factory=dict)
     fields_out: Mapping[str, str] = dataclasses.field(default_factory=dict)
     fields_in: Mapping[str, str] = dataclasses.field(default_factory=dict)
     fields_getters: Mapping[str, Callable[[str], Any]] = dataclasses.field(
@@ -203,7 +290,6 @@ class SerdeConfig:
         )
 
 
-_T = TypeVar("_T")
 _AT = TypeVar("_AT")
 
 
@@ -214,7 +300,7 @@ class Annotation(Generic[_AT]):
 
     EMPTY = EMPTY
 
-    resolved: Any
+    resolved: _AT
     """The type annotation used to build the coercer."""
     origin: Type
     """The "origin"-type of the original annotation.
@@ -227,7 +313,7 @@ class Annotation(Generic[_AT]):
     """The type annotation before resolving super-types."""
     parameter: inspect.Parameter
     """The parameter this annotation refers to."""
-    translator: "TranslatorT" = dataclasses.field(init=False)
+    translator: TranslatorT[_AT] = dataclasses.field(init=False)
     """A factory for generating a translation protocol between higher-level types."""
     optional: bool = False
     """Whether this annotation allows null/default values."""
@@ -242,7 +328,7 @@ class Annotation(Generic[_AT]):
     generic: Type = dataclasses.field(init=False)
     has_default: bool = dataclasses.field(init=False)
     is_class_var: bool = dataclasses.field(init=False)
-    resolved_origin: Type = dataclasses.field(init=False)
+    resolved_origin: _AT = dataclasses.field(init=False)
     args: Tuple[Type, ...] = dataclasses.field(init=False)
 
     def __post_init__(self):
@@ -365,45 +451,6 @@ class DelayedAnnotation:
 
 
 AnnotationT = Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
-
-
-@util.slotted(dict=False)
-@dataclasses.dataclass(unsafe_hash=True)
-class SerdeProtocol(Generic[_T]):
-    """An actionable run-time serialization & deserialization protocol for a type."""
-
-    annotation: Annotation
-    """The target annotation and various meta-data."""
-    constraints: Optional[const.ConstraintsT]
-    """Type restriction configuration, if any."""
-    deserialize: Optional[DeserializerT] = dataclasses.field(repr=False)
-    """The callable to deserialize data into the annotation."""
-    decode: DecoderT = dataclasses.field(repr=False)
-    """Decode an input from the on-the-wire format to the annotation."""
-    serialize: Optional[SerializerT] = dataclasses.field(repr=False)
-    """The callable to serialize an instance of the annotation."""
-    encode: EncoderT = dataclasses.field(repr=False)
-    """Encode an instance of the annotation into the provided on-the-wire format."""
-    validate: const.ValidatorT = dataclasses.field(repr=False)
-    """Validate an input against the annotation."""
-    translate: TranslatorT = dataclasses.field(repr=False)
-    """Translate an instance of the annotation into another type."""
-    tojson: Callable[..., AnyStr] = dataclasses.field(repr=False)
-    """Dump an instance of the annotation to valid JSON."""
-    iterate: FieldIteratorT = dataclasses.field(repr=False)
-    """Iterate over an instance of the annotation, if possible."""
-    transmute: DeserializerT = dataclasses.field(repr=False, init=False)
-    """Transmute an input into the annotation."""
-    primitive: SerializerT = dataclasses.field(repr=False, init=False)
-    """Get the "primitive" representation of the annotation."""
-
-    def __post_init__(self):
-        # Pin the transmuter and the primitiver
-        self.transmute = self.deserialize
-        self.primitive = self.serialize
-
-    def __call__(self, val: Any) -> ObjectT:
-        return self.transmute(val)  # type: ignore
 
 
 class DelayedSerdeProtocol(SerdeProtocol):

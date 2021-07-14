@@ -13,9 +13,9 @@ from typing import (
 )
 
 try:
-    from typing import Final, TypedDict, Literal, Protocol  # type: ignore
+    from typing import Final, TypedDict, Literal, Protocol, TypeGuard  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict, Literal, Protocol  # type: ignore
+    from typing_extensions import Final, TypedDict, Literal, Protocol, TypeGuard  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover
@@ -29,7 +29,7 @@ except ImportError:  # pragma: nocover
 
 
 try:
-    from sqlalchemy.orm import registry as sqla_registry
+    from sqlalchemy.orm import registry as sqla_registry  # type: ignore
 except ImportError:  # pragma: nocover
 
     class sqla_registry:  # type: ignore
@@ -57,7 +57,7 @@ if sys.version_info < (3, 7):  # pragma: nocover
         return type_._eval_type(globalns, localns)
 
 
-elif sys.version_info >= (3, 9):
+elif sys.version_info >= (3, 9):  # pragma: nocover
     from typing import ForwardRef
 
     def evaluate_forwardref(
@@ -93,3 +93,16 @@ if TYPE_CHECKING:
 
 else:
     from functools import lru_cache
+
+__all__ = (
+    "Final",
+    "TypedDict",
+    "Literal",
+    "Protocol",
+    "TypeGuard",
+    "ForwardRef",
+    "SQLAMetaData",
+    "sqla_registry",
+    "evaluate_forwardref",
+    "lru_cache",
+)

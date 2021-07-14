@@ -164,7 +164,9 @@ class DesFactory:
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
-    def _get_name(annotation: Annotation, constr: Optional[const.ConstraintsT]) -> str:
+    def _get_name(
+        annotation: Annotation, constr: Optional[const.ConstraintsProtocolT]
+    ) -> str:
         return get_defname("deserializer", (annotation, constr))
 
     def _build_date_des(self, func: gen.Block, anno_name: str, annotation: Annotation):
@@ -693,8 +695,11 @@ class DesFactory:
                 )
 
     def _build_des(  # noqa: C901
-        self, annotation: Annotation, func_name: str, namespace: Type = None
-    ) -> Callable:
+        self,
+        annotation: Annotation[Type[ObjectT]],
+        func_name: str,
+        namespace: Type = None,
+    ) -> DeserializerT[ObjectT]:
         args = annotation.args
         # Get the "origin" of the annotation.
         # For natives and their typing.* equivs, this will be a builtin type.
@@ -769,13 +774,16 @@ class DesFactory:
         return deserializer
 
     def _check_varargs(
-        self, anno: Annotation, des: DeserializerT, validator: const.ValidatorT
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+        self,
+        anno: Annotation[Type[ObjectT]],
+        des: DeserializerT[ObjectT],
+        validator: const.ValidatorT[ObjectT],
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         if anno.parameter.kind == VAR_POSITIONAL:
             __des = des
             __validator = validator
 
-            def des(__val, *, __des=__des):
+            def des(__val, *, __des=__des):  # type: ignore
                 return (*(__des(x) for x in __val),)
 
             def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
@@ -785,7 +793,7 @@ class DesFactory:
             __des = des
             __validator = validator
 
-            def des(__val, *, __des=__des):
+            def des(__val, *, __des=__des):  # type: ignore
                 return {x: __des(y) for x, y in __val.items()}
 
             def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
@@ -795,8 +803,8 @@ class DesFactory:
 
     def _finalize_validator(
         self,
-        constr: Optional[const.ConstraintsT],
-    ) -> const.ValidatorT:
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
+    ) -> const.ValidatorT[ObjectT]:
         def validate(value, *, field: str = None):
             return value
 
@@ -807,10 +815,10 @@ class DesFactory:
 
     def _finalize_deserializer(
         self,
-        anno: Annotation,
-        des: DeserializerT,
-        constr: Optional[const.ConstraintsT],
-    ) -> Tuple[DeserializerT, const.ValidatorT]:
+        anno: Annotation[Type[ObjectT]],
+        des: DeserializerT[ObjectT],
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         # Determine how to run in "strict-mode"
         validator = self._finalize_validator(constr)
         # Handle *args and **kwargs
@@ -831,7 +839,7 @@ class DesFactory:
             if anno.strict and constr and constr.coerce:
                 __d = des
 
-                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:
+                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:  # type: ignore
                     return __d(__v(val))
 
             elif anno.strict:
@@ -841,10 +849,10 @@ class DesFactory:
 
     def factory(
         self,
-        annotation: Annotation,
-        constr: Optional[const.ConstraintsT] = None,
+        annotation: Annotation[Type[ObjectT]],
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]] = None,
         namespace: Type = None,
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         annotation.serde = annotation.serde or SerdeConfig()
         key = self._get_name(annotation, constr)
         if key in self.__DES_CACHE:

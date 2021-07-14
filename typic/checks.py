@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import builtins
+import dataclasses
 import datetime
 import decimal
 import enum
 import inspect
 import ipaddress
 import pathlib
+import types
 import uuid
+from collections import namedtuple
 from operator import attrgetter
 from typing import (
     Any,
@@ -20,6 +24,8 @@ from typing import (
     TypeVar,
     Iterable,
     Iterator,
+    Hashable,
+    NamedTuple,
 )
 
 import typic
@@ -27,7 +33,15 @@ import typic.common
 import typic.util as util
 import typic.strict as strict
 
-from typic.compat import Final, ForwardRef, Literal, lru_cache
+from typic.compat import (
+    Final,
+    ForwardRef,
+    Literal,
+    lru_cache,
+    TypeGuard,
+    TypedDict,
+    Protocol,
+)
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -57,6 +71,7 @@ __all__ = (
     "isdatetype",
     "isenumtype",
     "isfinal",
+    "isforwardref",
     "isfromdictclass",
     "isfrozendataclass",
     "ishashable",
@@ -87,43 +102,34 @@ __all__ = (
 
 # Here we are with a manually-defined set of builtin-types.
 # This probably won't break anytime soon, but we shall see...
+BuiltInTypeT = Union[
+    int, bool, float, str, bytes, bytearray, list, set, frozenset, tuple, dict, None
+]
 BUILTIN_TYPES = frozenset(
-    (
-        int,
-        bool,
-        float,
-        str,
-        bytes,
-        bytearray,
-        list,
-        set,
-        frozenset,
-        tuple,
-        dict,
-        type(None),
-    )
+    (type(None), *(t for t in BuiltInTypeT.__args__ if t is not None))  # type: ignore
 )
 BUILTIN_TYPES_TUPLE = tuple(BUILTIN_TYPES)
+STDLibTypeT = Union[
+    BuiltInTypeT,
+    datetime.datetime,
+    datetime.date,
+    datetime.timedelta,
+    datetime.time,
+    decimal.Decimal,
+    ipaddress.IPv4Address,
+    ipaddress.IPv6Address,
+    pathlib.Path,
+    uuid.UUID,
+    uuid.SafeUUID,
+]
 STDLIB_TYPES = frozenset(
-    (
-        *BUILTIN_TYPES,
-        datetime.datetime,
-        datetime.date,
-        datetime.timedelta,
-        datetime.time,
-        decimal.Decimal,
-        ipaddress.IPv4Address,
-        ipaddress.IPv6Address,
-        pathlib.Path,
-        uuid.UUID,
-        uuid.SafeUUID,
-    )
+    (type(None), *(t for t in STDLibTypeT.__args__ if t is not None))  # type: ignore
 )
 STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
 
 
 @lru_cache(maxsize=None)
-def isbuiltintype(obj: Type[ObjectT]) -> bool:
+def isbuiltintype(obj: Type[ObjectT]) -> TypeGuard[Type[BuiltInTypeT]]:
     """Check whether the provided object is a builtin-type.
 
     Python stdlib and Python documentation have no "definitive list" of
@@ -164,7 +170,7 @@ def isbuiltintype(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isstdlibtype(obj: Type[ObjectT]) -> bool:
+def isstdlibtype(obj: Type[ObjectT]) -> TypeGuard[Type[STDLibTypeT]]:
     return (
         util.resolve_supertype(obj) in STDLIB_TYPES
         or util.resolve_supertype(type(obj)) in STDLIB_TYPES
@@ -172,7 +178,7 @@ def isstdlibtype(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
+def isbuiltinsubtype(t: Type[ObjectT]) -> TypeGuard[Type[BuiltInTypeT]]:
     """Check whether the provided type is a subclass of a builtin-type.
 
     Parameters
@@ -200,20 +206,20 @@ def isbuiltinsubtype(t: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isstdlibsubtype(t: Type[ObjectT]) -> bool:
+def isstdlibsubtype(t: Type[ObjectT]) -> TypeGuard[Type[STDLibTypeT]]:
     return issubclass(util.resolve_supertype(t), STDLIB_TYPES_TUPLE)
 
 
-def isbuiltininstance(o: ObjectT) -> bool:
+def isbuiltininstance(o: ObjectT) -> TypeGuard[BuiltInTypeT]:
     return _isinstance(o, BUILTIN_TYPES_TUPLE)
 
 
-def isstdlibinstance(o: ObjectT) -> bool:
+def isstdlibinstance(o: ObjectT) -> TypeGuard[STDLibTypeT]:
     return _isinstance(o, STDLIB_TYPES_TUPLE)
 
 
 @lru_cache(maxsize=None)
-def isoptionaltype(obj: Type[ObjectT]) -> bool:
+def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
     """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
 
     :py:class:`typing.Optional` is an alias for `typing.Union[<T>, None]`, so both are
@@ -248,7 +254,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isreadonly(obj: Type[ObjectT]) -> bool:
+def isreadonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.ReadOnly]:
     """Test whether an annotation is marked as :py:class:`typic.ReadOnly`
 
     Parameters
@@ -287,14 +293,14 @@ def isfinal(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isliteral(obj: Type) -> bool:
+def isliteral(obj: Type) -> TypeGuard[Literal]:
     return util.origin(obj) is Literal or (
         obj.__class__ is ForwardRef and obj.__forward_arg__.startswith("Literal")
     )
 
 
 @lru_cache(maxsize=None)
-def iswriteonly(obj: Type[ObjectT]) -> bool:
+def iswriteonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.WriteOnly]:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
     Parameters
@@ -315,7 +321,7 @@ def iswriteonly(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isstrict(obj: Type[ObjectT]) -> bool:
+def isstrict(obj: Type[ObjectT]) -> TypeGuard[typic.Strict]:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
     Parameters
@@ -327,16 +333,18 @@ def isstrict(obj: Type[ObjectT]) -> bool:
 
     >>> import typic
     >>> from typing import NewType
-    >>> typic.iswriteonly(typic.WriteOnly[str])
+    >>> typic.isstrict(typic.Strict[str])
     True
-    >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
+    >>> typic.isstrict(NewType("Foo", typic.Strict[str]))
     True
     """
     return util.origin(obj) is strict.Strict
 
 
 @lru_cache(maxsize=None)
-def isdatetype(obj: Type[ObjectT]) -> bool:
+def isdatetype(
+    obj: Type[ObjectT],
+) -> TypeGuard[Type[Union[datetime.datetime, datetime.date]]]:
     """Test whether this annotation is a a date/datetime object.
 
     Parameters
@@ -356,11 +364,11 @@ def isdatetype(obj: Type[ObjectT]) -> bool:
     >>> typic.isdatetype(NewType("Foo", datetime.datetime))
     True
     """
-    return _issubclass(util.origin(obj), (datetime.datetime, datetime.date))
+    return builtins.issubclass(util.origin(obj), (datetime.datetime, datetime.date))
 
 
 @lru_cache(maxsize=None)
-def istimetype(obj: Type[ObjectT]) -> bool:
+def istimetype(obj: Type[ObjectT]) -> TypeGuard[Type[datetime.time]]:
     """Test whether this annotation is a a date/datetime object.
 
     Parameters
@@ -378,11 +386,11 @@ def istimetype(obj: Type[ObjectT]) -> bool:
     >>> typic.istimetype(NewType("Foo", datetime.time))
     True
     """
-    return _issubclass(util.origin(obj), datetime.time)
+    return builtins.issubclass(util.origin(obj), datetime.time)
 
 
 @lru_cache(maxsize=None)
-def istimedeltatype(obj: Type[ObjectT]) -> bool:
+def istimedeltatype(obj: Type[ObjectT]) -> TypeGuard[Type[datetime.timedelta]]:
     """Test whether this annotation is a a date/datetime object.
 
     Parameters
@@ -400,11 +408,11 @@ def istimedeltatype(obj: Type[ObjectT]) -> bool:
     >>> typic.istimedeltatype(NewType("Foo", datetime.timedelta))
     True
     """
-    return _issubclass(util.origin(obj), datetime.timedelta)
+    return builtins.issubclass(util.origin(obj), datetime.timedelta)
 
 
 @lru_cache(maxsize=None)
-def isuuidtype(obj: Type[ObjectT]) -> bool:
+def isuuidtype(obj: Type[ObjectT]) -> TypeGuard[Type[uuid.UUID]]:
     """Test whether this annotation is a a date/datetime object.
 
     Parameters
@@ -426,32 +434,32 @@ def isuuidtype(obj: Type[ObjectT]) -> bool:
     >>> typic.isuuidtype(NewType("Foo", uuid.UUID))
     True
     """
-    return _issubclass(util.origin(obj), uuid.UUID)
+    return builtins.issubclass(util.origin(obj), uuid.UUID)
 
 
 _COLLECTIONS = {list, set, tuple, frozenset, dict, str, bytes}
 
 
 @lru_cache(maxsize=None)
-def isiterabletype(obj: Type[ObjectT]) -> bool:
+def isiterabletype(obj: Type[ObjectT]) -> TypeGuard[Type[Iterable]]:
     obj = util.origin(obj)
-    return _issubclass(obj, Iterable)
+    return builtins.issubclass(obj, Iterable)
 
 
 @lru_cache(maxsize=None)
-def isiteratortype(obj: Type[ObjectT]) -> bool:
+def isiteratortype(obj: Type[ObjectT]) -> TypeGuard[Type[Iterator]]:
     obj = util.origin(obj)
-    return _issubclass(obj, Iterator)
+    return builtins.issubclass(obj, Iterator)
 
 
 @lru_cache(maxsize=None)
-def istupletype(obj: Type[ObjectT]) -> bool:
+def istupletype(obj: Type[ObjectT]) -> TypeGuard[Type[tuple]]:
     obj = util.origin(obj)
     return obj is tuple or issubclass(obj, tuple)
 
 
 @lru_cache(maxsize=None)
-def iscollectiontype(obj: Type[ObjectT]) -> bool:
+def iscollectiontype(obj: Type[ObjectT]) -> TypeGuard[Type[Collection]]:
     """Test whether this annotation is a subclass of :py:class:`typing.Collection`.
 
     Includes builtins.
@@ -479,11 +487,11 @@ def iscollectiontype(obj: Type[ObjectT]) -> bool:
     False
     """
     obj = util.origin(obj)
-    return obj in _COLLECTIONS or _issubclass(obj, Collection)
+    return obj in _COLLECTIONS or builtins.issubclass(obj, Collection)
 
 
 @lru_cache(maxsize=None)
-def ismappingtype(obj: Type[ObjectT]):
+def ismappingtype(obj: Type[ObjectT]) -> TypeGuard[Type[Mapping]]:
     """Test whether this annotation is a subtype of :py:class:`typing.Mapping`.
 
     Parameters
@@ -515,11 +523,11 @@ def ismappingtype(obj: Type[ObjectT]):
     True
     """
     obj = util.origin(obj)
-    return _issubclass(obj, dict) or _issubclass(obj, Mapping)
+    return builtins.issubclass(obj, dict) or builtins.issubclass(obj, Mapping)
 
 
 @lru_cache(maxsize=None)
-def isenumtype(obj: Type[ObjectT]) -> bool:
+def isenumtype(obj: Type[ObjectT]) -> TypeGuard[Type[enum.Enum]]:
     """Test whether this annotation is a subclass of :py:class:`enum.Enum`
 
     Parameters
@@ -541,7 +549,7 @@ def isenumtype(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isclassvartype(obj: Type[ObjectT]) -> bool:
+def isclassvartype(obj: Type[ObjectT]) -> TypeGuard[ClassVar]:
     """Test whether an annotation is a ClassVar annotation.
 
     Examples
@@ -577,15 +585,24 @@ def should_unwrap(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isfromdictclass(obj: Type[ObjectT]) -> bool:
+def isfromdictclass(obj: Type[ObjectT]) -> TypeGuard[_FromDict]:
     """Test whether this annotation is a class with a `from_dict()` method."""
     return inspect.isclass(obj) and hasattr(obj, "from_dict")
 
 
+class _FromDict(Protocol):
+    def from_dict(self, *args, **kwargs) -> _FromDict:
+        ...
+
+
 @lru_cache(maxsize=None)
-def isfrozendataclass(obj: Type[ObjectT]) -> bool:
+def isfrozendataclass(obj: Type[ObjectT]) -> TypeGuard[_FrozenDataclass]:
     """Test whether this is a dataclass and whether it's frozen."""
     return getattr(getattr(obj, "__dataclass_params__", None), "frozen", False)
+
+
+class _FrozenDataclass(Protocol):
+    __dataclas_params__: dataclasses._DataclassParams  # type: ignore
 
 
 _isinstance = isinstance
@@ -598,7 +615,7 @@ def _type_check(t) -> bool:
     return inspect.isclass(t)
 
 
-def isinstance(o: Any, t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]) -> bool:
+def isinstance(o: Any, t: Union[Type, Tuple[Type, ...]]) -> bool:
     """A safer instance check...
 
     Validates that `t` is not an instance.
@@ -618,15 +635,10 @@ def isinstance(o: Any, t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]) -> bo
     >>> typic.isinstance("", "")
     False
     """
-    return _type_check(t) and _isinstance(o, t)
+    return _type_check(t) and builtins.isinstance(o, t)
 
 
-_issubclass = issubclass
-
-
-def issubclass(
-    o: Type[Any], t: Union[Type[ObjectT], Tuple[Type[ObjectT], ...]]
-) -> bool:
+def issubclass(o: Type[Any], t: Union[Type, Tuple[Type, ...]]) -> bool:
     """A safer subclass check...
 
     Validates that `t` and/or `o` are not instances.
@@ -655,11 +667,11 @@ def issubclass(
     >>> typic.issubclass(MyStr, str())
     False
     """
-    return _type_check(t) and _type_check(o) and _issubclass(o, t)
+    return _type_check(t) and _type_check(o) and builtins.issubclass(o, t)
 
 
 @lru_cache(maxsize=None)
-def isconstrained(obj: Type[ObjectT]) -> bool:
+def isconstrained(obj: Type[ObjectT]) -> TypeGuard[_Constrained]:
     """Test whether a type is restricted.
 
     Parameters
@@ -683,10 +695,14 @@ def isconstrained(obj: Type[ObjectT]) -> bool:
     return hasattr(util.resolve_supertype(obj), "__constraints__")
 
 
+class _Constrained(Protocol):
+    __constraints__: typic.ConstraintsProtocolT
+
+
 __hashgetter = attrgetter("__hash__")
 
 
-def ishashable(obj: ObjectT) -> bool:
+def ishashable(obj: ObjectT) -> TypeGuard[Hashable]:
     """Check whether an object is hashable.
 
     An order of magnitude faster than :py:class:`isinstance` with
@@ -710,7 +726,7 @@ def ishashable(obj: ObjectT) -> bool:
 
 
 @lru_cache(maxsize=None)
-def istypeddict(obj: Type[ObjectT]) -> bool:
+def istypeddict(obj: Type[ObjectT]) -> TypeGuard[Type[TypedDict]]:
     """Check whether an object is a :py:class:`typing.TypedDict`.
 
     Parameters
@@ -736,7 +752,7 @@ def istypeddict(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def istypedtuple(obj: Type[ObjectT]) -> bool:
+def istypedtuple(obj: Type[ObjectT]) -> TypeGuard[Type[NamedTuple]]:
     """Check whether an object is a "typed" tuple (:py:class:`typing.NamedTuple`).
 
     Parameters
@@ -762,7 +778,7 @@ def istypedtuple(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isnamedtuple(obj: Type[ObjectT]) -> bool:
+def isnamedtuple(obj: Type[ObjectT]) -> TypeGuard[namedtuple]:
     """Check whether an object is a "named" tuple (:py:func:`collections.namedtuple`).
 
     Parameters
@@ -781,7 +797,11 @@ def isnamedtuple(obj: Type[ObjectT]) -> bool:
     return inspect.isclass(obj) and issubclass(obj, tuple) and hasattr(obj, "_fields")
 
 
-def isproperty(obj) -> bool:
+def isforwardref(obj: Any) -> TypeGuard[ForwardRef]:
+    return obj.__class__ is ForwardRef
+
+
+def isproperty(obj) -> TypeGuard[types.GetSetDescriptorType]:
     return obj.__class__.__name__ in {"property", "cached_property"}
 
 
