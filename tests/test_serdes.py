@@ -389,3 +389,47 @@ def test_klass_iterate():
 
     assert dict(Foo().iterate()) == dict(Foo()) == {"bar": None}
     assert [*Foo().iterate(values=True)] == [None]
+
+
+def test_functional_iterate_exclude():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    assert dict(typic.iterate(Foo(), exclude=("excluded",))) == {"bar": None}
+
+
+def test_protocol_iterate_exclude():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(exclude=("excluded",)))
+
+    assert dict(proto.iterate(Foo())) == {"bar": None}
+
+
+def test_klass_iterate_exclude():
+    @typic.klass(serde=typic.flags(exclude=("excluded",)))
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    assert dict(Foo().iterate()) == {"bar": None}
+
+
+def test_transmute_excluded():
+    @dataclasses.dataclass
+    class Foo:
+        __serde_flags__ = typic.flags(exclude=("excluded",))
+        bar: str = None
+        excluded: bool = True
+
+    @dataclasses.dataclass
+    class Bar:
+        bar: str = None
+        excluded: bool = False
+
+    assert typic.transmute(Bar, Foo()) == Bar()

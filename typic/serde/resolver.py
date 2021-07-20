@@ -18,6 +18,7 @@ from typing import (
     TypeVar,
     Iterator,
     Dict,
+    Iterable,
 )
 
 from typic import checks, constraints as constr, util, strict as st
@@ -152,7 +153,7 @@ class Resolver:
         return value
 
     def iterate(
-        self, obj, *, values: bool = False
+        self, obj, *, values: bool = False, exclude: Iterable[str] = ()
     ) -> Iterator[Union[Tuple[str, Any], Any]]:
         """Iterate over the fields of an object.
 
@@ -162,6 +163,8 @@ class Resolver:
             The object to iterate over
         values
             Whether to only yield values of an object's fields. (defaults False)
+        exclude
+            Proactively ignore any fields on the object
         """
         t = obj.__class__
         # Extract the type of the enum value if this is an Enum.
@@ -169,7 +172,7 @@ class Resolver:
         if checks.isenumtype(t):
             obj = obj.value
             t = obj.__class__
-        iterator = self.translator.iterator(t, values=values)
+        iterator = self.translator.iterator(t, values=values, exclude=(*exclude,))
         return iterator(obj)
 
     def coerce_value(
@@ -190,7 +193,12 @@ class Resolver:
         return getattr(t, "__delayed__", False)
 
     def primitive(
-        self, obj: ObjectT, *, lazy: bool = False, name: util.ReprT = None
+        self,
+        obj: ObjectT,
+        *,
+        lazy: bool = False,
+        name: util.ReprT = None,
+        flags: SerdeFlags = None,
     ) -> PrimitiveT:
         """A method for converting an object to its primitive equivalent.
 
@@ -229,7 +237,7 @@ class Resolver:
         if checks.isenumtype(t):
             obj = obj.value  # type: ignore
             t = obj.__class__
-        proto: SerdeProtocol = self.resolve(t)
+        proto: SerdeProtocol = self.resolve(t, flags=flags)
         return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
@@ -636,9 +644,15 @@ class Resolver:
     def _iterator_from_annotation(
         self, annotation: Annotation[Type[ObjectT]]
     ) -> FieldIteratorT[ObjectT]:
-        fiterator = self.translator.iterator(annotation.resolved_origin, relaxed=True)
+        exclude = (*(annotation.serde.flags.exclude or ()),)
+        fiterator = self.translator.iterator(
+            annotation.resolved_origin, relaxed=True, exclude=exclude
+        )
         viterator = self.translator.iterator(
-            annotation.resolved_origin, values=True, relaxed=True
+            annotation.resolved_origin,
+            values=True,
+            relaxed=True,
+            exclude=exclude,
         )
 
         def iterator(

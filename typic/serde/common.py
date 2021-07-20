@@ -204,8 +204,8 @@ class SerdeFlags:
         self.signature_only = signature_only
         self.case = case
         self.omit = freeze(omit)  # type: ignore
-        self.fields = cast(FieldSettingsT, freeze(fields))
-        self.exclude = cast(Iterable[str], freeze(exclude))
+        self.fields = cast(FieldSettingsT, freeze(fields)) or ()
+        self.exclude = cast(Iterable[str], freeze(exclude)) or ()
         self.encoder = encoder
         self.decoder = decoder
 

@@ -14,6 +14,7 @@ from typing import (
     Callable,
     Iterator,
     Union,
+    Iterable,
 )
 
 from typic.checks import (
@@ -90,18 +91,23 @@ class TranslatorFactory:
 
     @staticmethod
     def _fields_from_hints(
-        kind: ParameterKind,
-        hints: Mapping[str, Type],
+        kind: ParameterKind, hints: Mapping[str, Type], exclude: Set[str]
     ) -> Mapping[str, inspect.Parameter]:
-        return {x: inspect.Parameter(x, kind, annotation=y) for x, y in hints.items()}
+        return {
+            x: inspect.Parameter(x, kind, annotation=y)
+            for x, y in hints.items()
+            if x not in exclude
+        }
 
     @staticmethod
-    def _fields_from_attrs(kind: ParameterKind, attrs: Tuple[str, ...]):
-        return {x: inspect.Parameter(x, kind) for x in attrs}
+    def _fields_from_attrs(
+        kind: ParameterKind, attrs: Tuple[str, ...], exclude: Set[str]
+    ):
+        return {x: inspect.Parameter(x, kind) for x in attrs if x not in exclude}
 
     @lru_cache(maxsize=None)
     def get_fields(
-        self, type: Type, as_source: bool = False
+        self, type: Type, as_source: bool = False, exclude: Iterable[str] = ()
     ) -> Optional[Mapping[str, inspect.Parameter]]:
         """Get the fields for the given type.
 
@@ -112,6 +118,7 @@ class TranslatorFactory:
         making this happen.
         """
         # Try first with the signature of the target if this is the target type
+        exclude = {*exclude}
         params = safe_get_params(type)
         undefined = self.sig_is_undef(params)
         if not as_source and not undefined:
@@ -127,19 +134,23 @@ class TranslatorFactory:
         # Fetch any type hints and try to use those.
         hints = cached_type_hints(type)
         if hints:
-            return self._fields_from_hints(k, hints)
+            return self._fields_from_hints(k, hints, exclude)
         # Fallback to the target object's defined attributes
         # This will basically work for ORM models, Pydantic models...
         # Anything that defines the instance using the class body.
         attrs = cached_simple_attributes(type)
         if attrs:
-            return self._fields_from_attrs(k, attrs)
+            return self._fields_from_attrs(k, attrs, exclude)
         # Can't be done.
-        return None if undefined else params
+        return None if undefined else {f: params[f] for f in params.keys() - exclude}
 
     @lru_cache(maxsize=None)
     def iterator(
-        self, type: Type, values: bool = False, relaxed: bool = False
+        self,
+        type: Type,
+        values: bool = False,
+        relaxed: bool = False,
+        exclude: Tuple[str, ...] = (),
     ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
 
@@ -150,7 +161,7 @@ class TranslatorFactory:
         if isiterabletype(type) and not isnamedtuple(type):
             return _iter
 
-        fields = self.get_fields(type, as_source=True) or {}
+        fields = self.get_fields(type, as_source=True, exclude=exclude) or {}
 
         if not fields and not relaxed:
             raise TranslatorTypeError(
@@ -212,7 +223,9 @@ class TranslatorFactory:
         return main.compile(name=func_name)
 
     @lru_cache(maxsize=None)
-    def _compile_translator(self, source: Type, target: Type) -> TranslatorT:
+    def _compile_translator(
+        self, source: Type, target: Type, exclude: Tuple[str, ...] = ()
+    ) -> TranslatorT:
         if isliteral(target):
             raise TranslatorTypeError(
                 f"Cannot translate to literal type: {target!r}. "
@@ -234,7 +247,7 @@ class TranslatorFactory:
         # Ensure that the target fields are a subset of the source fields.
         # We treat the target fields as the parameters for the target,
         # so this must be true.
-        fields = self.get_fields(source, as_source=True) or {}
+        fields = self.get_fields(source, as_source=True, exclude=exclude) or {}
         fields_to_pass = {x: fields[x] for x in fields.keys() & target_fields.keys()}
         required = self.required_fields(target_fields)
         if not required.issubset(fields_to_pass.keys()):
@@ -260,9 +273,12 @@ class TranslatorFactory:
         trans = main.compile(name=func_name, ns=ctx)
         return trans
 
-    def factory(self, annotation: "Annotation", target: Type) -> TranslatorT:
+    def factory(
+        self, annotation: "Annotation", target: Type, exclude: Tuple[str, ...] = ()
+    ) -> TranslatorT:
         """Generate a translator for :py:class:`typic.Annotation` -> ``type``."""
-        return self._compile_translator(annotation.resolved, target)
+        exclude = (*(exclude or annotation.serde.flags.exclude),)
+        return self._compile_translator(annotation.resolved, target, exclude=exclude)
 
 
 IteratorT = Union[Callable[[Any], Iterator[Any]], Callable[[Any], Tuple[str, Any]]]

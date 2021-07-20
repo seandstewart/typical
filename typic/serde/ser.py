@@ -213,7 +213,12 @@ class SerFactory:
     ):
         # Get the field serializers
         fields_ser = {x: self.factory(y) for x, y in annotation.serde.fields.items()}
-        iterator = self.resolver.translator.iterator(annotation.resolved, relaxed=True)
+        iterator = self.resolver.translator.iterator(
+            annotation.resolved,
+            relaxed=True,
+            # We want to proactively exclude defined fields from this iterator.
+            exclude=(*annotation.serde.flags.exclude,),
+        )
         self._check_add_null_check(func, annotation)
         self._add_type_check(func, annotation)
         ns: Dict[str, Any] = {
