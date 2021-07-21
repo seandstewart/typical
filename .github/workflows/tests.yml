@@ -40,9 +40,9 @@ jobs:
       id: cache
       with:
         path: ./.venv
-        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+          poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |

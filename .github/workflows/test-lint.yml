@@ -33,15 +33,14 @@ jobs:
       uses: actions/cache@v1
       id: cache
       with:
-        path: ~/.virtualenvs
-        key: ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+        path: ./.venv
+        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.python-version }}-poetry-${{ hashFiles('poetry.lock') }}
+          poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
-        poetry config virtualenvs.in-project false
-        poetry config virtualenvs.path ~/.virtualenvs
+        poetry config virtualenvs.in-project true
 
     - name: Install Dependencies (with Lint)
       run: poetry install --no-dev -E tests -E lint
