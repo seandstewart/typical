@@ -391,6 +391,16 @@ def test_klass_iterate():
     assert [*Foo().iterate(values=True)] == [None]
 
 
+def test_iterate_slots():
+    class Foo:
+        __slots__ = ("bar",)
+
+        def __init__(self):
+            self.bar = "bar"
+
+    assert dict(typic.iterate(Foo())) == {"bar": "bar"}
+
+
 def test_functional_iterate_exclude():
     @dataclasses.dataclass
     class Foo:

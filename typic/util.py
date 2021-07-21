@@ -476,6 +476,20 @@ def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
 
 def simple_attributes(t: Type) -> Tuple[str, ...]:
     """Extract all public, static data-attributes for a given type."""
+    # If slots are defined, this is the best way to locate static attributes.
+    if hasattr(t, "__slots__"):
+        return (
+            *(
+                f
+                for f in t.__slots__
+                if not f.startswith("_")
+                # JIC - check if this is something fancy.
+                and not isinstance(getattr(t, f, ...), _DYNAMIC_ATTRIBUTES)
+            ),
+        )
+    # Otherwise we have to guess. This is inherently faulty, as attributes aren't
+    #   always defined on a class before instantiation. The alternative is reverse
+    #   engineering the constructor... yikes.
     return (
         *(
             x
