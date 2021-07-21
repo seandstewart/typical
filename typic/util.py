@@ -477,7 +477,7 @@ def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
 def simple_attributes(t: Type) -> Tuple[str, ...]:
     """Extract all public, static data-attributes for a given type."""
     # If slots are defined, this is the best way to locate static attributes.
-    if hasattr(t, "__slots__"):
+    if hasattr(t, "__slots__") and t.__slots__:
         return (
             *(
                 f
