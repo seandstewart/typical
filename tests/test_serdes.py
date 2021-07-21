@@ -162,6 +162,8 @@ class CaseDict(Dict):
             CaseDict(foo_bar=2),
             {"fooBar": 2},
         ),
+        (objects.TDict, objects.TDict(a=1), {"a": 1}),
+        (objects.NTup, objects.NTup(a=1), {"a": 1}),
     ],
 )
 def test_serde_serialize(t, obj, prim):
@@ -191,6 +193,16 @@ def test_serde_serialize(t, obj, prim):
             SerDict,
             {"foo_bar": 2},
             {"fooBar": 2},
+        ),
+        (
+            objects.TDict,
+            objects.TDict(a=1),
+            {"a": "1"},
+        ),
+        (
+            objects.NTup,
+            objects.NTup(a=1),
+            {"a": "1"},
         ),
     ],
 )

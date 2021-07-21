@@ -128,9 +128,12 @@ class SerFactory:
         func.l(f"{self._FNAME} = name or {resolved_name!r}")
         line = "if not tcheck(o.__class__, t):"
         check: Callable[..., bool] = util.cached_issubclass
+        t = annotation.generic
         if checks.isbuiltinsubtype(annotation.generic):
             line = "if not tcheck(o, t):"
             check = isinstance  # type: ignore
+        if checks.istypeddict(t):
+            t = dict
         with func.b(line, tcheck=check) as b:
             msg = (
                 f"{{{self._FNAME}}}: type {{inst_tname!r}} "
@@ -144,7 +147,7 @@ class SerFactory:
                 f"raise err(f{msg!r})",
                 err=SerializationValueError,
                 qualname=util.get_qualname,
-                t=annotation.generic,
+                t=t,
             )
 
     def _build_list_serializer(
@@ -359,13 +362,15 @@ class SerFactory:
                     main.param("name", default=None),
                 ) as func:
                     # Mapping types need special nested processing as well
-                    if not checks.istypeddict(origin) and issubclass(
-                        origin, self._DICTITER
-                    ):
+                    istypeddict = checks.istypeddict(origin)
+                    istypedtuple = checks.istypedtuple(origin)
+                    if not istypeddict and issubclass(origin, self._DICTITER):
                         self._build_dict_serializer(func, annotation)
                     # Array types need nested processing.
-                    elif not checks.istypedtuple(origin) and issubclass(
-                        origin, self._LISTITER
+                    elif (
+                        not istypedtuple
+                        and not istypeddict
+                        and issubclass(origin, self._LISTITER)
                     ):
                         self._build_list_serializer(func, annotation)
                     # Build a serializer for a structured class.
