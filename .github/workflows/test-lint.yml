@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
+        python-version: ["3.8"]
 
     steps:
     - uses: actions/checkout@v2
@@ -55,9 +55,11 @@ jobs:
       run: "poetry run mypy typic"
 
     - name: Test with pytest + coverage
-      run: "poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml"
+      run: "poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml "
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
 
     - name: Upload coverage to Codecov
+      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
