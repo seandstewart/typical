@@ -227,6 +227,8 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     >>> typic.get_name(dict)
     'dict'
     """
+    if getattr(obj, "__module__") == "typing":
+        return str(getattr(obj, "__origin__", obj)).rpartition(".")[-1]
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return obj._name or str(obj)  # type: ignore
     elif isinstance(obj, ForwardRef):
@@ -238,6 +240,8 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
 
 @lru_cache(maxsize=None)
 def get_qualname(obj: Type) -> str:
+    if getattr(obj, "__module__") == "typing":
+        return str(getattr(obj, "__origin__", obj))
     if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
         return repr(obj)
     elif isinstance(obj, ForwardRef):
