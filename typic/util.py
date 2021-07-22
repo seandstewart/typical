@@ -222,36 +222,51 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     >>> T = TypeVar("T")
     >>> typic.get_name(Dict)
     'Dict'
+    >>> typic.get_name(Dict[str, str])
+    'Dict'
     >>> typic.get_name(Any)
     'Any'
     >>> typic.get_name(dict)
     'dict'
     """
-    if getattr(obj, "__module__", "") == "typing":
-        return str(obj).rpartition(".")[-1].partition("[")[0]
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name or str(obj)  # type: ignore
-    elif isinstance(obj, ForwardRef):
-        return obj.__forward_arg__
-    elif obj in {NotImplemented, None, Ellipsis}:
-        return str(obj)
-    return obj.__name__
+    strobj = get_qualname(obj)
+    return strobj.rsplit(".")[-1]
 
 
 @lru_cache(maxsize=None)
-def get_qualname(obj: Type) -> str:
-    if getattr(obj, "__module__") == "typing":
-        return str(getattr(obj, "__origin__", obj))
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return repr(obj)
-    elif isinstance(obj, ForwardRef):
-        return obj.__forward_arg__
-    elif obj in {NotImplemented, None, Ellipsis}:
-        return str(obj)
-    qualname = getattr(obj, "__qualname__", obj.__name__)
-    if "<locals>" in qualname:
-        return obj.__name__
-    return qualname
+def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
+    """Safely retrieve the qualname of either a standard object or a type annotation.
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Dict, Any
+    >>> T = TypeVar("T")
+    >>> typic.get_qualname(Dict)
+    'typing.Dict'
+    >>> typic.get_qualname(Dict[str, str])
+    'typing.Dict'
+    >>> typic.get_qualname(Any)
+    'typing.Any'
+    >>> typic.get_qualname(dict)
+    'dict'
+    """
+    # Easy-ish path, use name magix
+    if hasattr(obj, "__qualname__"):
+        qualname = obj.__qualname__  # type: ignore
+        if "<locals>" in qualname:
+            return qualname.rsplit(".")[-1]
+        return qualname
+    if hasattr(obj, "__name__"):
+        return obj.__name__  # type: ignore
+    # We got something weird. Probably a typing thing.
+    strobj = str(obj)
+    # ForwardRefs don't display `typing.` in their repr? maybe.
+    isgeneric = strobj.startswith("typing.")
+    if not isgeneric and isinstance(obj, ForwardRef):
+        strobj = str(obj.__forward_arg__)
+    # If this is a subscripted generic we should clean that up.
+    return strobj.split("[")[0]
 
 
 @lru_cache(maxsize=None)
