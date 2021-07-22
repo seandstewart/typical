@@ -67,7 +67,7 @@ elif sys.version_info >= (3, 9):  # pragma: nocover
         recursive_guard: set = None,
     ) -> Any:
         recursive_guard = recursive_guard or set()
-        return type_._evaluate(globalns, localns, recursive_guard)
+        return type_._evaluate(globalns, localns, recursive_guard)  # type: ignore
 
 
 else:  # pragma: nocover
@@ -79,7 +79,7 @@ else:  # pragma: nocover
         localns: Any,
         recursive_guard: set = None,
     ) -> Any:
-        return type_._evaluate(globalns, localns)
+        return type_._evaluate(globalns, localns)  # type: ignore
 
 
 if TYPE_CHECKING:
