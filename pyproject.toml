@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.4.2"
+version = "2.5.0"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
