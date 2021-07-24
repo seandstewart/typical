@@ -52,18 +52,6 @@ jobs:
       run: "poetry run black . --check"
 
     - name: Static type-check with MyPy
-      run: "poetry run mypy typic"
-
-    - name: Test with pytest + coverage
-      run: "poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml "
-      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
-
-    - name: Upload coverage to Codecov
-      if: matrix.python-version == 3.8 && matrix.os == 'ubuntu-latest'
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        flags: unittests,${{ matrix.python-version }}
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      run: |
+        poetry run mypy --install-types
+        poetry run mypy typic
