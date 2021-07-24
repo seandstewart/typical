@@ -110,7 +110,16 @@ benchmarks = [
     "pydantic",
     "sqlalchemy",
 ]
-lint = ["mypy", "flake8", "black", "types-all"]
+lint = [
+    "mypy",
+    "flake8",
+    "black",
+    "types-python-dateutil",
+    "types-setuptools",
+    "types-toml",
+    "types-typed-ast",
+    "types-ujson",
+]
 docs = [
     "mkdocs",
     "mkdocs-material",

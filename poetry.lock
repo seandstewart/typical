@@ -973,14 +973,14 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 benchmarks = ["pytest-benchmark", "marshmallow", "toastedmarshmallow", "djangorestframework", "pydantic", "django", "pydantic", "sqlalchemy"]
 docs = ["mkdocs", "mkdocs-material", "mkdocs-awesome-pages-plugin", "pymdown-extensions"]
 json = ["ujson"]
-lint = ["mypy", "flake8", "black"]
+lint = ["mypy", "flake8", "black", "types-python-dateutil", "types-setuptools", "types-toml", "types-typed-ast", "types-ujson"]
 schema = ["fastjsonschema"]
 tests = ["fastjsonschema", "ujson", "pydantic", "sqlalchemy", "pandas", "mypy", "pytest", "pytest-cov"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "af35e20a02d1c37cf737a0c3d2af135bceef1172415abf4ee4ec797b65f98ae9"
+content-hash = "3a948ec4a00750c201f97bc39a6665f6bc16ee1c51e704d05253bf00a269a792"
 
 [metadata.files]
 appdirs = [
