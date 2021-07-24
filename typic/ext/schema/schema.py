@@ -26,7 +26,7 @@ from typic.serde.resolver import resolver
 from typic.serde.common import SerdeProtocol, Annotation
 from typic.compat import Final, TypedDict, ForwardRef, Literal
 from typic.util import get_args, origin, get_name
-from typic.checks import istypeddict, isnamedtuple, isliteral
+from typic.checks import istypeddict, isnamedtuple, isliteral, isuniontype
 from typic.types.frozendict import FrozenDict
 
 from .field import (  # type: ignore
@@ -280,7 +280,7 @@ class SchemaBuilder:
         # `use` is the based annotation we will use for building the schema
         use = getattr(anno.origin, "__parent__", anno.origin)
         # This is a flat optional, handle it separately from the Union block.
-        use = anno.resolved if use is Union and not anno.args else use
+        use = anno.resolved if isuniontype(use) and not anno.args else use
         # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaFieldT
         if use in {Any, anno.EMPTY}:
@@ -292,7 +292,7 @@ class SchemaBuilder:
         # {'type': ['string', 'integer']} ==
         #   {'anyOf': [{'type': 'string'}, {'type': 'integer'}]}
         # We don't care about syntactic sugar if it's functionally the same.
-        if use is Union:
+        if isuniontype(use):
             return self._handle_union(anno=anno, ro=ro, wo=wo, name=name, parent=parent)
 
         self.__stack.add(anno)
