@@ -11,7 +11,6 @@ import uuid
 from collections import defaultdict
 from operator import attrgetter
 
-import pandas
 import pendulum
 import pytest
 
@@ -240,24 +239,6 @@ def test_transmute_subclassed_enum_with_default():
 def test_transmute_collection_metas(annotation, value, expected):
     transmuted = transmute(annotation, value)
     assert transmuted == expected
-
-
-@pytest.mark.parametrize(
-    argnames=("annotation", "value", "expected"),
-    argvalues=[
-        (pandas.DataFrame, {}, pandas.DataFrame()),
-        (pandas.Series, [], pandas.Series()),
-        (objects.DFClass, {}, pandas.DataFrame()),
-        (objects.DFClass, None, None),
-    ],
-)
-def test_transmute_pandas(annotation, value, expected):
-    if annotation is objects.DFClass:
-        transmuted = objects.DFClass(value).df
-    else:
-        transmuted = transmute(annotation, value)
-        assert isinstance(transmuted, annotation)
-    assert transmuted == expected if expected is None else expected.equals(transmuted)
 
 
 def test_default_none():
@@ -549,7 +530,6 @@ def test_eval_invalid():
     argvalues=[
         (typed(objects.Data)("foo"), "foo", 1, str),
         (typed(objects.NoParams)(), "var", 1, str),
-        (objects.DFClass(), "df", {}, pandas.DataFrame),
     ],
     ids=objects.get_id,
 )
