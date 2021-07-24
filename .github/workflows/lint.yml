@@ -1,4 +1,4 @@
-name: Test & Lint
+name: Lint
 
 on: [push]
 
