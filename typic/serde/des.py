@@ -719,7 +719,7 @@ class DesFactory:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, anno_name, annotation)
-                    if origin is Union:
+                    if checks.isuniontype(origin):
                         self._build_union_des(func, annotation, namespace)
                     elif checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
