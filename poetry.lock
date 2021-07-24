@@ -939,8 +939,8 @@ tests = ["fastjsonschema", "ujson", "pydantic", "sqlalchemy", "pandas", "mypy", 
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.7.1"
-content-hash = "eb99b31d37e77fd8cc15ab57ac439e92607bed8368ed5b4aa3c53bc59178b217"
+python-versions = "^3.7"
+content-hash = "0f45b42a60c3b922640c601751f76ee2e8d85b11fb7b1edde432c552c5046e04"
 
 [metadata.files]
 appdirs = [

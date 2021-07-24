@@ -18,4 +18,4 @@ repos:
   - repo: .
     rev: v2.3.3
     hooks:
-    - id: export-requirements-dev
+    - id: export-requirements-docs
