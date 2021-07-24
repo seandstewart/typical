@@ -20,7 +20,7 @@ executable_modules = ("success",)
 
 
 @pytest.mark.skipif(
-    "sys.version_info > (3, 8)", reason="Mypy doesn't yet support Python 3.9."
+    "sys.version_info > (3, 9)", reason="Mypy doesn't yet support Python 3.10."
 )
 @pytest.mark.parametrize("config_filename,python_filename,output_filename", cases)
 def test_mypy_results(config_filename, python_filename, output_filename):
