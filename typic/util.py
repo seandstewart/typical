@@ -9,6 +9,7 @@ import functools
 import inspect
 import sys
 import types
+import warnings
 from datetime import date, datetime, timedelta, time
 from threading import RLock
 from types import MappingProxyType, MemberDescriptorType
@@ -471,6 +472,9 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
         except NameError:
             # this is ok, we deal with it later.
             pass
+        except TypeError as e:
+            warnings.warn(f"Couldn't evaluate type {value!r}: {e}")
+            value = Any
         annotations[name] = value
     return annotations
 
