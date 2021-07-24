@@ -39,7 +39,7 @@ import pendulum
 from future_typing import transform_annotation
 
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import ForwardRef, lru_cache, KW_ONLY, get_origin
 from typic.ext import json
 
 __all__ = (
@@ -179,9 +179,7 @@ def origin(annotation: Any) -> Any:
         args = get_args(actual)
         actual = args[0] if args else actual
 
-    # Extract the highest-order origin of the annotation.
-    while hasattr(actual, "__origin__"):
-        actual = actual.__origin__
+    actual = get_origin(actual) or actual
 
     # provide defaults for generics
     if not checks.isbuiltintype(actual):
@@ -479,9 +477,12 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
 
 def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
     try:
-        return _get_type_hints(obj)
+        hints = _get_type_hints(obj)
     except (NameError, TypeError):
-        return _safe_get_type_hints(obj)
+        hints = _safe_get_type_hints(obj)
+    # KW_ONLY is a special sentinel to denote kw-only params in a dataclass.
+    #  We don't want to do anything with this hint/field. It's not real.
+    return {f: t for f, t in hints.items() if t is not KW_ONLY}
 
 
 cached_type_hints = lru_cache(maxsize=None)(get_type_hints)

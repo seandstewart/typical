@@ -13,9 +13,9 @@ from typing import (
 )
 
 try:
-    from typing import Final, TypedDict, Literal, Protocol, TypeGuard  # type: ignore
+    from typing import Final, TypedDict, Literal, Protocol, TypeGuard, get_origin, get_args  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict, Literal, Protocol, TypeGuard  # type: ignore
+    from typing_extensions import Final, TypedDict, Literal, Protocol, TypeGuard, get_origin, get_args  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover
@@ -94,6 +94,19 @@ if TYPE_CHECKING:
 else:
     from functools import lru_cache
 
+
+if sys.version_info >= (3, 10):  # pragma: nocover
+    DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = True
+    from dataclasses import KW_ONLY  # type: ignore
+
+else:
+    DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = False
+
+    class _KW_ONLY_TYPE:
+        pass
+
+    KW_ONLY = _KW_ONLY_TYPE()
+
 __all__ = (
     "Final",
     "TypedDict",
@@ -105,4 +118,8 @@ __all__ = (
     "sqla_registry",
     "evaluate_forwardref",
     "lru_cache",
+    "DATACLASS_KW_ONLY",
+    "DATACLASS_MATCH_ARGS",
+    "DATACLASS_NATIVE_SLOTS",
+    "KW_ONLY",
 )
