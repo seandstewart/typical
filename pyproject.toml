@@ -50,6 +50,12 @@ django = {version = "^2.2", optional = true}
 flake8 = {version = "^3.7.9", optional = true}
 mypy = {version = "^0.910", optional = true}
 black = {version = "^21", allow-prereleases = true, optional = true}
+# mypy needs these....
+types-python-dateutil = {version = "*", optional = true}
+types-setuptools = {version = "*", optional = true}
+types-toml = {version = "*", optional = true}
+types-typed-ast = {version = "*", optional = true}
+types-ujson = {version = "*", optional = true}
 # docs
 mkdocs = {version = "^1.1", optional = true}
 mkdocs-material = {version = "^5.5", optional = true}

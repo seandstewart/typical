@@ -34,9 +34,9 @@ jobs:
       id: cache
       with:
         path: ./.venv
-        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+        key: poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+          poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
@@ -53,5 +53,4 @@ jobs:
 
     - name: Static type-check with MyPy
       run: |
-        poetry run mypy --install-types
         poetry run mypy typic
