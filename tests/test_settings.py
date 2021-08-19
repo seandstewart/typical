@@ -28,6 +28,11 @@ class DB:
         ({"prefix": "", "case_sensitive": False, "aliases": {}}, 1, "BAR"),
         ({"prefix": "OTHER_", "case_sensitive": False, "aliases": {}}, 1, "OTHER_BAR"),
         ({"prefix": "FAB_", "case_sensitive": False, "aliases": {}}, 1, "FAB_BAR"),
+        (
+            {"prefix": "", "case_sensitive": False, "aliases": {"bar": "abar"}},
+            1,
+            "ABAR",
+        ),
     ],
 )
 def test__resolve_from_env(kwargs, value, name):
