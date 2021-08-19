@@ -251,12 +251,12 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     'dict'
     """
     # Easy-ish path, use name magix
-    if hasattr(obj, "__qualname__"):
+    if hasattr(obj, "__qualname__") and obj.__qualname__:  # type: ignore
         qualname = obj.__qualname__  # type: ignore
         if "<locals>" in qualname:
             return qualname.rsplit(".")[-1]
         return qualname
-    if hasattr(obj, "__name__"):
+    if hasattr(obj, "__name__") and obj.__name__:  # type: ignore
         return obj.__name__  # type: ignore
     # We got something weird. Probably a typing thing.
     strobj = str(obj)
