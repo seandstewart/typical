@@ -619,14 +619,11 @@ class Resolver:
         # Create the iterator, if possible.
         try:
             iterator = self._iterator_from_annotation(annotation)
-        except TypeError as e:
-            msg = str(e)
-
-            def iterator(o: ObjectT, *, values: bool = False):  # type: ignore
-                raise TypeError(msg)
-
-        iterator.__qualname__ = f"{SerdeProtocol.__name__}.{iterator.__name__}"
-        iterator.__module__ = SerdeProtocol.__module__
+            iterator.__qualname__ = f"{SerdeProtocol.__name__}.{iterator.__name__}"
+            iterator.__module__ = SerdeProtocol.__module__
+        # Default to lazy iteration, if not.
+        except TypeError:
+            iterator = cast(FieldIteratorT, self.iterate)
 
         return SerdeProtocol(
             annotation=annotation,
