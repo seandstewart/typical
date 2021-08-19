@@ -10,7 +10,7 @@ repos:
     rev: 21.6b0
     hooks:
     - id: black
-      language_version: python3.7
+      language_version: python3.8
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.9.2
     hooks:
@@ -18,4 +18,4 @@ repos:
   - repo: .
     rev: v2.3.3
     hooks:
-    - id: export-requirements-dev
+    - id: export-requirements-docs

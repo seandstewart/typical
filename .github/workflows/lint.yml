@@ -1,4 +1,4 @@
-name: Test & Lint
+name: Lint
 
 on: [push]
 
@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
+        python-version: ["3.9"]
 
     steps:
     - uses: actions/checkout@v2
@@ -34,9 +34,9 @@ jobs:
       id: cache
       with:
         path: ./.venv
-        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+        key: poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
         restore-keys: |
-          poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+          poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
     - name: Set Poetry config
       run: |
@@ -52,16 +52,5 @@ jobs:
       run: "poetry run black . --check"
 
     - name: Static type-check with MyPy
-      run: "poetry run mypy typic"
-
-    - name: Test with pytest + coverage
-      run: "poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml"
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        flags: unittests,${{ matrix.python-version }}
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      run: |
+        poetry run mypy typic

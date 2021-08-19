@@ -9,6 +9,7 @@ import functools
 import inspect
 import sys
 import types
+import warnings
 from datetime import date, datetime, timedelta, time
 from threading import RLock
 from types import MappingProxyType, MemberDescriptorType
@@ -39,7 +40,7 @@ import pendulum
 from future_typing import transform_annotation
 
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache
+from typic.compat import ForwardRef, lru_cache, KW_ONLY, get_origin
 from typic.ext import json
 
 __all__ = (
@@ -179,9 +180,7 @@ def origin(annotation: Any) -> Any:
         args = get_args(actual)
         actual = args[0] if args else actual
 
-    # Extract the highest-order origin of the annotation.
-    while hasattr(actual, "__origin__"):
-        actual = actual.__origin__
+    actual = get_origin(actual) or actual
 
     # provide defaults for generics
     if not checks.isbuiltintype(actual):
@@ -222,32 +221,51 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     >>> T = TypeVar("T")
     >>> typic.get_name(Dict)
     'Dict'
+    >>> typic.get_name(Dict[str, str])
+    'Dict'
     >>> typic.get_name(Any)
     'Any'
     >>> typic.get_name(dict)
     'dict'
     """
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name or str(obj)  # type: ignore
-    elif isinstance(obj, ForwardRef):
-        return obj.__forward_arg__
-    elif obj in {NotImplemented, None, Ellipsis}:
-        return str(obj)
-    return obj.__name__
+    strobj = get_qualname(obj)
+    return strobj.rsplit(".")[-1]
 
 
 @lru_cache(maxsize=None)
-def get_qualname(obj: Type) -> str:
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return repr(obj)
-    elif isinstance(obj, ForwardRef):
-        return obj.__forward_arg__
-    elif obj in {NotImplemented, None, Ellipsis}:
-        return str(obj)
-    qualname = getattr(obj, "__qualname__", obj.__name__)
-    if "<locals>" in qualname:
-        return obj.__name__
-    return qualname
+def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
+    """Safely retrieve the qualname of either a standard object or a type annotation.
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Dict, Any
+    >>> T = TypeVar("T")
+    >>> typic.get_qualname(Dict)
+    'typing.Dict'
+    >>> typic.get_qualname(Dict[str, str])
+    'typing.Dict'
+    >>> typic.get_qualname(Any)
+    'typing.Any'
+    >>> typic.get_qualname(dict)
+    'dict'
+    """
+    # Easy-ish path, use name magix
+    if hasattr(obj, "__qualname__"):
+        qualname = obj.__qualname__  # type: ignore
+        if "<locals>" in qualname:
+            return qualname.rsplit(".")[-1]
+        return qualname
+    if hasattr(obj, "__name__"):
+        return obj.__name__  # type: ignore
+    # We got something weird. Probably a typing thing.
+    strobj = str(obj)
+    # ForwardRefs don't display `typing.` in their repr? maybe.
+    isgeneric = strobj.startswith("typing.")
+    if not isgeneric and isinstance(obj, ForwardRef):
+        strobj = str(obj.__forward_arg__)
+    # If this is a subscripted generic we should clean that up.
+    return strobj.split("[")[0]
 
 
 @lru_cache(maxsize=None)
@@ -454,15 +472,21 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
         except NameError:
             # this is ok, we deal with it later.
             pass
+        except TypeError as e:
+            warnings.warn(f"Couldn't evaluate type {value!r}: {e}")
+            value = Any
         annotations[name] = value
     return annotations
 
 
 def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
     try:
-        return _get_type_hints(obj)
+        hints = _get_type_hints(obj)
     except (NameError, TypeError):
-        return _safe_get_type_hints(obj)
+        hints = _safe_get_type_hints(obj)
+    # KW_ONLY is a special sentinel to denote kw-only params in a dataclass.
+    #  We don't want to do anything with this hint/field. It's not real.
+    return {f: t for f, t in hints.items() if t is not KW_ONLY}
 
 
 cached_type_hints = lru_cache(maxsize=None)(get_type_hints)

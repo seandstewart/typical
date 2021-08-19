@@ -27,6 +27,7 @@ from typing import (
 )
 
 from typic.checks import (
+    isuniontype,
     isoptionaltype,
     isbuiltintype,
     isconstrained,
@@ -181,7 +182,7 @@ def _resolve_args(
         arg = largs.popleft()
         if arg in {Any, Ellipsis}:
             continue
-        if origin(arg) is Union:
+        if isuniontype(arg):
             c = _from_union(arg, cls=cls, nullable=nullable)
             # just extend the outer multi constraints if that's what we're building
             if isinstance(c, MultiConstraints) and multi:
@@ -274,7 +275,7 @@ def _resolve_params(
         nullable = p.default in (None, Ellipsis) or isoptionaltype(anno)
         if anno in {Any, Ellipsis, p.empty}:
             continue
-        if origin(anno) is Union:
+        if isuniontype(anno) and not isforwardref(anno):
             items[name] = _from_union(anno, nullable=nullable, name=name, cls=cls)
             continue
         else:

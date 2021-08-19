@@ -94,6 +94,7 @@ __all__ = (
     "istupletype",
     "istypeddict",
     "istypedtuple",
+    "isuniontype",
     "isuuidtype",
     "iswriteonly",
     "should_unwrap",
@@ -249,8 +250,13 @@ def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
             type(None),
             None,
         }  # noqa: E721 - we don't know what args[-1] is, so this is safer
-        and getattr(obj, "__origin__", obj) in {Optional, Union, Literal}
+        and util.get_name(util.origin(obj)) in {"Optional", "Union", "Literal"}
     )
+
+
+@lru_cache(maxsize=None)
+def isuniontype(obj: Type[ObjectT]) -> TypeGuard[Union]:
+    return util.get_name(util.origin(obj)) == "Union"
 
 
 @lru_cache(maxsize=None)
@@ -747,7 +753,7 @@ def istypeddict(obj: Type[ObjectT]) -> TypeGuard[Type[TypedDict]]:
     return (
         inspect.isclass(obj)
         and dict in {*inspect.getmro(obj)}
-        and hasattr(obj, "__annotations__")
+        and hasattr(obj, "__total__")
     )
 
 
