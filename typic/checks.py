@@ -256,7 +256,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
 
 @lru_cache(maxsize=None)
 def isuniontype(obj: Type[ObjectT]) -> TypeGuard[Union]:
-    return util.get_name(util.origin(obj)) == "Union"
+    return util.get_name(util.origin(obj)) in {"Union", "UnionType"}
 
 
 @lru_cache(maxsize=None)
