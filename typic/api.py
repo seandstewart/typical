@@ -1,5 +1,6 @@
 from __future__ import annotations as a
 
+import collections
 import dataclasses
 import functools
 import inspect
@@ -590,13 +591,13 @@ environ = Environ(resolver)
 
 
 def settings(
-    _klass: Type[ObjectT] = None,
+    _klass=None,
     *,
     prefix: str = "",
     case_sensitive: bool = False,
     frozen: bool = True,
     aliases: Mapping = None,
-) -> Type[ObjectT]:
+):
     """Create a typed class which fetches its defaults from env vars.
 
     The resolution order of values is `default(s) -> env value(s) -> passed value(s)`.
@@ -655,15 +656,19 @@ def _resolve_from_env(
     case_sensitive: bool,
     aliases: Mapping[str, str],
 ) -> Type[ObjectT]:
-    fields = {
+    fields = cached_type_hints(cls)
+    vars = {
         (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
-        for x, y in cached_type_hints(cls).items()
+        for x, y in fields.items()
     }
-    names = {*fields, *aliases}
+    attr_to_aliases = collections.defaultdict(set)
+    for alias, attr in aliases.items():
+        attr_to_aliases[attr].add(alias)
+
     sentinel = object()
-    for k in names:
-        name = aliases.get(k, k)
-        attr, typ = fields[name]
+    for name in vars:
+        attr, typ = vars[name]
+        names = attr_to_aliases[name]
         field = getattr(cls, attr, sentinel)
         if field is sentinel:
             field = dataclasses.field()
@@ -672,12 +677,12 @@ def _resolve_from_env(
         if field.default_factory != dataclasses.MISSING:
             continue
 
-        kwargs = dict(var=k, ci=not case_sensitive)
+        kwargs = dict(var=name, ci=not case_sensitive)
         if field.default != dataclasses.MISSING:
             kwargs["default"] = field.default
             field.default = dataclasses.MISSING
 
-        factory = environ.register(t=typ, name=name)
+        factory = environ.register(typ, *names, name=name)
         field.default_factory = functools.partial(factory, **kwargs)
         setattr(cls, attr, field)
 

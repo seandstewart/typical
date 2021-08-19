@@ -3,10 +3,11 @@ from __future__ import annotations
 import builtins
 import inspect
 import os
-from typing import TypeVar, Type, Any, TYPE_CHECKING
+from typing import TypeVar, Type, Any, TYPE_CHECKING, Mapping
 
 from typic import types
 from typic.checks import STDLIB_TYPES
+from typic.serde import common
 from typic.util import get_name
 
 
@@ -54,9 +55,14 @@ class Environ:
     def __setitem__(self, key, value):
         return self.setenv(key, value)
 
-    def register(self, t: Type[_ET], *, name: str = None):
+    def register(self, t: Type[_ET], *aliases: str, name: str = None):
         """Register a handler for the target type `t`."""
         anno = self.resolver.annotation(t)
+        if isinstance(
+            anno, (common.ForwardDelayedAnnotation, common.DelayedAnnotation)
+        ):
+            anno = anno.resolved.annotation  # type: ignore
+
         name = name or get_name(anno.resolved)
         if name in self.__dict__:
             return self.__dict__[name]
@@ -67,7 +73,7 @@ class Environ:
             ) from None
 
         def get(var: str, *, ci: bool = True, default: _ET = ...):  # type: ignore
-            return self.getenv(var, t=t, ci=ci, default=default)
+            return self.getenv(var, default, *aliases, t=t, ci=ci)
 
         setattr(self, name, get)
         return get
@@ -76,7 +82,7 @@ class Environ:
         self,
         var: str,
         default: _ET = ...,  # type: ignore
-        *,
+        *aliases: str,
         t: Type[_ET] = Any,  # type: ignore
         ci: bool = True,
     ) -> _ET:
@@ -87,11 +93,15 @@ class Environ:
             ci: Whether the variable should be considered case-insensitive.
         """
         proto = self.resolver.resolve(t)
-        value = os.environ.get(var, default)
-        if value == default and ci:
-            value = next(
-                (v for k, v in os.environ.items() if k.lower() == var.lower()), default
-            )
+        names = {*aliases}
+        environ: Mapping[str, str] = os.environ
+        if ci:
+            var = var.lower()
+            names = {v.lower() for v in aliases}
+            environ = {k.lower(): value for k, value in os.environ.items()}
+        value = environ.get(var, default)
+        if value == default and names:
+            value = next((environ[k] for k in environ.keys() & names), default)
         if value is ... and t is Any:
             return None  # type: ignore
         if value is ... and not proto.annotation.optional:
@@ -102,7 +112,7 @@ class Environ:
             return value  # type: ignore
         try:
             return proto.transmute(value)  # type: ignore
-        except (TypeError, ValueError) as err:
+        except (TypeError, ValueError, KeyError) as err:
             raise EnvironmentValueError(
                 f"Couldn't parse <{var}:{value}> to {t!r}: {err}."
             ) from None
