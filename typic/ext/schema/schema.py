@@ -382,13 +382,17 @@ class SchemaBuilder:
             return self._flatten_multi_definitions(definitions, field)
         return field
 
-    @staticmethod
-    def defname(obj, name: str = None) -> Optional[str]:
+    @classmethod
+    def defname(cls, obj, name: str = None) -> Optional[str]:
         """Get the definition name for an object."""
         defname = name or getattr(obj, "__name__", None)
+        if defname in cls._IGNORE_NAME:
+            defname = None
         if (obj is dict or origin(obj) is dict) and name:
             defname = name
         return inflection.camelize(defname) if defname else None
+
+    _IGNORE_NAME = {"Mapping", "MutableMapping", "Dict"}
 
     def build_schema(self, obj: Type, *, name: str = None) -> ObjectSchemaField:
         """Build a valid JSON Schema, including nested schemas."""
