@@ -107,6 +107,8 @@ class TypicTransformer:
         self.add_validate_method()
         self.add_json_method()
         self.add_translate_method()
+        self.add_iterate_method()
+        self.add_iter_method()
 
     @staticmethod
     def _get_tvar_name(name: str, info) -> str:
@@ -221,6 +223,36 @@ class TypicTransformer:
         add_method(
             ctx,
             "translate",
+            args=[arg],
+            return_type=r_type,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
+    def add_iterate_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        r_type = AnyType(TypeOfAny.explicit)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
+        add_method(
+            ctx,
+            "iterate",
+            args=[arg],
+            return_type=r_type,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
+    def add_iter_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        r_type = AnyType(TypeOfAny.explicit)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
+        add_method(
+            ctx,
+            "__iter__",
             args=[arg],
             return_type=r_type,
             self_type=TypeVarType(self_tvar_def),
