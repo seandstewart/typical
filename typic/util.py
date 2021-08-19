@@ -250,6 +250,15 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     >>> typic.get_qualname(dict)
     'dict'
     """
+    strobj = str(obj)
+    isgeneric = strobj.startswith("typing.")
+    if not isgeneric and isinstance(obj, ForwardRef):
+        strobj = str(obj.__forward_arg__)
+        isgeneric = strobj.startswith("typing.")
+    # We got a typing thing.
+    if isgeneric:
+        # If this is a subscripted generic we should clean that up.
+        return strobj.split("[")[0]
     # Easy-ish path, use name magix
     if hasattr(obj, "__qualname__") and obj.__qualname__:  # type: ignore
         qualname = obj.__qualname__  # type: ignore
@@ -258,14 +267,7 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
         return qualname
     if hasattr(obj, "__name__") and obj.__name__:  # type: ignore
         return obj.__name__  # type: ignore
-    # We got something weird. Probably a typing thing.
-    strobj = str(obj)
-    # ForwardRefs don't display `typing.` in their repr? maybe.
-    isgeneric = strobj.startswith("typing.")
-    if not isgeneric and isinstance(obj, ForwardRef):
-        strobj = str(obj.__forward_arg__)
-    # If this is a subscripted generic we should clean that up.
-    return strobj.split("[")[0]
+    return strobj
 
 
 @lru_cache(maxsize=None)
