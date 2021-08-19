@@ -7,7 +7,7 @@ repos:
         args: [--no-strict-optional, --ignore-missing-imports, --follow-imports=silent]
         additional_dependencies: [types-all]
   - repo: https://github.com/ambv/black
-    rev: 21.6b0
+    rev: 21.7b0
     hooks:
     - id: black
       language_version: python3.8
@@ -16,6 +16,6 @@ repos:
     hooks:
     - id: flake8
   - repo: .
-    rev: v2.3.3
+    rev: 9e7fc8f7258a660a4ff8ce252b3337d1db62d7ec
     hooks:
     - id: export-requirements-docs
