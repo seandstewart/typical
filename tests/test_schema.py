@@ -88,9 +88,9 @@ class Container:
         (Final[str], typic.StrSchemaField(readOnly=True)),
         (typic.common.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
         (
-            Union[str, int],
+            Union[int, str],
             typic.MultiSchemaField(
-                anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
             ),
         ),
         (
@@ -152,18 +152,18 @@ class Container:
             ),
         ),
         (
-            Dict[str, Union[str, int]],
+            Dict[str, Union[int, str]],
             typic.ObjectSchemaField(
                 additionalProperties=MultiSchemaField(
-                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                    anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
                 )
             ),
         ),
         (
-            Tuple[Union[str, int], ...],
+            Tuple[Union[int, str], ...],
             typic.ArraySchemaField(
                 items=MultiSchemaField(
-                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                    anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
                 )
             ),
         ),
