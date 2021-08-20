@@ -444,9 +444,9 @@ print(member.play())
 ### Generic Unions
 
 While you're *highly encouraged* to make use of [Tagged Unions](#tagged-unions) for your
-polymorphic types, typical can generate a deserilization protocol for generic unions as
-well. This is intended for use when it's simply not possible to define a discriminator
-for your union.
+polymorphic types, typical can generate a deserializer for generic unions as well. This
+is intended for use when it's simply not possible to define a discriminator for your
+union.
 
 !!! info ""
 
@@ -455,7 +455,7 @@ for your union.
 !!! warning ""
 
     Tagged Union deserialization is O(1) where N is the number of target types. Generic
-    Unions are 0(N). Keep this in mind when defining your types - you may be better-served
+    Unions are O(N). Keep this in mind when defining your types - you may be better-served
     by re-working your data model.
 
 When defining your Generic Union, you're encouraged to order your types from *most*
