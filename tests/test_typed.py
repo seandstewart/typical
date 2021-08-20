@@ -706,8 +706,8 @@ def test_constrained_any():
         (Strict[typing.Optional[typing.List[int]]], {None}),
         (Strict[typing.Optional[typing.List[int]]], [1.0]),
         (typing.Optional[Strict[str]], 1.0),
-        (Strict[typing.Union[str, int]], 1.0),
-        (Strict[typing.Union[str, int]], None),
+        (Strict[typing.Union[int, str]], 1.0),
+        (Strict[typing.Union[int, str]], None),
         (StrictStrT, b""),
     ],
     ids=objects.get_id,
@@ -727,8 +727,8 @@ def test_strict_anno_fails(anno, val):
         (typing.Optional[Strict[str]], "foo"),
         (Strict[typing.Optional[str]], "foo"),
         (Strict[typing.Optional[str]], None),
-        (Strict[typing.Union[str, int]], 1),
-        (Strict[typing.Union[str, int]], "foo"),
+        (Strict[typing.Union[int, str]], 1),
+        (Strict[typing.Union[int, str]], "foo"),
         (StrictStrT, "foo"),
     ],
     ids=objects.get_id,
@@ -1060,6 +1060,20 @@ def test_tagged_union_transmute(annotation, value, expected):
 def test_tagged_union_validate(annotation, value):
     validated = validate(annotation, value)
     assert validated == value
+
+
+@pytest.mark.parametrize(
+    argnames="annotation,value,expected",
+    argvalues=[
+        (typing.Union[int, str], "1", 1),
+        (typing.Union[int, str], "foo", "foo"),
+        (typing.Union[int, datetime.date], "1", 1),
+        (typing.Union[int, datetime.date], "1970-01-01", datetime.date(1970, 1, 1)),
+    ],
+)
+def test_union_transmute(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
 
 
 @pytest.mark.parametrize(
