@@ -236,7 +236,13 @@ typic.transmute(SuperImportantValues, b"foo")
 ```
 
 
-## Tagged Unions (Polymorphic Types)
+## Unions (Polymorphic Types)
+
+!!! warning ""
+
+    :dragon: Here be dragons :dragon: 
+
+### Tagged Unions
 
 !!! info ""
 
@@ -434,6 +440,69 @@ print(member.play())
         key: Literal[2]
         field: bytes
     ```
+
+### Generic Unions
+
+While you're *highly encouraged* to make use of [Tagged Unions](#tagged-unions) for your
+polymorphic types, typical can generate a deserilization protocol for generic unions as
+well. This is intended for use when it's simply not possible to define a discriminator
+for your union.
+
+!!! info ""
+
+    New in version 2.6
+
+!!! warning ""
+
+    Tagged Union deserialization is O(1) where N is the number of target types. Generic
+    Unions are 0(N). Keep this in mind when defining your types - you may be better-served
+    by re-working your data model.
+
+When defining your Generic Union, you're encouraged to order your types from *most*
+specific to *least*. As a part of the implementation, we treat the possible types as
+FIFO queue, taking a type from the top of the stack and attempting deserialization. If
+all attempt at deserialization fail, we raise a `ValueError`.
+
+??? example "Working with Generic Unions"
+
+    **Wrong:**
+    
+    ```python
+    from __future__ import annotations
+    
+    from typing import Union
+    
+    import typic
+    
+    
+    # `str` should never be first! Everything can be a string...
+    proto = typic.protocol(Union[str, int])
+    print(type(proto.transmute("1")))
+    #> <class 'str'>
+    
+    ```
+    
+    **Right:**
+    
+    ```python
+    from __future__ import annotations
+    
+    from typing import Union
+    
+    import typic
+    
+    proto = typic.protocol(Union[int, str])
+    print(type(proto.transmute("1")))
+    #> <class 'int'>
+    ```
+
+!!! error "Gotcha!"
+
+    In static typing, `Union[str, int]` and `Union[int, str]` are identical. For Python,
+    this means they have the same hash value, which in turn breaks typical's caching 
+    mechanism. *Tread carefully when defining your types and always ensure you define 
+    your union from* most *to* least *strict.*
+
 
 ## Constraining Builtin Types
 Typical provides a path for defining "constrained" types based upon

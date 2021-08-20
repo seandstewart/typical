@@ -36,6 +36,7 @@ from typic.util import (
     get_defname,
     get_tag_for_types,
     get_unique_name,
+    get_name,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
 from .common import (
@@ -653,46 +654,73 @@ class DesFactory:
         )
         return self._build_des(t_anno, func_name, namespace)
 
-    def _build_union_des(self, func: gen.Block, annotation: Annotation, namespace):
+    def _build_tagged_union_des(
+        self, func: gen.Block, annotation: Annotation, namespace
+    ):
         # Get all types which we may coerce to.
         args = (*(a for a in annotation.args if a not in {None, Ellipsis, type(None)}),)
+        if not args:
+            return
         # Get all custom types, which may have discriminators
         targets = (*(a for a in args if not checks.isstdlibtype(a)),)
         # We can only build a tagged union deserializer if all args are valid
-        if args and args == targets:
-            # Try to collect the field which will be the discriminator.
-            # First, get a mapping of Type -> Proto & Type -> Fields
-            tagged = get_tag_for_types(targets)
-            # Just bail out if we can't find a key.
-            if not tagged:
-                func.l("# No-op, couldn't locate a discriminator key.")
-                return
-            # If we got a key, re-map the protocols to the value for each type.
-            deserializers = {
-                value: self.resolver.resolve(t, namespace=namespace)
-                for value, t in tagged.types_by_values
-            }
-            # Finally, build the deserializer
-            func.namespace.update(
-                tag=tagged.tag,
-                desers=deserializers,
-                empty=_empty,
+        if args != targets:
+            return self._build_generic_union_des(func, annotation, namespace)
+
+        # Try to collect the field which will be the discriminator.
+        # First, get a mapping of Type -> Proto & Type -> Fields
+        tagged = get_tag_for_types(targets)
+        # Just bail out if we can't find a key.
+        if not tagged:
+            return self._build_generic_union_des(func, annotation, namespace)
+        # If we got a key, re-map the protocols to the value for each type.
+        deserializers = {
+            value: self.resolver.resolve(t, namespace=namespace).transmute
+            for value, t in tagged.types_by_values
+        }
+        # Finally, build the deserializer
+        func.namespace.update(
+            tag=tagged.tag,
+            desers=deserializers,
+            empty=_empty,
+        )
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
+            b.l(f"tag_value = {self.VNAME}.get(tag, empty)")
+        with func.b("else:") as b:
+            b.l(f"tag_value = getattr({self.VNAME}, tag, empty)")
+        with func.b("if tag_value in desers:") as b:
+            b.l(f"{self.VNAME} = desers[tag_value]({self.VNAME})")
+        with func.b("else:") as b:
+            b.l(
+                "raise ValueError("
+                'f"Value is missing field {tag!r} with one of '
+                '{(*desers,)}: {val!r}"'
+                ")"
             )
-            with func.b(
-                f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping
-            ) as b:
-                b.l(f"tag_value = {self.VNAME}.get(tag, empty)")
-            with func.b("else:") as b:
-                b.l(f"tag_value = getattr({self.VNAME}, tag, empty)")
-            with func.b("if tag_value in desers:") as b:
-                b.l(f"{self.VNAME} = desers[tag_value].transmute({self.VNAME})")
-            with func.b("else:") as b:
-                b.l(
-                    "raise ValueError("
-                    'f"Value is missing field {tag!r} with one of '
-                    '{(*desers,)}: {val!r}"'
-                    ")"
-                )
+
+    def _build_generic_union_des(
+        self, func: gen.Block, annotation: Annotation, namespace
+    ):
+        args = [a for a in annotation.args if a not in {None, Ellipsis, type(None)}]
+        if args:
+            ctx = {
+                get_name(a)
+                + "_des": self.resolver.resolve(a, namespace=namespace).transmute
+                for a in args
+            }
+            names = (*(n.rpartition("_")[0] for n in ctx),)
+            for name, call in ctx.items():
+                with func.b("try:") as b:
+                    b.l(f"return {name}({self.VNAME})")
+                with func.b("except (TypeError, ValueError, KeyError):") as b:
+                    b.l("pass")
+            func.namespace.update(ctx)
+            func.l(
+                "raise ValueError("
+                'f"Value could not be deserialized into one of {names}: {val!r}"'
+                ")",
+                names=names,
+            )
 
     def _build_des(  # noqa: C901
         self,
@@ -720,7 +748,7 @@ class DesFactory:
                 if origin not in self.UNRESOLVABLE:
                     self._set_checks(func, anno_name, annotation)
                     if checks.isuniontype(origin):
-                        self._build_union_des(func, annotation, namespace)
+                        self._build_tagged_union_des(func, annotation, namespace)
                     elif checks.isdatetype(origin):
                         self._build_date_des(func, anno_name, annotation)
                     elif checks.istimetype(origin):

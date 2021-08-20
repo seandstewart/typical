@@ -1063,6 +1063,20 @@ def test_tagged_union_validate(annotation, value):
 
 
 @pytest.mark.parametrize(
+    argnames="annotation,value,expected",
+    argvalues=[
+        (typing.Union[int, str], "1", 1),
+        (typing.Union[int, str], "foo", "foo"),
+        (typing.Union[int, datetime.date], "1", 1),
+        (typing.Union[int, datetime.date], "1970-01-01", datetime.date(1970, 1, 1)),
+    ],
+)
+def test_union_transmute(annotation, value, expected):
+    transmuted = transmute(annotation, value)
+    assert transmuted == expected
+
+
+@pytest.mark.parametrize(
     argnames="annotation,value",
     argvalues=[
         (
