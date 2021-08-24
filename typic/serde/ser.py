@@ -9,6 +9,7 @@ import ipaddress
 import pathlib
 import re
 import uuid
+from collections import abc
 from collections.abc import (
     Mapping as Mapping_abc,
     Collection as Collection_abc,
@@ -273,12 +274,7 @@ class SerFactory:
         ser_name = "ser"
         ns = {ser_name: ser}
         with gen.Block(ns) as main:
-            with main.f(
-                func_name,
-                main.param("o"),
-                main.param("lazy", default=False),
-                main.param("name", default=None),
-            ) as func:
+            with self._define(main, func_name) as func:
                 self._check_add_null_check(func, annotation)
                 self._add_type_check(func, annotation)
                 line = f"{ser_name}(o)"
@@ -317,6 +313,17 @@ class SerFactory:
         # Lazy shortcut for messy paths (Union, Any, ...)
         if origin in self._DYNAMIC or not annotation.static:
             serializer = cast(SerializerT, self.resolver.primitive)
+        # Routines (functions or methods) can't be serialized...
+        elif issubclass(origin, abc.Callable) or inspect.isroutine(origin):  # type: ignore
+            name = util.get_qualname(origin)
+            with gen.Block() as main:
+                with self._define(main, func_name) as func:
+                    func.l(
+                        f'raise TypeError("Routines are not serializable. ({name!r}).")'
+                    )
+
+            serializer = main.compile(name=func_name)
+            self._serializer_cache[func_name] = serializer
         # Enums are special
         elif checks.isenumtype(annotation.resolved):
             serializer = self._compile_enum_serializer(annotation)
@@ -325,12 +332,7 @@ class SerFactory:
         elif origin in self._PRIMITIVES:
             ns: dict = {}
             with gen.Block(ns) as main:
-                with main.f(
-                    func_name,
-                    main.param("o"),
-                    main.param("lazy", default=False),
-                    main.param("name", default=None),
-                ) as func:
+                with self._define(main, func_name) as func:
                     self._check_add_null_check(func, annotation)
                     self._add_type_check(func, annotation)
                     line = "o"
@@ -355,12 +357,7 @@ class SerFactory:
             anno_name = f"{func_name}_anno"
             ns = {anno_name: origin, **annotation.serde.asdict()}
             with gen.Block(ns) as main:
-                with main.f(
-                    func_name,
-                    main.param("o"),
-                    main.param("lazy", default=False),
-                    main.param("name", default=None),
-                ) as func:
+                with self._define(main, func_name) as func:
                     # Mapping types need special nested processing as well
                     istypeddict = checks.istypeddict(origin)
                     istypedtuple = checks.istypedtuple(origin)
@@ -379,6 +376,15 @@ class SerFactory:
             serializer = main.compile(name=func_name, ns=ns)
             self._serializer_cache[func_name] = serializer
         return serializer
+
+    @staticmethod
+    def _define(main: gen.Block, name: str) -> gen.Function:
+        return main.func(
+            name,
+            main.param("o"),
+            main.param("lazy", default=False, kind=gen.ParameterKind.KEYWORD_ONLY),
+            main.param("name", default=None, kind=gen.ParameterKind.KEYWORD_ONLY),
+        )
 
     def factory(self, annotation: Annotation[Type[_T]]) -> SerializerT[_T]:
         if isinstance(annotation, (DelayedAnnotation, ForwardDelayedAnnotation)):

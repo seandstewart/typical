@@ -29,7 +29,7 @@ class DSNValueError(NetworkAddressValueError):
     pass
 
 
-@slotted
+@slotted(dict=True)
 @dataclasses.dataclass(frozen=True)
 class DSNInfo:
     """Detailed information about a D(ata)S(ource)N(ame).

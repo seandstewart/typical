@@ -102,7 +102,7 @@ class NetworkAddressValueError(ValueError):
     """A generic error indicating the value is not a valid network address."""
 
 
-@slotted
+@slotted(dict=True)
 @dataclasses.dataclass(frozen=True)
 class NetAddrInfo:
     """Detailed information about a network address.

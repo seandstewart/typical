@@ -455,3 +455,16 @@ def test_transmute_excluded():
         excluded: bool = False
 
     assert typic.transmute(Bar, Foo()) == Bar()
+
+
+def test_routine_protocol():
+    def foo():
+        ...
+
+    proto = typic.protocol(foo)
+    assert proto.transmute(foo) is foo
+    assert proto.validate(foo) is foo
+    with pytest.raises(TypeError):
+        proto.serialize(foo)
+
+    assert list(proto.iterate(foo)) == [None]

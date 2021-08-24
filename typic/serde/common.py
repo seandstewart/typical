@@ -456,31 +456,41 @@ AnnotationT = Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
 class DelayedSerdeProtocol(SerdeProtocol):
     __slots__ = (
         "delayed",
-        "_protocol",
-    ) + tuple(SerdeProtocol.__slots__)
+        "_resolved",
+    )
 
     def __init__(
         self,
         delayed: Union[ForwardDelayedAnnotation, DelayedAnnotation],
     ):
         self.delayed = delayed
-        self._protocol: Optional[SerdeProtocol] = None
-        self.transmute = lambda val: self.proto.transmute(val)  # type: ignore
+        self.transmute = lambda val: self.deserialize(val)  # type: ignore
+        self._resolved = False
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(delayed={self.delayed}, protocol={self._protocol})"
+        return f"{self.__class__.__name__}(delayed={self.delayed}, resolved={self._resolved})"
 
-    @property
-    def proto(self) -> SerdeProtocol:
-        if self._protocol is None:
-            _protocol = self.delayed.resolved
-            for name in SerdeProtocol.__slots__:
-                object.__setattr__(self, name, getattr(_protocol, name))
-            self._protocol = _protocol
-        return self._protocol
+    def __delayed_init__(self):
+        if self._resolved:
+            return
+        protocol = self.delayed.resolved
+        super().__init__(
+            annotation=protocol.annotation,
+            constraints=protocol.constraints,
+            deserialize=protocol.deserialize,
+            decode=protocol.decode,
+            serialize=protocol.serialize,
+            encode=protocol.encode,
+            validate=protocol.validate,
+            translate=protocol.translate,
+            iterate=protocol.iterate,
+            tojson=protocol.tojson,
+        )
+        self._resolved = True
 
     def __getattr__(self, item):
-        return self.proto.__getattribute__(item)
+        self.__delayed_init__()
+        return super().__getattribute__(item)
 
     def __call__(self, val: Any) -> ObjectT:
         return self.transmute(val)  # type: ignore

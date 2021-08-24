@@ -8,7 +8,7 @@ import ipaddress
 import pathlib
 import re
 import uuid
-from collections import deque
+from collections import deque, abc
 from decimal import Decimal
 from typing import (
     Mapping,
@@ -125,11 +125,11 @@ def get_constraints(
         handler = _from_class
     else:
         ot = origin(t)
-        if ot is type:
+        if ot in {type, abc.Callable}:
             handler = _from_strict_type  # type: ignore
             t = ot
         else:
-            handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(origin(t), _from_class)  # type: ignore
+            handler = _CONSTRAINT_BUILDER_HANDLERS.get_by_parent(ot, _from_class)  # type: ignore
 
     __stack.add(t)
     c = handler(t, nullable=nullable, name=name, cls=cls)
@@ -414,6 +414,6 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         ipaddress.IPv4Address: _from_strict_type,
         ipaddress.IPv6Address: _from_strict_type,
         Union: _from_union,  # type: ignore
-        Literal: _from_literal,
+        Literal: _from_literal,  # type: ignore
     }
 )

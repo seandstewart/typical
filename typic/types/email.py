@@ -60,7 +60,7 @@ EMAIL_PATTERN = re.compile(
 )
 
 
-@slotted
+@slotted(dict=True)
 @dataclasses.dataclass(frozen=True)
 class EmailAddrInfo:
     """Detailed information about an email address.
