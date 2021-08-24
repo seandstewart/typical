@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import collections
+import collections.abc
 import dataclasses
 import functools
 import inspect
@@ -184,7 +185,7 @@ def origin(annotation: Any) -> Any:
         actual = _check_generics(actual)
 
     if inspect.isroutine(actual):
-        actual = collections.Callable
+        actual = collections.abc.Callable
 
     return actual
 

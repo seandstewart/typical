@@ -25,7 +25,6 @@ from typing import (
     Optional,
     Set,
     NoReturn,
-    Literal,
 )
 
 from pendulum import parse as dateparse, DateTime, instance
@@ -43,7 +42,7 @@ from typic.util import (
     slotted,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
-from typic.compat import TypeGuard
+from typic.compat import TypeGuard, Literal
 from .common import (
     DeserializerT,
     DeserializerRegistryT,

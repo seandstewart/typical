@@ -384,7 +384,7 @@ SCHEMA_FIELD_FORMATS = TypeMap(
         ipaddress.IPv4Address: StrSchemaField(format=StringFormat.IPV4),
         ipaddress.IPv6Address: StrSchemaField(format=StringFormat.IPV6),
         str: StrSchemaField(),
-        AnyStr: StrSchemaField(),
+        AnyStr: StrSchemaField(),  # type: ignore
         Text: StrSchemaField(),
         bytes: StrSchemaField(),
         bool: BooleanSchemaField(),
@@ -396,6 +396,6 @@ SCHEMA_FIELD_FORMATS = TypeMap(
         frozenset: ArraySchemaField(uniqueItems=True, additionalItems=False),
         dict: ObjectSchemaField(),
         type(None): NullSchemaField(),
-        Literal: BaseSchemaField(),
+        Literal: BaseSchemaField(),  # type: ignore
     }
 )
