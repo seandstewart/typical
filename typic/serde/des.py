@@ -777,7 +777,7 @@ class DesFactory:
         deserializer = main.compile(ns=ns, name=func_name)
         return deserializer
 
-    # Order is IMPORTANT! This is a LIFO queue.
+    # Order is IMPORTANT! This is a FIFO queue.
     _HANDLERS: Mapping[HandlerCheckT, BuildHandlerT] = {
         # Special handler for Unions...
         lambda origin, args: checks.isuniontype(origin): _build_union_des,
