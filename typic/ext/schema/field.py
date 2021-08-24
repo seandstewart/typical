@@ -124,7 +124,7 @@ class StringFormat(str, enum.Enum):
     IPV6 = "ipv6"
 
 
-@slotted
+@slotted(dict=True)
 @dataclasses.dataclass(frozen=True, repr=False)
 class BaseSchemaField(_Serializable):
     """The base JSON Schema Field."""
