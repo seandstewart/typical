@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import ast
-import bdb
 import collections
-import contextlib
 import dataclasses
 import functools
 import inspect
@@ -53,7 +51,6 @@ __all__ = (
     "extract",
     "fastcachedmethod",
     "filtered_repr",
-    "guard_recursion",
     "get_args",
     "get_name",
     "get_defname",
@@ -567,7 +564,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
 VT = TypeVar("VT")
 
 
-class TypeMap(Dict[Union[Any], VT]):
+class TypeMap(Dict[Type, VT]):
     """A mapping of Type -> value."""
 
     def get_by_parent(self, t: Type, default: VT = None) -> Optional[VT]:
@@ -588,53 +585,6 @@ class TypeMap(Dict[Union[Any], VT]):
             pass
 
         return default
-
-
-class RecursionDetected(RuntimeError):
-    ...
-
-
-class RecursionDetector(bdb.Bdb):  # pragma: nocover
-    """Prevent recursion from even starting.
-
-    https://stackoverflow.com/a/36663046
-
-    Warnings
-    --------
-    While the detector is tracing, no other debug tracers (i.e., codecov!) can trace.
-    """
-
-    def do_clear(self, arg):
-        pass
-
-    def __init__(self, *args):
-        bdb.Bdb.__init__(self, *args)
-        self.stack = set()
-
-    def user_call(self, frame, argument_list):
-        code = frame.f_code
-        if code in self.stack:
-            self.stack.clear()
-            raise RecursionDetected(f"Caught recursion in: {frame}")
-        self.stack.add(code)
-
-    def user_return(self, frame, return_value):
-        if frame.f_code in self.stack:
-            self.stack.remove(frame.f_code)
-
-
-_detector = RecursionDetector()
-
-
-@contextlib.contextmanager
-def guard_recursion():  # pragma: nocover
-    curtrace = sys.gettrace()
-    _detector.set_trace()
-    try:
-        yield
-    finally:
-        _detector.stack.clear()
-        sys.settrace(curtrace)
 
 
 def slotted(
