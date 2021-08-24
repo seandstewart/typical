@@ -183,6 +183,9 @@ def origin(annotation: Any) -> Any:
     if not checks.isbuiltintype(actual):
         actual = _check_generics(actual)
 
+    if inspect.isroutine(actual):
+        actual = collections.Callable
+
     return actual
 
 
