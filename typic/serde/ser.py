@@ -157,20 +157,20 @@ class SerFactory:
         annotation: Annotation,
     ):
         # Check for value types
-        line = "[*o]"
         ns: Dict[str, Any] = {}
         self._check_add_null_check(func, annotation)
         self._add_type_check(func, annotation)
+        arg_ser: SerializerT = cast(SerializerT, self.resolver.primitive)
         if annotation.args:
             arg_a: Annotation = self.resolver.annotation(
                 annotation.args[0], flags=annotation.serde.flags
             )
             arg_ser = self.factory(arg_a)
-            arg_ser_name = "arg_ser"
-            ns[arg_ser_name] = arg_ser
-            func.l(f"gen = ({arg_ser_name}(v) for v in o)")
-            line = "gen if lazy else [*gen]"
 
+        arg_ser_name = "arg_ser"
+        ns[arg_ser_name] = arg_ser
+        func.l(f"gen = ({arg_ser_name}(v) for v in o)")
+        line = "gen if lazy else [*gen]"
         func.l(f"{gen.Keyword.RET} {line}", level=None, **ns)
 
     def _build_dict_serializer(self, func: gen.Function, annotation: Annotation):

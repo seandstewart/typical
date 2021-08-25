@@ -134,6 +134,21 @@ class CaseDict(Dict):
     __serde_flags__ = typic.flags(case=typic.common.Case.CAMEL)
 
 
+@dataclasses.dataclass
+class ListUnion:
+    members: list[MemberInt | MemberStr]
+
+
+@dataclasses.dataclass
+class MemberStr:
+    field: str
+
+
+@dataclasses.dataclass
+class MemberInt:
+    field: int
+
+
 @pytest.mark.parametrize(
     argnames=("t", "obj", "prim"),
     argvalues=[
@@ -164,6 +179,11 @@ class CaseDict(Dict):
         ),
         (objects.TDict, objects.TDict(a=1), {"a": 1}),
         (objects.NTup, objects.NTup(a=1), {"a": 1}),
+        (
+            ListUnion,
+            ListUnion([MemberStr("string"), MemberInt(1)]),
+            {"members": [{"field": "string"}, {"field": 1}]},
+        ),
     ],
 )
 def test_serde_serialize(t, obj, prim):
@@ -203,6 +223,11 @@ def test_serde_serialize(t, obj, prim):
             objects.NTup,
             objects.NTup(a=1),
             {"a": "1"},
+        ),
+        (
+            ListUnion,
+            ListUnion([MemberStr("string"), MemberInt(1)]),
+            {"members": [{"field": "string"}, {"field": 1}]},
         ),
     ],
 )
