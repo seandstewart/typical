@@ -311,7 +311,11 @@ class SerFactory:
         serializer: SerializerT
         origin = annotation.resolved_origin
         # Lazy shortcut for messy paths (Union, Any, ...)
-        if origin in self._DYNAMIC or not annotation.static:
+        if (
+            origin in self._DYNAMIC
+            or not annotation.static
+            or checks.isuniontype(origin)
+        ):
             serializer = cast(SerializerT, self.resolver.primitive)
         # Routines (functions or methods) can't be serialized...
         elif issubclass(origin, abc.Callable) or inspect.isroutine(origin):  # type: ignore
