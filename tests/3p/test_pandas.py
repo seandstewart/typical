@@ -1,6 +1,7 @@
 # flake8: noqa
 
 import sys
+from typing import Union
 
 import pytest
 import typic
@@ -15,9 +16,11 @@ def has_pandas():
         return False
 
 
-@pytest.mark.skipif(
+pytestmark = pytest.mark.skipif(
     "not has_pandas()", reason=f"Pandas isn't installed. (Python {sys.version})"
 )
+
+
 def test_transmute_pandas_series():
     import pandas
 
@@ -25,11 +28,15 @@ def test_transmute_pandas_series():
     assert isinstance(transmuted, pandas.Series)
 
 
-@pytest.mark.skipif(
-    "not has_pandas()", reason=f"Pandas isn't installed. (Python {sys.version})"
-)
 def test_transmute_pandas_dataframe():
     import pandas
 
     transmuted = typic.transmute(pandas.DataFrame, {})
+    assert isinstance(transmuted, pandas.DataFrame)
+
+
+def test_transmute_pandas_union():
+    import pandas
+
+    transmuted = typic.transmute(Union[pandas.DataFrame, pandas.Series], {})
     assert isinstance(transmuted, pandas.DataFrame)

@@ -69,6 +69,7 @@ __all__ = (
     "iscollectiontype",
     "isconstrained",
     "isdatetype",
+    "isdescriptor",
     "isenumtype",
     "isfinal",
     "isforwardref",
@@ -809,6 +810,14 @@ def isforwardref(obj: Any) -> TypeGuard[ForwardRef]:
 
 def isproperty(obj) -> TypeGuard[types.GetSetDescriptorType]:
     return obj.__class__.__name__ in {"property", "cached_property"}
+
+
+def isdescriptor(obj) -> TypeGuard[types.GetSetDescriptorType]:
+    return (
+        hasattr(obj, "__get__")
+        or hasattr(obj, "__set__")
+        or hasattr(obj, "__set_name__")
+    )
 
 
 _ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)

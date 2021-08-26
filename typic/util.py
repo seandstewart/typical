@@ -769,7 +769,7 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
     if len(types) > 1:
         root = types[0]
         root_hints = cached_type_hints(root)
-        intersection = {*root_hints}
+        intersection = {k for k in root_hints if not k.startswith("_")}
         fields_by_type = {root: root_hints}
         t: Type
         for t in types[1:]:
@@ -785,7 +785,12 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
         while intersection and tag is None:
             f = intersection.pop()
             v = getattr(root, f, empty)
-            if v is not empty and not isinstance(v, MemberDescriptorType):
+            if (
+                v is not empty
+                and not isinstance(v, MemberDescriptorType)
+                and checks.ishashable(v)
+                and not checks.isdescriptor(v)
+            ):
                 tag = f
                 continue
             rhint = root_hints[f]
