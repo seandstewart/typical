@@ -671,6 +671,11 @@ class DesFactory:
         args = (*(a for a in annotation.args if a not in {None, Ellipsis, type(None)}),)
         if not args:
             return
+        # Add a type-check, but exclude str|bytes, since those are too permissive.
+        types = {a for a in args if a not in {str, bytes}}
+        if types:
+            with func.b(f"if {self.VTYPE} in types:", types=types) as b:
+                b.l(f"return {self.VNAME}")
         # Get all custom types, which may have discriminators
         targets = (*(a for a in args if not checks.isstdlibtype(a)),)
         # We can only build a tagged union deserializer if all args are valid

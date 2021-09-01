@@ -7,6 +7,7 @@ import enum
 import ipaddress
 import json
 import re
+import typing
 from types import MappingProxyType
 from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
@@ -229,6 +230,27 @@ def test_serde_serialize(t, obj, prim):
             ListUnion([MemberStr("string"), MemberInt(1)]),
             {"members": [{"field": "string"}, {"field": 1}]},
         ),
+        (
+            typing.Union[float, int, str],
+            1.0,
+            1.0,
+        ),
+        (
+            typing.Union[float, int, str],
+            1,
+            1,
+        ),
+        (
+            typing.Union[float, int, str],
+            1.0,
+            "1.0",
+        ),
+        (
+            typing.Union[float, int, str],
+            1,
+            "1",
+        ),
+        (typing.Union[float, int, str], "foo", "foo"),
     ],
 )
 def test_serde_deserialize(t, obj, prim):
