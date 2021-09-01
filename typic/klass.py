@@ -90,8 +90,8 @@ class Field(dataclasses.Field):
 
 
 def field(
-    *,
     default: Union[ObjectT, dataclasses._MISSING_TYPE] = dataclasses.MISSING,
+    *,
     default_factory: Union[FactoryT, dataclasses._MISSING_TYPE] = dataclasses.MISSING,
     init: bool = True,
     repr: bool = True,
