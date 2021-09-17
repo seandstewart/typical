@@ -87,7 +87,7 @@ Annotated Strict Mode is enforced at the type-hint level.
 !!! warning ""
 
     There are cases where the returned value is still coerced, so if you
-    are listening for the result of a call to `typic.coerce` while
+    are listening for the result of a call to `typic.transmute` while
     enforcing strict-mode, you should be sure to track the updated value.
 
 ## On Validation & Deserialization
@@ -112,17 +112,19 @@ These are the paths to "validation" which Typical will follow:
 The given value is inherently validated by the action of
 conversion. This is Typical's default mode of operation:
 
-    >>> import ipaddress
-    >>> import typic
-    >>>
-    >>> typic.transmute("", ipaddress.IPv4Address)
-    Traceback (most recent call last):
-        ...
-    ipaddress.AddressValueError: Address cannot be empty
-    >>> typic.transmute("", typic.URL)
-    Traceback (most recent call last):
-        ...
-    typic.types.url.NetworkAddressValueError: '' is not a valid network address.
+```
+>>> import ipaddress
+>>> import typic
+>>>
+>>> typic.transmute(ipaddress.IPv4Address, "")
+Traceback (most recent call last):
+    ...
+ipaddress.AddressValueError: Address cannot be empty
+>>> typic.transmute(typic.URL, "")
+Traceback (most recent call last):
+    ...
+typic.types.url.NetworkAddressValueError: '' is not a valid network address.
+```
 
 
 ### Parse-then-Validate
@@ -133,16 +135,18 @@ defining constrained subclasses:
 
 
 
-    >>> import typic
-    >>> @typic.constrained(gt=0)
-    ... class PositiveInt(int): ...
+```python
+>>> import typic
+>>> @typic.constrained(gt=0)
+... class PositiveInt(int): ...
+...
+>>> typic.transmute(PositiveInt, "1")
+1
+>>> typic.transmute(PositiveInt, "-1")
+Traceback (most recent call last):
     ...
-    >>> typic.transmute("1", PositiveInt)
-    1
-    >>> typic.transmute("-1", PositiveInt)
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <-1> fails constraints: (type=int, nullable=False, coerce=False, gt=0)
+typic.constraints.error.ConstraintValueError: Given value <-1> fails constraints: (type=int, nullable=False, coerce=False, gt=0)
+```
 
 
 ### Validate-Only
@@ -156,25 +160,27 @@ types and builtin higher-level types:
 
 
 
-    >>> import datetime
-    >>> import ipaddress
-    >>> import typic
-    >>> typic.transmute("1", typic.Strict[int])
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <'1'> fails constraints: (type=int, nullable=False, coerce=False)
-    >>> typic.transmute("", typic.Strict[ipaddress.IPv4Address])
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=IPv4Address, nullable=False)
-    >>> typic.transmute("", typic.Strict[typic.URL])
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=URL, nullable=False)
-    >>> typic.transmute("", typic.Strict[datetime.date])
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=date, nullable=False)
+```python
+>>> import datetime
+>>> import ipaddress
+>>> import typic
+>>> typic.transmute(typic.Strict[int], "1")
+Traceback (most recent call last):
+    ...
+typic.constraints.error.ConstraintValueError: Given value <'1'> fails constraints: (type=int, nullable=False, coerce=False)
+>>> typic.transmute(typic.Strict[ipaddress.IPv4Address], "")
+Traceback (most recent call last):
+    ...
+typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=IPv4Address, nullable=False)
+>>> typic.transmute(typic.Strict[typic.URL], "")
+Traceback (most recent call last):
+    ...
+typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=URL, nullable=False)
+>>> typic.transmute(typic.Strict[datetime.date], "")
+Traceback (most recent call last):
+    ...
+typic.constraints.error.ConstraintValueError: Given value <''> fails constraints: (type=date, nullable=False)
+```
 
 
 
@@ -190,19 +196,21 @@ In strict-mode, `validate-then-parse` is used for user-defined types.
 
 
 
-    >>> import dataclasses
-    >>> import typic
-    >>>
-    >>> @dataclasses.dataclass
-    ... class Foo:
-    ...     bar: str
+```python
+>>> import dataclasses
+>>> import typic
+>>>
+>>> @dataclasses.dataclass
+... class Foo:
+...     bar: str
+...
+>>> typic.transmute(typic.Strict[Foo], {"bar": "bar"})
+Foo(bar='bar')
+>>> typic.transmute(typic.Strict[Foo], {"bar": 1})
+Traceback (most recent call last):
     ...
-    >>> typic.transmute({"bar": "bar"}, typic.Strict[Foo])
-    Foo(bar='bar')
-    >>> typic.transmute({"bar": 1}, typic.Strict[Foo])
-    Traceback (most recent call last):
-        ...
-    typic.constraints.error.ConstraintValueError: Foo.bar: value <1> fails constraints: (type=str, nullable=False, coerce=False)
+typic.constraints.error.ConstraintValueError: Foo.bar: value <1> fails constraints: (type=str, nullable=False, coerce=False)
+```
 
 
 !!! tip ""

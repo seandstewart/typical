@@ -1,14 +1,116 @@
 # Working with Types
 
+Typical is *Python's Typing Toolkit*. Below we'll walk you through what that means.
+
+## Postponed Annotations
+
+Typical natively supports type annotations defined with forward references for all
+interfaces. This support is automatic and requires no additional configuration:
+
+```python
+from __future__ import annotations
+
+import typic
+
+
+@typic.klass
+class A:
+    b: B
+
+
+@typic.klass
+class B:
+    c: int
+
+
+print(A.transmute({"b": {"c": "1"}}))
+#> A(b=B(c=1))
+```
+
+!!! warning "Gotcha!"
+
+    The type you reference *must* be available within the global namespace of the 
+    enclosing object. Otherwise, the reference will be treated as an anonymous type
+    and not be proactively transmuted.
+
+
+### Self-referencing (Recursive) Types
+
+As a side-effect of our support for postponed annotations, Typical also supports
+self-referential (recursive) types:
+
+```python
+from __future__ import annotations
+
+import typic
+import dataclasses
+from typing import Optional
+
+
+@dataclasses.dataclass
+class Node:
+    pos: int
+    child: Optional[Node] = None
+
+
+n = typic.transmute(Node, {"pos": 0, "child": {"pos": 1}})
+print(n)
+#> Node(pos=0, child=Node(pos=1, child=None))
+
+print(typic.tojson(n))
+#> {"pos":0,"child":{"pos":1,"child":null}}
+```
+
+
+### Circular Dependencies
+
+As another side-effect of postponed annotation support, Typical also handles types which
+have circular dependencies upon each other:
+
+```python
+from __future__ import annotations
+
+import typic
+from typing import Optional
+
+
+@typic.klass
+class A:
+    b: Optional[B] = None
+
+
+@typic.klass
+class B:
+    a: Optional[A] = None
+
+
+a = A.transmute({"b": {"a": {}}})
+print(a)
+#> A(b=B(a=A(b=None)))
+
+print(a.tojson())
+#> {"b":{"a":{"b":null}}}
+```
+
+!!! note "About those \_\_future__ imports"
+
+    [PEP 563](https://www.python.org/dev/peps/pep-0563) introduced a new methodology for
+    the analysis of annotations at runtime which treats all annotations as strings 
+    until the runtime types are explicitly fetched. This greatly simplifies the 
+    development overhead for type resolution and also removes the need for wrapping
+    annotations referencing potentially undefined or recursive types in quotes `""`. 
+    
+    *You're __highly encouraged__ to adopt this import in your Python3.7-8 code. Starting 
+    with __Python 3.9__, it is the default behavior.*
+
+
 ## The Standard Library
 
-Typical is built upon the standard `typing` library. Virtually any
-valid static type may be reflected and managed by Typical. Just
-follow the rules defined by
-[PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good
-to go!
+Typical is built upon the standard `typing` library. Virtually any valid static type may
+be reflected and managed by Typical. Just follow the rules defined by
+[PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good to go!
 
-!!! important "Handling Unions"
+!!! important "Primitive Unions"
 
     `Union` types will not be proactively transmuted to a type within 
      union's definition. This is because the resolution of a Union
@@ -19,9 +121,15 @@ to go!
     This is a defined use-case for union-types which as a clear 
     resolution.
 
-Beyond classes, standard types, and the annotation syntax provided by
-the `typing` library, Typical also natively supports extended types
-defined in the following standard modules & bases:
+!!! important "Tagged Unions"
+
+    Tagged Unions, i.e., Polymorphic or Discriminated Types, are now supported as an
+    experimental feature. See our docs on [Experimental Features](experimental.md) for 
+    more.
+
+Beyond classes, standard types, and the annotation syntax provided by the `typing`
+library, Typical also natively supports extended types defined in the following standard
+modules & bases:
 
 - [datetime](https://docs.python.org/3.9/library/datetime.html)
 
@@ -61,6 +169,341 @@ ABCs to actionable runtime type:
 | typing.MutableSet      | set     |
 | typing.Hashable        | str     |
 
+## Literal Types
+
+!!! info ""
+
+    New in version 2.1
+
+typical supports validation of Literal types, as described in
+[PEP 586](https://www.python.org/dev/peps/pep-0586/).
+
+Literals are a bit like Unions and Enums had a love child, meaning that they may be
+subscripted with a series of inputs that are considered "valid". Unlike Unions and like
+Enums, Literals declare specific primitive values (i.e., builtins). Valid annotations
+include:
+
+```python
+from typic.compat import Literal
+
+Literal[1]
+Literal[1, None]
+Literal[1, "foo", b'bar']
+...
+```
+
+An interesting side-effect of their similarity is that a Literal of the form
+`Literal[..., None]` is equivalent to `Optional[Literal[...]]`
+
+For an exhaustive explanation, see the PEP linked above.
+
+For typical, this means we can resolve a deserializer with behavior similar to Enums and
+Unions.
+
+```python
+import typic
+from typic.compat import Literal
+
+Literally1 = Literal[1]
+
+print(typic.transmute(Literally1, b"1"))
+#> 1
+
+LessThan4 = Literal[0, 1, 2, 3]
+print(typic.transmute(LessThan4, b"1"))
+#> 1
+```
+
+Literals provide a means of runtime validation as well:
+
+```python
+typic.transmute(LessThan4, 5)
+#> Traceback (most recent call last):
+#>   ...
+#> typic.constraints.error.ConstraintValueError: Given value <5> fails constraints: (type=Literal, values=(0, 1, 2, 3), nullable=False)
+```
+
+If the Literal has values of multiple types, we treat it as a Union type and cannot
+proactively deserialize the input, but we can still validate against the constraint:
+
+```python
+SuperImportantValues = Literal[1, "foo"]
+
+typic.transmute(SuperImportantValues, b"foo")
+#> Traceback (most recent call last):
+#>   ...
+#> typic.constraints.error.ConstraintValueError: Given value <b'foo'> fails constraints: (type=Literal, values=(1, 'foo'), nullable=False)
+```
+
+
+## Unions (Polymorphic Types)
+
+!!! warning ""
+
+    :dragon: Here be dragons :dragon: 
+
+### Tagged Unions
+
+!!! info ""
+
+    New in version 2.1
+
+
+typical supports Tagged Unions, as described in
+[Mypy's documentation](https://mypy.readthedocs.io/en/stable/literal_types.html#tagged-unions).
+
+In a strongly-typed container, such as a TypedDict or NamedTuple, or a more standard
+class, this means if a field is annotated with a constant value, it can be considered a
+"tag" or "discriminator" when analyzed within a Union.
+
+typical currently supports annotating your tag using ClassVars or Literals.
+
+Expanding on our example from the [API Docs](api.md):
+
+```python
+from __future__ import annotations
+
+import enum
+import dataclasses
+from typing import ClassVar, Iterable, Optional, Union
+
+import typic
+
+
+class Instrument(str, enum.Enum):
+    """The only instruments a band really needs, duh."""
+    
+    GUIT = "guitar"
+    BASS = "bass"
+    PIAN = "piano"
+    DRUM = "drums"
+
+
+@dataclasses.dataclass
+class BaseMember:
+    """A member in the band, man."""
+
+    instrument: ClassVar[Instrument]
+    name: str
+    id: Optional[int] = None
+    
+    @property
+    def _catch_phrase(self) -> str:
+        return "played"
+
+    def play(self) -> str:
+        return f"{self.name} {self._catch_phrase} the {self.instrument.value}!"
+
+
+class Drummer(BaseMember):
+    """It all about those sick beats."""
+    instrument = Instrument.DRUM
+
+
+class BassPlayer(BaseMember):
+    """Slappin out that rhythm."""
+    instrument = Instrument.BASS
+    
+    @property
+    def _catch_phrase(self) -> str:
+        return "slapped"
+
+
+class GuitarPlayer(BaseMember):
+    """Shred it."""
+    instrument = Instrument.GUIT
+
+
+class PianoPlayer(BaseMember):
+    """Let's face it, I'm the true genius."""
+    instrument = Instrument.PIAN
+
+
+BandMemberT = Union[Drummer, BassPlayer, GuitarPlayer, PianoPlayer]
+
+
+
+@dataclasses.dataclass
+class Band:
+    """It's the band, man."""
+
+    name: str
+    members: Iterable[BandMemberT]
+    id: Optional[int] = None
+
+
+@dataclasses.dataclass
+class Song:
+    """A sick tune - platinum fer sure."""
+
+    name: str
+    lyrics: str
+    band: Band
+    id: Optional[int] = None
+
+```
+
+Now that we're able to use polymorphism for our Band member types, we can take advantage
+of those sick OOP patterns we all love, such as defining a base interface and
+overloading methods on child classes. And with typical, you get your deserialization for
+free!
+
+```python
+member_proto = typic.protocol(BandMemberT)
+
+member = member_proto.transmute({"instrument": "bass", "name": "Robert"})
+print(member.play())
+#> Robert slapped the bass!
+```
+
+???+ warning "Gotcha!"
+
+    When combining postponed annotations with polymorphic types, you're *highly 
+    encouraged* to add `from __future__ import annotations` to the top of your module. 
+    
+    If you don't like that pattern, then you should wrap the **entire annotation** in 
+    quotes, rather than the single recursive or circular type in the Union.
+
+    **Preferred**:
+    ```python
+    from __future__ import annotations
+    
+    from typing import Union
+    
+    import typic
+    from typic.compat import Literal
+    
+    @typic.klass
+    class ABlah:
+        key: Literal[3]
+        field: Union[AFoo, ABar, ABlah, None]
+    
+    
+    @typic.klass
+    class AFoo:
+        key: Literal[1]
+        field: str
+    
+    
+    @typic.klass
+    class ABar:
+        key: Literal[2]
+        field: bytes
+    ```
+
+    **OK**:
+    ```python    
+    from typing import Union
+    
+    import typic
+    from typic.compat import Literal
+    
+    @typic.klass
+    class ABlah:
+        key: Literal[3]
+        field: "Union[AFoo, ABar, ABlah, None]"
+    
+    
+    @typic.klass
+    class AFoo:
+        key: Literal[1]
+        field: str
+    
+    
+    @typic.klass
+    class ABar:
+        key: Literal[2]
+        field: bytes
+    ```
+
+    **WRONG**:
+    ```python    
+    from typing import Union
+    
+    import typic
+    from typic.compat import Literal
+    
+    @typic.klass
+    class ABlah:
+        key: Literal[3]
+        field: Union[AFoo, ABar, "ABlah", None]
+    
+    
+    @typic.klass
+    class AFoo:
+        key: Literal[1]
+        field: str
+    
+    
+    @typic.klass
+    class ABar:
+        key: Literal[2]
+        field: bytes
+    ```
+
+### Generic Unions
+
+While you're *highly encouraged* to make use of [Tagged Unions](#tagged-unions) for your
+polymorphic types, typical can generate a deserializer for generic unions as well. This
+is intended for use when it's simply not possible to define a discriminator for your
+union.
+
+!!! info ""
+
+    New in version 2.6
+
+!!! warning ""
+
+    Tagged Union deserialization is O(1) where N is the number of target types. Generic
+    Unions are O(N). Keep this in mind when defining your types - you may be better-served
+    by re-working your data model.
+
+When defining your Generic Union, you're encouraged to order your types from *most*
+specific to *least*. As a part of the implementation, we treat the possible types as
+FIFO queue, taking a type from the top of the stack and attempting deserialization. If
+all attempt at deserialization fail, we raise a `ValueError`.
+
+??? example "Working with Generic Unions"
+
+    **Wrong:**
+    
+    ```python
+    from __future__ import annotations
+    
+    from typing import Union
+    
+    import typic
+    
+    
+    # `str` should never be first! Everything can be a string...
+    proto = typic.protocol(Union[str, int])
+    print(type(proto.transmute("1")))
+    #> <class 'str'>
+    
+    ```
+    
+    **Right:**
+    
+    ```python
+    from __future__ import annotations
+    
+    from typing import Union
+    
+    import typic
+    
+    proto = typic.protocol(Union[int, str])
+    print(type(proto.transmute("1")))
+    #> <class 'int'>
+    ```
+
+!!! error "Gotcha!"
+
+    In static typing, `Union[str, int]` and `Union[int, str]` are identical. For Python,
+    this means they have the same hash value, which in turn breaks typical's caching 
+    mechanism. *Tread carefully when defining your types and always ensure you define 
+    your union from* most *to* least *strict.*
+
+
 ## Constraining Builtin Types
 Typical provides a path for defining "constrained" types based upon
 Python builtins. This gives you a means to express limited types in a
@@ -74,9 +517,8 @@ but important differences between the two implementations.
     It should be noted that Typical's constraint syntax is the means 
     by which we generate JSON Schema definitions.
 
-The public interface for constraining types is the
-`@typic.constrained` decorator. Specific keywords are defined by the
-type which is being constrained.
+The public interface for constraining types is the `@typic.constrained` decorator.
+Specific keywords are defined by the type which is being constrained.
 
 ### The Constraints API
 

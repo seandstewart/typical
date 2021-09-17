@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations as a
+
+import collections
+import dataclasses
 import functools
 import inspect
-import dataclasses
-import os
-from operator import attrgetter
 from types import FunctionType, MethodType
 from typing import (
     Union,
@@ -23,7 +22,9 @@ from typing import (
 )
 
 import typic.constraints as c
-from typic.checks import issubclass, ishashable, isfrozendataclass
+from typic.checks import issubclass, isfrozendataclass
+from typic.compat import lru_cache
+from typic.env import Environ, EnvironmentTypeError, EnvironmentValueError
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
     Annotation,
@@ -33,6 +34,7 @@ from typic.serde.common import (
     SerdeProtocolsT,
     DeserializerT,
     TranslatorT,
+    FieldIteratorT,
 )
 from typic.common import (
     ORIG_SETTER_NAME,
@@ -55,7 +57,7 @@ from typic.strict import (
     StrictModeT,
 )
 from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
-from typic.util import origin
+from typic.util import origin, cached_type_hints
 from typic.types import FrozenDict, freeze
 
 __all__ = (
@@ -66,7 +68,14 @@ __all__ = (
     "Case",
     "coerce",
     "constrained",
+    "decode",
+    "encode",
+    "environ",
+    "EnvironmentTypeError",
+    "EnvironmentValueError",
+    "flags",
     "is_strict_mode",
+    "iterate",
     "tojson",
     "primitive",
     "protocol",
@@ -109,6 +118,10 @@ schemas = schema_builder.all
 protocols = resolver.protocols
 protocol = resolver.resolve
 tojson = resolver.tojson
+iterate = resolver.iterate
+flags = SerdeFlags
+encode = resolver.encode
+decode = resolver.decode
 
 # TBDeprecated
 coerce = resolver.coerce_value
@@ -124,12 +137,14 @@ class TypicObjectT:
     __serde_protocols__: SerdeProtocolsT
     __setattr_original__: Callable[["WrappedObjectT", str, Any], None]
     __typic_resolved__: bool
+    __iter__: FieldIteratorT
     schema: SchemaGenT
     primitive: SerializerT
     transmute: DeserializerT
     translate: TranslatorT
     validate: "c.ValidatorT"
     tojson: Callable[..., str]
+    iterate: FieldIteratorT
 
 
 WrappedObjectT = Union[TypicObjectT, ObjectT]
@@ -167,15 +182,6 @@ def wrap(
     return func_wrapper
 
 
-_sentinel = object()
-_origsettergetter: Callable[[Any], Callable[[str, Any], None]] = attrgetter(
-    ORIG_SETTER_NAME
-)
-_typic_attrs = frozenset(
-    (SERDE_ATTR, "primitive", "tojson", "transmute", "validate", "translate")
-)
-
-
 def _bind_proto(cls, proto: SerdeProtocol):
     for n, attr in (
         (SERDE_ATTR, proto),
@@ -184,19 +190,25 @@ def _bind_proto(cls, proto: SerdeProtocol):
         ("transmute", staticmethod(proto.transmute)),
         ("validate", staticmethod(proto.validate)),
         ("translate", proto.translate),
+        ("encode", proto.encode),
+        ("decode", staticmethod(proto.decode)),
+        ("iterate", proto.iterate),
+        ("__iter__", proto.iterate),
     ):
         setattr(cls, n, attr)
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def _resolve_class(
     cls: Type[ObjectT],
     *,
     strict: StrictModeT = STRICT_MODE,
+    always: bool = True,
     jsonschema: bool = True,
     serde: SerdeFlags = None,
 ) -> Type[WrappedObjectT]:
     # Build the namespace for the new class
+    strict = cast(bool, strict)
     protos = protocols(cls, strict=strict)
     if hasattr(cls, SERDE_FLAGS_ATTR):
         pserde: SerdeFlags = getattr(cls, SERDE_FLAGS_ATTR)
@@ -208,6 +220,7 @@ def _resolve_class(
     }
     if jsonschema:
         ns["schema"] = classmethod(schema)
+        schema_builder.attach(cls)
 
     # Frozen dataclasses don't use the native setattr
     # So we wrap the init. This should be fine,
@@ -222,7 +235,9 @@ def _resolve_class(
             @functools.wraps(setter)
             def __setattr_typed__(self, name, item, *, __trans=trans, __setter=setter):
                 __setter(
-                    self, name, __trans[name](item) if name in protos else item,
+                    self,
+                    name,
+                    __trans[name](item) if name in __trans else item,
                 )
 
             return __setattr_typed__
@@ -240,8 +255,6 @@ def _resolve_class(
     proto: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
     # Bind it to the new class
     _bind_proto(cls, proto)
-    if jsonschema:
-        schema(cls)
     # Track resolution state.
     setattr(cls, "__typic_resolved__", True)
     return cls
@@ -415,8 +428,8 @@ def _get_constraint_cls(cls: Type) -> Optional[Type[c.ConstraintsT]]:
 
 def _get_maybe_multi_constraints(
     v,
-) -> Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]:
-    cons: Union[c.ConstraintsT, Tuple[c.ConstraintsT, ...]]
+) -> Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]:
+    cons: Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]
     if isinstance(v, Iterable):
         cons_gen = (c.get_constraints(x) for x in v)
         cons = tuple((x for x in cons_gen if x is not None))
@@ -430,11 +443,7 @@ def _handle_constraint_values(constraints, values, args):
     if vcons:
         constraints["values"] = vcons
         if not isinstance(values, tuple) or len(values) == 1:
-            args = (
-                values  # type: ignore
-                if isinstance(values, tuple)
-                else (values,)
-            )
+            args = values if isinstance(values, tuple) else (values,)  # type: ignore
     return args
 
 
@@ -491,7 +500,7 @@ def constrained(
     >>> ShortStr('waytoomanycharacters')
     Traceback (most recent call last):
     ...
-    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, coerce=False, max_length=10)
+    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, max_length=10)
     >>> @typic.constrained(values=ShortStr, max_items=2)
     ... class SmallMap(dict):
     ...     '''A small map that only allows short strings.'''
@@ -536,9 +545,9 @@ def constrained(
             raise TypeError(f"can't constrain type {cls_.__name__!r}")
 
         args: Tuple[Type, ...] = ()
-        if values and constr_cls.type in {list, dict, set, tuple, frozenset}:
+        if values and constr_cls.type in {list, dict, set, tuple, frozenset}:  # type: ignore
             args = _handle_constraint_values(constraints, values, args)
-        if constr_cls.type == dict:
+        if constr_cls.type == dict:  # type: ignore
             args = _handle_constraint_keys(constraints, args)
         if args:
             cdict["__args__"] = args
@@ -578,50 +587,18 @@ def constrained(
     return constr_wrapper(_klass) if _klass else constr_wrapper
 
 
-def _resolve_from_env(
-    cls: Type[ObjectT],
-    prefix: str,
-    case_sensitive: bool,
-    aliases: Mapping[str, str],
-    *,
-    environ: Mapping[str, str] = None,
-) -> Type[ObjectT]:
-    environ = environ or os.environ
-    env = {(x.lower() if not case_sensitive else x): y for x, y in environ.items()}
-    fields = {
-        (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
-        for x, y in cls.__annotations__.items()
-    }
-    names = {*fields, *aliases}
-    sentinel = object()
-    for k in env.keys() & names:
-        name = aliases.get(k, k)
-        attr, typ = fields[name]
-        val = transmute(typ, env[k])
-        use_factory = not ishashable(val)
-        field = getattr(cls, attr, sentinel)
-        if not isinstance(field, dataclasses.Field):
-            field = dataclasses.field()
-        if use_factory:
-            field.default_factory = lambda x=val: x
-            field.default = dataclasses.MISSING
-        else:
-            field.default = val
-            field.default_factory = dataclasses.MISSING
-        setattr(cls, attr, field)
-
-    return cls
+environ = Environ(resolver)
 
 
 def settings(
-    _klass: Type[ObjectT] = None,
+    _klass=None,
     *,
     prefix: str = "",
     case_sensitive: bool = False,
     frozen: bool = True,
     aliases: Mapping = None,
-) -> Type[ObjectT]:
-    """Create a typed class which sets its defaults from env vars.
+):
+    """Create a typed class which fetches its defaults from env vars.
 
     The resolution order of values is `default(s) -> env value(s) -> passed value(s)`.
 
@@ -641,31 +618,6 @@ def settings(
         An optional mapping of potential aliases for your dataclass's fields.
         `{'other_foo': 'foo'}` will locate the env var `OTHER_FOO` and place it
         on the `Bar.foo` attribute.
-
-    Notes
-    -----
-    Environment variables are resolved at compile-time, so updating your env after your
-    typed classes are loaded into the namespace will not work.
-
-    If you are using dotenv based configuration, you should read your dotenv file(s)
-    into the env *before* initializing the module where your settings are located.
-
-    A structure might look like:
-
-    ::
-
-        my-project/
-        -- env/
-        ..  -- .env.default
-        ..  -- .env.local
-        ..      ...
-        ..  -- __init__.py  # load your dotenv files here
-        ..  -- settings.py  # define your classes
-
-
-    This will ensure your dotenv files are loaded into the environment before the Python
-    interpreter parses & compiles your config classes, since the Python parser parses
-    the init file before parsing anything else under the directory.
 
     Examples
     --------
@@ -698,12 +650,51 @@ def settings(
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper
 
 
+def _resolve_from_env(
+    cls: Type[ObjectT],
+    prefix: str,
+    case_sensitive: bool,
+    aliases: Mapping[str, str],
+) -> Type[ObjectT]:
+    fields = cached_type_hints(cls)
+    vars = {
+        (f"{prefix}{x}".lower() if not case_sensitive else f"{prefix}{x}"): (x, y)
+        for x, y in fields.items()
+    }
+    attr_to_aliases = collections.defaultdict(set)
+    for alias, attr in aliases.items():
+        attr_to_aliases[attr].add(alias)
+
+    sentinel = object()
+    for name in vars:
+        attr, typ = vars[name]
+        names = attr_to_aliases[name]
+        field = getattr(cls, attr, sentinel)
+        if field is sentinel:
+            field = dataclasses.field()
+        elif not isinstance(field, dataclasses.Field):
+            field = dataclasses.field(default=field)
+        if field.default_factory != dataclasses.MISSING:
+            continue
+
+        kwargs = dict(var=name, ci=not case_sensitive)
+        if field.default != dataclasses.MISSING:
+            kwargs["default"] = field.default
+            field.default = dataclasses.MISSING
+
+        factory = environ.register(typ, *names, name=name)
+        field.default_factory = functools.partial(factory, **kwargs)
+        setattr(cls, attr, field)
+
+    return cls
+
+
 PrimitiveT = Union[Dict, List, str, int, bool]
 SchemaPrimitiveT = Dict[str, PrimitiveT]
 SchemaReturnT = Union[SchemaPrimitiveT, ObjectSchemaField]
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
     """Get a JSON schema for object for the given object.
 

@@ -4,14 +4,14 @@ copyright: "Copyright &copy; 2019 - 2020 Sean Stewart"
 site_url: https://python-typical.org
 repo_url: https://github.com/seandstewart/typical
 repo_name: seandstewart/typical
-docs_dir: mkdocs
 theme:
   name: "material"
   favicon: "static/favicon/favicon.ico"
   logo: "static/c3p-white.png"
   palette:
-    primary: "indigo"
+    primary: "cyan"
     accent: "amber"
+    scheme: "preference"
   font:
     text: "IBM Plex Serif"
     code: "IBM Plex Mono"
@@ -20,7 +20,7 @@ plugins:
   - awesome-pages
 markdown_extensions:
   - toc:
-      permalink: "#"
+      permalink: "🔖"
   - smarty
   - admonition
   - footnotes
@@ -41,13 +41,12 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
-  - fontawesome_markdown
 extra:
   social:
-    - type: "github"
-      link: "https://github.com/seandstewart/website"
-    - type: "twitter"
+    - icon: "fontawesome/brands/github-alt"
+      link: "https://github.com/seandstewart/typical"
+    - icon: "fontawesome/brands/twitter"
       link: "https://twitter.com/MrSeanStewart"
-    - type: "linkedin"
+    - icon: "fontawesome/brands/linkedin"
       link: "https://linkedin.com/in/seandstewart"
   manifest: "img/favicon/site.webmanifest"

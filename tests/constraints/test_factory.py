@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 import datetime
 import typing
@@ -35,7 +35,7 @@ class MyURL(typic.URL):
         (frozenset, frozenset({})),
         (typing.Dict[str, int], {"foo": 1}),
         (typing.List[int], [1]),
-        (typing.Union[str, int], 1),
+        (typing.Union[int, str], 1),
         (typing.List[typing.Optional[typing.Dict[str, int]]], [None]),
         (typing.List[typing.Optional[typing.Dict[str, int]]], [{"foo": 1}]),
         (Foo, {"bar": "bar"}),
@@ -77,15 +77,21 @@ def test_get_contraints(t, v):
         (frozenset, ""),
         (typing.Dict[str, int], {"foo": ""}),
         (typing.List[int], [""]),
-        (typing.Union[str, int], []),
+        (typing.Union[int, str], []),
         (typing.List[typing.Optional[typing.Dict[str, int]]], [[]]),
         (typing.List[typing.Optional[typing.Dict[str, int]]], [{"foo": ""}]),
         (Foo, {"bar": 1}),
         (Foo, {"bar": "", "unknown": 1}),
         (typing.Optional[Foo], {"bar": 1}),
         (typing.Optional[Foo], 1),
-        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [[]],),
-        (typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]], [""],),
+        (
+            typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
+            [[]],
+        ),
+        (
+            typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
+            [""],
+        ),
         (
             typing.List[typing.Optional[typing.Union[Foo, typing.Dict[str, int]]]],
             [{"bar": ""}],

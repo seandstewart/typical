@@ -1,11 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 import re
 from typing import ClassVar, Pattern, Match, Optional
 from urllib.parse import quote
 
-from typic.util import cached_property, apply_slots
+from typic.util import cached_property, slotted
 from .url import (
     NetworkAddress,
     PRIVATE_HOSTS,
@@ -24,6 +24,7 @@ class EmailValueError(NetworkAddressValueError):
 
 
 # http://emailregex.com/
+# https://help.returnpath.com/hc/en-us/articles/220560587-What-are-the-rules-for-email-address-syntax-
 # expanding a bit for more specific detection
 # also violating DRY :'( by copying the host regex from URL,
 # but hey, this means we're more compliant with RFC 5322,
@@ -34,7 +35,7 @@ EMAIL_PATTERN = re.compile(
         ^
         ((?P<name>([A-Z]+\s?)+)\s<)?
         # user
-        (?P<username>([A-Z0-9]([_.+-])?)*[A-Z0-9]+)
+        (?P<username>([A-Z0-9]([!#$%&'*=?^`{|_.+-])?)*[A-Z0-9]+)
         @
         # host
         (?P<host>(?:
@@ -59,7 +60,7 @@ EMAIL_PATTERN = re.compile(
 )
 
 
-@apply_slots
+@slotted(dict=True)
 @dataclasses.dataclass(frozen=True)
 class EmailAddrInfo:
     """Detailed information about an email address.
@@ -85,8 +86,7 @@ class EmailAddrInfo:
 
     @classmethod
     def from_str(cls, value) -> "EmailAddrInfo":
-        """Parse & validate a string, generate an instance of :py:class:`EmailAddrInfo`.
-        """
+        """Parse & validate a string, generate an instance of :py:class:`EmailAddrInfo`."""
         match: Optional[Match] = cls.PATTERN.match(value)
         if not match or not value:
             err_msg = f"<{value!r}> is not a valid email address."

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import dataclasses
 import functools
 import inspect
 import warnings
-from collections.abc import Callable
+from enum import Enum
 from operator import attrgetter, methodcaller
 from typing import (
     Mapping,
@@ -11,23 +13,26 @@ from typing import (
     Optional,
     ClassVar,
     Tuple,
-    Iterable,
     cast,
     Union,
     TypeVar,
+    Iterator,
+    Dict,
+    Iterable,
 )
 
-from typic import checks, constraints as const, util, strict as st
+from typic import checks, constraints as constr, util, strict as st
 from typic.common import (
     EMPTY,
     ORIG_SETTER_NAME,
-    SERDE_ATTR,
     SERDE_FLAGS_ATTR,
     TYPIC_ANNOS_NAME,
     ObjectT,
     Case,
     ReadOnly,
 )
+from typic.compat import lru_cache
+from typic.ext import json
 from typic.strict import StrictModeT
 from .binder import Binder
 from .common import (
@@ -37,11 +42,19 @@ from .common import (
     Annotation,
     SerdeProtocol,
     SerdeProtocolsT,
+    DelayedSerdeProtocol,
+    ForwardDelayedAnnotation,
+    DelayedAnnotation,
+    DeserializerT,
+    EncoderT,
+    DecoderT,
+    TranslatorT,
+    PrimitiveT,
+    FieldIteratorT,
 )
 from .des import DesFactory
 from .ser import SerFactory
 from .translator import TranslatorFactory
-
 
 _T = TypeVar("_T")
 
@@ -55,6 +68,7 @@ class Resolver:
     )
     _DYNAMIC = SerFactory._DYNAMIC
     OPTIONALS = (None, ...)
+    LITERALS = (int, bytes, str, bool, Enum, type(None))
 
     def __init__(self):
         self.des = DesFactory(self)
@@ -62,10 +76,17 @@ class Resolver:
         self.binder = Binder(self)
         self.translator = TranslatorFactory(self)
         self.bind = self.binder.bind
+        self.__cache = {}
+        self.__stack = set()
         for typ in checks.STDLIB_TYPES:
             self.resolve(typ)
             self.resolve(Optional[typ])
             self.resolve(typ, is_optional=True)
+            try:
+                self.translator.iterator(typ)
+                self.translator.iterator(typ, values=True)
+            except TypeError:
+                pass
 
     def transmute(self, annotation: Type[ObjectT], value: Any) -> ObjectT:
         """Convert a given value `into` the target annotation.
@@ -85,7 +106,7 @@ class Resolver:
             The value to be transmuted
         """
         resolved: SerdeProtocol = self.resolve(annotation)
-        transmuted: ObjectT = resolved.transmute(value)  # type: ignore
+        transmuted: ObjectT = resolved.transmute(value)
 
         return transmuted
 
@@ -107,7 +128,8 @@ class Resolver:
         target
             The higher-order class to translate into.
         """
-        resolved: SerdeProtocol = self.resolve(type(value))
+        t = value.__class__
+        resolved: SerdeProtocol = self.resolve(t)
         return resolved.translate(value, target)
 
     def validate(
@@ -127,8 +149,31 @@ class Resolver:
         resolved: SerdeProtocol = self.resolve(annotation)
         value = resolved.validate(value)
         if transmute:
-            return resolved.transmute(value)  # type: ignore
+            return resolved.transmute(value)
         return value
+
+    def iterate(
+        self, obj, *, values: bool = False, exclude: Iterable[str] = ()
+    ) -> Iterator[Union[Tuple[str, Any], Any]]:
+        """Iterate over the fields of an object.
+
+        Parameters
+        ----------
+        obj
+            The object to iterate over
+        values
+            Whether to only yield values of an object's fields. (defaults False)
+        exclude
+            Proactively ignore any fields on the object
+        """
+        t = obj.__class__
+        # Extract the type of the enum value if this is an Enum.
+        # Enums classes are iterable and will generate the wrong kind of iterator.
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = obj.__class__
+        iterator = self.translator.iterator(t, values=values, exclude=(*exclude,))
+        return iterator(obj)
 
     def coerce_value(
         self, value: Any, annotation: Type[ObjectT]
@@ -147,47 +192,14 @@ class Resolver:
     def delayed(self, t: Type) -> bool:
         return getattr(t, "__delayed__", False)
 
-    @functools.lru_cache(maxsize=None)
-    def _get_serializer_proto(self, t: Type) -> SerdeProtocol:
-        tname = util.get_name(t)
-        if hasattr(t, SERDE_ATTR):
-            return getattr(t, SERDE_ATTR)
-        for attr, caller in self._DICT_FACTORY_METHODS:
-            if hasattr(t, attr):
-
-                def serializer(
-                    val,
-                    lazy: bool = False,
-                    name: util.ReprT = None,
-                    *,
-                    __prim=self.primitive,
-                    __call=caller,
-                    __tname=tname,
-                    __repr=util.joinedrepr,
-                ):
-                    name = name or __tname
-                    return {
-                        __prim(x): __prim(y, lazy=lazy, name=__repr(name, x))
-                        for x, y in __call(val).items()
-                    }
-
-                return SerdeProtocol(
-                    self.annotation(t),
-                    deserializer=None,
-                    serializer=serializer,
-                    constraints=None,
-                    validator=None,
-                )
-
-        if checks.ismappingtype(t):
-            t = Mapping[Any, Any]
-        elif checks.iscollectiontype(t) and not issubclass(t, (str, bytes, bytearray)):
-            t = Iterable[Any]
-        settings = getattr(t, SERDE_FLAGS_ATTR, None)
-        serde: SerdeProtocol = self.resolve(t, flags=settings, _des=False)
-        return serde
-
-    def primitive(self, obj: Any, lazy: bool = False, name: util.ReprT = None) -> Any:
+    def primitive(
+        self,
+        obj: ObjectT,
+        *,
+        lazy: bool = False,
+        name: util.ReprT = None,
+        flags: SerdeFlags = None,
+    ) -> PrimitiveT:
         """A method for converting an object to its primitive equivalent.
 
         Useful for encoding data to JSON.
@@ -204,8 +216,8 @@ class Resolver:
         'foo'
         >>> typic.primitive(("foo",))  # containers are converted to lists/dicts
         ['foo']
-        >>> typic.primitive(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '1970-01-01T00:00:00+00:00'
+        >>> typic.primitive(datetime.datetime(1970, 1, 1))
+        '1970-01-01T00:00:00'
         >>> typic.primitive(b"foo")
         'foo'
         >>> typic.primitive(ipaddress.IPv4Address("0.0.0.0"))
@@ -223,13 +235,13 @@ class Resolver:
         """
         t = obj.__class__
         if checks.isenumtype(t):
-            obj = obj.value
+            obj = obj.value  # type: ignore
             t = obj.__class__
-        proto: SerdeProtocol = self._get_serializer_proto(t)
+        proto: SerdeProtocol = self.resolve(t, flags=flags)
         return proto.primitive(obj, lazy=lazy, name=name)  # type: ignore
 
     def tojson(
-        self, obj: Any, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
+        self, obj: ObjectT, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
     ) -> str:
         """A method for dumping any object to a valid JSON string.
 
@@ -252,8 +264,8 @@ class Resolver:
         '"foo"'
         >>> typic.tojson(("foo",))
         '["foo"]'
-        >>> typic.tojson(datetime.datetime(1970, 1, 1))  # note that we assume UTC
-        '"1970-01-01T00:00:00+00:00"'
+        >>> typic.tojson(datetime.datetime(1970, 1, 1))
+        '"1970-01-01T00:00:00"'
         >>> typic.tojson(b"foo")
         '"foo"'
         >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
@@ -276,26 +288,42 @@ class Resolver:
         """
         t = obj.__class__
         if checks.isenumtype(t):
-            obj = obj.value
+            obj = obj.value  # type: ignore
             t = obj.__class__
-        proto: SerdeProtocol = self._get_serializer_proto(t)
+        proto: SerdeProtocol = self.resolve(t)
         return proto.tojson(obj, indent=indent, ensure_ascii=ensure_ascii, **kwargs)
 
-    @functools.lru_cache(maxsize=None)
-    def _get_configuration(self, origin: Type, flags: "SerdeFlags") -> "SerdeConfig":
+    def decode(
+        self, annotation: Type[ObjectT], value: Any, decoder: DecoderT[bytes], **kwargs
+    ) -> ObjectT:
+        proto: SerdeProtocol = self.resolve(annotation)
+        return proto.transmute(decoder(value, **kwargs))  # type: ignore
+
+    def encode(self, obj: Any, encoder: EncoderT[PrimitiveT], **kwargs) -> bytes:
+        t = obj.__class__
+        if checks.isenumtype(t):
+            obj = obj.value
+            t = obj.__class__
+        proto: SerdeProtocol = self.resolve(t)
+        return encoder(proto.primitive(obj), **kwargs)  # type: ignore
+
+    @lru_cache(maxsize=None)
+    def _get_configuration(self, origin: Type, flags: SerdeFlags) -> SerdeConfig:
         if hasattr(origin, SERDE_FLAGS_ATTR):
             flags = getattr(origin, SERDE_FLAGS_ATTR)
         # Get all the annotated fields
         params = util.safe_get_params(origin)
         # This is probably a builtin and has no signature
-        fields: Mapping[str, Annotation] = {
-            x: self.annotation(
-                y,
+        fields: Dict[str, Annotation] = {}
+        hints = util.cached_type_hints(origin)
+        for name, t in hints.items():
+            fields[name] = self.annotation(
+                t,
                 flags=dataclasses.replace(flags, fields={}),
-                default=getattr(origin, x, EMPTY),
+                default=getattr(origin, name, EMPTY),
+                namespace=origin,
             )
-            for x, y in util.cached_type_hints(origin).items()
-        }
+
         # Filter out any annotations which aren't part of the object's signature.
         if flags.signature_only:
             fields = {x: fields[x] for x in fields.keys() & params.keys()}
@@ -319,12 +347,23 @@ class Resolver:
             type_omissions = {
                 o for o in omit if checks._type_check(o) or o is NotImplemented
             }
+            type_name_omissions = {util.get_name(o) for o in type_omissions}
             value_omissions = (*(o for o in omit if o not in type_omissions),)
-            fields_out = {
-                x: y
-                for x, y in fields_out.items()
-                if not {fields[x].origin, fields[x].parameter.default} & type_omissions
-            }
+            fields_out_final = {}
+            anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
+            for name, out in fields_out.items():
+                anno = fields[name]
+                default = anno.parameter.default if anno.parameter else EMPTY
+                if isinstance(anno, ForwardDelayedAnnotation):
+                    if (
+                        not {util.get_name(anno.ref), util.get_name(default)}
+                        & type_name_omissions
+                    ):
+                        fields_out_final[name] = out
+                elif not {anno.origin, default} & type_omissions:
+                    fields_out_final[name] = out
+            fields_out = fields_out_final
+
         fields_in = {y: x for x, y in fields_out.items()}
         if params:
             fields_in = {x: y for x, y in fields_in.items() if y in params}
@@ -339,6 +378,8 @@ class Resolver:
             fields_in=fields_in,
             fields_getters=fields_getters,
             omit_values=value_omissions,
+            encoder=flags.encoder,
+            decoder=flags.decoder,
         )
 
     def annotation(
@@ -350,7 +391,8 @@ class Resolver:
         is_strict: StrictModeT = None,
         flags: "SerdeFlags" = None,
         default: Any = EMPTY,
-    ) -> Annotation:
+        namespace: Type = None,
+    ) -> Annotation[Type[ObjectT]]:
         """Get a :py:class:`Annotation` for this type.
 
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
@@ -364,7 +406,7 @@ class Resolver:
                 name or "_",
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 annotation=annotation,
-                default=default,
+                default=default if checks.ishashable(default) else ...,
             )
         # Check for the super-type
         non_super = util.resolve_supertype(annotation)
@@ -381,6 +423,7 @@ class Resolver:
         )
         is_strict = is_strict or checks.isstrict(non_super) or self.STRICT
         is_static = util.origin(use) not in self._DYNAMIC
+        is_literal = checks.isliteral(use)
         # Determine whether we should use the first arg of the annotation
         while checks.should_unwrap(use) and args:
             is_optional = is_optional or checks.isoptionaltype(use)
@@ -388,6 +431,7 @@ class Resolver:
             if is_optional and len(args) > 2:
                 # We can't resolve this annotation.
                 is_static = False
+                use = Union[args[:-1]]
                 break
             # Note that we don't re-assign `orig`.
             # This is intentional.
@@ -397,14 +441,65 @@ class Resolver:
             use = non_super
             args = util.get_args(use)
             is_static = util.origin(use) not in self._DYNAMIC
+            is_literal = is_literal or checks.isliteral(use)
 
+        # Only allow legal parameters at runtime, this has implementation implications.
+        if is_literal:
+            args = util.get_args(use)
+            if any(not isinstance(a, self.LITERALS) for a in args):
+                raise TypeError(
+                    f"PEP 586: Unsupported parameters for 'Literal' type: {args}. "
+                    "See https://www.python.org/dev/peps/pep-0586/"
+                    "#legal-parameters-for-literal-at-type-check-time "
+                    "for more information."
+                )
+        # The type definition doesn't exist yet.
+        if checks.isforwardref(use):
+            module = self.__module__
+            # Ideally we have a namespace from a parent class/function to the field
+            if namespace:
+                module = namespace.__module__
+
+            fda = ForwardDelayedAnnotation(
+                ref=use,
+                resolver=self,
+                _name=name,
+                parameter=parameter,
+                is_optional=is_optional,
+                is_strict=is_strict,
+                flags=flags,
+                default=default,
+                module=module,
+                frame=inspect.currentframe(),
+            )
+            return cast(Annotation, fda)
+        # The type definition is recursive or within a recursive loop.
+        elif use is namespace or use in self.__stack:
+            # If detected via stack, we can remove it now.
+            # Otherwise we'll cause another recursive loop.
+            if use in self.__stack:
+                self.__stack.remove(use)
+            da = DelayedAnnotation(
+                type=use,
+                resolver=self,
+                _name=name,
+                parameter=parameter,
+                is_optional=is_optional,
+                is_strict=is_strict,
+                flags=flags,
+                default=default,
+            )
+            return cast(Annotation, da)
+        # Otherwise, add this type to the stack to prevent a recursive loop from elsewhere.
+        if not checks.isstdlibtype(use):
+            self.__stack.add(use)
         serde = (
             self._get_configuration(util.origin(use), flags)
-            if is_static
+            if is_static and not is_literal
             else SerdeConfig(flags)
         )
 
-        anno = Annotation(
+        anno: Annotation = Annotation(
             resolved=use,
             origin=orig,
             un_resolved=annotation,
@@ -414,33 +509,159 @@ class Resolver:
             static=is_static,
             serde=serde,
         )
-        anno.translator = functools.partial(self.translator.factory, anno)  # type: ignore
+        anno.translator = cast(
+            TranslatorT, functools.partial(self.translator.factory, anno)
+        )
         return anno
 
-    @functools.lru_cache(maxsize=None)
     def _resolve_from_annotation(
-        self, anno: Annotation, _des: bool = True, _ser: bool = True,
-    ) -> SerdeProtocol:
-        # FIXME: Simulate legacy behavior. Should add runtime analysis soon (#95)
-        if anno.origin is Callable:
-            _des, _ser = False, False
+        self,
+        anno: Annotation[Type[ObjectT]],
+        *,
+        namespace: Type = None,
+    ) -> SerdeProtocol[ObjectT]:
+        if anno in self.__cache:
+            return self.__cache[anno]
+        if isinstance(anno, (DelayedAnnotation, ForwardDelayedAnnotation)):
+            return DelayedSerdeProtocol(anno)
+
         # Build the deserializer
-        deserializer, validator, constraints = None, None, None
-        if _des:
-            constraints = const.get_constraints(anno.resolved, nullable=anno.optional)
-            deserializer, validator = self.des.factory(anno, constraints)
+        constraints = constr.get_constraints(
+            anno.resolved, nullable=anno.optional, cls=namespace
+        )
+        deserializer, validator = self.des.factory(
+            anno, constraints, namespace=namespace
+        )
         # Build the serializer
-        serializer: Optional[SerializerT] = self.ser.factory(anno) if _ser else None
+        serializer = self.ser.factory(anno)
         # Put it all together
-        return SerdeProtocol(
+        proto = self._build_protocol(
             annotation=anno,
-            deserializer=deserializer,
-            serializer=serializer,
             constraints=constraints,
+            deserializer=deserializer,
             validator=validator,
+            serializer=serializer,
+        )
+        self.__cache[anno] = proto
+        return proto
+
+    def _build_protocol(
+        self,
+        *,
+        annotation: Annotation[Type[ObjectT]],
+        constraints: constr.ConstraintsProtocolT[ObjectT],
+        deserializer: DeserializerT[ObjectT],
+        validator: constr.ValidateT[ObjectT],
+        serializer: SerializerT[ObjectT],
+    ) -> SerdeProtocol[ObjectT]:
+        def tojson(
+            val: ObjectT,
+            *,
+            indent: int = 0,
+            ensure_ascii: bool = False,
+            __prim=serializer,
+            __dumps=json.dumps,
+            **kwargs,
+        ) -> str:
+            return __dumps(
+                __prim(val),
+                indent=indent,
+                ensure_ascii=ensure_ascii,
+                **kwargs,
+            )
+
+        tojson.__qualname__ = f"{SerdeProtocol.__name__}.{tojson.__name__}"
+        tojson.__module__ = SerdeProtocol.__module__
+
+        # Set the encoder/decoder protocols.
+        # Default to JSON for wire-format
+        encode: EncoderT = cast(EncoderT, tojson)
+        if annotation.serde.encoder:
+
+            def encode(  # type: ignore
+                val: ObjectT,
+                *,
+                __prim=serializer,
+                __encode=annotation.serde.encoder,
+                **kwargs,
+            ) -> bytes:
+                return __encode(__prim(val), **kwargs)
+
+            encode.__qualname__ = f"{SerdeProtocol.__name__}.{encode.__name__}"
+            encode.__module__ = self.__class__.__module__
+
+        # Default to JSON for wire-format
+        decode: DecoderT = cast(DecoderT, deserializer)
+        if annotation.serde.decoder:
+
+            def decode(  # type: ignore
+                val: bytes,
+                *,
+                __trans=deserializer,
+                __decode=annotation.serde.decoder,
+                **kwargs,
+            ) -> ObjectT:
+                return __trans(__decode(val, **kwargs))
+
+            decode.__qualname__ = f"{SerdeProtocol.__name__}.{decode.__name__}"
+            decode.__module__ = SerdeProtocol.__module__
+
+        # Create the translator
+        def translate(
+            value: ObjectT, target: Type[_T], *, __factory=annotation.translator
+        ) -> _T:
+            trans = __factory(target)
+            return trans(value)
+
+        translate.__qualname__ = f"{SerdeProtocol.__name__}.{translate.__name__}"
+        translate.__module__ = SerdeProtocol.__module__
+
+        # Create the iterator, if possible.
+        try:
+            iterator = self._iterator_from_annotation(annotation)
+            iterator.__qualname__ = f"{SerdeProtocol.__name__}.{iterator.__name__}"
+            iterator.__module__ = SerdeProtocol.__module__
+        # Default to lazy iteration, if not.
+        except TypeError:
+            iterator = cast(FieldIteratorT, self.iterate)
+
+        return SerdeProtocol(
+            annotation=annotation,
+            constraints=constraints,
+            deserialize=deserializer,
+            decode=decode,
+            serialize=serializer,
+            encode=encode,
+            validate=validator,
+            translate=cast(TranslatorT, translate),
+            tojson=cast(EncoderT, tojson),
+            iterate=iterator,
         )
 
-    @functools.lru_cache(maxsize=None)
+    def _iterator_from_annotation(
+        self, annotation: Annotation[Type[ObjectT]]
+    ) -> FieldIteratorT[ObjectT]:
+        exclude = (*(annotation.serde.flags.exclude or ()),)
+        fiterator = self.translator.iterator(
+            annotation.resolved_origin, relaxed=True, exclude=exclude
+        )
+        viterator = self.translator.iterator(
+            annotation.resolved_origin,
+            values=True,
+            relaxed=True,
+            exclude=exclude,
+        )
+
+        def iterator(
+            o: ObjectT, *, values: bool = False, __fields=fiterator, __values=viterator
+        ) -> Iterator[Union[Tuple[str, Any], Any]]:
+            if values:
+                return __values(o)
+            return __fields(o)
+
+        return cast(FieldIteratorT, iterator)
+
+    @lru_cache(maxsize=None)
     def resolve(
         self,
         annotation: Type[ObjectT],
@@ -450,9 +671,8 @@ class Resolver:
         parameter: Optional[inspect.Parameter] = None,
         is_optional: bool = None,
         is_strict: bool = None,
-        _des: bool = True,
-        _ser: bool = True,
-    ) -> SerdeProtocol:
+        namespace: Type = None,
+    ) -> SerdeProtocol[ObjectT]:
         """Get a :py:class:`SerdeProtocol` from a given annotation or type.
 
         Parameters
@@ -495,11 +715,13 @@ class Resolver:
             is_optional=is_optional,
             is_strict=is_strict,
             flags=flags,
+            namespace=namespace,
         )
-        resolved = self._resolve_from_annotation(anno, _des, _ser)
+        resolved = self._resolve_from_annotation(anno, namespace=namespace)
+        self.__stack.clear()
         return resolved
 
-    @functools.lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def protocols(self, obj, *, strict: bool = False) -> SerdeProtocolsT:
         """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 
@@ -550,9 +772,10 @@ class Resolver:
             )
             if repr(param.default) == "<factory>":
                 param = param.replace(default=EMPTY)
-            if annotation is ClassVar:
+            if checks.isclassvartype(annotation):
                 val = getattr(obj, name)
-                annotation = annotation[type(val)]
+                if annotation is ClassVar:
+                    annotation = annotation[type(val)]
                 default = val
                 param = param.replace(default=default)
             if (
@@ -563,8 +786,12 @@ class Resolver:
                 if field.init is False and util.origin(annotation) is not ReadOnly:
                     annotation = ReadOnly[annotation]  # type: ignore
                 param = param.replace(default=field.default)
-            resolved: SerdeProtocol = self.resolve(
-                annotation, parameter=param, name=name, is_strict=strict
+
+            if not checks.ishashable(param.default):
+                param = param.replace(default=...)
+
+            resolved = self.resolve(
+                annotation, name=name, parameter=param, is_strict=strict, namespace=obj
             )
             ann[name] = resolved
         try:

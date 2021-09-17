@@ -1,11 +1,12 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 
 import pytest
 
 from typic.constraints import (
-    ListContraints,
+    ListConstraints,
+    TupleConstraints,
     StrConstraints,
     IntContraints,
     ConstraintValueError,
@@ -20,26 +21,36 @@ class Foo:
 @pytest.mark.parametrize(
     argnames=("val", "constraint", "expected"),
     argvalues=[
-        ([], ListContraints(), []),
-        ([1], ListContraints(min_items=1), [1]),
-        ([1, 2], ListContraints(max_items=2), [1, 2]),
-        ([1, 2, 2], ListContraints(unique=True), [1, 2]),
-        ([Foo(), Foo(), 2], ListContraints(unique=True), [Foo(), 2]),
+        ([], ListConstraints(), []),
+        ([1], ListConstraints(min_items=1), [1]),
+        ([1, 2], ListConstraints(max_items=2), [1, 2]),
+        ([1, 2, 2], ListConstraints(unique=True), [1, 2]),
+        ([Foo(), Foo(), 2], ListConstraints(unique=True), [Foo(), 2]),
     ],
 )
-def test_validate_values(val: str, constraint: ListContraints, expected: list):
+def test_validate_values(val: str, constraint: ListConstraints, expected: list):
     assert constraint.validate(val) == expected
 
 
 @pytest.mark.parametrize(
     argnames=("val", "constraint", "expected"),
     argvalues=[
-        ([], ListContraints(min_items=1), ConstraintValueError),
-        ([1, 2, 3], ListContraints(max_items=2), ConstraintValueError),
+        ([], ListConstraints(min_items=1), ConstraintValueError),
+        ([1, 2, 3], ListConstraints(max_items=2), ConstraintValueError),
+        (
+            (1, 2),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ConstraintValueError,
+        ),
+        (
+            ("foo", "bar"),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ConstraintValueError,
+        ),
     ],
 )
 def test_validate_values_error(
-    val: str, constraint: ListContraints, expected: Exception
+    val: str, constraint: ListConstraints, expected: Exception
 ):
     with pytest.raises(expected):
         constraint.validate(val)
@@ -48,11 +59,11 @@ def test_validate_values_error(
 @pytest.mark.parametrize(
     argnames=("val", "constraint", "expected"),
     argvalues=[
-        ([1, 2], ListContraints(min_items=1, max_items=2), [1, 2]),
-        ([1, 2, 2], ListContraints(unique=True, max_items=2), [1, 2]),
+        ([1, 2], ListConstraints(min_items=1, max_items=2), [1, 2]),
+        ([1, 2, 2], ListConstraints(unique=True, max_items=2), [1, 2]),
     ],
 )
-def test_validate_values_multi(val: str, constraint: ListContraints, expected: list):
+def test_validate_values_multi(val: str, constraint: ListConstraints, expected: list):
     assert constraint.validate(val) == expected
 
 
@@ -61,21 +72,26 @@ def test_validate_values_multi(val: str, constraint: ListContraints, expected: l
     argvalues=[
         (
             [1, 2],
-            ListContraints(min_items=1, max_items=2, values=IntContraints(ge=1)),
+            ListConstraints(min_items=1, max_items=2, values=IntContraints(ge=1)),
             [1, 2],
         ),
         (
             ["foo "],
-            ListContraints(
+            ListConstraints(
                 min_items=1,
                 max_items=2,
                 values=StrConstraints(strip_whitespace=True, min_length=2),
             ),
             ["foo"],
         ),
+        (
+            ("foo", 2),
+            TupleConstraints(values=(StrConstraints(), IntContraints())),
+            ("foo", 2),
+        ),
     ],
 )
 def test_validate_values_nested_constraints(
-    val: str, constraint: ListContraints, expected: list
+    val: str, constraint: ListConstraints, expected: list
 ):
     assert constraint.validate(val) == expected

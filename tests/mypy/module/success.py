@@ -27,3 +27,5 @@ if __name__ == "__main__":
     v = typic.validate(Klass, {"attr": "foo"})
     j: str = typic.tojson(Klass("foo"))
     o: Other = Klass("foo").translate(Other)
+    fields = [*Klass("foo").iterate()]
+    iterfields = [*Klass("foo")]

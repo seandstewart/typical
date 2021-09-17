@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Tuple, Set, Union, Mapping, Dict, Any, DefaultDict
 
@@ -11,7 +11,7 @@ from typic.ext.schema import (
     UndeclaredSchemaField,
     get_field_type,
 )
-from typic.compat import Final
+from typic.compat import Final, Literal
 from tests import objects
 
 
@@ -88,9 +88,9 @@ class Container:
         (Final[str], typic.StrSchemaField(readOnly=True)),
         (typic.common.WriteOnly[str], typic.StrSchemaField(writeOnly=True)),
         (
-            Union[str, int],
+            Union[int, str],
             typic.MultiSchemaField(
-                anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
             ),
         ),
         (
@@ -152,19 +152,43 @@ class Container:
             ),
         ),
         (
-            Dict[str, Union[str, int]],
+            Dict[str, Union[int, str]],
             typic.ObjectSchemaField(
                 additionalProperties=MultiSchemaField(
-                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                    anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
                 )
             ),
         ),
         (
-            Tuple[Union[str, int], ...],
+            Tuple[Union[int, str], ...],
             typic.ArraySchemaField(
                 items=MultiSchemaField(
-                    anyOf=(typic.StrSchemaField(), typic.IntSchemaField())
+                    anyOf=(typic.IntSchemaField(), typic.StrSchemaField())
                 )
+            ),
+        ),
+        (
+            objects.NestedDoubleReference,
+            typic.ObjectSchemaField(
+                title=objects.NestedDoubleReference.__name__,
+                description=objects.NestedDoubleReference.__doc__,
+                properties=typic.FrozenDict(
+                    first=typic.Ref(ref="#/definitions/Data"),
+                    second=typic.Ref(ref="#/definitions/Data"),
+                ),
+                required=("first",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(
+                    {
+                        "Data": typic.ObjectSchemaField(
+                            title=objects.Data.__name__,
+                            description=objects.Data.__doc__,
+                            properties={"foo": typic.StrSchemaField()},
+                            additionalProperties=False,
+                            required=("foo",),
+                        )
+                    }
+                ),
             ),
         ),
         (MySet, typic.ArraySchemaField(uniqueItems=True)),
@@ -174,8 +198,8 @@ class Container:
         (
             Container,
             typic.ObjectSchemaField(
-                title="Container",
-                description="Container(data: DefaultDict[str, int])",
+                title=Container.__name__,
+                description=Container.__doc__,
                 properties={"data": typic.Ref(ref="#/definitions/Data")},
                 additionalProperties=False,
                 required=("data",),
@@ -186,6 +210,138 @@ class Container:
                         )
                     }
                 ),
+            ),
+        ),
+        (
+            objects.KlassVarSubscripted,
+            typic.ObjectSchemaField(
+                title=objects.KlassVarSubscripted.__name__,
+                description=objects.KlassVarSubscripted.__doc__,
+                properties={
+                    "var": typic.StrSchemaField(
+                        enum=("foo",), default="foo", readOnly=True
+                    )
+                },
+                additionalProperties=False,
+                required=(),
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.ThreeOptionals,
+            typic.ObjectSchemaField(
+                title=objects.ThreeOptionals.__name__,
+                description=objects.ThreeOptionals.__doc__,
+                properties=typic.FrozenDict(
+                    a=typic.MultiSchemaField(
+                        title="A",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                    b=typic.MultiSchemaField(
+                        title="B",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                    c=typic.MultiSchemaField(
+                        title="C",
+                        anyOf=(typic.StrSchemaField(), typic.NullSchemaField()),
+                    ),
+                ),
+                required=("a",),
+                additionalProperties=False,
+                definitions=typic.FrozenDict(),
+            ),
+        ),
+        (
+            objects.A,
+            typic.ObjectSchemaField(
+                title=objects.A.__name__,
+                description=objects.A.__doc__,
+                properties={
+                    "b": typic.MultiSchemaField(
+                        title=f"Optional{objects.B.__name__}",
+                        anyOf=(
+                            typic.Ref(ref="#/definitions/B"),
+                            typic.NullSchemaField(),
+                        ),
+                    )
+                },
+                additionalProperties=False,
+                required=(),
+                definitions=typic.FrozenDict(
+                    {
+                        "A": typic.ObjectSchemaField(
+                            title=objects.A.__name__,
+                            description=objects.A.__doc__,
+                            properties={
+                                "b": typic.MultiSchemaField(
+                                    title=f"Optional{objects.B.__name__}",
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/B"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
+                            additionalProperties=False,
+                            required=(),
+                        ),
+                        "B": typic.ObjectSchemaField(
+                            title=objects.B.__name__,
+                            description=objects.B.__doc__,
+                            properties={
+                                "a": typic.MultiSchemaField(
+                                    title=f"Optional{objects.A.__name__}",
+                                    anyOf=(
+                                        typic.Ref(ref="#/definitions/A"),
+                                        typic.NullSchemaField(),
+                                    ),
+                                )
+                            },
+                            additionalProperties=False,
+                            required=(),
+                        ),
+                    }
+                ),
+            ),
+        ),
+        (
+            Union[int, str, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(),
+                    typic.StrSchemaField(),
+                    typic.NullSchemaField(),
+                )
+            ),
+        ),
+        (
+            objects.ItemizedKeyedValuedDict,
+            typic.ObjectSchemaField(
+                title=objects.ItemizedKeyedValuedDict.__name__,
+                properties={"foo": typic.IntSchemaField()},
+                additionalProperties=typic.StrSchemaField(maxLength=5),
+            ),
+        ),
+        (
+            objects.ShortStrList,
+            typic.ArraySchemaField(items=typic.StrSchemaField(maxLength=5)),
+        ),
+        (Literal[1, 2], typic.IntSchemaField(enum=(1, 2))),
+        (
+            Literal[1, 2, None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.IntSchemaField(enum=(1, 2)),
+                    typic.NullSchemaField(),
+                )
+            ),
+        ),
+        (
+            Literal[1, "foo", None],
+            typic.MultiSchemaField(
+                anyOf=(
+                    typic.BaseSchemaField(enum=(1, "foo")),
+                    typic.NullSchemaField(),
+                )
             ),
         ),
     ],

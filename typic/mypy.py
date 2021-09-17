@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional, Callable, List, Union
 from typing_extensions import Final
 
@@ -105,6 +107,8 @@ class TypicTransformer:
         self.add_validate_method()
         self.add_json_method()
         self.add_translate_method()
+        self.add_iterate_method()
+        self.add_iter_method()
 
     @staticmethod
     def _get_tvar_name(name: str, info) -> str:
@@ -225,6 +229,36 @@ class TypicTransformer:
             tvar_def=self_tvar_def,
         )
 
+    def add_iterate_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        r_type = AnyType(TypeOfAny.explicit)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
+        add_method(
+            ctx,
+            "iterate",
+            args=[arg],
+            return_type=r_type,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
+    def add_iter_method(self):
+        ctx = self._ctx
+        self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
+        r_type = AnyType(TypeOfAny.explicit)
+        bool_type = ctx.api.named_type("__builtins__.bool")
+        arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
+        add_method(
+            ctx,
+            "__iter__",
+            args=[arg],
+            return_type=r_type,
+            self_type=TypeVarType(self_tvar_def),
+            tvar_def=self_tvar_def,
+        )
+
 
 def typic_klass_maker_callback(ctx: ClassDefContext) -> None:
     transformer = TypicTransformer(ctx)
@@ -322,7 +356,7 @@ def get_fullname(x: Union[FuncBase, SymbolNode]) -> str:
     Used for compatibility with mypy 0.740; can be dropped once support for 0.740 is dropped.
     """
     fn = x.fullname
-    if callable(fn):  # pragma: no cover
+    if callable(fn):  # pragma: nocover
         return fn()
     return fn
 
@@ -332,6 +366,6 @@ def get_name(x: Union[FuncBase, SymbolNode]) -> str:
     Used for compatibility with mypy 0.740; can be dropped once support for 0.740 is dropped.
     """
     fn = x.name
-    if callable(fn):  # pragma: no cover
+    if callable(fn):  # pragma: nocover
         return fn()
     return fn

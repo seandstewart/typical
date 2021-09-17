@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import enum
 import inspect
 from functools import partial
-from typing import Union, Type, Any, TypeVar, Callable, Generic
+from typing import Union, Type, Any, TypeVar, Callable, Generic, Mapping
 
 import inflection
 
@@ -39,18 +41,30 @@ class Case(str, enum.Enum):
     PASCAL = "PascalCase"
     KEBAB = "kebab-case"
     DOT = "dot.case"
+    UPPER_KEBAB = "UPPER-KEBAB-CASE"
+    UPPER_DOT = "UPPER.DOTA.CASE"
 
     @property
     def transformer(self) -> CaseTransformerT:
         return _TRANSFORMERS[self]
 
 
-_TRANSFORMERS = {
+def upper_kebab_case(s: str) -> str:
+    return inflection.dasherize(s).upper()
+
+
+def upper_dot_case(s: str) -> str:
+    return inflection.parameterize(s, separator=".").upper()
+
+
+_TRANSFORMERS: Mapping[Case, CaseTransformerT] = {
     Case.CAMEL: partial(inflection.camelize, uppercase_first_letter=False),
     Case.SNAKE: inflection.underscore,
     Case.PASCAL: inflection.camelize,
     Case.KEBAB: inflection.dasherize,
     Case.DOT: partial(inflection.parameterize, separator="."),
+    Case.UPPER_KEBAB: upper_kebab_case,
+    Case.UPPER_DOT: upper_dot_case,
 }
 T = TypeVar("T")
 

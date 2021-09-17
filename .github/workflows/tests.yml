@@ -1,0 +1,75 @@
+name: Test
+
+on: [push]
+
+jobs:
+  test:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10.0-alpha - 3.10"]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
+
+    - name: Install Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        ./.github/ubuntu-install.sh
+    - name: Install macOS dependencies
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        ./.github/macos-install.sh
+
+    - name: Install Poetry
+      uses: abatilo/actions-poetry@v2.0.0
+
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ./.venv
+        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+        restore-keys: |
+          poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+
+    - name: Set Poetry config
+      run: |
+        poetry config virtualenvs.in-project true
+
+    - name: Install Dependencies
+      if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9) }}
+      run: poetry install --no-dev -E tests
+
+    - name: Install Dependencies (MacOS + Py3.9)
+      if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9 }}
+      run: |
+        OPENBLAS="$(brew --prefix openblas)" poetry install --no-dev -E tests
+
+    - name: Test with pytest
+      run: |
+        poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        env_vars: OS,PYTHON
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

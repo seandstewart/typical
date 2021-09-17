@@ -1,9 +1,41 @@
 [run]
+branch = True
+relative_files = True
+include =
+    typic/*
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: nocover
+    pragma: nobranch
+    pragma: no cover
+    pragma: no branch
+
+    # Don't complain about missing debug-only code:
+    def __repr__
+    if self\.debug
+    \.\.\.
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    class.*\(Protocol.*\):
+
 omit =
     setup.py
-    .venv*
+    .*env*
     *lib/python*
     dist*
     tests*
     benchmark*
     docs*
+    mypy.py
+
+skip_empty = True

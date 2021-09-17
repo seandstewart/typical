@@ -1,7 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 import enum
+import warnings
 from typing import (
     Union,
     Type,
@@ -12,8 +13,10 @@ from typing import (
     List,
     Generic,
     cast,
-    Set,
     AnyStr,
+    TYPE_CHECKING,
+    MutableMapping,
+    Tuple,
 )
 
 import inflection  # type: ignore
@@ -21,9 +24,9 @@ import inflection  # type: ignore
 from typic.common import ReadOnly, WriteOnly
 from typic.serde.resolver import resolver
 from typic.serde.common import SerdeProtocol, Annotation
-from typic.compat import Final, TypedDict
-from typic.util import get_args, origin
-from typic.checks import istypeddict, isnamedtuple
+from typic.compat import Final, TypedDict, ForwardRef, Literal
+from typic.util import get_args, origin, get_name
+from typic.checks import istypeddict, isnamedtuple, isliteral, isuniontype
 from typic.types.frozendict import FrozenDict
 
 from .field import (  # type: ignore
@@ -33,10 +36,13 @@ from .field import (  # type: ignore
     Ref,
     SchemaFieldT,
     SCHEMA_FIELD_FORMATS,
-    get_field_type,
     SchemaType,
     ArraySchemaField,
+    NullSchemaField,
 )
+
+if TYPE_CHECKING:
+    from typic.constraints import ArrayConstraints, MappingConstraints  # noqa: F401
 
 _IGNORE_DOCS = frozenset({Mapping.__doc__, Generic.__doc__, List.__doc__})
 
@@ -68,53 +74,185 @@ class SchemaBuilder:
 
     def __init__(self):
         self.__cache = {}
+        self.__attached = set()
+        self.__stack = set()
 
-    def _handle_mapping(self, anno: Annotation, constraints: dict, *, name: str = None):
+    def attach(self, t: Type):
+        self.__attached.add(t)
+
+    def _handle_mapping(
+        self, proto: SerdeProtocol, parent: Type = None, *, name: str = None, **extra
+    ) -> MutableMapping:
+        anno = proto.annotation
         args = anno.args
-        constraints["title"] = self.defname(anno.resolved, name=name)
+        config = extra
+        config["title"] = self.defname(anno.resolved, name=name)
         doc = getattr(anno.resolved, "__doc__", None)
         if doc not in _IGNORE_DOCS:
-            constraints["description"] = doc
-        field: Optional[SchemaFieldT] = None
-        if args:
-            field = self.get_field(resolver.resolve(args[-1]))
-        if "additionalProperties" in constraints:
-            other = constraints["additionalProperties"]
-            # this is coming in from a constraint
-            if isinstance(other, dict):
-                schema_type = other.pop("type", None)
-                field = field or get_field_type(schema_type)()
-                if isinstance(field, MultiSchemaField):
-                    for k in {"oneOf", "anyOf", "allOf"} & other.keys():
-                        other[k] = tuple(
-                            get_field_type(x.pop("type"))(**x) for x in other[k]
-                        )
-                field = dataclasses.replace(field, **other)
-        constraints["additionalProperties"] = field
+            config["description"] = doc
 
-    def _handle_array(self, anno: Annotation, constraints: dict):
+        constraints = cast("MappingConstraints", proto.constraints)
+        attrs = (
+            ("items", "properties"),
+            ("patterns", "patternProperties"),
+            ("key_dependencies", "dependencies"),
+        )
+        for src, target in attrs:
+            items = getattr(constraints, src)
+            if items:
+                config[target] = {
+                    nm: self.get_field(
+                        resolver.resolve(
+                            it.type, is_optional=it.nullable, namespace=parent
+                        ),
+                        parent=parent,
+                    )
+                    for nm, it in items.items()
+                }
+        config["additionalProperties"] = not constraints.total
+        if args:
+            config["additionalProperties"] = self.get_field(
+                resolver.resolve(args[-1], namespace=parent), parent=parent
+            )
+
+        return config
+
+    def _handle_array(
+        self, proto: SerdeProtocol, parent: Type = None, **extra
+    ) -> MutableMapping:
+        anno = proto.annotation
         args = anno.args
         has_ellipsis = args[-1] is Ellipsis if args else False
+        config = extra
         if has_ellipsis:
             args = args[:-1]
         if args:
-            constrs = set(self.get_field(resolver.resolve(x)) for x in args)
-            constraints["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
+            constrs = set(
+                self.get_field(resolver.resolve(x, namespace=parent), parent=parent)
+                for x in args
+            )
+            config["items"] = (*constrs,) if len(constrs) > 1 else constrs.pop()
             if anno.origin in {tuple, frozenset}:
-                constraints["additionalItems"] = False if not has_ellipsis else None
+                config["additionalItems"] = False if not has_ellipsis else None
             if anno.origin in {set, frozenset}:
-                constraints["uniqueItems"] = True
-        elif "items" in constraints:
-            items: dict = constraints["items"]
-            multi_keys: Set[str] = {"oneOf", "anyOf", "allOf"} & items.keys()
-            if multi_keys:
-                for k in multi_keys:
-                    items[k] = tuple(
-                        get_field_type(x.pop("type"))(**x) for x in items[k]
-                    )
-                    constraints["items"] = MultiSchemaField(**items)
-            else:
-                constraints["items"] = get_field_type(items.pop("type"))(**items)
+                config["uniqueItems"] = True
+        return config
+
+    def _check_optional(
+        self,
+        annotation: Annotation,
+        schema: SchemaFieldT,
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+    ) -> SchemaFieldT:
+        if annotation.optional and annotation.parameter.default is not ...:
+            null = NullSchemaField()
+            if isinstance(schema, MultiSchemaField):
+                anyOf = schema.anyOf or ()
+                if null not in {*anyOf}:
+                    schema = dataclasses.replace(schema, anyOf=(*anyOf, null))
+                return schema
+            # Primitives are generally defined as anonymous types
+            title = subtitle = schema.title or self.defname(annotation.resolved, name)
+            # If we have an object with this name, make this an 'Optional' reference.
+            if isinstance(schema, (Ref, ObjectSchemaField)):
+                title = subtitle and f"Optional{subtitle}"
+            default = getattr(schema, "default", None)
+            child: SchemaFieldT = (
+                schema
+                if isinstance(schema, Ref)
+                else dataclasses.replace(
+                    schema, default=None, readOnly=ro, writeOnly=wo
+                )
+            )
+            return MultiSchemaField(
+                title=title,
+                default=default,
+                readOnly=ro,
+                writeOnly=wo,
+                anyOf=(child, NullSchemaField()),
+            )
+        return schema
+
+    def _handle_union(
+        self,
+        anno: Annotation,
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+        parent: Optional[Type],
+    ):
+        fields: List[SchemaFieldT] = []
+        args = get_args(anno.un_resolved)
+        for t in args:
+            if t.__class__ is ForwardRef or t is parent:
+                n = name or get_name(t)
+                fields.append(Ref(f"#/definitions/{n}"))
+                continue
+            fields.append(
+                self.get_field(resolver.resolve(t, namespace=parent), parent=parent)
+            )
+        schema = self._check_optional(
+            anno,
+            MultiSchemaField(
+                title=name and self.defname(anno.resolved, name=name),
+                anyOf=(*fields,),
+            ),
+            ro,
+            wo,
+            name,
+        )
+        self.__cache[anno] = schema
+        return schema
+
+    def _build_field(
+        self,
+        use: Type,
+        protocol: SerdeProtocol,
+        parent: Optional[Type],
+        enum_: Optional[Tuple[Any, ...]],
+        default: Optional[Any],
+        ro: Optional[bool],
+        wo: Optional[bool],
+        name: Optional[str],
+    ) -> SchemaFieldT:
+        # If we've got a base object, use it
+        base: Optional[SchemaFieldT]
+        if use is object:
+            base = UndeclaredSchemaField()
+        elif istypeddict(use) or isnamedtuple(use):
+            base = None
+        else:
+            base = cast(SchemaFieldT, SCHEMA_FIELD_FORMATS.get_by_parent(use))
+        if base:
+            config: MutableMapping = (
+                protocol.constraints.for_schema() if protocol.constraints else {}
+            )
+            config.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
+            # `use` should always be a dict if the annotation is a Mapping,
+            # thanks to `origin()` & `resolve()`.
+            if isinstance(base, ObjectSchemaField):
+                config = self._handle_mapping(
+                    protocol, parent=parent, name=name, **config
+                )
+            elif isinstance(base, ArraySchemaField):
+                config = self._handle_array(protocol, parent=parent, **config)
+            schema = dataclasses.replace(base, **config)
+        else:
+            try:
+                schema = self.build_schema(use)
+            except (ValueError, TypeError) as e:
+                warnings.warn(f"Couldn't build schema for {use}: {e}")
+                schema = UndeclaredSchemaField(
+                    enum=enum_,
+                    title=self.defname(use, name=name),
+                    default=default,
+                    readOnly=ro,
+                    writeOnly=wo,
+                )
+        schema = self._check_optional(protocol.annotation, schema, ro, wo, name)
+        return schema
 
     def get_field(
         self,
@@ -123,8 +261,14 @@ class SchemaBuilder:
         ro: bool = None,
         wo: bool = None,
         name: str = None,
+        parent: Type = None,
     ) -> "SchemaFieldT":
         """Get a field definition for a JSON Schema."""
+        if protocol.annotation in self.__stack:
+            name = self.defname(protocol.annotation.resolved_origin, name)
+            return self._check_optional(
+                protocol.annotation, Ref(f"#/definitions/{name}"), ro, wo, name
+            )
         anno = protocol.annotation
         if anno in self.__cache:
             return self.__cache[anno]
@@ -135,27 +279,23 @@ class SchemaBuilder:
         default = anno.parameter.default if anno.has_default else None
         # `use` is the based annotation we will use for building the schema
         use = getattr(anno.origin, "__parent__", anno.origin)
+        # This is a flat optional, handle it separately from the Union block.
+        use = anno.resolved if isuniontype(use) and not anno.args else use
         # If there's not a static annotation, short-circuit the rest of the checks.
         schema: SchemaFieldT
         if use in {Any, anno.EMPTY}:
-            schema = UndeclaredSchemaField()
+            schema = self._check_optional(anno, UndeclaredSchemaField(), ro, wo, name)
             self.__cache[anno] = schema
             return schema
 
         # Unions are `anyOf`, get a new field for each arg and return.
         # {'type': ['string', 'integer']} ==
-        #   {'oneOf': [{'type': 'string'}, {'type': 'integer'}]}
+        #   {'anyOf': [{'type': 'string'}, {'type': 'integer'}]}
         # We don't care about syntactic sugar if it's functionally the same.
-        if use is Union:
-            schema = MultiSchemaField(
-                title=self.defname(anno.resolved, name=name) if name else None,
-                anyOf=tuple(
-                    self.get_field(resolver.resolve(x))
-                    for x in get_args(anno.un_resolved)
-                ),
-            )
-            self.__cache[anno] = schema
-            return schema
+        if isuniontype(use):
+            return self._handle_union(anno=anno, ro=ro, wo=wo, name=name, parent=parent)
+
+        self.__stack.add(anno)
 
         # Check if this should be ro/wo
         if use in {ReadOnly, WriteOnly, Final}:
@@ -166,7 +306,15 @@ class SchemaBuilder:
 
         # Check for an enumeration
         enum_ = None
-        if issubclass(use, enum.Enum):
+        # Functionally, literals are enumerations.
+        if isliteral(use):
+            enum_ = (*(a for a in anno.args if a is not None),)
+            ts = {a.__class__ for a in enum_}
+            use = Literal
+            if len(ts) == 1:
+                use = ts.pop()
+
+        elif issubclass(use, enum.Enum):
             use = cast(Type[enum.Enum], use)
             enum_ = tuple(x.value for x in use)
             use = getattr(use._member_type_, "__parent__", use._member_type_)  # type: ignore
@@ -176,41 +324,19 @@ class SchemaBuilder:
         # we don't currently honor `{'const': <val>}` since it's just syntactic sugar.
         if ro and default:
             enum_ = (default.value if isinstance(default, enum.Enum) else default,)
-            ro = None
 
-        # If we've got a base object, use it
-        base: Optional[SchemaFieldT]
-        if use is object:
-            base = UndeclaredSchemaField()
-        elif istypeddict(use) or isnamedtuple(use):
-            base = None
-        else:
-            base = cast(SchemaFieldT, SCHEMA_FIELD_FORMATS.get_by_parent(use))
-        if base:
-            constraints = (
-                protocol.constraints.for_schema() if protocol.constraints else {}
-            )
-            constraints.update(enum=enum_, default=default, readOnly=ro, writeOnly=wo)
-            # `use` should always be a dict if the annotation is a Mapping,
-            # thanks to `origin()` & `resolve()`.
-            if isinstance(base, ObjectSchemaField):
-                self._handle_mapping(anno, constraints, name=name)
-            elif isinstance(base, ArraySchemaField):
-                self._handle_array(anno, constraints)
-            schema = dataclasses.replace(base, **constraints)
-        else:
-            try:
-                schema = self.build_schema(use, name=self.defname(use, name=name))
-            except (ValueError, TypeError):
-                schema = UndeclaredSchemaField(
-                    enum=enum_,
-                    title=self.defname(use, name=name),
-                    default=default,
-                    readOnly=ro,
-                    writeOnly=wo,
-                )
-
+        schema = self._build_field(
+            use=use,
+            protocol=protocol,
+            parent=parent,
+            enum_=enum_,
+            default=default,
+            ro=ro,
+            wo=wo,
+            name=name,
+        )
         self.__cache[anno] = schema
+        self.__stack.clear()
         return schema
 
     @staticmethod
@@ -228,8 +354,8 @@ class SchemaBuilder:
         replace = {}
         for field_name in ("items", "contains", "additionalItems"):
             it = getattr(field, field_name)
-            if isinstance(it, ObjectSchemaField):
-                ref = self._flatten_object_definitions(definitions, it)
+            if isinstance(it, (ObjectSchemaField, ArraySchemaField, MultiSchemaField)):
+                ref = self._flatten_definitions(definitions, it)
                 replace[field_name] = ref
         return dataclasses.replace(field, **replace) if replace else field
 
@@ -256,15 +382,19 @@ class SchemaBuilder:
             return self._flatten_multi_definitions(definitions, field)
         return field
 
-    @staticmethod
-    def defname(obj, name: str = None) -> Optional[str]:
+    @classmethod
+    def defname(cls, obj, name: str = None) -> Optional[str]:
         """Get the definition name for an object."""
         defname = name or getattr(obj, "__name__", None)
+        if defname in cls._IGNORE_NAME:
+            defname = None
         if (obj is dict or origin(obj) is dict) and name:
             defname = name
         return inflection.camelize(defname) if defname else None
 
-    def build_schema(self, obj: Type, *, name: str = None) -> "ObjectSchemaField":
+    _IGNORE_NAME = {"Mapping", "MutableMapping", "Dict"}
+
+    def build_schema(self, obj: Type, *, name: str = None) -> ObjectSchemaField:
         """Build a valid JSON Schema, including nested schemas."""
         if obj in self.__cache:  # pragma: nocover
             return self.__cache[obj]
@@ -275,10 +405,14 @@ class SchemaBuilder:
         required: List[str] = []
         total: bool = getattr(obj, "__total__", True)
         for nm, protocol in protocols.items():
-            field = self.get_field(protocol, name=nm)
-            # If we received an object schema,
-            # figure out a name and inherit the definitions.
-            flattened = self._flatten_definitions(definitions, field)
+            if protocol.annotation.resolved_origin is obj:
+                flattened = Ref(f"#/definitions/{self.defname(obj)}")
+            else:
+                ro = protocol.annotation.is_class_var or None
+                field = self.get_field(protocol, name=nm, parent=obj, ro=ro)
+                # If we received an object schema,
+                # figure out a name and inherit the definitions.
+                flattened = self._flatten_definitions(definitions, field)
             properties[nm] = flattened
             # Check for required field(s)
             if not protocol.annotation.has_default:
@@ -327,6 +461,8 @@ class SchemaBuilder:
         """
         definitions = SchemaDefinitions(definitions={})
         schm: ObjectSchemaField
+        while self.__attached:
+            self.build_schema(self.__attached.pop())
         for obj, schm in self.__cache.items():
             if schm.type != SchemaType.OBJ:
                 continue

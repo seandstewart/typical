@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
 from types import MappingProxyType
 from typing import (
@@ -15,9 +15,10 @@ from typing import (
 )
 
 from typic.api import wrap_cls, ObjectT
+from typic.compat import DATACLASS_NATIVE_SLOTS, DATACLASS_KW_ONLY, DATACLASS_MATCH_ARGS
 from typic.types import freeze
+from typic.util import slotted
 from .serde.common import SerdeFlags
-from typic.util import apply_slots
 
 _field_slots: Tuple[str, ...] = cast(Tuple[str, ...], dataclasses.Field.__slots__) + (
     "exclude",
@@ -50,6 +51,7 @@ class Field(dataclasses.Field):
 
     def __init__(
         self,
+        *,
         default: Union[ObjectT, dataclasses._MISSING_TYPE],
         default_factory: Union[FactoryT, dataclasses._MISSING_TYPE],
         init: bool,
@@ -59,16 +61,17 @@ class Field(dataclasses.Field):
         metadata: Optional[Mapping[Hashable, Any]],
         exclude: bool = False,
         name: str = None,
+        **kwargs,
     ):
-        super(Field, self).__init__(  # type: ignore
-            default, default_factory, init, repr, hash, compare, metadata
+        super(Field, self).__init__(
+            default, default_factory, init, repr, hash, compare, metadata, **kwargs  # type: ignore
         )
         self.exclude = exclude
         self.external_name = name
 
     @classmethod
     def from_field(cls: Type["Field"], f: dataclasses.Field) -> "Field":
-        tf = cls(
+        kwargs = dict(
             default=f.default,
             default_factory=f.default_factory,  # type: ignore
             init=f.init,
@@ -77,6 +80,10 @@ class Field(dataclasses.Field):
             compare=f.compare,
             metadata=f.metadata,  # type: ignore
         )
+        if DATACLASS_KW_ONLY:
+            kwargs["kw_only"] = f.kw_only  # type: ignore
+
+        tf = cls(**kwargs)
         tf.name = f.name
         tf.type = f.type
         return tf
@@ -84,6 +91,7 @@ class Field(dataclasses.Field):
 
 def field(
     default: Union[ObjectT, dataclasses._MISSING_TYPE] = dataclasses.MISSING,
+    *,
     default_factory: Union[FactoryT, dataclasses._MISSING_TYPE] = dataclasses.MISSING,
     init: bool = True,
     repr: bool = True,
@@ -92,8 +100,9 @@ def field(
     metadata: Mapping[Hashable, Any] = None,
     exclude: bool = False,
     name: str = None,
+    kw_only: bool = False,
 ) -> Field:
-    return Field(
+    kwargs = dict(
         default=default,
         default_factory=default_factory,
         init=init,
@@ -104,6 +113,9 @@ def field(
         exclude=exclude,
         name=name,
     )
+    if DATACLASS_KW_ONLY:
+        kwargs["kw_only"] = kw_only
+    return Field(**kwargs)  # type: ignore
 
 
 def make_typedclass(
@@ -119,7 +131,9 @@ def make_typedclass(
     strict: bool = False,
     jsonschema: bool = False,
     slots: bool = False,
-    serde: SerdeFlags = None
+    kw_only: bool = False,
+    match_args: bool = True,
+    serde: SerdeFlags = None,
 ):
     """A convenience function for generating a dataclass with type-coercion.
 
@@ -135,8 +149,7 @@ def make_typedclass(
     :py:func:`dataclasses.dataclass`
     """
     # Make the base dataclass.
-    dcls = dataclasses.dataclass(  # type: ignore
-        cls,
+    kwargs = dict(
         init=init,
         repr=repr,
         eq=eq,
@@ -144,8 +157,17 @@ def make_typedclass(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
-    if slots:
-        dcls = apply_slots(dcls)
+    if DATACLASS_KW_ONLY:
+        kwargs["kw_only"] = kw_only
+    if DATACLASS_MATCH_ARGS:
+        kwargs["match_args"] = match_args
+    if DATACLASS_NATIVE_SLOTS:
+        dcls = dataclasses.dataclass(cls, **kwargs, slots=slots)  # type: ignore
+    else:
+        dcls = dataclasses.dataclass(cls, **kwargs)  # type: ignore
+        if slots:
+            dcls = slotted(dcls)
+
     fields = [
         f if isinstance(f, Field) else Field.from_field(f)
         for f in dataclasses.fields(dcls)
@@ -156,7 +178,11 @@ def make_typedclass(
     serde = serde or SerdeFlags()
     serde = serde.merge(SerdeFlags(fields=field_names, exclude=exclude))  # type: ignore
     return wrap_cls(
-        dcls, delay=delay, strict=strict, jsonschema=jsonschema, serde=serde,
+        dcls,
+        delay=delay,
+        strict=strict,
+        jsonschema=jsonschema,
+        serde=serde,
     )
 
 
@@ -173,7 +199,9 @@ def klass(
     strict: bool = False,
     jsonschema: bool = True,
     slots: bool = False,
-    serde: SerdeFlags = None
+    kw_only: bool = False,
+    match_args: bool = True,
+    serde: SerdeFlags = None,
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
 
@@ -214,6 +242,8 @@ def klass(
             strict=strict,
             jsonschema=jsonschema,
             slots=slots,
+            kw_only=kw_only,
+            match_args=match_args,
             serde=serde,
         )
 

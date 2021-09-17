@@ -1,14 +1,19 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import ast
 import collections
+import collections.abc
 import dataclasses
 import functools
 import inspect
 import sys
+import types
+import warnings
+from datetime import date, datetime, timedelta, time
 from threading import RLock
-from types import MappingProxyType
-from typing import (
+from types import MappingProxyType, MemberDescriptorType
+import typing
+from typing import (  # type: ignore  # ironic...
     Tuple,
     Any,
     Sequence,
@@ -18,7 +23,7 @@ from typing import (
     Type,
     TypeVar,
     Callable,
-    get_type_hints,
+    get_type_hints as _get_type_hints,
     Union,
     MutableMapping,
     MutableSequence,
@@ -27,9 +32,14 @@ from typing import (
     MutableSet,
     Dict,
     Optional,
+    _eval_type,
 )
 
+import pendulum
+from future_typing import transform_annotation
+
 import typic.checks as checks
+from typic.compat import ForwardRef, lru_cache, KW_ONLY, get_origin
 from typic.ext import json
 
 __all__ = (
@@ -39,20 +49,30 @@ __all__ = (
     "cached_simple_attributes",
     "cached_type_hints",
     "cachedmethod",
+    "extract",
     "fastcachedmethod",
     "filtered_repr",
     "get_args",
     "get_name",
-    "hexhash",
+    "get_defname",
+    "get_qualname",
+    "get_tag_for_types",
+    "get_type_hints",
+    "get_unique_name",
+    "isoformat",
     "origin",
     "resolve_supertype",
     "safe_eval",
     "safe_get_params",
+    "signature",
     "simple_attributes",
+    "slotted",
+    "TaggedUnion",
     "typed_dict_signature",
+    "TypeMap",
 )
 
-from typic.compat import SQLAMetaData
+from typic.compat import SQLAMetaData, sqla_registry
 
 
 GENERIC_TYPE_MAP = {
@@ -77,11 +97,7 @@ GENERIC_TYPE_MAP = {
 }
 
 
-def hexhash(*args, __order=sys.byteorder, **kwargs) -> str:
-    return hash(f"{args}{kwargs}").to_bytes(8, __order, signed=True).hex()
-
-
-@functools.lru_cache(maxsize=2000, typed=True)
+@lru_cache(maxsize=2000, typed=True)
 def safe_eval(string: str) -> Tuple[bool, Any]:
     """Try a few methods to evaluate a string and get the correct Python data-type.
 
@@ -132,7 +148,7 @@ def filtered_str(self) -> str:
     return f"({', '.join(fields)})"
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def origin(annotation: Any) -> Any:
     """Get the highest-order 'origin'-type for subclasses of typing._SpecialForm.
 
@@ -162,18 +178,19 @@ def origin(annotation: Any) -> Any:
         args = get_args(actual)
         actual = args[0] if args else actual
 
-    # Extract the highest-order origin of the annotation.
-    while hasattr(actual, "__origin__"):
-        actual = actual.__origin__
+    actual = get_origin(actual) or actual
 
     # provide defaults for generics
     if not checks.isbuiltintype(actual):
         actual = _check_generics(actual)
 
+    if inspect.isroutine(actual):
+        actual = collections.abc.Callable
+
     return actual
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_args(annotation: Any) -> Tuple[Any, ...]:
     """Get the args supplied to an annotation, excluding :py:class:`typing.TypeVar`.
 
@@ -194,8 +211,8 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
     )
 
 
-@functools.lru_cache(maxsize=None)
-def get_name(obj: Type) -> str:
+@lru_cache(maxsize=None)
+def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     """Safely retrieve the name of either a standard object or a type annotation.
 
     Examples
@@ -205,38 +222,66 @@ def get_name(obj: Type) -> str:
     >>> T = TypeVar("T")
     >>> typic.get_name(Dict)
     'Dict'
+    >>> typic.get_name(Dict[str, str])
+    'Dict'
     >>> typic.get_name(Any)
     'Any'
     >>> typic.get_name(dict)
     'dict'
     """
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return obj._name
-    return obj.__name__
+    strobj = get_qualname(obj)
+    return strobj.rsplit(".")[-1]
 
 
-@functools.lru_cache(maxsize=None)
-def get_qualname(obj: Type) -> str:
-    if hasattr(obj, "_name") and not hasattr(obj, "__name__"):
-        return repr(obj)
+@lru_cache(maxsize=None)
+def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
+    """Safely retrieve the qualname of either a standard object or a type annotation.
 
-    qualname = getattr(obj, "__qualname__", obj.__name__)
-    if "<locals>" in qualname:
-        return obj.__name__
-    return qualname
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Dict, Any
+    >>> T = TypeVar("T")
+    >>> typic.get_qualname(Dict)
+    'typing.Dict'
+    >>> typic.get_qualname(Dict[str, str])
+    'typing.Dict'
+    >>> typic.get_qualname(Any)
+    'typing.Any'
+    >>> typic.get_qualname(dict)
+    'dict'
+    """
+    strobj = str(obj)
+    isgeneric = strobj.startswith("typing.")
+    if not isgeneric and isinstance(obj, ForwardRef):
+        strobj = str(obj.__forward_arg__)
+        isgeneric = strobj.startswith("typing.")
+    # We got a typing thing.
+    if isgeneric:
+        # If this is a subscripted generic we should clean that up.
+        return strobj.split("[")[0]
+    # Easy-ish path, use name magix
+    if hasattr(obj, "__qualname__") and obj.__qualname__:  # type: ignore
+        qualname = obj.__qualname__  # type: ignore
+        if "<locals>" in qualname:
+            return qualname.rsplit(".")[-1]
+        return qualname
+    if hasattr(obj, "__name__") and obj.__name__:  # type: ignore
+        return obj.__name__  # type: ignore
+    return strobj
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_unique_name(obj: Type) -> str:
     return f"{get_name(obj)}_{id(obj)}".replace("-", "_")
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def get_defname(pre: str, obj: Hashable) -> str:
     return f"{pre}_{hash(obj)}".replace("-", "_")
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def resolve_supertype(annotation: Type[Any]) -> Any:
     """Get the highest-order supertype for a NewType.
 
@@ -390,30 +435,67 @@ def fastcachedmethod(func):
     return _fast_cached_method_wrapper
 
 
-@functools.lru_cache(maxsize=None)
-def cached_signature(obj: Callable) -> inspect.Signature:
-    """A cached result of :py:func:`inspect.signature`.
+def signature(obj: Union[Callable, Type]) -> inspect.Signature:
+    """Get the signature of a type or callable.
 
-    Building the function signature is notoriously slow, but we can be safe that the
-    signature won't change at runtime, so we cache the result.
-
-    We also provide a little magic so that we can introspect :py:class:`TypedDict`
+    Also supports TypedDict subclasses
     """
     return (
-        typed_dict_signature(obj) if checks.istypeddict(obj) else inspect.signature(obj)
+        typed_dict_signature(obj)
+        if checks.istypeddict(obj)  # type: ignore
+        else inspect.signature(obj)
     )
 
 
-@functools.lru_cache(maxsize=None)
-def cached_type_hints(obj: Callable) -> dict:
-    """A cached result of :py:func:`typing.get_type_hints`.
-
-    We don't want to go through the process of resolving type-hints every time.
-    """
-    return get_type_hints(obj)
+cached_signature = lru_cache(maxsize=None)(signature)
 
 
-@functools.lru_cache(maxsize=None)
+def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
+    raw_annotations: Dict[str, Any] = {}
+    base_globals: Dict[str, Any] = {"typing": typing}
+    if isinstance(annotation, type):
+        for base in reversed(annotation.__mro__):
+            base_globals.update(sys.modules[base.__module__].__dict__)
+            raw_annotations.update(getattr(base, "__annotations__", None) or {})
+    else:
+        raw_annotations = getattr(annotation, "__annotations__", None) or {}
+        module_name = getattr(annotation, "__module__", None)
+        if module_name:
+            base_globals.update(sys.modules[module_name].__dict__)
+    annotations = {}
+    for name, value in raw_annotations.items():
+        if isinstance(value, str):
+            value = transform_annotation(value)
+            if sys.version_info >= (3, 7):
+                value = ForwardRef(value, is_argument=False)
+            else:
+                value = ForwardRef(value)
+        try:
+            value = _eval_type(value, base_globals or None, None)
+        except NameError:
+            # this is ok, we deal with it later.
+            pass
+        except TypeError as e:
+            warnings.warn(f"Couldn't evaluate type {value!r}: {e}")
+            value = Any
+        annotations[name] = value
+    return annotations
+
+
+def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
+    try:
+        hints = _get_type_hints(obj)
+    except (NameError, TypeError):
+        hints = _safe_get_type_hints(obj)
+    # KW_ONLY is a special sentinel to denote kw-only params in a dataclass.
+    #  We don't want to do anything with this hint/field. It's not real.
+    return {f: t for f, t in hints.items() if t is not KW_ONLY}
+
+
+cached_type_hints = lru_cache(maxsize=None)(get_type_hints)
+
+
+@lru_cache(maxsize=None)
 def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
     """A cached result of :py:func:`issubclass`."""
     return issubclass(st, t)
@@ -421,16 +503,33 @@ def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
 
 def simple_attributes(t: Type) -> Tuple[str, ...]:
     """Extract all public, static data-attributes for a given type."""
+    # If slots are defined, this is the best way to locate static attributes.
+    if hasattr(t, "__slots__") and t.__slots__:
+        return (
+            *(
+                f
+                for f in t.__slots__
+                if not f.startswith("_")
+                # JIC - check if this is something fancy.
+                and not isinstance(getattr(t, f, ...), _DYNAMIC_ATTRIBUTES)
+            ),
+        )
+    # Otherwise we have to guess. This is inherently faulty, as attributes aren't
+    #   always defined on a class before instantiation. The alternative is reverse
+    #   engineering the constructor... yikes.
     return (
         *(
             x
             for x, y in inspect.getmembers(t, predicate=checks.issimpleattribute)
-            if not x.startswith("_") and not isinstance(y, SQLAMetaData)
+            if not x.startswith("_") and not isinstance(y, _DYNAMIC_ATTRIBUTES)
         ),
     )
 
 
-cached_simple_attributes = functools.lru_cache(maxsize=None)(simple_attributes)
+_DYNAMIC_ATTRIBUTES = (SQLAMetaData, sqla_registry)
+
+
+cached_simple_attributes = lru_cache(maxsize=None)(simple_attributes)
 """A cached result of :py:func:`simple_attributes`."""
 
 
@@ -454,7 +553,7 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
     )
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
     try:
@@ -492,10 +591,13 @@ class TypeMap(Dict[Type, VT]):
         return default
 
 
-def apply_slots(
-    _cls: Type = None, *, dict: bool = True, weakref: bool = False,
+def slotted(
+    _cls: Type = None,
+    *,
+    dict: bool = True,
+    weakref: bool = False,
 ):
-    """Decorator to add __slots__ to class created by dataclass.
+    """Decorator to create a "slotted" version of the provided class.
 
     Returns new class object as it's not possible to add __slots__ after class creation.
 
@@ -508,6 +610,16 @@ def apply_slots(
                 object.__setattr__(self, slot, value)
 
     def wrap(cls):
+        key = repr(cls)
+        if key in _stack:
+            raise TypeError(
+                f"{cls!r} uses a custom metaclass {cls.__class__!r} "
+                "which is not compatible with automatic slots. "
+                "See Issue #104 on GitHub for more information."
+            ) from None
+
+        _stack.add(key)
+
         cls_dict = {**cls.__dict__}
         # Create only missing slots
         inherited_slots = set().union(
@@ -538,16 +650,21 @@ def apply_slots(
             cls_dict["__setstate__"] = _slots_setstate
 
         # Prepare new class with slots
-        new_cls = type(cls)(cls.__name__, cls.__bases__, cls_dict)
-        new_cls.__qualname__ = getattr(cls, "__qualname__")
+        new_cls = cls.__class__(cls.__name__, cls.__bases__, cls_dict)
+        new_cls.__qualname__ = cls.__qualname__
+        new_cls.__module__ = cls.__module__
 
+        _stack.clear()
         return new_cls
 
     return wrap if _cls is None else wrap(_cls)
 
 
+_stack: MutableSet[Type] = set()
+
+
 class joinedrepr(str):
-    __slots__ = ("fields",)
+    __slots__ = ("fields", "__dict__")
     fields: Iterable[Any]
 
     def __new__(cls, *fields):
@@ -570,6 +687,7 @@ class collectionrepr(str):
     __slots__ = (
         "root_name",
         "keys",
+        "__dict__",
     )
     root_name: str
     keys: Iterable[Any]
@@ -593,3 +711,117 @@ class collectionrepr(str):
 
 
 ReprT = Union[str, joinedrepr, collectionrepr]
+
+
+@functools.lru_cache(maxsize=100_000)
+def isoformat(t: Union[date, datetime, time, timedelta]) -> str:
+    if isinstance(t, (date, datetime, time)):
+        return t.isoformat()
+    d = t
+    if not isinstance(d, pendulum.Duration):
+        d = pendulum.duration(
+            days=t.days,
+            seconds=t.seconds,
+            microseconds=t.microseconds,
+        )
+
+    periods = [
+        ("Y", d.years),
+        ("M", d.months),
+        ("D", d.remaining_days),
+    ]
+    period = "P"
+    for sym, val in periods:
+        period += f"{val}{sym}"
+    times = [
+        ("H", d.hours),
+        ("M", d.minutes),
+        ("S", d.remaining_seconds),
+    ]
+    time_ = "T"
+    for sym, val in times:
+        time_ += f"{val}{sym}"
+    if d.microseconds:
+        time_ = time_[:-1]
+        time_ += f".{d.microseconds:06}S"
+    return period + time_
+
+
+@slotted(dict=False)
+@dataclasses.dataclass(frozen=True)
+class TaggedUnion:
+    tag: str
+    types: Tuple[Type, ...]
+    isliteral: bool
+    types_by_values: Tuple[Tuple[Any, Type], ...]
+
+
+empty = object()
+
+
+@functools.lru_cache(maxsize=None)
+def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
+    if any(
+        t in {None, ...} or not inspect.isclass(t) or checks.isstdlibtype(t)
+        for t in types
+    ):
+        return None
+    if len(types) > 1:
+        root = types[0]
+        root_hints = cached_type_hints(root)
+        intersection = {k for k in root_hints if not k.startswith("_")}
+        fields_by_type = {root: root_hints}
+        t: Type
+        for t in types[1:]:
+            hints = cached_type_hints(t)
+            intersection &= hints.keys()
+            fields_by_type[t] = hints
+        tag = None
+        literal = False
+        # If we have an intersection, check if it's constant value we can use
+        # TODO: This won't support Generics in this state.
+        #  We don't support generics yet (#119), but when we do,
+        #  we need to add a branch for tagged unions from generics.
+        while intersection and tag is None:
+            f = intersection.pop()
+            v = getattr(root, f, empty)
+            if (
+                v is not empty
+                and not isinstance(v, MemberDescriptorType)
+                and checks.ishashable(v)
+                and not checks.isdescriptor(v)
+            ):
+                tag = f
+                continue
+            rhint = root_hints[f]
+            if checks.isliteral(rhint):
+                tag, literal = f, True
+        if tag:
+            if literal:
+                tbv = (
+                    *((a, t) for t in types for a in get_args(fields_by_type[t][tag])),
+                )
+            else:
+                tbv = (*((getattr(t, tag), t) for t in types),)
+            return TaggedUnion(
+                tag=tag, types=types, isliteral=literal, types_by_values=tbv
+            )
+    return None
+
+
+def extract(name: str, *, frame: types.FrameType = None) -> Optional[Any]:
+    """Extract `name` from the stacktrace of `frame`.
+
+    If `frame` is not provided, this function will use the current frame.
+    """
+    frame = frame or inspect.currentframe()
+    seen = set()
+    while frame and frame not in seen:
+        if name in frame.f_globals:
+            return frame.f_globals[name]
+        if name in frame.f_locals:
+            return frame.f_locals[name]
+        seen.add(frame)
+        frame = frame.f_back
+
+    return None

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # flake8: noqa
 from . import types, constraints
 from .checks import *
@@ -13,3 +11,6 @@ from .util import *
 from .api import *
 
 al = typed
+
+
+__version__ = "2.6.4"

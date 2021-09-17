@@ -1,6 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import copy
+import inspect
 from operator import attrgetter
 from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic, FrozenSet
 from collections.abc import Hashable
@@ -136,7 +137,7 @@ FrozenT = Union[FrozenDict, Hashable, Tuple, FrozenSet, None]
 
 
 def freeze(o: Any, *, __hashgetter=_hashgetter) -> FrozenT:
-    if __hashgetter(o):
+    if __hashgetter(o) or inspect.isclass(o) or inspect.isfunction(o):
         return o
 
     if isinstance(o, set):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import dataclasses
 import datetime
@@ -11,10 +13,12 @@ except ImportError:
 
 import inflection
 import typic
-import pandas
+
+# import pandas
 import pydantic
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
+from typic.compat import Literal
 
 
 def get_id(x) -> str:
@@ -68,13 +72,78 @@ class DefaultEllipsis:
     ellipsis: str = ...
 
 
-@dataclasses.dataclass
+@typic.klass
 class Forward:
     foo: "FooNum"
 
 
 class FooNum(str, enum.Enum):
     bar = "bar"
+
+
+@dataclasses.dataclass
+class NestedDoubleReference:
+    first: Data
+    second: Data = ...
+
+
+@typic.klass
+class A:
+    b: typing.Optional[B] = None
+
+
+@typic.klass
+class B:
+    a: typing.Optional[A] = None
+
+
+@typic.klass
+class ABs:
+    a: typing.Optional[A] = None
+    bs: typing.Optional[typing.Iterable[B]] = None
+
+
+@typic.klass
+class C:
+    c: typing.Optional[C] = None
+
+
+@dataclasses.dataclass
+class D:
+    d: typing.Optional[D] = None
+
+
+@dataclasses.dataclass
+class E:
+    d: typing.Optional[D] = None
+    f: typing.Optional[F] = None
+
+
+@dataclasses.dataclass
+class F:
+    g: "G"
+
+
+@typic.klass
+class G:
+    h: typing.Optional[int] = None
+
+
+@typic.klass
+class H:
+    hs: typing.Iterable[H]
+
+
+@dataclasses.dataclass
+class J:
+    js: typing.Iterable[J]
+
+
+@dataclasses.dataclass
+class ThreeOptionals:
+    a: typing.Optional[str]
+    b: typing.Optional[str] = None
+    c: typing.Optional[str] = None
 
 
 class Class:
@@ -117,6 +186,15 @@ class SuperBase(Base):
         super().__setattr__(key, value)
 
 
+class MetaSlotsClass(type):
+    def __new__(mcs, name, bases, namespace):
+        cls = super().__new__(mcs, name, bases, namespace)
+        ...
+        cls = typic.klass(cls, slots=True)
+        ...
+        return cls
+
+
 @typic.klass(frozen=True)
 class FrozenTypic:
     var: str
@@ -129,11 +207,6 @@ class Inherited(Typic):
 @typic.klass
 class KlassVarSubscripted:
     var: typing.ClassVar[str] = "foo"
-
-
-@typic.klass
-class KlassVar:
-    var: typing.ClassVar = "foo"
 
 
 def func(bar: int):
@@ -240,6 +313,11 @@ class NestedConstrained:
     other_constr: ShortStrDictT
 
 
+@typic.klass
+class TClass:
+    a: int
+
+
 class TDict(TypedDict):
     a: int
 
@@ -290,8 +368,82 @@ class Dest:
 
 
 @typic.klass
-class DFClass:
-    df: pandas.DataFrame = None
+class ABlah:
+    key: Literal[3]
+    field: "typing.Union[AFoo, ABar, ABlah, None]"
+
+
+@typic.klass
+class AFoo:
+    key: Literal[1]
+    field: str
+
+
+@typic.klass
+class ABar:
+    key: Literal[2]
+    field: bytes
+
+
+@typic.klass
+class CBlah:
+    key: typing.ClassVar[int] = 3
+    field: "typing.Union[CFoo, CBar, CBlah, None]"
+
+
+@typic.klass
+class CFoo:
+    key: typing.ClassVar[int] = 1
+    field: str
+
+
+@typic.klass
+class CBar:
+    key: typing.ClassVar[int] = 2
+    field: bytes
+
+
+@dataclasses.dataclass
+class DBlah:
+    key: typing.ClassVar[int] = 3
+    field: "typing.Union[DFoo, DBar, DBlah, None]"
+
+
+@dataclasses.dataclass
+class DFoo:
+    key: typing.ClassVar[int] = 1
+    field: str
+
+
+@dataclasses.dataclass
+class DBar:
+    key: typing.ClassVar[int] = 2
+    field: bytes
+
+
+@typic.klass
+class MutableClassVar:
+    f: typing.ClassVar[typing.List[str]] = []
+
+
+@dataclasses.dataclass
+class Pep585:
+    data: dict[str, int]
+
+
+@dataclasses.dataclass
+class Pep604:
+    union: DFoo | DBar
+
+
+@typic.al
+def pep585(data: dict[str, int]) -> dict[str, int]:
+    return data
+
+
+@typic.al
+def pep604(union: DFoo | DBar) -> DFoo | DBar:
+    return union
 
 
 TYPIC_OBJECTS = [
@@ -299,7 +451,6 @@ TYPIC_OBJECTS = [
     Inherited,
     FrozenTypic,
     KlassDelayed,
-    KlassVar,
     KlassVarSubscripted,
     Delayed,
     Constrained,

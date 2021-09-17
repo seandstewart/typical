@@ -85,7 +85,7 @@ celerybeat-schedule
 
 # Environments
 .env
-.venv
+.venv*
 env/
 venv/
 ENV/
@@ -100,9 +100,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site/*
-!/site/_redirects
-
+/site
 # mypy
 .mypy_cache/
 

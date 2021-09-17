@@ -1,1 +1,1 @@
-11: error: Too few arguments for "Klass"  [call-arg]
+11: error: Missing positional argument "attr" in call to "Klass"  [call-arg]

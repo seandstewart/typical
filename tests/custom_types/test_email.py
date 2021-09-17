@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import json
 from urllib.parse import quote
 
@@ -7,7 +7,7 @@ import pytest
 
 from typic.types import email
 
-EMAIL_RAW = "foo.bar@foobar.net"
+EMAIL_RAW = "o'foo.bar@foobar.net"
 EMAIL = email.Email(EMAIL_RAW)
 PRETTY_EMAIL_RAW = f"Foo Bar <{EMAIL_RAW}>"
 PRETTY_EMAIL = email.Email(PRETTY_EMAIL_RAW)
@@ -16,11 +16,11 @@ PRETTY_EMAIL = email.Email(PRETTY_EMAIL_RAW)
 @pytest.mark.parametrize(
     argnames=("name", "expected", "eml"),
     argvalues=[
-        ("username", "foo.bar", EMAIL),
+        ("username", "o'foo.bar", EMAIL),
         ("host", "foobar.net", EMAIL),
         ("address", EMAIL_RAW, EMAIL),
         ("address_encoded", quote(EMAIL_RAW), EMAIL),
-        ("username", "foo.bar", PRETTY_EMAIL),
+        ("username", "o'foo.bar", PRETTY_EMAIL),
         ("name", "Foo Bar", PRETTY_EMAIL),
         ("address", PRETTY_EMAIL_RAW, PRETTY_EMAIL),
         ("address_encoded", f"Foo Bar <{quote(EMAIL_RAW)}>", PRETTY_EMAIL),

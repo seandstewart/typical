@@ -1,0 +1,56 @@
+name: Lint
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9"]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
+
+    - name: Install Linux dependencies
+      run: |
+        ./.github/ubuntu-install.sh
+
+    - name: Install Poetry
+      uses: abatilo/actions-poetry@v2.0.0
+
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ./.venv
+        key: poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+        restore-keys: |
+          poetry-lint-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+
+    - name: Set Poetry config
+      run: |
+        poetry config virtualenvs.in-project true
+
+    - name: Install Dependencies (with Lint)
+      run: poetry install --no-dev -E tests -E lint
+
+    - name: Lint with flake8
+      run: "poetry run flake8 ."
+
+    - name: Check Formatting with Black
+      run: "poetry run black . --check"
+
+    - name: Static type-check with MyPy
+      run: |
+        poetry run mypy typic

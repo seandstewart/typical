@@ -1,7 +1,25 @@
 [flake8]
 ignore = E203, E266, E501, W503
+per-file-ignores =
+    # imported but unused
+    __init__.py: F401
 max-line-length = 80
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
 exclude =
-    docs/conf.py
+    # No need to traverse our git directory
+    .git,
+    .github,
+    # There's no value in checking caches
+    __pycache__,
+    *.py[cod],
+    .*cache,
+    .benchmarks,
+    # Don't check the dependencies
+    *venv,
+    # This contains builds that we don't want to check
+    dist,
+    # Don't check the docs directories
+    site,
+    docs,
+    static

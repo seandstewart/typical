@@ -5,3 +5,5 @@ arrange:
   - settings.md
   - serdes.md
   - validation.md
+  - experimental.md
+  - external.md

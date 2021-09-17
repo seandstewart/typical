@@ -1,6 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 import dataclasses
+from types import MappingProxyType
 from typing import (
     Type,
     ClassVar,
@@ -15,15 +16,11 @@ from typing import (
     Hashable,
     Set,
     FrozenSet,
-    TYPE_CHECKING,
 )
 
 from typic import gen, checks, util
 from typic.types.frozendict import freeze
-from .common import BaseConstraints, ContextT, ChecksT
-
-if TYPE_CHECKING:  # pragma: nocover
-    from typic.constraints.factory import ConstraintsT  # noqa: F401
+from .common import BaseConstraints, ContextT, AssertionsT, ConstraintsProtocolT
 
 Array = Union[FrozenSet, Set, List, Tuple]
 """The supported builtin types for defining restricted array-types."""
@@ -89,7 +86,7 @@ def unique(seq: Sequence, *, ret_type: Type[Union[list, tuple]] = list) -> Seque
         return unique_slow(seq, ret_type=ret_type)
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class ArrayConstraints(BaseConstraints):
     """Specific constraints pertaining to a sized, array-like type.
@@ -114,33 +111,40 @@ class ArrayConstraints(BaseConstraints):
     -----
     Rather than reject arrays which are not unique, we will simply make the array unique.
     """
-    values: Optional["ConstraintsT"] = None
+    values: Optional[ConstraintsProtocolT] = None
     """The constraints for which the items in the array must adhere.
 
     This can be a single type-constraint, or a tuple of multiple constraints.
     """
 
-    def _build_validator(self, func: gen.Block) -> Tuple[ChecksT, ContextT]:
-        # No need to sanity check the config.
-        # Build the code.
-        # Only make it unique if we have to. This preserves order as well.
-        if self.unique is True and util.origin(self.type) not in {set, frozenset}:
-            func.l(f"{self.VALUE} = __unique({self.VALUE})", __unique=unique)
-        # Only get the size if we have to.
-        if {self.max_items, self.min_items} != {None, None}:
-            func.l(f"size = len({self.VALUE})")
-        # Get the validation checks and context
+    def _get_assertions(self) -> AssertionsT:
         asserts: List[str] = []
-        context: Dict[str, Any] = {}
         if self.min_items is not None:
             asserts.append(f"size >= {self.min_items}")
         if self.max_items is not None:
             asserts.append(f"size <= {self.max_items}")
+        return asserts
+
+    def _build_assertions(self, func: gen.Block, assertions: AssertionsT):
+        # Only get the size if we have to.
+        if assertions:
+            if (self.max_items, self.min_items) != (None, None):
+                func.l(f"size = len({self.VALUE})")
+            BaseConstraints._build_assertions(self, func=func, assertions=assertions)
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        # If we don't have a natively unique type and we're supposed to be unique, make it so.
+        if self.unique is True and util.origin(self.type) not in {set, frozenset}:
+            func.l(f"{self.VALUE} = unique({self.VALUE})", unique=unique)
+        context = BaseConstraints._build_validator(self, func, context, assertions)
         # Validate the items if necessary.
         if self.values:
             o = util.origin(self.type)
             itval = "__item_validator"
             ctx = {
+                "unique": unique,
                 itval: self.values.validate,
                 o.__name__: o,
                 "_lazy_repr": util.collectionrepr,
@@ -152,9 +156,9 @@ class ArrayConstraints(BaseConstraints):
                 f"{o.__name__}("
                 f"({itval}(x, field={field}) for i, x in enumerate({self.VALUE}))"
                 f")",
-                **ctx,
+                **ctx,  # type: ignore
             )
-        return asserts, context
+        return context
 
     def for_schema(self, *, with_type: bool = False) -> dict:
         schema: Dict[str, Any] = dict(
@@ -162,30 +166,64 @@ class ArrayConstraints(BaseConstraints):
             minItems=self.min_items,
             maxItems=self.max_items,
             uniqueItems=self.unique,
-            items=self.values.for_schema(with_type=True) if self.values else None,
         )
         if with_type:
             schema["type"] = "array"
         return {x: y for x, y in schema.items() if y is not None}
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class ListContraints(ArrayConstraints):
+class ListConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`list`."""
 
     type: ClassVar[Type[list]] = list
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
-class TupleContraints(ArrayConstraints):
+class TupleConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`tuple`."""
 
     type: ClassVar[Type[tuple]] = tuple
+    values: Union[Optional[ConstraintsProtocolT], Sequence[ConstraintsProtocolT]] = None  # type: ignore
+
+    def _build_validator(
+        self, func: gen.Block, context: ContextT, assertions: AssertionsT
+    ) -> ContextT:
+        if isinstance(self.values, Sequence):
+            if self.unique is True:
+                func.l(
+                    f"{self.VALUE} = unique({self.VALUE}, ret_type=tuple)",
+                    unique=unique,
+                )
+            item_validators = MappingProxyType(
+                {i: c.validate for i, c in enumerate(self.values)}
+            )
+            o = util.origin(self.type)
+            itval = "__item_validators"
+            ctx = {
+                "unique": unique,
+                itval: item_validators,
+                o.__name__: o,
+                "_lazy_repr": util.collectionrepr,
+            }
+            field = f"_lazy_repr({self.FNAME}, i)"
+            func.l(
+                f"{self.VALUE} = "
+                f"{o.__name__}("
+                f"({itval}[i](x, field={field}) if i in {itval} else x "
+                f"for i, x in enumerate({self.VALUE}))"
+                f")",
+                **ctx,  # type: ignore
+            )
+            return ctx
+        return ArrayConstraints._build_validator(
+            self, func=func, context=context, assertions=assertions
+        )
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class SetContraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`set`."""
@@ -194,7 +232,7 @@ class SetContraints(ArrayConstraints):
     unique: bool = True
 
 
-@util.apply_slots
+@util.slotted
 @dataclasses.dataclass(frozen=True, repr=False)
 class FrozenSetConstraints(ArrayConstraints):
     """Specific constraints pertaining to a :py:class:`frozenset`."""

@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+import dataclasses
 import datetime
 import functools
 import inspect
 import pathlib
 import re
+import uuid
 from collections import deque, defaultdict, abc
 from operator import attrgetter
 from typing import (
@@ -12,7 +16,6 @@ from typing import (
     Callable,
     Type,
     Dict,
-    Collection,
     Tuple,
     List,
     Pattern,
@@ -20,6 +23,8 @@ from typing import (
     cast,
     TYPE_CHECKING,
     Optional,
+    Set,
+    NoReturn,
 )
 
 from pendulum import parse as dateparse, DateTime, instance
@@ -31,10 +36,22 @@ from typic.util import (
     cached_issubclass,
     cached_signature,
     get_defname,
+    get_tag_for_types,
     get_unique_name,
+    get_name,
+    slotted,
 )
 from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
-from .common import DeserializerT, DeserializerRegistryT, SerdeConfig, Annotation
+from typic.compat import TypeGuard, Literal
+from .common import (
+    DeserializerT,
+    DeserializerRegistryT,
+    SerdeConfig,
+    Annotation,
+    DelayedAnnotation,
+    ForwardDelayedAnnotation,
+    AnnotationT,
+)
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
@@ -86,11 +103,12 @@ class DesFactory:
     UNRESOLVABLE = frozenset(
         (
             Any,
-            Union,
             Match,
             re.Match,  # type: ignore
             type(None),
             _empty,
+            Callable,
+            abc.Callable,
         )
     )
     VNAME = "val"
@@ -98,7 +116,7 @@ class DesFactory:
     __DES_CACHE: Dict[str, Tuple[DeserializerT, "const.ValidatorT"]] = {}
     __USER_DESS: DeserializerRegistryT = deque()
 
-    def __init__(self, resolver: "Resolver"):
+    def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
     def register(self, deserializer: DeserializerT, check: DeserializerT):
@@ -111,38 +129,67 @@ class DesFactory:
         """
         self.__USER_DESS.appendleft((check, deserializer))
 
-    def _set_checks(self, func: gen.Block, anno_name: str, annotation: "Annotation"):
-        _checks = []
+    def _set_checks(self, func: gen.Block, anno_name: str, annotation: Annotation):
         _ctx = {}
+        # run a safe eval if input is text and anno isn't
+        if inspect.isclass(annotation.resolved_origin) and issubclass(
+            annotation.resolved_origin, (str, bytes)
+        ):
+            self._add_vtype(func)
+        else:
+            self._add_eval(func)
+        # Equality checks for defaults and optionals
+        custom_equality = hasattr(annotation.resolved_origin, "equals")
+        if custom_equality and (annotation.optional or annotation.has_default):
+            func.l(f"custom_equality = hasattr({self.VNAME}, 'equals')")
+        null = ""
         if annotation.optional:
-            _checks.append(f"{self.VNAME} in {self.resolver.OPTIONALS}")
-        if annotation.has_default:
-            if hasattr(annotation.resolved_origin, "equals"):
-                eq = (
-                    f"({self.VNAME}.equals(__default) "
-                    f"if hasattr({self.VNAME}, 'equals') "
-                    f"else {self.VNAME} == __default)"
+            null = f"{self.VNAME} in {self.resolver.OPTIONALS}"
+            if custom_equality:
+                null = (
+                    f"(any({self.VNAME}.equals(o) for o in {self.resolver.OPTIONALS}) "
+                    "if custom_equality "
+                    f"else {null})"
                 )
-            else:
-                eq = f"{self.VNAME} == __default"
-            _checks.append(f"({self.VTYPE} is {anno_name} and {eq})")
+        eq = ""
+        if (
+            annotation.has_default
+            and annotation.parameter.default not in self.resolver.OPTIONALS
+        ):
+            eq = f"{self.VNAME} == __default"
+            if custom_equality:
+                if hasattr(annotation.parameter.default, "equals"):
+                    eq = f"__default.equals({self.VNAME})"
+                eq = f"{self.VNAME}.equals(__default) if custom_equality else {eq}"
             _ctx["__default"] = annotation.parameter.default
-        if _checks:
-            check = " or ".join(_checks)
-            func.l(f"if {check}:", **_ctx)
-            with func.b() as b:
+        if eq or null:
+            # Add a type-check for anything that isn't a builtin.
+            if eq and not checks.isbuiltintype(annotation.resolved_origin):
+                eq = f"{self.VTYPE} is {anno_name} and {eq}"
+            check = " or ".join(c for c in (null, eq) if c)
+            with func.b(f"if {check}:", **_ctx) as b:  # type: ignore
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
     def _get_name(
-        annotation: "Annotation", constr: Optional["const.ConstraintsT"]
+        annotation: Annotation, constr: Optional[const.ConstraintsProtocolT]
     ) -> str:
         return get_defname("deserializer", (annotation, constr))
 
-    def _build_date_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_date_des(self, context: BuildContext):
+        func, annotation, anno_name = (
+            context.func,
+            context.annotation,
+            context.anno_name,
+        )
         origin = annotation.resolved_origin
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME})"
+            b.l(line, dateparse=dateparse)
         if issubclass(origin, datetime.datetime):
             with func.b(
                 f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
@@ -183,12 +230,54 @@ class DesFactory:
         with func.b(f"elif isinstance({self.VNAME}, (int, float)):") as b:
             b.l(f"{self.VNAME} = {anno_name}.fromtimestamp({self.VNAME})")
         with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
-            line = f"{self.VNAME} = dateparse({self.VNAME})"
-            # We do the negative assertion here because all datetime objects are
-            # subclasses of date.
-            if not issubclass(origin, datetime.datetime):
-                line = f"{line}.date()"
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
             b.l(line, dateparse=dateparse)
+
+    def _build_time_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int({self.VNAME}))")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
+            b.l(line, dateparse=dateparse)
+        # From a datetime
+        with func.b(
+            f"if isinstance({self.VNAME}, datetime):", datetime=datetime.datetime
+        ) as b:
+            b.l(f"{self.VNAME} = {self.VNAME}.time()")
+        # From a date
+        with func.b(f"if isinstance({self.VNAME}, date):", date=datetime.date) as b:
+            b.l(f"{self.VNAME} = {anno_name}(0)")
+
+    def _build_timedelta_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
+        # From an int
+        with func.b(f"if isinstance({self.VNAME}, (int, float)):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int({self.VNAME}))")
+        # From a string
+        with func.b(f"elif isinstance({self.VNAME}, (str, bytes)):") as b:
+            line = f"{self.VNAME} = dateparse({self.VNAME}, exact=True)"
+            b.l(line, dateparse=dateparse)
+
+    def _build_uuid_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
+        self._add_type_check(func, anno_name)
+        with func.b(f"if issubclass({self.VTYPE}, UUID):", UUID=uuid.UUID) as b:
+            b.l(f"{self.VNAME} = {anno_name}(int={self.VNAME}.int)")
+
+        with func.b(f"elif isinstance({self.VNAME}, str):") as b:
+            b.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, bytes):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(bytes={self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, int):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(int={self.VNAME})")
+
+        with func.b(f"elif isinstance({self.VNAME}, tuple):") as b:
+            b.l(f"{self.VNAME} = {anno_name}(fields={self.VNAME})")
 
     def _add_eval(self, func: gen.Block):
         func.l(
@@ -206,43 +295,49 @@ class DesFactory:
     def _add_vtype(self, func: gen.Block):
         func.l(f"{self.VTYPE} = {self.VNAME}.__class__")
 
-    def _get_default_factory(self, annotation: "Annotation"):
+    def _get_default_factory(self, annotation: "AnnotationT"):
         factory: Union[Type, Callable[..., Any], None] = None
-
-        if annotation.args:
-            factory_anno = self.resolver.annotation(annotation.args[-1])
-            factory = factory_anno.resolved_origin
-            if issubclass(factory_anno.resolved_origin, defaultdict):
+        args: Tuple = annotation.args if isinstance(annotation, Annotation) else tuple()
+        if args:
+            factory_anno = self.resolver.annotation(args[-1])
+            if isinstance(factory_anno, ForwardDelayedAnnotation):
+                return factory
+            elif isinstance(factory_anno, DelayedAnnotation):
+                use = factory_anno.type
+                raw = use
+            else:
+                use = factory_anno.resolved_origin
+                raw = factory_anno.un_resolved
+            factory = use
+            if issubclass(use, defaultdict):
                 factory_nested = self._get_default_factory(factory_anno)
 
                 def factory():
                     return defaultdict(factory_nested)
 
-                factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+                factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
-            if not checks.isbuiltinsubtype(factory_anno.resolved_origin):  # type: ignore
+            if not checks.isbuiltinsubtype(use):  # type: ignore
 
                 params: Mapping[str, inspect.Parameter] = cached_signature(
-                    factory_anno.resolved_origin
+                    use
                 ).parameters
                 if not any(p.default is p.empty for p in params.values()):
 
-                    def factory(*, __origin=factory_anno.resolved_origin):
+                    def factory(*, __origin=use):
                         return __origin()
 
-                    factory.__qualname__ = f"factory({repr(factory_anno.un_resolved)})"  # type: ignore
+                    factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
         return factory
 
-    def _build_builtin_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
-    ):
+    def _build_text_des(self, context: BuildContext):
+        func, annotation, anno_name = (
+            context.func,
+            context.annotation,
+            context.anno_name,
+        )
         origin = annotation.resolved_origin
-        # We should try and evaluate inputs for anything that isn't a subclass of str.
-        if issubclass(origin, (Collection, bool, int)) and not issubclass(
-            origin, (str, bytes)
-        ):
-            self._add_eval(func)
         # Encode for bytes
         if issubclass(origin, bytes):
             with func.b(f"if isinstance({self.VNAME}, str):") as b:
@@ -254,17 +349,27 @@ class DesFactory:
         elif issubclass(origin, str):
             with func.b(f"if isinstance({self.VNAME}, (bytes, bytearray)):") as b:
                 b.l(f"{self.VNAME} = {self.VNAME}.decode({DEFAULT_ENCODING!r})")
-        if issubclass(origin, defaultdict):
-            func.namespace[anno_name] = functools.partial(defaultdict, None)
-        # Translate fields for a mapping
-        if issubclass(origin, Mapping) and annotation.serde.fields_in:
-            line = f"{anno_name}({{fields_in[x]: y for x, y in {self.VNAME}.items()}})"
-        # Coerce to the target type.
-        else:
-            line = f"{anno_name}({self.VNAME})"
-        func.l(f"{self.VNAME} = {line}")
+        func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
-    def _build_pattern_des(self, func: gen.Block, anno_name: str):
+    def _build_builtin_des(self, context: BuildContext):
+        func, annotation, anno_name = (
+            context.func,
+            context.annotation,
+            context.anno_name,
+        )
+        origin = annotation.resolved_origin
+        if issubclass(origin, (str, bytes)):
+            self._build_text_des(context)
+        elif checks.ismappingtype(origin):
+            self._build_mapping_des(context)
+        elif checks.iscollectiontype(origin):
+            self._build_collection_des(context)
+        # bool, int, float...
+        else:
+            func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
+    def _build_pattern_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
         func.l(
             f"{self.VNAME} = {self.VNAME} "
             f"if issubclass({self.VTYPE}, {anno_name}) "
@@ -274,40 +379,54 @@ class DesFactory:
 
     def _build_fromdict_des(self, func: gen.Block, anno_name: str):
         self._add_type_check(func, anno_name)
-        self._add_eval(func)
         func.l(f"{self.VNAME} = {anno_name}.from_dict({self.VNAME})")
 
-    def _build_typeddict_des(
-        self,
-        func: gen.Block,
-        anno_name: str,
-        annotation: "Annotation",
-        *,
-        total: bool = True,
-        eval: bool = True,
-    ):
-        if eval:
-            self._add_eval(func)
+    def _build_typeddict_des(self, context: BuildContext):
+        func, annotation, namespace, anno_name = (
+            context.func,
+            context.annotation,
+            context.namespace,
+            context.anno_name,
+        )
+        total = getattr(context.annotation.resolved_origin, "__total__", True)
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
+            fields_deser = {
+                x: self.resolver._resolve_from_annotation(
+                    y, namespace=namespace
+                ).transmute
+                for x, y in annotation.serde.fields.items()
+            }
+            x = "fields_in[x]"
+            y = (
+                f"fields_deser[x]({self.VNAME}[x])"
+                if fields_deser
+                else f"{self.VNAME}[x]"
+            )
+            line = f"{{{x}: {y} for x in fields_in.keys()"
+            tail = "}" if total else f"& {self.VNAME}.keys()}}"
+            b.l(
+                f"{self.VNAME} = {anno_name}(**{line}{tail})", fields_deser=fields_deser
+            )
+        with func.b("else:") as b:
+            b.l(
+                f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
+                translate=self.resolver.translate,
+            )
 
-        fields_deser = {
-            x: self.resolver._resolve_from_annotation(y).transmute
-            for x, y in annotation.serde.fields.items()
-        }
-        x = "fields_in[x]"
-        y = f"fields_deser[x]({self.VNAME}[x])" if fields_deser else f"{self.VNAME}[x]"
-        line = f"{{{x}: {y} for x in fields_in.keys()"
-        tail = "}" if total else f"& {self.VNAME}.keys()}}"
-        func.l(f"{self.VNAME} = {anno_name}(**{line}{tail})", fields_deser=fields_deser)
-
-    def _build_typedtuple_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
-        self._add_eval(func)
+    def _build_typedtuple_des(self, context: BuildContext):
+        func, annotation, anno_name = (
+            context.func,
+            context.annotation,
+            context.anno_name,
+        )
         with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
             if annotation.serde.fields:
-                self._build_typeddict_des(b, anno_name, annotation, eval=False)
+                ctx = dataclasses.replace(context, func=b)
+                self._build_typeddict_des(ctx)
             else:
-                b.l(f"{self.VNAME} = {anno_name}(**{self.VNAME})",)
+                b.l(
+                    f"{self.VNAME} = {anno_name}(**{self.VNAME})",
+                )
         with func.b(
             f"elif isinstance({self.VNAME}, (list, set, frozenset, tuple)):"
         ) as b:
@@ -317,24 +436,40 @@ class DesFactory:
                     __bind=self.resolver.bind,
                 )
             else:
-                b.l(f"{self.VNAME} = {anno_name}(*{self.VNAME})",)
+                b.l(
+                    f"{self.VNAME} = {anno_name}(*{self.VNAME})",
+                )
+        with func.b("else:") as b:
+            b.l(
+                f"{self.VNAME} = translate({self.VNAME}, {anno_name})",
+                translate=self.resolver.translate,
+            )
 
-    def _build_mapping_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
-    ):
+    def _build_mapping_des(self, context: BuildContext):
+        func, annotation, namespace, anno_name = (
+            context.func,
+            context.annotation,
+            context.namespace,
+            context.anno_name,
+        )
         key_des, item_des = None, None
         args = annotation.args
         if args:
             args = cast(Tuple[Type, Type], args)
             key_type, item_type = args
-            key_des = self.resolver.resolve(key_type, flags=annotation.serde.flags)
-            item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
+            key_des = self.resolver.resolve(
+                key_type, flags=annotation.serde.flags, namespace=namespace
+            )
+            item_des = self.resolver.resolve(
+                item_type, flags=annotation.serde.flags, namespace=namespace
+            )
         if issubclass(annotation.resolved_origin, defaultdict):
             factory = self._get_default_factory(annotation)
             func.namespace[anno_name] = functools.partial(defaultdict, factory)
         kd_name = f"{anno_name}_key_des"
         it_name = f"{anno_name}_item_des"
-        line = f"{anno_name}({self.VNAME})"
+        iterate = f"iterate({self.VNAME})"
+        line = f"{anno_name}({iterate})"
         if args or annotation.serde.fields_in:
             x, y = "x", "y"
             # If there are args & field mapping, get the correct field name
@@ -348,45 +483,101 @@ class DesFactory:
             elif args:
                 x = f"{kd_name}(x)"
                 y = f"{it_name}(y)"
-            # Write the line.
-            line = f"{anno_name}({{{x}: {y} for x, y in {self.VNAME}.items()}})"
-        self._add_eval(func)
+            line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
+        # If we don't have nested annotations, we can short-circuit on valid inputs
+        else:
+            self._add_type_check(func, anno_name)
+        # Write the lines.
         func.l(
             f"{self.VNAME} = {line}",
             level=None,
-            **{kd_name: key_des, it_name: item_des},
+            **{
+                kd_name: key_des,
+                it_name: item_des,
+                "Mapping": abc.Mapping,
+                "iterate": self.resolver.iterate,
+            },
         )
 
-    def _build_collection_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_tuple_des(self, context: BuildContext):
+        func, annotation, namespace, anno_name = (
+            context.func,
+            context.annotation,
+            context.namespace,
+            context.anno_name,
+        )
+        if annotation.args and annotation.args[-1] is not ...:
+            item_des = {
+                ix: self.resolver.resolve(
+                    t, flags=annotation.serde.flags, namespace=namespace
+                )
+                for ix, t in enumerate(annotation.args)
+            }
+            item_des_name = "item_des"
+            iterate = f"iterate({self.VNAME}, values=True)"
+            line = (
+                f"{anno_name}"
+                f"({item_des_name}[ix](v) for ix, v in enumerate({iterate})"
+                f"if ix in {item_des_name})"
+            )
+            func.l(
+                f"{self.VNAME} = {line}",
+                level=None,
+                **{
+                    item_des_name: item_des,
+                    "iterate": self.resolver.iterate,
+                },
+            )
+        else:
+            self._build_collection_des(context)
+
+    def _build_collection_des(self, context: BuildContext):
+        func, annotation, namespace, anno_name = (
+            context.func,
+            context.annotation,
+            context.namespace,
+            context.anno_name,
+        )
         item_des = None
         it_name = f"{anno_name}_item_des"
-        line = f"{self.VNAME} = {anno_name}({self.VNAME})"
+        iterate = f"iterate({self.VNAME}, values=True)"
+        line = f"{self.VNAME} = {anno_name}({iterate})"
         if annotation.args:
             item_type = annotation.args[0]
-            item_des = self.resolver.resolve(item_type, flags=annotation.serde.flags)
+            item_des = self.resolver.resolve(
+                item_type, flags=annotation.serde.flags, namespace=namespace
+            )
             line = (
                 f"{self.VNAME} = "
-                f"{anno_name}({it_name}(x) for x in parent({self.VNAME}))"
+                f"{anno_name}({it_name}(x) for x in parent({iterate}))"
             )
+        else:
+            self._add_type_check(func, anno_name)
+        func.l(
+            line,
+            level=None,
+            **{
+                it_name: item_des,
+                "Collection": abc.Collection,
+                "iterate": self.resolver.iterate,
+            },
+        )
 
-        self._add_eval(func)
-        func.l(line, level=None, **{it_name: item_des})
-
-    def _build_path_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation",
-    ):
+    def _build_path_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
         self._add_type_check(func, anno_name)
         func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
 
-    def _build_generic_des(
-        self, func: gen.Block, anno_name: str, annotation: "Annotation"
-    ):
+    def _build_user_type_des(self, context: BuildContext):
+        func, annotation, namespace, anno_name = (
+            context.func,
+            context.annotation,
+            context.namespace,
+            context.anno_name,
+        )
         serde = annotation.serde
         resolved = annotation.resolved
         self._add_type_check(func, anno_name)
-        self._add_eval(func)
         # Main branch - we have a mapping for a user-defined class.
         # This is where the serde configuration comes in.
         # WINDY PATH AHEAD
@@ -417,10 +608,11 @@ class DesFactory:
             # Secondary happy path! We know how to deserialize already.
             else:
                 fields_in = serde.fields_in
+                fnamespace = namespace or resolved
                 if serde.fields and len(matched) == len(serde.fields_in):
                     desers = {
                         f: self.resolver._resolve_from_annotation(
-                            serde.fields[f]
+                            serde.fields[f], namespace=fnamespace
                         ).transmute
                         for f in matched
                     }
@@ -449,7 +641,112 @@ class DesFactory:
                 translate=self.resolver.translate,
             )
 
-    def _build_des(self, annotation: "Annotation", func_name: str) -> Callable:
+    def _build_literal_des(
+        self, annotation: Annotation, func_name: str, namespace: Type = None
+    ):
+        args = annotation.args
+        types: Set[Type] = {a.__class__ for a in args}
+        t = types.pop() if len(types) == 1 else Union[tuple(types)]
+        t_anno = cast(
+            Annotation,
+            self.resolver.annotation(
+                t,  # type: ignore
+                name=annotation.parameter.name,
+                # parameter=annotation.parameter,
+                is_optional=annotation.optional,
+                is_strict=annotation.strict,
+                flags=annotation.serde.flags,
+                default=annotation.parameter.default,
+            ),
+        )
+        return self._build_des(t_anno, func_name, namespace)
+
+    def _build_union_des(self, context: BuildContext):
+        func, annotation, namespace = (
+            context.func,
+            context.annotation,
+            context.namespace,
+        )
+        # Get all types which we may coerce to.
+        args = (*(a for a in annotation.args if a not in {None, Ellipsis, type(None)}),)
+        if not args:
+            return
+        # Add a type-check, but exclude str|bytes, since those are too permissive.
+        types = {a for a in args if a not in {str, bytes}}
+        if types:
+            with func.b(f"if {self.VTYPE} in types:", types=types) as b:
+                b.l(f"return {self.VNAME}")
+        # Get all custom types, which may have discriminators
+        targets = (*(a for a in args if not checks.isstdlibtype(a)),)
+        # We can only build a tagged union deserializer if all args are valid
+        if args != targets:
+            return self._build_generic_union_des(context)
+
+        # Try to collect the field which will be the discriminator.
+        # First, get a mapping of Type -> Proto & Type -> Fields
+        tagged = get_tag_for_types(targets)
+        # Just bail out if we can't find a key.
+        if not tagged:
+            return self._build_generic_union_des(context)
+        # If we got a key, re-map the protocols to the value for each type.
+        deserializers = {
+            value: self.resolver.resolve(t, namespace=namespace).transmute
+            for value, t in tagged.types_by_values
+        }
+        # Finally, build the deserializer
+        func.namespace.update(
+            tag=tagged.tag,
+            desers=deserializers,
+            empty=_empty,
+        )
+        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
+            b.l(f"tag_value = {self.VNAME}.get(tag, empty)")
+        with func.b("else:") as b:
+            b.l(f"tag_value = getattr({self.VNAME}, tag, empty)")
+        with func.b("if tag_value in desers:") as b:
+            b.l(f"{self.VNAME} = desers[tag_value]({self.VNAME})")
+        with func.b("else:") as b:
+            b.l(
+                "raise ValueError("
+                'f"Value is missing field {tag!r} with one of '
+                '{(*desers,)}: {val!r}"'
+                ")"
+            )
+
+    def _build_generic_union_des(self, context: BuildContext):
+        annotation, namespace, func = (
+            context.annotation,
+            context.namespace,
+            context.func,
+        )
+        args = [a for a in annotation.args if a not in {None, Ellipsis, type(None)}]
+        if args:
+            ctx = {
+                get_name(a)
+                + "_des": self.resolver.resolve(a, namespace=namespace).transmute
+                for a in args
+            }
+            names = (*(n.rpartition("_")[0] for n in ctx),)
+            for name, call in ctx.items():
+                with func.b("try:") as b:
+                    b.l(f"return {name}({self.VNAME})")
+                with func.b("except (TypeError, ValueError, KeyError):") as b:
+                    b.l("pass")
+            func.namespace.update(ctx)
+            func.l(
+                "raise ValueError("
+                'f"Value could not be deserialized into one of {names}: {val!r}"'
+                ")",
+                names=names,
+            )
+            return False
+
+    def _build_des(  # noqa: C901
+        self,
+        annotation: Annotation[Type[ObjectT]],
+        func_name: str,
+        namespace: Type = None,
+    ) -> DeserializerT[ObjectT]:
         args = annotation.args
         # Get the "origin" of the annotation.
         # For natives and their typing.* equivs, this will be a builtin type.
@@ -463,49 +760,71 @@ class DesFactory:
             "issubclass": cached_issubclass,
             **annotation.serde.asdict(),
         }
+        if checks.isliteral(origin):
+            return self._build_literal_des(annotation, func_name, namespace)
         with gen.Block(ns) as main:
             with main.f(func_name, main.param(f"{self.VNAME}")) as func:
-                self._add_vtype(func)
+                needs_return = None
+                context = BuildContext(annotation, ns, anno_name, func, namespace)
                 if origin not in self.UNRESOLVABLE:
+                    # Set our top-level sanity checks.
                     self._set_checks(func, anno_name, annotation)
-                    if checks.isdatetype(origin):
-                        self._build_date_des(func, anno_name, annotation)
-                    elif origin in {Pattern, re.Pattern}:  # type: ignore
-                        self._build_pattern_des(func, anno_name)
-                    elif issubclass(origin, pathlib.Path):
-                        self._build_path_des(func, anno_name, annotation)
-                    elif not args and checks.isbuiltintype(origin):
-                        self._build_builtin_des(func, anno_name, annotation)
-                    elif checks.isfromdictclass(origin):
-                        self._build_fromdict_des(func, anno_name)
-                    elif checks.isenumtype(origin):
-                        self._build_builtin_des(func, anno_name, annotation)
-                    elif checks.istypeddict(origin):
-                        self._build_typeddict_des(
-                            func, anno_name, annotation, total=origin.__total__  # type: ignore
-                        )
-                    elif checks.istypedtuple(origin) or checks.isnamedtuple(origin):
-                        self._build_typedtuple_des(func, anno_name, annotation)
-                    elif not args and checks.isbuiltinsubtype(origin):
-                        self._build_builtin_des(func, anno_name, annotation)
-                    elif checks.ismappingtype(origin):
-                        self._build_mapping_des(func, anno_name, annotation)
-                    elif checks.iscollectiontype(origin):
-                        self._build_collection_des(func, anno_name, annotation)
-                    else:
-                        self._build_generic_des(func, anno_name, annotation)
-                func.l(f"{gen.Keyword.RET} {self.VNAME}")
+                    # Move through our queue.
+                    for check, handler in self._HANDLERS.items():
+                        # If this is a valid type for this handler,
+                        #   write the deserializer.
+                        if check(origin, args):
+                            needs_return = handler(self, context)
+                            break
+                # If the deserializer doesn't contain a return statement, add one.
+                if needs_return is not False:
+                    func.l(f"{gen.Keyword.RET} {self.VNAME}")
         deserializer = main.compile(ns=ns, name=func_name)
         return deserializer
 
+    # Order is IMPORTANT! This is a FIFO queue.
+    _HANDLERS: Mapping[HandlerCheckT, BuildHandlerT] = {
+        # Special handler for Unions...
+        lambda origin, args: checks.isuniontype(origin): _build_union_des,
+        # Non-intersecting types (order doesn't matter here.
+        lambda origin, args: checks.isdatetype(origin): _build_date_des,
+        lambda origin, args: checks.istimetype(origin): _build_time_des,
+        lambda origin, args: checks.istimedeltatype(origin): _build_timedelta_des,
+        lambda origin, args: checks.isuuidtype(origin): _build_uuid_des,
+        lambda origin, args: origin in {Pattern, re.Pattern}: _build_pattern_des,
+        lambda origin, args: issubclass(origin, pathlib.Path): _build_path_des,
+        # MUST come before subtype check.
+        lambda origin, args: (
+            not args and checks.isbuiltintype(origin)
+        ): _build_builtin_des,
+        # Psuedo-structured containers, should check before generics.
+        lambda origin, args: checks.istypeddict(origin): _build_typeddict_des,
+        lambda origin, args: checks.istypedtuple(origin): _build_typedtuple_des,
+        lambda origin, args: checks.isnamedtuple(origin): _build_typedtuple_des,
+        lambda origin, args: (
+            not args and checks.isbuiltinsubtype(origin)
+        ): _build_builtin_des,
+        # A mapping is a collection so must come before that check.
+        lambda origin, args: checks.ismappingtype(origin): _build_mapping_des,
+        # A tuple is a collection so must come before that check.
+        lambda origin, args: checks.istupletype(origin): _build_tuple_des,
+        # Generic collection handler
+        lambda origin, args: checks.iscollectiontype(origin): _build_collection_des,
+        # Catch-all for custom user types (user-defined classes).
+        lambda origin, args: True: _build_user_type_des,
+    }
+
     def _check_varargs(
-        self, anno: "Annotation", des: DeserializerT, validator: "const.ValidatorT"
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+        self,
+        anno: Annotation[Type[ObjectT]],
+        des: DeserializerT[ObjectT],
+        validator: const.ValidatorT[ObjectT],
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         if anno.parameter.kind == VAR_POSITIONAL:
             __des = des
             __validator = validator
 
-            def des(__val, *, __des=__des):
+            def des(__val, *, __des=__des):  # type: ignore
                 return (*(__des(x) for x in __val),)
 
             def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
@@ -515,7 +834,7 @@ class DesFactory:
             __des = des
             __validator = validator
 
-            def des(__val, *, __des=__des):
+            def des(__val, *, __des=__des):  # type: ignore
                 return {x: __des(y) for x, y in __val.items()}
 
             def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
@@ -524,8 +843,9 @@ class DesFactory:
         return des, validator
 
     def _finalize_validator(
-        self, constr: Optional["const.ConstraintsT"],
-    ) -> "const.ValidatorT":
+        self,
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
+    ) -> const.ValidatorT[ObjectT]:
         def validate(value, *, field: str = None):
             return value
 
@@ -536,25 +856,31 @@ class DesFactory:
 
     def _finalize_deserializer(
         self,
-        anno: "Annotation",
-        des: DeserializerT,
-        constr: Optional["const.ConstraintsT"],
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+        anno: Annotation[Type[ObjectT]],
+        des: DeserializerT[ObjectT],
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         # Determine how to run in "strict-mode"
         validator = self._finalize_validator(constr)
         # Handle *args and **kwargs
         des, validator = self._check_varargs(anno, des, validator)
         # If we have type constraints, override the deserializer for strict annotations.
-        if isinstance(constr, const.TypeConstraints):
+        if isinstance(constr, (const.TypeConstraints, const.LiteralConstraints)):
             if anno.strict:
                 des = validator  # type: ignore
+            elif isinstance(constr, const.LiteralConstraints):
+                __d = des
+
+                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:
+                    return __v(__d(val))
+
         # Otherwise
         else:
             # In strict mode, we validate & coerce if there are constraints
             if anno.strict and constr and constr.coerce:
                 __d = des
 
-                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:
+                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:  # type: ignore
                     return __d(__v(val))
 
             elif anno.strict:
@@ -563,8 +889,11 @@ class DesFactory:
         return des, validator
 
     def factory(
-        self, annotation: "Annotation", constr: Optional["const.ConstraintsT"] = None
-    ) -> Tuple[DeserializerT, "const.ValidatorT"]:
+        self,
+        annotation: Annotation[Type[ObjectT]],
+        constr: Optional[const.ConstraintsProtocolT[ObjectT]] = None,
+        namespace: Type = None,
+    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
         annotation.serde = annotation.serde or SerdeConfig()
         key = self._get_name(annotation, constr)
         if key in self.__DES_CACHE:
@@ -575,7 +904,7 @@ class DesFactory:
                 deserializer = des
                 break
         if not deserializer:
-            deserializer = self._build_des(annotation, key)
+            deserializer = self._build_des(annotation, key, namespace)
 
         deserializer, validator = self._finalize_deserializer(
             annotation, deserializer, constr
@@ -583,3 +912,17 @@ class DesFactory:
         self.__DES_CACHE[key] = (deserializer, validator)
 
         return deserializer, validator
+
+
+@slotted(dict=False, weakref=True)
+@dataclasses.dataclass
+class BuildContext:
+    annotation: Annotation
+    ns: Mapping[str, Any]
+    anno_name: str
+    func: gen.Block
+    namespace: Optional[Type] = None
+
+
+HandlerCheckT = Callable[[Type[ObjectT], Tuple[Any, ...]], TypeGuard[Type[ObjectT]]]
+BuildHandlerT = Callable[[DesFactory, BuildContext], Union[NoReturn, Literal[False]]]

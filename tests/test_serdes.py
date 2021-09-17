@@ -1,15 +1,18 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
+import dataclasses
 import datetime
 import decimal
 import enum
 import ipaddress
 import json
 import re
+import typing
 from types import MappingProxyType
 from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
 import pytest
+import ujson
 
 import typic
 import typic.api
@@ -23,20 +26,20 @@ class FieldMapp:
     foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass(serde=typic.SerdeFlags(case=typic.common.Case.CAMEL))
+@typic.klass(serde=typic.flags(case=typic.common.Case.CAMEL))
 class Camel:
 
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(signature_only=True))
+@typic.klass(serde=typic.flags(signature_only=True))
 class SigOnly:
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typic.klass(serde=typic.SerdeFlags(omit=("bar",)))
+@typic.klass(serde=typic.flags(omit=("bar",)))
 class Omit:
 
     bar: str = "foo"
@@ -75,7 +78,7 @@ class SubURL(typic.URL):
         (typic.FrozenDict({"foo": 1}), {"foo": 1}),
         (ipaddress.IPv4Address("0.0.0.0"), "0.0.0.0"),
         (re.compile(r"foo"), "foo"),
-        (datetime.datetime(1970, 1, 1), "1970-01-01T00:00:00+00:00"),
+        (datetime.datetime(1970, 1, 1), "1970-01-01T00:00:00"),
         (
             datetime.datetime(
                 1970, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(hours=1))
@@ -121,19 +124,30 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class SerDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(
-        fields=("foo_bar",), case=typic.common.Case.CAMEL
-    )
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
 
 
 class CaseDict(Dict):
-    __serde_flags__ = typic.SerdeFlags(case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(case=typic.common.Case.CAMEL)
+
+
+@dataclasses.dataclass
+class ListUnion:
+    members: list[MemberInt | MemberStr]
+
+
+@dataclasses.dataclass
+class MemberStr:
+    field: str
+
+
+@dataclasses.dataclass
+class MemberInt:
+    field: int
 
 
 @pytest.mark.parametrize(
@@ -149,14 +163,33 @@ class CaseDict(Dict):
             {objects.FooNum.bar: objects.Typic(var="foo")},
             {"bar": {"var": "foo"}},
         ),
-        (GenDict[str, int], GenDict(foo_bar=2), {"fooBar": 2},),
-        (SerDict, SerDict(foo_bar=2), {"fooBar": 2},),
-        (CaseDict, CaseDict(foo_bar=2), {"fooBar": 2},),
+        (
+            GenDict[str, int],
+            GenDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
+        (
+            SerDict,
+            SerDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
+        (
+            CaseDict,
+            CaseDict(foo_bar=2),
+            {"fooBar": 2},
+        ),
+        (objects.TDict, objects.TDict(a=1), {"a": 1}),
+        (objects.NTup, objects.NTup(a=1), {"a": 1}),
+        (
+            ListUnion,
+            ListUnion([MemberStr("string"), MemberInt(1)]),
+            {"members": [{"field": "string"}, {"field": 1}]},
+        ),
     ],
 )
-def test_serde_serializer(t, obj, prim):
+def test_serde_serialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.primitive(obj) == prim
+    assert r.serialize(obj) == prim
 
 
 @pytest.mark.parametrize(
@@ -172,13 +205,57 @@ def test_serde_serializer(t, obj, prim):
             {objects.FooNum.bar: objects.Typic(var="foo")},
             {"bar": {"var": "foo"}},
         ),
-        (GenDict[str, int], {"foo_bar": 2}, {"fooBar": 2},),
-        (SerDict, {"foo_bar": 2}, {"fooBar": 2},),
+        (
+            GenDict[str, int],
+            {"foo_bar": 2},
+            {"fooBar": 2},
+        ),
+        (
+            SerDict,
+            {"foo_bar": 2},
+            {"fooBar": 2},
+        ),
+        (
+            objects.TDict,
+            objects.TDict(a=1),
+            {"a": "1"},
+        ),
+        (
+            objects.NTup,
+            objects.NTup(a=1),
+            {"a": "1"},
+        ),
+        (
+            ListUnion,
+            ListUnion([MemberStr("string"), MemberInt(1)]),
+            {"members": [{"field": "string"}, {"field": 1}]},
+        ),
+        (
+            typing.Union[float, int, str],
+            1.0,
+            1.0,
+        ),
+        (
+            typing.Union[float, int, str],
+            1,
+            1,
+        ),
+        (
+            typing.Union[float, int, str],
+            1.0,
+            "1.0",
+        ),
+        (
+            typing.Union[float, int, str],
+            1,
+            "1",
+        ),
+        (typing.Union[float, int, str], "foo", "foo"),
     ],
 )
-def test_serde_deserializer(t, obj, prim):
+def test_serde_deserialize(t, obj, prim):
     r = typic.resolver.resolve(t)
-    assert r.deserializer(prim) == obj
+    assert r.deserialize(prim) == obj
 
 
 @typic.klass
@@ -198,7 +275,10 @@ class Bar:
         (None, "null"),
         (MultiNum.INT, "1"),
         (MultiNum.STR, '"str"'),
-        ({objects.FooNum.bar: objects.Typic(var="foo")}, '{"bar":{"var":"foo"}}',),
+        (
+            {objects.FooNum.bar: objects.Typic(var="foo")},
+            '{"bar":{"var":"foo"}}',
+        ),
         ([typic.URL("foo")], '["foo"]'),
         (Omit(), '{"bar":"foo"}'),
         (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
@@ -233,9 +313,7 @@ class Bar:
     ],
 )
 def test_tojson_native(obj, expected):
-    native = (
-        json.dumps(typic.primitive(obj, lazy=True)).replace("\n", "").replace(" ", "")
-    )
+    native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
     assert typic.tojson(obj) == native == expected
 
 
@@ -265,15 +343,175 @@ def test_invalid_serializer(type, value):
 
 
 def test_inherited_serde_flags():
-    @typic.klass(serde=typic.SerdeFlags(omit=(1,)))
+    @typic.klass(serde=typic.flags(omit=(1,)))
     class Foo:
         a: str
         b: str = typic.field(exclude=True)
 
-    @typic.klass(serde=typic.SerdeFlags(omit=(2,)))
+    @typic.klass(serde=typic.flags(omit=(2,)))
     class Bar(Foo):
         c: int
 
     assert Bar.__serde_flags__.fields.keys() == {"a", "b", "c"}
     assert Bar.__serde_flags__.exclude == {"b"}
     assert Bar.__serde_flags__.omit == (1, 2)
+
+
+def test_custom_encode():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(encoder=encode))
+    enc = proto.encode(Foo())
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+
+
+def test_custom_decode():
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(decoder=decode))
+    inp = '{"bar":null}'.encode("utf-8-sig")
+    dec = proto.decode(inp)
+    assert dec == Foo()
+
+
+def test_klass_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @typic.klass(serde=typic.flags(encoder=encode, decoder=decode))
+    class Foo:
+        bar: str = None
+
+    enc = Foo().encode()
+    dec = Foo.decode(enc)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()
+
+
+def test_functional_custom_encdec():
+    def encode(o):
+        return ujson.encode(o).encode("utf-8-sig")
+
+    def decode(o):
+        return o.decode("utf-8-sig")
+
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    enc = typic.encode(Foo(), encoder=encode)
+    dec = typic.decode(Foo, enc, decoder=decode)
+    assert isinstance(enc, bytes)
+    assert enc.decode("utf-8-sig") == '{"bar":null}'
+    assert dec == Foo()
+
+
+def test_proto_iterate():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    proto = typic.protocol(Foo)
+
+    assert dict(proto.iterate(Foo())) == {"bar": None}
+    assert [*proto.iterate(Foo(), values=True)] == [None]
+
+
+def test_functional_iterate():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+
+    assert dict(typic.iterate(Foo())) == {"bar": None}
+    assert [*typic.iterate(Foo(), values=True)] == [None]
+
+
+def test_klass_iterate():
+    @typic.klass
+    class Foo:
+        bar: str = None
+
+    assert dict(Foo().iterate()) == dict(Foo()) == {"bar": None}
+    assert [*Foo().iterate(values=True)] == [None]
+
+
+def test_iterate_slots():
+    class Foo:
+        __slots__ = ("bar",)
+
+        def __init__(self):
+            self.bar = "bar"
+
+    assert dict(typic.iterate(Foo())) == {"bar": "bar"}
+
+
+def test_functional_iterate_exclude():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    assert dict(typic.iterate(Foo(), exclude=("excluded",))) == {"bar": None}
+
+
+def test_protocol_iterate_exclude():
+    @dataclasses.dataclass
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    proto = typic.protocol(Foo, flags=typic.flags(exclude=("excluded",)))
+
+    assert dict(proto.iterate(Foo())) == {"bar": None}
+
+
+def test_klass_iterate_exclude():
+    @typic.klass(serde=typic.flags(exclude=("excluded",)))
+    class Foo:
+        bar: str = None
+        excluded: str = None
+
+    assert dict(Foo().iterate()) == {"bar": None}
+
+
+def test_transmute_excluded():
+    @dataclasses.dataclass
+    class Foo:
+        __serde_flags__ = typic.flags(exclude=("excluded",))
+        bar: str = None
+        excluded: bool = True
+
+    @dataclasses.dataclass
+    class Bar:
+        bar: str = None
+        excluded: bool = False
+
+    assert typic.transmute(Bar, Foo()) == Bar()
+
+
+def test_routine_protocol():
+    def foo():
+        ...
+
+    proto = typic.protocol(foo)
+    assert proto.transmute(foo) is foo
+    assert proto.validate(foo) is foo
+    with pytest.raises(TypeError):
+        proto.serialize(foo)
+
+    assert list(proto.iterate(foo)) == [None]

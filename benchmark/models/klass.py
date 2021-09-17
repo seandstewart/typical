@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
+from __future__ import annotations
+
 from datetime import datetime
 from dataclasses import field
 from typing import List, Optional, Type

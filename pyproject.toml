@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.0.19"
+version = "2.6.4"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
-readme = "mkdocs/index.md"
+readme = "docs/index.md"
 repository = "https://github.com/seandstewart/typical"
 keywords = ["typing", "data", "annotations", "validation", "json-schema"]
 classifiers = [
@@ -15,9 +15,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Utilities",
@@ -27,18 +28,47 @@ include = ["README.md", "LICENSE"]
 exclude = ["tests", "docs", "docsrc", "benchmark"]
 
 [tool.poetry.dependencies]
+# package
 python = "^3.7"
-inflection = "^0.3.1"
+inflection = "^0.5"
 pendulum = "^2.1"
-typing-extensions = {version = "^3.7", python = "~3.7"}
 fastjsonschema = {version = "^2.14", optional = true}
-ujson = {version = "^2.0.2", optional = true}
+ujson = {version = ">=2.0", optional = true}
+typing-extensions = {version = "^3.10.0", python = "<3.10"}
+# tests
+pytest = {version = "^6.2", optional = true}
+pytest-cov = {version = "^2.8", optional = true}
+pandas = {version = "^1.1.3", python = ">=3.7.1,<=3.9", optional = true}
+sqlalchemy = {version = "^1.3.13", optional = true}
+# benchmarks
+pytest-benchmark = {version = "^3.2", extras = ["histogram"], optional = true}
+marshmallow = {version = "^3.2", optional = true}
+toastedmarshmallow = {version = "^2.15", optional = true}
+djangorestframework = {version = "^3.10", optional = true}
+pydantic = {version = "^1.0", extras = ["email"], optional = true}
+django = {version = "^2.2", optional = true}
+# lint
+flake8 = {version = "^3.7.9", optional = true}
+mypy = {version = "^0.910", optional = true}
+black = {version = "^21", allow-prereleases = true, optional = true}
+# mypy needs these....
+types-python-dateutil = {version = "*", optional = true}
+types-setuptools = {version = "*", optional = true}
+types-toml = {version = "*", optional = true}
+types-typed-ast = {version = "*", optional = true}
+types-ujson = {version = "*", optional = true}
+# docs
+mkdocs = {version = "^1.1", optional = true}
+mkdocs-material = {version = "^5.5", optional = true}
+mkdocs-awesome-pages-plugin = {version = "^2.2.1", optional = true}
+pymdown-extensions = {version = "^7.0", optional = true}
+future-typing = "^0.4.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^6.2"
 pytest-cov = "^2.8"
-black = {version = "19.10b0", allow-prereleases = true}
-pre-commit = "^1.19"
+black = {version = "^21", allow-prereleases = true}
+pre-commit = "^2"
 pytest-benchmark = {version = "^3.2", extras = ["histogram"]}
 marshmallow = "^3.2"
 toastedmarshmallow = "^2.15"
@@ -46,22 +76,90 @@ djangorestframework = "^3.10"
 pydantic = {version = "^1.0", extras = ["email"]}
 django = "^2.2"
 flake8 = "^3.7.9"
-mypy = "^0.761"
-ujson = "^2.0.2"
+mypy = "^0.910"
+ujson = "^3.2"
 sqlalchemy = "^1.3.13"
 sqlalchemy-stubs = "^0.3"
 mkdocs = "^1.1"
-mkdocs-material = "^4.6.3"
-mkdocstrings = "^0.9.1"
-pymdown-extensions = "^6.3"
-fontawesome-markdown = "^0.2.6"
+mkdocs-material = "^5.5"
+pymdown-extensions = "^7.0"
 mkdocs-awesome-pages-plugin = "^2.2.1"
-pandas = "^1.0.3"
+# Pandas doesn't yet officially support py3.10 and installs consistently fail.
+pandas = {version = "^1.3", python = ">=3.7.1,<=3.9"}
+fastjsonschema = "^2.14.5"
+bumpver = "^2021.1113"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
 json = ["ujson"]
+tests = [
+    "fastjsonschema",
+    "ujson",
+    "pydantic",
+    "sqlalchemy",
+    "pandas",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+]
+benchmarks = [
+    "pytest-benchmark",
+    "marshmallow",
+    "toastedmarshmallow",
+    "djangorestframework",
+    "pydantic",
+    "django",
+    "pydantic",
+    "sqlalchemy",
+]
+lint = [
+    "mypy",
+    "flake8",
+    "black",
+    "types-python-dateutil",
+    "types-setuptools",
+    "types-toml",
+    "types-typed-ast",
+    "types-ujson",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-awesome-pages-plugin",
+    "pymdown-extensions",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv*
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
 
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[bumpver]
+current_version = "v2.6.3"
+version_pattern = "vMAJOR.MINOR.PATCH[-TAGNUM]"
+commit_message = "bump version to {new_version} [ci skip]"
+tag = false
+push = true
+commit = true
+
+[bumpver.file_patterns]
+"pyproject.toml" = [ 'version = "{pep440_version}"' ]
+"typic/__init__.py" = ['__version__ = "{pep440_version}"']
