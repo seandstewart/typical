@@ -524,7 +524,7 @@ class Resolver:
         validator = constraints.validate
         rdeserializer = deserializer
         # If we're in "strict" mode, we want to default to only validation.
-        if annotation.strict:
+        if annotation.strict or checks.isabstract(annotation.resolved_origin):
             rdeserializer = cast(DeserializerT[ObjectT], validator)
 
         # If we have type constraints, we'll bail out early.

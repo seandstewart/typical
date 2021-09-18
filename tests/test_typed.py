@@ -433,7 +433,11 @@ def test_transmute_nested_sequence():
 
 @pytest.mark.parametrize(
     argnames=("func", "input", "type"),
-    argvalues=[(objects.func, "1", int), (objects.Method().math, "4", int)],
+    argvalues=[
+        (objects.func, "1", int),
+        (objects.Method().math, "4", int),
+        (objects.number, 1, int),
+    ],
 )
 def test_wrap_callable(func, input, type):
     wrapped = wrap(func)
