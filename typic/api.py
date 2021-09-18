@@ -4,6 +4,8 @@ import collections
 import dataclasses
 import functools
 import inspect
+import types
+import warnings
 from types import FunctionType, MethodType
 from typing import (
     Union,
@@ -19,11 +21,12 @@ from typing import (
     Dict,
     Set,
     List,
+    overload,
 )
 
 import typic.constraints as c
-from typic.checks import issubclass, isfrozendataclass
-from typic.compat import lru_cache
+from typic.checks import issubclass, isfrozendataclass, isbuiltintype
+from typic.compat import lru_cache, Generic
 from typic.env import Environ, EnvironmentTypeError, EnvironmentValueError
 from typic.serde.binder import BoundArguments
 from typic.serde.common import (
@@ -57,7 +60,7 @@ from typic.strict import (
     StrictModeT,
 )
 from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
-from typic.util import origin, cached_type_hints
+from typic.util import origin, cached_type_hints, cached_signature
 from typic.types import FrozenDict, freeze
 
 __all__ = (
@@ -103,9 +106,9 @@ __all__ = (
     "WriteOnly",
 )
 
-ObjectT = TypeVar("ObjectT")
+ObjectT = TypeVar("ObjectT", bound=object)
 SchemaGenT = Callable[[Type[ObjectT]], SchemaFieldT]
-_TO_RESOLVE: Set[Union[Type["WrappedObjectT"], Callable]] = set()
+_TO_RESOLVE: Set[Union[Type[WrappedObjectT], Callable]] = set()
 
 
 transmute = resolver.transmute
@@ -129,30 +132,33 @@ annotations = resolver.protocols
 
 
 _T = TypeVar("_T")
+_Callable = TypeVar("_Callable", bound=Callable[..., Any])
+_Func = TypeVar("_Func", bound=types.FunctionType)
+_Type = TypeVar("_Type", bound=type)
 
 
-class TypicObjectT:
-    __serde__: SerdeProtocol
+class TypicObjectT(Generic[_T]):
+    __serde__: SerdeProtocol[Type[_T]]
     __serde_flags__: SerdeFlags
     __serde_protocols__: SerdeProtocolsT
-    __setattr_original__: Callable[["WrappedObjectT", str, Any], None]
+    __setattr_original__: Callable[[_T, str, Any], None]
     __typic_resolved__: bool
-    __iter__: FieldIteratorT
+    __iter__: FieldIteratorT[_T]
     schema: SchemaGenT
-    primitive: SerializerT
-    transmute: DeserializerT
-    translate: TranslatorT
-    validate: "c.ValidatorT"
+    primitive: SerializerT[_T]
+    transmute: DeserializerT[_T]
+    translate: TranslatorT[_T]
+    validate: c.ValidatorT[_T]
     tojson: Callable[..., str]
-    iterate: FieldIteratorT
+    iterate: FieldIteratorT[_T]
 
 
-WrappedObjectT = Union[TypicObjectT, ObjectT]
+WrappedObjectT = Union[TypicObjectT[_T], _T]
 
 
 def wrap(
-    func: Callable[..., _T], *, delay: bool = False, strict: StrictModeT = STRICT_MODE
-) -> Callable[..., _T]:
+    func: _Callable, *, delay: bool = None, strict: StrictModeT = STRICT_MODE
+) -> _Callable:
     """Wrap a callable to automatically enforce type-coercion.
 
     Parameters
@@ -169,17 +175,22 @@ def wrap(
     :py:func:`inspect.signature`
     :py:meth:`inspect.Signature.bind`
     """
-    if not delay:
-        protocols(func)
-    else:
-        _TO_RESOLVE.add(func)
+    if isinstance(delay, bool):
+        warnings.warn(
+            "The `delay` argument is no longer required and is deprecated. "
+            "It will be removed in a future version.",
+            category=DeprecationWarning,
+        )
+    protos = protocols(func, strict=cast(bool, strict))
+    params = cached_signature(func).parameters
+    enforcer = resolver.binder.get_enforcer(parameters=params, protocols=protos)
 
     @functools.wraps(func)
-    def func_wrapper(*args, **kwargs) -> _T:
-        bound = bind(func, *args, strict=strict, **kwargs)
-        return bound.eval()
+    def func_wrapper(*args, **kwargs):
+        args, kwargs = enforcer(*args, **kwargs)
+        return func(*args, **kwargs)
 
-    return func_wrapper
+    return cast(_Callable, func_wrapper)
 
 
 def _bind_proto(cls, proto: SerdeProtocol):
@@ -206,7 +217,7 @@ def _resolve_class(
     always: bool = True,
     jsonschema: bool = True,
     serde: SerdeFlags = None,
-) -> Type[WrappedObjectT]:
+) -> Type[WrappedObjectT[ObjectT]]:
     # Build the namespace for the new class
     strict = cast(bool, strict)
     protos = protocols(cls, strict=strict)
@@ -222,12 +233,13 @@ def _resolve_class(
         ns["schema"] = classmethod(schema)
         schema_builder.attach(cls)
 
-    # Frozen dataclasses don't use the native setattr
-    # So we wrap the init. This should be fine,
-    # just slower :(
-    if isfrozendataclass(cls):
+    # Wrap the init if
+    #   a) this is a "frozen" dataclass
+    #   b) we only want to coerce on init.
+    # N.B.: Frozen dataclasses don't use the native setattr and can't be updated.
+    if isfrozendataclass(cls) or not always:
         ns["__init__"] = wrap(cls.__init__, strict=strict)
-    # The faster way - create a new setattr that applies the protocol for a given attr
+    # For 'always', create a new setattr that applies the protocol for a given attr
     else:
         trans = freeze({x: y.transmute for x, y in protos.items()})
 
@@ -257,7 +269,7 @@ def _resolve_class(
     _bind_proto(cls, proto)
     # Track resolution state.
     setattr(cls, "__typic_resolved__", True)
-    return cls
+    return cast(Type[WrappedObjectT[ObjectT]], cls)
 
 
 def _delay_resolve_class(
@@ -304,7 +316,7 @@ def wrap_cls(
     strict: StrictModeT = STRICT_MODE,
     jsonschema: bool = True,
     serde: SerdeFlags = SerdeFlags(),
-) -> Type[WrappedObjectT]:
+) -> Type[WrappedObjectT[ObjectT]]:
     """Wrap a class to automatically enforce type-coercion on init.
 
     Notes
@@ -328,17 +340,17 @@ def wrap_cls(
         Optional settings for serialization/deserialization
     """
 
-    def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT]:
+    def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
         setattr(cls_, "__delayed__", delay)
         if delay:
             _delay_resolve_class(
                 cls_, strict=strict, jsonschema=jsonschema, serde=serde
             )
-            return cast(Type[WrappedObjectT], cls_)
+            return cast(Type[TypicObjectT[ObjectT]], cls_)
 
         return _resolve_class(cls_, strict=strict, jsonschema=jsonschema, serde=serde)
 
-    wrapped: Type[WrappedObjectT] = cls_wrapper(klass)
+    wrapped: Type[WrappedObjectT[ObjectT]] = cls_wrapper(klass)
     return wrapped
 
 
@@ -354,6 +366,27 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
             if setter.__name__ != "__setattr_coerced__":
                 break
     return setter
+
+
+@overload
+def typed(
+    _cls_or_callable: _Type, *, delay: bool = False, strict: bool = None
+) -> Type[WrappedObjectT[_Type]]:
+    ...
+
+
+@overload
+def typed(
+    _cls_or_callable: _Func, *, delay: bool = False, strict: bool = None
+) -> _Func:
+    ...
+
+
+@overload
+def typed(
+    *, delay: bool = False, strict: bool = None
+) -> Union[Callable[[_Type], Type[WrappedObjectT[_Type]]], Callable[[_Func], _Func]]:
+    ...
 
 
 def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
@@ -571,16 +604,21 @@ def constrained(
 
             return __constrained_init
 
+        name = cls_.__name__
+        if isbuiltintype(cls_):
+            name = f"Constrained{cls_.__name__.capitalize()}"
+
         cdict.update(
             __constraints__=constraints_inst,
             __parent__=constraints_inst.type,
+            __module__=cls_.__module__,
             **(
                 {"__new__": new(cls_.__new__)}
                 if constraints_inst.type in {str, bytes, int, float}
                 else {"__init__": init(cls_.__init__)}
             ),
         )
-        cls: Type[ObjectT] = cast(Type[ObjectT], type(cls_.__name__, bases, cdict))
+        cls: Type[ObjectT] = cast(Type[ObjectT], type(name, bases, cdict))
 
         return cls
 

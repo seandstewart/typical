@@ -609,7 +609,7 @@ def isfrozendataclass(obj: Type[ObjectT]) -> TypeGuard[_FrozenDataclass]:
 
 
 class _FrozenDataclass(Protocol):
-    __dataclas_params__: dataclasses._DataclassParams  # type: ignore
+    __dataclass_params__: dataclasses._DataclassParams  # type: ignore
 
 
 _isinstance = isinstance
