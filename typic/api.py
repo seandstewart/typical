@@ -19,7 +19,6 @@ from typing import (
     Iterable,
     Any,
     Dict,
-    Set,
     List,
     overload,
 )
@@ -108,7 +107,6 @@ __all__ = (
 
 ObjectT = TypeVar("ObjectT", bound=object)
 SchemaGenT = Callable[[Type[ObjectT]], SchemaFieldT]
-_TO_RESOLVE: Set[Union[Type[WrappedObjectT], Callable]] = set()
 
 
 transmute = resolver.transmute
@@ -214,7 +212,7 @@ def _resolve_class(
     cls: Type[ObjectT],
     *,
     strict: StrictModeT = STRICT_MODE,
-    always: bool = True,
+    always: bool = None,
     jsonschema: bool = True,
     serde: SerdeFlags = None,
 ) -> Type[WrappedObjectT[ObjectT]]:
@@ -229,6 +227,15 @@ def _resolve_class(
         SERDE_FLAGS_ATTR: serde,
         TYPIC_ANNOS_NAME: protos,
     }
+    if always is None:
+        warnings.warn(
+            "Keyword `always` will default to `False` in a future version. "
+            "You should update your code to either explicitly declare `always=True` "
+            "or update your code to not assume values will be coerced when set.",
+            category=UserWarning,
+            stacklevel=5,
+        )
+        always = True
     if jsonschema:
         ns["schema"] = classmethod(schema)
         schema_builder.attach(cls)
@@ -272,43 +279,6 @@ def _resolve_class(
     return cast(Type[WrappedObjectT[ObjectT]], cls)
 
 
-def _delay_resolve_class(
-    cls_: Type[ObjectT],
-    *,
-    strict: StrictModeT = STRICT_MODE,
-    jsonschema: bool = True,
-    serde: SerdeFlags = None,
-):
-    # This class ain't resolved yet.
-    setattr(cls_, "__typic_resolved__", False)
-
-    # Create a classmethod for delayed resolution.
-    def _resolve(cls):
-        if not cls.__typic_resolved__:
-            _resolve_class(cls, strict=strict, jsonschema=jsonschema, serde=serde)
-            if cls in _TO_RESOLVE:
-                _TO_RESOLVE.remove(cls)
-        cls.__typic_resolved__ = True
-
-    setattr(cls_, "resolve", classmethod(_resolve))
-
-    # Allow users to delay until first init
-    # This adds some extra cost on init that
-    # It's not too much but something to consider
-    def init(_init):
-        @functools.wraps(_init)
-        def __delayed_init(*args, **kwargs):
-            cls_.resolve()
-            _init(*args, **kwargs)
-
-        return __delayed_init
-
-    setattr(cls_, "__init__", init(cls_.__init__))
-
-    # Add the cls to the stack of those to resolve
-    _TO_RESOLVE.add(cls_)
-
-
 def wrap_cls(
     klass: Type[ObjectT],
     *,
@@ -341,13 +311,13 @@ def wrap_cls(
     """
 
     def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
-        setattr(cls_, "__delayed__", delay)
-        if delay:
-            _delay_resolve_class(
-                cls_, strict=strict, jsonschema=jsonschema, serde=serde
+        if isinstance(delay, bool):
+            warnings.warn(
+                "The `delay` argument is no longer required and is deprecated."
+                "It will be removed in a future version.",
+                category=DeprecationWarning,
             )
-            return cast(Type[TypicObjectT[ObjectT]], cls_)
-
+        setattr(cls_, "__delayed__", False)
         return _resolve_class(cls_, strict=strict, jsonschema=jsonschema, serde=serde)
 
     wrapped: Type[WrappedObjectT[ObjectT]] = cls_wrapper(klass)
@@ -434,11 +404,11 @@ def resolve():
     ...
     >>> typic.resolve()
     """
-    while _TO_RESOLVE:
-        obj = _TO_RESOLVE.pop()
-        protocols(obj)
-        if inspect.isclass(obj):
-            obj.resolve()
+    warnings.warn(
+        "Delayed type resolution is handled automatically as of v2.3.0. "
+        "This function is now a no-op and will be removed in a future version.",
+        category=DeprecationWarning,
+    )
 
 
 _CONSTRAINT_TYPE_MAP = {
