@@ -267,6 +267,11 @@ class LargeInt(int):
     ...
 
 
+@typic.constrained(gt=1000)
+class LargeFloat(float):
+    ...
+
+
 @typic.constrained(values=LargeInt, keys=ShortStr)
 class LargeIntDict(dict):
     ...

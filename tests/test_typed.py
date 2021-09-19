@@ -1067,17 +1067,41 @@ def test_tagged_union_validate(annotation, value):
 
 
 @pytest.mark.parametrize(
-    argnames="annotation,value,expected",
+    argnames="annotation,value,expected,t",
     argvalues=[
-        (typing.Union[int, str], "1", 1),
-        (typing.Union[int, str], "foo", "foo"),
-        (typing.Union[int, datetime.date], "1", 1),
-        (typing.Union[int, datetime.date], "1970-01-01", datetime.date(1970, 1, 1)),
+        (typing.Union[int, str], "1", 1, int),
+        (typing.Union[int, str], "foo", "foo", str),
+        (typing.Union[int, datetime.date], "1", 1, int),
+        (
+            typing.Union[int, datetime.date],
+            "1970-01-01",
+            datetime.date(1970, 1, 1),
+            datetime.date,
+        ),
+        (
+            typing.Union[objects.LargeFloat, objects.LargeInt],
+            "1001",
+            1001,
+            objects.LargeInt,
+        ),
+        (
+            typing.Union[objects.LargeFloat, objects.LargeInt],
+            "1001.0",
+            1001.0,
+            objects.LargeFloat,
+        ),
+        (
+            typing.Union[objects.LargeFloat, objects.LargeInt],
+            1001.0,
+            1001.0,
+            objects.LargeFloat,
+        ),
     ],
 )
-def test_union_transmute(annotation, value, expected):
+def test_union_transmute(annotation, value, expected, t):
     transmuted = transmute(annotation, value)
     assert transmuted == expected
+    assert isinstance(transmuted, t)
 
 
 @pytest.mark.parametrize(

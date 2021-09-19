@@ -717,15 +717,20 @@ class DesFactory:
             context.namespace,
             context.func,
         )
-        args = [a for a in annotation.args if a not in {None, Ellipsis, type(None)}]
-        if args:
-            ctx = {
-                get_name(a)
-                + "_des": self.resolver.resolve(a, namespace=namespace).transmute
-                for a in args
-            }
-            names = (*(n.rpartition("_")[0] for n in ctx),)
-            for name, call in ctx.items():
+        annos = {
+            get_name(a): self.resolver.resolve(a, namespace=namespace)
+            for a in annotation.args
+            if a not in {None, Ellipsis, type(None)}
+        }
+        if annos:
+            desers = {f"{n}_des": p.transmute for n, p in annos.items()}
+            types = {n: p.annotation.resolved_origin for n, p in annos.items()}
+            ctx: Mapping[str, Union[Type, DeserializerT]] = {**types, **desers}
+            names = (*annos,)
+            for name in annos:
+                with func.b(f"if issubclass({name}, {self.VTYPE}):") as b:
+                    b.l(f"return {name}_des({self.VNAME})")
+            for name in desers:
                 with func.b("try:") as b:
                     b.l(f"return {name}({self.VNAME})")
                 with func.b("except (TypeError, ValueError, KeyError):") as b:
@@ -733,7 +738,7 @@ class DesFactory:
             func.namespace.update(ctx)
             func.l(
                 "raise ValueError("
-                'f"Value could not be deserialized into one of {names}: {val!r}"'
+                f'f"Value could not be deserialized into one of {names}: {{val!r}}"'
                 ")",
                 names=names,
             )
