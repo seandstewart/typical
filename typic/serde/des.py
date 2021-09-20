@@ -467,7 +467,9 @@ class DesFactory:
         kd_name = f"{anno_name}_key_des"
         it_name = f"{anno_name}_item_des"
         iterate = f"iterate({self.VNAME})"
+        iterate_values = f"iterate({self.VNAME}, values=True)"
         line = f"{anno_name}({iterate})"
+        line_values = f"{anno_name}({iterate_values})"
         if args or annotation.serde.fields_in:
             x, y = "x", "y"
             # If there are args & field mapping, get the correct field name
@@ -482,19 +484,22 @@ class DesFactory:
                 x = f"{kd_name}(x)"
                 y = f"{it_name}(y)"
             line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
+            line_values = f"{anno_name}({{{x}: {y} for x, y in {iterate_values}}})"
         # If we don't have nested annotations, we can short-circuit on valid inputs
         else:
             self._add_type_check(func, anno_name)
         # Write the lines.
-        func.l(
-            f"{self.VNAME} = {line}",
-            level=None,
-            **{
+        with func.b("try:") as b:
+            b.l(f"{self.VNAME} = {line_values}")
+        with func.b("except (TypeError, ValueError):") as b:
+            b.l(f"{self.VNAME} = {line}")
+        func.namespace.update(
+            {
                 kd_name: key_des,
                 it_name: item_des,
                 "Mapping": abc.Mapping,
                 "iterate": self.resolver.iterate,
-            },
+            }
         )
 
     def _build_tuple_des(self, context: BuildContext):

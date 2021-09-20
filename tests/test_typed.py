@@ -58,6 +58,7 @@ def test_isbuiltintype(obj: typing.Any):
     argnames=("annotation", "value", "expected"),
     argvalues=[
         (dict, [("foo", "bar")], {"foo": "bar"}),
+        (dict, [1], {0: 1}),
         (typing.Dict, [("foo", "bar")], {"foo": "bar"}),
         (list, set(), []),
         (typing.List, set(), []),
