@@ -514,6 +514,43 @@ class Resolver:
         )
         return anno
 
+    @staticmethod
+    def _finalize_deserializer(
+        annotation: Annotation[Type[ObjectT]],
+        deserializer: DeserializerT[ObjectT],
+        constraints: constr.ConstraintsProtocolT[ObjectT],
+    ) -> Tuple[DeserializerT[ObjectT], constr.ValidateT[ObjectT]]:
+        # Set the default returns.
+        validator = constraints.validate
+        rdeserializer = deserializer
+        # If we're in "strict" mode, we want to default to only validation.
+        if annotation.strict or checks.isabstract(annotation.resolved_origin):
+            rdeserializer = cast(DeserializerT[ObjectT], validator)
+
+        # If we have type constraints, we'll bail out early.
+        # If we have literal constraints, we must validate as a part of coercion.
+        if isinstance(constraints, (constr.TypeConstraints, constr.LiteralConstraints)):
+            if isinstance(constraints, constr.LiteralConstraints):
+                d = deserializer
+
+                def des(val: Any, *, __d=d, __v=validator) -> ObjectT:
+                    return __v(__d(val))
+
+                rdeserializer = cast(DeserializerT[ObjectT], des)
+
+            return rdeserializer, validator
+        # Finally, if we're in "strict" mode, but the constraint needs validation prior
+        #   to coercion, we should inject the validator within the deserializer.
+        if annotation.strict and constraints.coerce:
+            d = deserializer
+
+            def des(val: Any, *, __d=d, __v=validator) -> ObjectT:
+                return __d(__v(val))
+
+            rdeserializer = cast(DeserializerT[ObjectT], des)
+
+        return rdeserializer, validator
+
     def _resolve_from_annotation(
         self,
         anno: Annotation[Type[ObjectT]],
@@ -529,8 +566,9 @@ class Resolver:
         constraints = constr.get_constraints(
             anno.resolved, nullable=anno.optional, cls=namespace
         )
-        deserializer, validator = self.des.factory(
-            anno, constraints, namespace=namespace
+        deserializer = self.des.factory(anno, namespace=namespace)
+        deserializer, validator = self._finalize_deserializer(
+            annotation=anno, deserializer=deserializer, constraints=constraints
         )
         # Build the serializer
         serializer = self.ser.factory(anno)

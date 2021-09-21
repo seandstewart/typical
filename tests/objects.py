@@ -4,6 +4,7 @@ import collections
 import dataclasses
 import datetime
 import enum
+import numbers
 import typing
 
 try:
@@ -266,6 +267,11 @@ class LargeInt(int):
     ...
 
 
+@typic.constrained(gt=1000)
+class LargeFloat(float):
+    ...
+
+
 @typic.constrained(values=LargeInt, keys=ShortStr)
 class LargeIntDict(dict):
     ...
@@ -444,6 +450,11 @@ def pep585(data: dict[str, int]) -> dict[str, int]:
 @typic.al
 def pep604(union: DFoo | DBar) -> DFoo | DBar:
     return union
+
+
+@typic.al
+def number(n: numbers.Number) -> numbers.Number:
+    return n
 
 
 TYPIC_OBJECTS = [

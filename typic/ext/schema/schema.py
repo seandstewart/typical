@@ -392,7 +392,8 @@ class SchemaBuilder:
             defname = name
         return inflection.camelize(defname) if defname else None
 
-    _IGNORE_NAME = {"Mapping", "MutableMapping", "Dict"}
+    # FIXME: This isn't sustainable. Figure out a better way to ignore generics.
+    _IGNORE_NAME = {"Mapping", "MutableMapping", "Dict", "Literal"}
 
     def build_schema(self, obj: Type, *, name: str = None) -> ObjectSchemaField:
         """Build a valid JSON Schema, including nested schemas."""

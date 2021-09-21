@@ -29,7 +29,7 @@ from typing import (
 
 from pendulum import parse as dateparse, DateTime, instance
 
-from typic import checks, gen, constraints as const
+from typic import checks, gen
 from typic.strict import STRICT_MODE
 from typic.util import (
     safe_eval,
@@ -41,7 +41,7 @@ from typic.util import (
     get_name,
     slotted,
 )
-from typic.common import DEFAULT_ENCODING, VAR_POSITIONAL, VAR_KEYWORD, ObjectT
+from typic.common import DEFAULT_ENCODING, ObjectT
 from typic.compat import TypeGuard, Literal
 from .common import (
     DeserializerT,
@@ -113,7 +113,7 @@ class DesFactory:
     )
     VNAME = "val"
     VTYPE = "vtype"
-    __DES_CACHE: Dict[str, Tuple[DeserializerT, "const.ValidatorT"]] = {}
+    __DES_CACHE: Dict[str, DeserializerT] = {}
     __USER_DESS: DeserializerRegistryT = deque()
 
     def __init__(self, resolver: Resolver):
@@ -171,10 +171,8 @@ class DesFactory:
                 b.l(f"return {self.VNAME}")
 
     @staticmethod
-    def _get_name(
-        annotation: Annotation, constr: Optional[const.ConstraintsProtocolT]
-    ) -> str:
-        return get_defname("deserializer", (annotation, constr))
+    def _get_name(annotation: Annotation) -> str:
+        return get_defname("deserializer", annotation)
 
     def _build_date_des(self, context: BuildContext):
         func, annotation, anno_name = (
@@ -469,7 +467,9 @@ class DesFactory:
         kd_name = f"{anno_name}_key_des"
         it_name = f"{anno_name}_item_des"
         iterate = f"iterate({self.VNAME})"
+        iterate_values = f"iterate({self.VNAME}, values=True)"
         line = f"{anno_name}({iterate})"
+        line_values = f"{anno_name}({iterate_values})"
         if args or annotation.serde.fields_in:
             x, y = "x", "y"
             # If there are args & field mapping, get the correct field name
@@ -484,19 +484,22 @@ class DesFactory:
                 x = f"{kd_name}(x)"
                 y = f"{it_name}(y)"
             line = f"{anno_name}({{{x}: {y} for x, y in {iterate}}})"
+            line_values = f"{anno_name}({{{x}: {y} for x, y in {iterate_values}}})"
         # If we don't have nested annotations, we can short-circuit on valid inputs
         else:
             self._add_type_check(func, anno_name)
         # Write the lines.
-        func.l(
-            f"{self.VNAME} = {line}",
-            level=None,
-            **{
+        with func.b("try:") as b:
+            b.l(f"{self.VNAME} = {line_values}")
+        with func.b("except (TypeError, ValueError):") as b:
+            b.l(f"{self.VNAME} = {line}")
+        func.namespace.update(
+            {
                 kd_name: key_des,
                 it_name: item_des,
                 "Mapping": abc.Mapping,
                 "iterate": self.resolver.iterate,
-            },
+            }
         )
 
     def _build_tuple_des(self, context: BuildContext):
@@ -719,15 +722,20 @@ class DesFactory:
             context.namespace,
             context.func,
         )
-        args = [a for a in annotation.args if a not in {None, Ellipsis, type(None)}]
-        if args:
-            ctx = {
-                get_name(a)
-                + "_des": self.resolver.resolve(a, namespace=namespace).transmute
-                for a in args
-            }
-            names = (*(n.rpartition("_")[0] for n in ctx),)
-            for name, call in ctx.items():
+        annos = {
+            get_name(a): self.resolver.resolve(a, namespace=namespace)
+            for a in annotation.args
+            if a not in {None, Ellipsis, type(None)}
+        }
+        if annos:
+            desers = {f"{n}_des": p.transmute for n, p in annos.items()}
+            types = {n: p.annotation.resolved_origin for n, p in annos.items()}
+            ctx: Mapping[str, Union[Type, DeserializerT]] = {**types, **desers}
+            names = (*annos,)
+            for name in annos:
+                with func.b(f"if issubclass({name}, {self.VTYPE}):") as b:
+                    b.l(f"return {name}_des({self.VNAME})")
+            for name in desers:
                 with func.b("try:") as b:
                     b.l(f"return {name}({self.VNAME})")
                 with func.b("except (TypeError, ValueError, KeyError):") as b:
@@ -735,7 +743,7 @@ class DesFactory:
             func.namespace.update(ctx)
             func.l(
                 "raise ValueError("
-                'f"Value could not be deserialized into one of {names}: {val!r}"'
+                f'f"Value could not be deserialized into one of {names}: {{val!r}}"'
                 ")",
                 names=names,
             )
@@ -814,88 +822,13 @@ class DesFactory:
         lambda origin, args: True: _build_user_type_des,
     }
 
-    def _check_varargs(
-        self,
-        anno: Annotation[Type[ObjectT]],
-        des: DeserializerT[ObjectT],
-        validator: const.ValidatorT[ObjectT],
-    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
-        if anno.parameter.kind == VAR_POSITIONAL:
-            __des = des
-            __validator = validator
-
-            def des(__val, *, __des=__des):  # type: ignore
-                return (*(__des(x) for x in __val),)
-
-            def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
-                return (*(__validator(x, field=field) for x in value),)
-
-        elif anno.parameter.kind == VAR_KEYWORD:
-            __des = des
-            __validator = validator
-
-            def des(__val, *, __des=__des):  # type: ignore
-                return {x: __des(y) for x, y in __val.items()}
-
-            def validator(value, *, field: str = None, __validator=__validator):  # type: ignore
-                return {x: __validator(y, field=field) for x, y in value.items()}
-
-        return des, validator
-
-    def _finalize_validator(
-        self,
-        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
-    ) -> const.ValidatorT[ObjectT]:
-        def validate(value, *, field: str = None):
-            return value
-
-        if constr:
-            validate = constr.validate  # noqa: F811
-
-        return validate  # type: ignore
-
-    def _finalize_deserializer(
-        self,
-        anno: Annotation[Type[ObjectT]],
-        des: DeserializerT[ObjectT],
-        constr: Optional[const.ConstraintsProtocolT[ObjectT]],
-    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
-        # Determine how to run in "strict-mode"
-        validator = self._finalize_validator(constr)
-        # Handle *args and **kwargs
-        des, validator = self._check_varargs(anno, des, validator)
-        # If we have type constraints, override the deserializer for strict annotations.
-        if isinstance(constr, (const.TypeConstraints, const.LiteralConstraints)):
-            if anno.strict:
-                des = validator  # type: ignore
-            elif isinstance(constr, const.LiteralConstraints):
-                __d = des
-
-                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:
-                    return __v(__d(val))
-
-        # Otherwise
-        else:
-            # In strict mode, we validate & coerce if there are constraints
-            if anno.strict and constr and constr.coerce:
-                __d = des
-
-                def des(val: Any, *, __d=__d, __v=validator) -> ObjectT:  # type: ignore
-                    return __d(__v(val))
-
-            elif anno.strict:
-                des = validator  # type: ignore
-
-        return des, validator
-
     def factory(
         self,
         annotation: Annotation[Type[ObjectT]],
-        constr: Optional[const.ConstraintsProtocolT[ObjectT]] = None,
         namespace: Type = None,
-    ) -> Tuple[DeserializerT[ObjectT], const.ValidatorT[ObjectT]]:
+    ) -> DeserializerT[ObjectT]:
         annotation.serde = annotation.serde or SerdeConfig()
-        key = self._get_name(annotation, constr)
+        key = self._get_name(annotation)
         if key in self.__DES_CACHE:
             return self.__DES_CACHE[key]
         deserializer: Optional[DeserializerT] = None
@@ -905,13 +838,8 @@ class DesFactory:
                 break
         if not deserializer:
             deserializer = self._build_des(annotation, key, namespace)
-
-        deserializer, validator = self._finalize_deserializer(
-            annotation, deserializer, constr
-        )
-        self.__DES_CACHE[key] = (deserializer, validator)
-
-        return deserializer, validator
+        self.__DES_CACHE[key] = deserializer
+        return deserializer
 
 
 @slotted(dict=False, weakref=True)

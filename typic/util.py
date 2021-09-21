@@ -252,10 +252,13 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     'dict'
     """
     strobj = str(obj)
-    isgeneric = strobj.startswith("typing.")
-    if not isgeneric and isinstance(obj, ForwardRef):
+    if isinstance(obj, ForwardRef):
         strobj = str(obj.__forward_arg__)
-        isgeneric = strobj.startswith("typing.")
+    isgeneric = (
+        strobj.startswith("typing.")
+        or strobj.startswith("typing_extensions.")
+        or "[" in strobj
+    )
     # We got a typing thing.
     if isgeneric:
         # If this is a subscripted generic we should clean that up.
