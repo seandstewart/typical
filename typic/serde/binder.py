@@ -2,38 +2,31 @@ from __future__ import annotations
 
 import dataclasses
 import inspect
-from collections import deque
+import warnings
+from types import MappingProxyType
 from typing import (
     Dict,
-    Deque,
     Any,
     Tuple,
     TYPE_CHECKING,
-    List,
     Optional,
     Union,
     Type,
     Callable,
     Mapping,
-    Iterable,
+    MutableMapping,
 )
 
 from typic import util
-from ..common import (
-    EMPTY,
-    POSITIONAL_ONLY,
-    RETURN_KEY,
-    TOO_MANY_POS,
-    VAR_POSITIONAL,
-    VAR_KEYWORD,
-    KWD_KINDS,
-)
 
 if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver  # noqa: F401
-    from .common import SerdeProtocol, SerdeProtocolsT  # noqa: F401
+    from .common import SerdeProtocol, SerdeProtocolsT, DeserializerT  # noqa: F401
+
+    BindingT = Mapping[Union[str, int], DeserializerT]
 
 
+@util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True)
 class BoundArguments:
     obj: Union[Type, Callable]
@@ -42,46 +35,11 @@ class BoundArguments:
     """A mapping of the resolved annotations."""
     parameters: Mapping[str, inspect.Parameter]
     """A mapping of the parameters."""
-    arguments: Dict[str, Any]
-    """A mapping of the input to parameter name."""
-    returns: Optional["SerdeProtocol"]
-    """The resolved return type, if any."""
-    _argnames: Tuple[str, ...]
-    _kwdargnames: Tuple[str, ...]
-
-    @util.cached_property
-    def args(self) -> Tuple[Any, ...]:
-        """A tuple of the args passed to the callable."""
-        args: List = list()
-        argsappend = args.append
-        argsextend = args.extend
-        paramsget = self.parameters.__getitem__
-        argumentsget = self.arguments.__getitem__
-        for name in self._argnames:
-            kind = paramsget(name).kind
-            arg = argumentsget(name)
-            if kind == VAR_POSITIONAL:
-                argsextend(arg)
-            else:
-                argsappend(arg)
-        return tuple(args)
-
-    @util.cached_property
-    def kwargs(self) -> Dict[str, Any]:
-        """A mapping of the key-word arguments passed to the callable."""
-        kwargs: Dict = {}
-        kwargsupdate = kwargs.update
-        kwargsset = kwargs.__setitem__
-        paramsget = self.parameters.__getitem__
-        argumentsget = self.arguments.__getitem__
-        for name in self._kwdargnames:
-            kind = paramsget(name).kind
-            arg = argumentsget(name)
-            if kind == VAR_KEYWORD:
-                kwargsupdate(arg)
-            else:
-                kwargsset(name, arg)
-        return kwargs
+    args: Tuple[Any, ...]
+    """A tuple of positional inputs."""
+    kwargs: Dict[str, Any]
+    """A mapping of keyword inputs."""
+    enforcer: Callable
 
     def eval(self) -> Any:
         """Evaluate the callable against the input provided.
@@ -97,176 +55,136 @@ class BoundArguments:
         >>> bound.eval()
         4
         """
-        return self.obj(*self.args, **self.kwargs)
+        args, kwargs = self.enforcer(*self.args, **self.kwargs)
+        return self.obj(*args, **kwargs)
 
 
 class Binder:
+    _ENFORCER_CACHE: MutableMapping[Tuple[Union[Type, Callable], bool], Tuple] = {}
+
     def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
-    def _bind_posargs(
-        self,
-        arguments: Dict[str, Any],
-        params: Deque[inspect.Parameter],
-        annos: "SerdeProtocolsT",
-        args: Deque[Any],
-        kwargs: Dict[str, Any],
-    ) -> Tuple[str, ...]:
-        # Bind any positional arguments
-
-        # bytecode hack to localize access
-        # only noticeable with really large datasets
-        # but it's best to be prepared.
-        posargs: List[str] = []
-        posargsadd = posargs.append
-        argspop = args.popleft
-        paramspop = params.popleft
-        annosget = annos.get
-        argumentsset = arguments.__setitem__
-        while args and params:
-            val = argspop()
-            param: inspect.Parameter = paramspop()
-            name = param.name
-            anno: Optional[SerdeProtocol] = annosget(name)
-            kind = param.kind
-            # We've got varargs, so push all supplied args to that param.
-            if kind == VAR_POSITIONAL:
-                value = (val, *args)
-                args = deque()
-                if anno:
-                    value = anno(value)
-                argumentsset(name, value)
-                posargsadd(name)
-                break
-
-            # We're not supposed to have kwdargs....
-            if kind in KWD_KINDS:
-                raise TypeError(TOO_MANY_POS) from None
-
-            # Passed in by ref and assignment... no good.
-            if name in kwargs:
-                raise TypeError(f"multiple values for argument '{name}'") from None
-
-            # We're g2g
-            value = anno(val) if anno else val
-            argumentsset(name, value)
-            posargsadd(name)
-
-        if args:
-            raise TypeError(TOO_MANY_POS) from None
-
-        return tuple(posargs)
-
-    def _bind_kwdargs(
-        self,
-        arguments: Dict[str, Any],
-        params: Deque[inspect.Parameter],
-        annos: Dict[str, SerdeProtocol],
-        kwargs: Dict[str, Any],
-        partial: bool = False,
-    ) -> Tuple[str, ...]:
-        # Bind any key-word arguments
-        kwdargs: List[str] = list()
-        kwdargsadd = kwdargs.append
-        kwargs_anno = None
-        kwdargs_param = None
-        kwargspop = kwargs.pop
-        annosget = annos.get
-        argumentsset = arguments.__setitem__
-        for param in params:
-            kind = param.kind
-            name = param.name
-            anno = annosget(name)
-            # Move on, but don't forget
-            if kind == VAR_KEYWORD:
-                kwargs_anno = anno
-                kwdargs_param = param
-                continue
-            # We don't care about these
-            if kind == VAR_POSITIONAL:
-                continue
-            # try to bind the parameter
-            if name in kwargs:
-                val = kwargspop(name)
-                if kind == POSITIONAL_ONLY:
-                    raise TypeError(
-                        f"{name!r} parameter is positional only,"
-                        "but was passed as a keyword."
-                    )
-                value = anno(val) if anno else val
-                argumentsset(name, value)
-                kwdargsadd(name)
-            elif not partial and param.default is EMPTY:
-                raise TypeError(f"missing required argument: {name!r}")
-
-        # We didn't clear out all the kwdargs. Check to see if we came across a **kwargs
-        if kwargs:
-            if kwdargs_param is not None:
-                # Process our '**kwargs'-like parameter
-                name = kwdargs_param.name
-                value = kwargs_anno.transmute(kwargs) if kwargs_anno else kwargs  # type: ignore
-                argumentsset(name, value)
-                kwdargsadd(name)
+    @staticmethod
+    def get_binding(
+        parameters, protocols
+    ) -> Tuple[BindingT, Optional[DeserializerT], Optional[DeserializerT]]:
+        binding = _binding()
+        vararg = None
+        varkwarg = None
+        for i, (name, param) in enumerate(parameters.items()):
+            des = protocols[name].transmute
+            if param.kind == param.KEYWORD_ONLY:
+                binding[name] = des
+            elif param.kind == param.POSITIONAL_ONLY:  # pragma: nocover
+                binding[i] = des
+            elif param.kind == param.VAR_POSITIONAL:
+                vararg = des
+            elif param.kind == param.VAR_KEYWORD:
+                varkwarg = des
             else:
-                raise TypeError(
-                    f"'got an unexpected keyword argument {next(iter(kwargs))!r}'"
-                )
+                binding[i] = binding[name] = des
+        return (
+            MappingProxyType(binding),
+            vararg,
+            varkwarg,
+        )
 
-        return tuple(kwdargs)
+    def get_enforcer(self, parameters, protocols):  # noqa: C901
+        binding, vararg, varkwarg = self.get_binding(parameters, protocols)
+        argixes = [k for k in binding if isinstance(k, int)]
+        maxarg = max(argixes) + 1 if argixes else None
+        if vararg and varkwarg:
+            if maxarg:
 
-    def _bind_input(
-        self,
-        obj: Union[Type, Callable],
-        annos: "SerdeProtocolsT",
-        params: Mapping[str, inspect.Parameter],
-        args: Iterable[Any],
-        kwargs: Dict[str, Any],
-        *,
-        partial: bool = False,
-    ) -> BoundArguments:
-        """Bind annotations and parameters to received input.
+                def enforce_binding(*args, __binding=binding, **kwargs):
+                    vargs = [...] * len(args)
+                    for i, v in enumerate(args[:maxarg]):
+                        vargs[i] = __binding[i](v) if i in binding else v
+                    for i, v in enumerate(args[maxarg:], start=maxarg):
+                        vargs[i] = vararg(v)
+                    for k, v in kwargs.items():
+                        kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
+                    return vargs, kwargs
 
-        Taken approximately from :py:meth:`inspect.Signature.bind`, with a few changes.
+                return enforce_binding
 
-        About 10% faster, on average, and coerces values with their annotation if possible.
+            def enforce_binding(*args, __binding=binding, **kwargs):
+                vargs = [vararg(v) for v in args]
+                for k, v in kwargs.items():
+                    kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
+                return vargs, kwargs
 
-        Parameters
-        ----------
-        annos
-            A mapping of :py:class:`ResolvedAnnotation` to param name.
-        params
-            A mapping of :py:class:`inspect.Parameter` to param name.
-        args
-            The positional args to bind to their param and annotation, if possible.
-        kwargs
-            The keyword args to bind to their param and annotation, if possible.
+            return enforce_binding
 
-        Other Parameters
-        ----------------
-        partial
-            Bind a partial input.
+        if vararg:
+            if maxarg:
 
-        Raises
-        ------
-        TypeError
-            If we can't match up the received input to the signature
-        """
-        arguments: Dict[str, Any] = dict()
-        returns = annos.pop(RETURN_KEY, None)
-        args = deque(args)
-        parameters = deque(params.values())
-        # Bind any positional arguments.
-        posargs = self._bind_posargs(arguments, parameters, annos, args, kwargs)
-        # Bind any keyword arguments.
-        kwdargs = self._bind_kwdargs(arguments, parameters, annos, kwargs, partial)
-        return BoundArguments(obj, annos, params, arguments, returns, posargs, kwdargs)
+                def enforce_binding(*args, __binding=binding, **kwargs):
+                    vargs = [...] * len(args)
+                    for i, v in enumerate(args[:maxarg]):
+                        vargs[i] = __binding[i](v) if i in __binding else v
+                    for i, v in enumerate(args[maxarg:], start=maxarg):
+                        vargs[i] = vararg(v)
+                    for k, v in kwargs.items():
+                        kwargs[k] = __binding[k](v) if k in __binding else v
+                    return vargs, kwargs
+
+                return enforce_binding
+
+            def enforce_binding(*args, __binding=binding, **kwargs):
+                vargs = [vararg(v) for v in args]
+                for k, v in kwargs.items():
+                    kwargs[k] = __binding[k](v)
+                return vargs, kwargs
+
+            return enforce_binding
+
+        if varkwarg:
+            if argixes:
+
+                def enforce_binding(*args, __binding=binding, **kwargs):
+                    vargs = [...] * len(args)
+                    for i, v in enumerate(args):
+                        vargs[i] = __binding[i](v) if i in __binding else v
+                    for k, v in kwargs.items():
+                        kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
+                    return vargs, kwargs
+
+                return enforce_binding
+
+            def enforce_binding(*args, __binding=binding, **kwargs):
+                for k, v in kwargs.items():
+                    kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
+                return args, kwargs
+
+            return enforce_binding
+
+        if argixes:
+
+            def enforce_binding(*args, __binding=binding, **kwargs):
+                vargs = [...] * len(args)
+                for i, v in enumerate(args):
+                    vargs[i] = __binding[i](v)
+                for k, v in kwargs.items():
+                    kwargs[k] = __binding[k](v) if k in __binding else v
+                return vargs, kwargs
+
+            return enforce_binding
+
+        def enforce_binding(*args, __binding=binding, **kwargs):
+            for k, v in kwargs.items():
+                kwargs[k] = __binding[k](v) if k in __binding else v
+            return args, kwargs
+
+        return enforce_binding
 
     def bind(
         self,
         obj: Union[Type, Callable],
         *args: Any,
-        partial: bool = False,
-        coerce: bool = True,
+        partial: bool = None,
+        coerce: bool = None,
         strict: bool = False,
         **kwargs: Mapping[str, Any],
     ) -> BoundArguments:
@@ -312,26 +230,51 @@ class Binder:
         ...     return a + b + (c or 0)
         ...
         >>> bound = typic.bind(add, "1", "2", c=3.0)
-        >>> bound.arguments
-        {'a': 1, 'b': 2, 'c': 3}
         >>> bound.args
-        (1, 2)
+        ('1', '2')
         >>> bound.kwargs
-        {'c': 3}
+        {'c': 3.0}
         >>> bound.eval()
         6
-        >>> typic.bind(add, 1, 3.0, strict=True)
+        >>> typic.bind(add, 1, 3.0, strict=True).eval()
         Traceback (most recent call last):
             ...
         typic.constraints.error.ConstraintValueError: Given value <3.0> fails constraints: (type=int, nullable=False)
         """
-        return self._bind_input(
+        if isinstance(coerce, bool):  # pragma: nocover
+            warnings.warn(
+                "The keyword argument `coerce` is deprecated "
+                "and will be removed in a future version.",
+                category=DeprecationWarning,
+            )
+        if isinstance(partial, bool):  # pragma: nocover
+            warnings.warn(
+                "The keyword argument `partial` is deprecated "
+                "and will be removed in a future version.",
+                category=DeprecationWarning,
+            )
+        if (obj, strict) in self.__class__._ENFORCER_CACHE:
+            params, protocols, enforcer = self.__class__._ENFORCER_CACHE[(obj, strict)]
+        else:
+            params = util.cached_signature(obj).parameters
+            protocols = self.resolver.protocols(obj=obj, strict=strict)
+            enforcer = self.get_enforcer(parameters=params, protocols=protocols)
+            self.__class__._ENFORCER_CACHE[(obj, strict)] = params, protocols, enforcer
+
+        return BoundArguments(
             obj=obj,
-            annos=self.resolver.protocols(obj, strict=strict)
-            if (coerce or strict)
-            else {},
-            params=util.cached_signature(obj).parameters,
+            annotations=protocols,
+            parameters=params,
             args=args,
             kwargs=kwargs,
-            partial=partial,
+            enforcer=enforcer,
         )
+
+
+class _binding(dict):
+    def __missing__(self, key):
+        return _empty_deser
+
+
+def _empty_deser(v):
+    return v

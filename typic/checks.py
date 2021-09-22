@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import builtins
 import dataclasses
 import datetime
@@ -7,6 +8,7 @@ import decimal
 import enum
 import inspect
 import ipaddress
+import numbers
 import pathlib
 import types
 import uuid
@@ -62,6 +64,7 @@ str
 __all__ = (
     "BUILTIN_TYPES",
     "ObjectT",
+    "isabstract",
     "isbuiltininstance",
     "isbuiltintype",
     "isbuiltinsubtype",
@@ -609,7 +612,7 @@ def isfrozendataclass(obj: Type[ObjectT]) -> TypeGuard[_FrozenDataclass]:
 
 
 class _FrozenDataclass(Protocol):
-    __dataclas_params__: dataclasses._DataclassParams  # type: ignore
+    __dataclass_params__: dataclasses._DataclassParams  # type: ignore
 
 
 _isinstance = isinstance
@@ -825,3 +828,11 @@ _ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)
 
 def issimpleattribute(v) -> bool:
     return not any(c(v) for c in _ATTR_CHECKS)
+
+
+def isabstract(o) -> TypeGuard[abc.ABC]:
+    return inspect.isabstract(o) or o in _ABCS
+
+
+# Custom list of ABCs which incorrectly evaluate to false
+_ABCS = frozenset({numbers.Number})

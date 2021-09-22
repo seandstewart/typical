@@ -9,9 +9,20 @@ theme:
   favicon: "static/favicon/favicon.ico"
   logo: "static/c3p-white.png"
   palette:
-    primary: "cyan"
-    accent: "amber"
-    scheme: "preference"
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: "teal"
+      accent: "amber"
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: "cyan"
+      accent: "amber"
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
   font:
     text: "IBM Plex Serif"
     code: "IBM Plex Mono"

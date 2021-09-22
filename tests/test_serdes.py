@@ -489,6 +489,14 @@ def test_klass_iterate_exclude():
     assert dict(Foo().iterate()) == {"bar": None}
 
 
+@pytest.mark.parametrize(
+    argnames="v", argvalues=[1, objects.LargeInt(1001), 1.0, objects.LargeFloat(1000.5)]
+)
+def test_iterate_invalid(v):
+    with pytest.raises(TypeError):
+        typic.iterate(v)
+
+
 def test_transmute_excluded():
     @dataclasses.dataclass
     class Foo:

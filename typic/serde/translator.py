@@ -23,6 +23,7 @@ from typic.checks import (
     isliteral,
     isnamedtuple,
     isiteratortype,
+    isbuiltinsubtype,
 )
 from typic.compat import lru_cache
 from typic.gen import Block, Keyword, ParameterKind
@@ -42,7 +43,6 @@ if TYPE_CHECKING:
 
 _itemscaller = methodcaller("items")
 _valuescaller = methodcaller("values")
-_iter = iter
 
 
 class TranslatorTypeError(TypeError):
@@ -153,19 +153,29 @@ class TranslatorFactory:
         exclude: Tuple[str, ...] = (),
     ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
+        mapping, iterable, builtin, namedtuple = (
+            ismappingtype(type),
+            isiterabletype(type),
+            isbuiltinsubtype(type),
+            isnamedtuple(type),
+        )
+        if mapping:
+            return _valuescaller if values else _itemscaller
 
-        if ismappingtype(type):
-            iter = _valuescaller if values else _itemscaller
-            return iter
+        if (iterable, namedtuple) == (True, False):
+            return iter if values else enumerate
 
-        if isiterabletype(type) and not isnamedtuple(type):
-            return _iter
+        if (builtin, iterable) == (True, False):
+            raise TranslatorTypeError(
+                f"Cannot get iterator for type {type.__name__!r}."
+            ) from None
 
         fields = self.get_fields(type, as_source=True, exclude=exclude) or {}
 
         if not fields and not relaxed:
             raise TranslatorTypeError(
-                f"Cannot get iterator for type {type!r}, unable to determine fields."
+                f"Cannot get iterator for type {type.__name__!r}, "
+                f"unable to determine fields."
             ) from None
 
         func_name = get_defname("iterator", (type, values))

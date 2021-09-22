@@ -38,6 +38,7 @@ from typic.checks import (
     should_unwrap,
     isclassvartype,
     isenumtype,
+    isabstract,
 )
 from typic.compat import Literal, lru_cache
 from typic.types import dsn, email, frozendict, path, secret, url
@@ -121,6 +122,10 @@ def get_constraints(
     if isenumtype(t):
         ec = _from_enum_type(t, nullable=nullable, name=name)  # type: ignore
         return cast(ConstraintsProtocolT, ec)
+    if isabstract(t):
+        return cast(
+            ConstraintsProtocolT, _from_strict_type(t, nullable=nullable, name=name)
+        )
     if isnamedtuple(t) or istypeddict(t):
         handler = _from_class
     else:
