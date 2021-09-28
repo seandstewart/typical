@@ -97,6 +97,7 @@ json = ["ujson"]
 tests = [
     "fastjsonschema",
     "ujson",
+    "orjson",
     "pydantic",
     "sqlalchemy",
     "pandas",
