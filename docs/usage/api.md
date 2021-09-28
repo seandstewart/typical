@@ -487,6 +487,11 @@ is also accepted by `@typic.klass`, plus a few more:
 > Automatically generate a class with slots for the attributes defined by your
 > annotations.
 
+`always: bool = True`
+> Whether typical should coerce all values set to the class whenever they change, or 
+> only once, on initialization of the class.
+
+
 ### Interacting With Your Objects
 
 As we've already demonstrated, Typical will guarantee the  data

@@ -119,9 +119,12 @@ class Environ:
 
     def setenv(self, var: str, value: Any):
         """Set the `value` as `var` in the OS environ."""
+
+        if not isinstance(value, (str, bytes)):
+            value = self.resolver.tojson(value)
+            if isinstance(value, bytes):
+                value = value.decode()
         if isinstance(value, bytes):
             os.environb[var.encode()] = value
             return
-        elif not isinstance(value, str):
-            value = self.resolver.tojson(value)
         os.environ[var] = value

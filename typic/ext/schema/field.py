@@ -78,7 +78,9 @@ class _Serializable:
     def primitive(self, *, lazy: bool = False, name: ReprT = None) -> Mapping[str, Any]:
         return resolver.primitive(self, lazy=lazy, name=name)  # type: ignore
 
-    def tojson(self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs) -> str:
+    def tojson(
+        self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
+    ) -> Union[str, bytes]:
         return dumps(
             self.primitive(),
             indent=indent,

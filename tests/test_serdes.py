@@ -272,23 +272,20 @@ class Bar:
 @pytest.mark.parametrize(
     argnames=("obj", "expected"),
     argvalues=[
-        (None, "null"),
-        (MultiNum.INT, "1"),
-        (MultiNum.STR, '"str"'),
+        (None, b"null"),
+        (MultiNum.INT, b"1"),
+        (MultiNum.STR, b'"str"'),
         (
             {objects.FooNum.bar: objects.Typic(var="foo")},
-            '{"bar":{"var":"foo"}}',
+            b'{"bar":{"var":"foo"}}',
         ),
-        ([typic.URL("foo")], '["foo"]'),
-        (Omit(), '{"bar":"foo"}'),
-        (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
+        ([typic.URL("foo")], b'["foo"]'),
+        (Omit(), b'{"bar":"foo"}'),
+        (Bar(foos=[Foo("bar")]), b'{"foos":[{"bar":"bar","id":null}]}'),
     ],
 )
 def test_tojson(obj, expected):
     assert typic.tojson(obj) == expected
-
-
-typic.ext.json.NATIVE_JSON = True
 
 
 @typic.klass
@@ -314,7 +311,7 @@ class Bar:
 )
 def test_tojson_native(obj, expected):
     native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
-    assert typic.tojson(obj) == native == expected
+    assert typic.tojson(obj).decode() == native == expected
 
 
 badbar = Bar([])

@@ -134,6 +134,7 @@ def make_typedclass(
     kw_only: bool = False,
     match_args: bool = True,
     serde: SerdeFlags = None,
+    always: bool = None,
 ):
     """A convenience function for generating a dataclass with type-coercion.
 
@@ -183,6 +184,7 @@ def make_typedclass(
         strict=strict,
         jsonschema=jsonschema,
         serde=serde,
+        always=always,
     )
 
 
@@ -202,6 +204,7 @@ def klass(
     kw_only: bool = False,
     match_args: bool = True,
     serde: SerdeFlags = None,
+    always: bool = None,
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
 
@@ -245,6 +248,7 @@ def klass(
             kw_only=kw_only,
             match_args=match_args,
             serde=serde,
+            always=always,
         )
 
     return typedclass_wrapper(_cls) if _cls else typedclass_wrapper
