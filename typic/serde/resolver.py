@@ -770,9 +770,7 @@ class Resolver:
         :py:class:`SerdeProtocol`
         """
 
-        if not any(
-            (inspect.ismethod(obj), inspect.isfunction(obj), inspect.isclass(obj))
-        ):
+        if not callable(obj):
             obj = obj.__class__
 
         hints = util.cached_type_hints(obj)
