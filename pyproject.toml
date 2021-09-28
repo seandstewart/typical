@@ -88,6 +88,8 @@ mkdocs-awesome-pages-plugin = "^2.2.1"
 pandas = {version = "^1.3", python = ">=3.7.1,<=3.9"}
 fastjsonschema = "^2.14.5"
 bumpver = "^2021.1113"
+orjson = "^3.6.3"
+bpython = "^0.21"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]

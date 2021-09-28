@@ -261,30 +261,30 @@ class Resolver:
         >>> import dataclasses
         >>> import enum
         >>> typic.tojson("foo")
-        '"foo"'
+        b'"foo"'
         >>> typic.tojson(("foo",))
-        '["foo"]'
+        b'["foo"]'
         >>> typic.tojson(datetime.datetime(1970, 1, 1))
-        '"1970-01-01T00:00:00"'
+        b'"1970-01-01T00:00:00"'
         >>> typic.tojson(b"foo")
-        '"foo"'
+        b'"foo"'
         >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
-        '"0.0.0.0"'
+        b'"0.0.0.0"'
         >>> typic.tojson(re.compile("[0-9]"))
-        '"[0-9]"'
+        b'"[0-9]"'
         >>> typic.tojson(uuid.UUID(int=0))
-        '"00000000-0000-0000-0000-000000000000"'
+        b'"00000000-0000-0000-0000-000000000000"'
         >>> @dataclasses.dataclass
         ... class Foo:
         ...     bar: str = 'bar'
         ...
         >>> typic.tojson(Foo())
-        '{"bar":"bar"}'
+        b'{"bar":"bar"}'
         >>> class Enum(enum.Enum):
         ...     FOO = "foo"
         ...
         >>> typic.tojson(Enum.FOO)
-        '"foo"'
+        b'"foo"'
         """
         t = obj.__class__
         if checks.isenumtype(t):
@@ -592,22 +592,7 @@ class Resolver:
         validator: constr.ValidateT[ObjectT],
         serializer: SerializerT[ObjectT],
     ) -> SerdeProtocol[ObjectT]:
-        def tojson(
-            val: ObjectT,
-            *,
-            indent: int = 0,
-            ensure_ascii: bool = False,
-            __prim=serializer,
-            __dumps=json.dumps,
-            **kwargs,
-        ) -> str:
-            return __dumps(
-                __prim(val),
-                indent=indent,
-                ensure_ascii=ensure_ascii,
-                **kwargs,
-            )
-
+        tojson = json.get_tojson(serializer)
         tojson.__qualname__ = f"{SerdeProtocol.__name__}.{tojson.__name__}"
         tojson.__module__ = SerdeProtocol.__module__
 
