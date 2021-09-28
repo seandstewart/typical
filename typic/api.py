@@ -227,6 +227,8 @@ def _resolve_class(
         SERDE_FLAGS_ATTR: serde,
         TYPIC_ANNOS_NAME: protos,
     }
+    frozen = isfrozendataclass(cls)
+    always = False if frozen else always
     if always is None:
         warnings.warn(
             "Keyword `always` will default to `False` in a future version. "
@@ -244,7 +246,7 @@ def _resolve_class(
     #   a) this is a "frozen" dataclass
     #   b) we only want to coerce on init.
     # N.B.: Frozen dataclasses don't use the native setattr and can't be updated.
-    if isfrozendataclass(cls) or not always:
+    if always is False:
         ns["__init__"] = wrap(cls.__init__, strict=strict)
     # For 'always', create a new setattr that applies the protocol for a given attr
     else:
@@ -286,6 +288,7 @@ def wrap_cls(
     strict: StrictModeT = STRICT_MODE,
     jsonschema: bool = True,
     serde: SerdeFlags = SerdeFlags(),
+    always: bool = None,
 ) -> Type[WrappedObjectT[ObjectT]]:
     """Wrap a class to automatically enforce type-coercion on init.
 
@@ -318,7 +321,9 @@ def wrap_cls(
                 category=DeprecationWarning,
             )
         setattr(cls_, "__delayed__", False)
-        return _resolve_class(cls_, strict=strict, jsonschema=jsonschema, serde=serde)
+        return _resolve_class(
+            cls_, strict=strict, jsonschema=jsonschema, serde=serde, always=always
+        )
 
     wrapped: Type[WrappedObjectT[ObjectT]] = cls_wrapper(klass)
     return wrapped
