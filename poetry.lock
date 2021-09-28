@@ -567,7 +567,7 @@ python-versions = ">=3.7,<3.11"
 name = "orjson"
 version = "3.6.3"
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -1134,12 +1134,12 @@ docs = ["mkdocs", "mkdocs-material", "mkdocs-awesome-pages-plugin", "pymdown-ext
 json = ["ujson"]
 lint = ["mypy", "flake8", "black", "types-python-dateutil", "types-setuptools", "types-toml", "types-typed-ast", "types-ujson"]
 schema = ["fastjsonschema"]
-tests = ["fastjsonschema", "ujson", "pydantic", "sqlalchemy", "pandas", "mypy", "pytest", "pytest-cov"]
+tests = ["fastjsonschema", "ujson", "orjson", "pydantic", "sqlalchemy", "pandas", "mypy", "pytest", "pytest-cov"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "54ee579ee198d5793b6a5dba433137bde1554d5ae5db2da86b803e7fb69cf09d"
+content-hash = "52649a2e5d8c0cb22250b7863b43d003069e3fc6ae49f2296a06094fe4effc60"
 
 [metadata.files]
 atomicwrites = [
