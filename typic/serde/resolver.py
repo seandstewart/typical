@@ -270,21 +270,8 @@ class Resolver:
         b'"foo"'
         >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
         b'"0.0.0.0"'
-        >>> typic.tojson(re.compile("[0-9]"))
-        b'"[0-9]"'
         >>> typic.tojson(uuid.UUID(int=0))
         b'"00000000-0000-0000-0000-000000000000"'
-        >>> @dataclasses.dataclass
-        ... class Foo:
-        ...     bar: str = 'bar'
-        ...
-        >>> typic.tojson(Foo())
-        b'{"bar":"bar"}'
-        >>> class Enum(enum.Enum):
-        ...     FOO = "foo"
-        ...
-        >>> typic.tojson(Enum.FOO)
-        b'"foo"'
         """
         t = obj.__class__
         if checks.isenumtype(t):
