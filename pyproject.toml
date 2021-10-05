@@ -165,5 +165,5 @@ push = true
 commit = true
 
 [bumpver.file_patterns]
-"pyproject.toml" = [ 'version = "{pep440_version}"' ]
+"pyproject.toml" = [ 'version = "{pep440_version}"', 'current_version = "{version}"' ]
 "typic/__init__.py" = ['__version__ = "{pep440_version}"']
