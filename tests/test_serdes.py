@@ -206,6 +206,16 @@ def test_serde_serialize(t, obj, prim):
             {"bar": {"var": "foo"}},
         ),
         (
+            Dict[str, objects.Typical],
+            {"key": objects.Typical(bar="bar", id=1)},
+            {"key": {"bar": "bar", "id": 1}},
+        ),
+        (
+            Dict[str, objects.Typical],
+            {"key": objects.Typical(bar="bar")},
+            {"key": {"bar": "bar"}},
+        ),
+        (
             GenDict[str, int],
             {"foo_bar": 2},
             {"fooBar": 2},

@@ -41,6 +41,7 @@ from typic.util import (
     get_name,
     slotted,
 )
+from typic.checks import ismappingtype
 from typic.common import DEFAULT_ENCODING, ObjectT
 from typic.compat import TypeGuard, Literal
 from .common import (
@@ -489,16 +490,20 @@ class DesFactory:
         else:
             self._add_type_check(func, anno_name)
         # Write the lines.
-        with func.b("try:") as b:
-            b.l(f"{self.VNAME} = {line_values}")
-        with func.b("except (TypeError, ValueError):") as b:
+        with func.b(f"if ismappingtype({self.VTYPE}):") as b:
             b.l(f"{self.VNAME} = {line}")
+        with func.b("else:") as ob:
+            with ob.b("try:") as b:
+                b.l(f"{self.VNAME} = {line_values}")
+            with ob.b("except (TypeError, ValueError):") as b:
+                b.l(f"{self.VNAME} = {line}")
         func.namespace.update(
             {
                 kd_name: key_des,
                 it_name: item_des,
                 "Mapping": abc.Mapping,
                 "iterate": self.resolver.iterate,
+                "ismappingtype": ismappingtype,
             }
         )
 

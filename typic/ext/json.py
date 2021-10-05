@@ -93,9 +93,9 @@ except (ImportError, ModuleNotFoundError):
                     **kwargs,
                 )
 
-            return tojson
-
             tojson.__module__ = get_tojson.__module__
             tojson.__doc__ = json.dumps.__doc__
+
+            return tojson
 
         dumps, loads = json.dumps, json.loads

@@ -43,6 +43,7 @@ from typic.compat import (
     TypeGuard,
     TypedDict,
     Protocol,
+    Record,
 )
 
 ObjectT = TypeVar("ObjectT")
@@ -533,7 +534,11 @@ def ismappingtype(obj: Type[ObjectT]) -> TypeGuard[Type[Mapping]]:
     True
     """
     obj = util.origin(obj)
-    return builtins.issubclass(obj, dict) or builtins.issubclass(obj, Mapping)
+    return (
+        builtins.issubclass(obj, dict)
+        or builtins.issubclass(obj, Mapping)
+        or builtins.issubclass(obj, Record)
+    )
 
 
 @lru_cache(maxsize=None)
