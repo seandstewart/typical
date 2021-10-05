@@ -36,6 +36,12 @@ except ImportError:  # pragma: nocover
         ...
 
 
+try:  # pragma: nocover
+    from asyncpg import Record
+except (ImportError, ModuleNotFoundError):
+    Record = dict
+
+
 if sys.version_info < (3, 7):  # pragma: nocover
     if TYPE_CHECKING:
 
