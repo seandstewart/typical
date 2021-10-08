@@ -9,6 +9,7 @@ from .array import (
     FrozenSetConstraints,
     Array,
     ArrayConstraints,
+    DequeConstraints,
 )
 from .common import (
     ValidatorT,
@@ -33,6 +34,7 @@ __all__ = (
     "ConstraintSyntaxError",
     "ConstraintsProtocolT",
     "DecimalContraints",
+    "DequeConstraints",
     "DictConstraints",
     "EnumConstraints",
     "FloatContraints",

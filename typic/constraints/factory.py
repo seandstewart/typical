@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 import enum
 import inspect
@@ -58,6 +59,7 @@ from .array import (
     ListConstraints,
     SetContraints,
     TupleConstraints,
+    DequeConstraints,
 )
 from .common import (
     MultiConstraints,
@@ -149,6 +151,7 @@ ConstraintsT = Union[
     BytesConstraints,
     DecimalContraints,
     DelayedConstraints,
+    DequeConstraints,
     DictConstraints,
     EnumConstraints,
     FloatContraints,
@@ -171,10 +174,15 @@ _ARRAY_CONSTRAINTS_BY_TYPE = TypeMap(
         list: ListConstraints,
         tuple: TupleConstraints,
         frozenset: FrozenSetConstraints,
+        collections.deque: DequeConstraints,
     }
 )
 ArrayConstraintsT = Union[
-    SetContraints, ListConstraints, TupleConstraints, FrozenSetConstraints
+    SetContraints,
+    ListConstraints,
+    TupleConstraints,
+    FrozenSetConstraints,
+    DequeConstraints,
 ]
 
 
@@ -391,6 +399,7 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         frozenset: _from_array_type,
         list: _from_array_type,
         tuple: _from_array_type,
+        collections.deque: _from_array_type,
         dict: _from_mapping_type,  # type: ignore
         int: _from_simple_type,
         float: _from_simple_type,
