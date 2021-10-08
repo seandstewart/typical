@@ -41,7 +41,7 @@ from typic.checks import (
     isenumtype,
     isabstract,
 )
-from typic.compat import Literal, lru_cache
+from typic.compat import Literal, lru_cache, UnionType
 from typic.types import dsn, email, frozendict, path, secret, url
 from typic.util import (
     origin,
@@ -428,6 +428,7 @@ _CONSTRAINT_BUILDER_HANDLERS = TypeMap(
         ipaddress.IPv4Address: _from_strict_type,
         ipaddress.IPv6Address: _from_strict_type,
         Union: _from_union,  # type: ignore
+        UnionType: _from_union,  # type: ignore
         Literal: _from_literal,  # type: ignore
     }
 )

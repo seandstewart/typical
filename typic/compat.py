@@ -104,9 +104,11 @@ else:
 if sys.version_info >= (3, 10):  # pragma: nocover
     DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = True
     from dataclasses import KW_ONLY  # type: ignore
+    from types import UnionType
 
 else:
     DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = False
+    from typing import Union as UnionType
 
     class _KW_ONLY_TYPE:
         pass
