@@ -56,7 +56,7 @@ class DSNInfo:
     """The password used for authentication."""
     host: str
     """The host address where the server is located."""
-    port: int
+    port: int | str
     """The exposed port to connect to."""
     name: str
     """The database name."""
@@ -76,17 +76,22 @@ class DSNInfo:
         if not match or not value:
             raise DSNValueError(f"{value!r} is not a valid DSN.")
         scheme, host = match["scheme"] or "", match["host"] or ""
-        if not scheme or not host:
+        if not scheme or (scheme != "sqlite" and not host):
             raise DSNValueError(f"{value!r} is not a valid DSN, missing driver|host.")
 
-        port = int(match["port"] or 0)
+        port: int | str = int(match["port"] or 0)
+        parsed: ParseResult = urlparse(match["relative"] or "")
+        name = parsed.path
+        if scheme == "sqlite":
+            port = ""
+            name = host or name
+            host = ""
         if port == 0 and cls.DEFAULT_PORTS[scheme]:
             port = cls.DEFAULT_PORTS[scheme].copy().pop()
         if port == 0:
             raise DSNValueError(
                 f"{value!r} is not a valid DSN, couldn't determine port."
             )
-        parsed: ParseResult = urlparse(match["relative"] or "")
         return cls(
             driver=scheme,
             host=host,
@@ -94,7 +99,7 @@ class DSNInfo:
             password=SecretStr(match["password"] or ""),
             qs=parsed.query,
             port=port,
-            name=parsed.path,
+            name=name,
             is_ip=bool(match["ipv4"] or match["ipv6"]),
         )  # type: ignore
 
@@ -103,7 +108,13 @@ class DSNInfo:
         """The 'base' of this DSN.
 
         Includes driver, user/pass, host, & port"""
-        return f"{self.driver}://{self.username}:{self.password.secret}@{self.host}:{self.port}"
+        url = f"{self.driver}://"
+        if self.username or self.password:
+            url += f"{self.username}:{self.password.secret}@"
+        url += self.host
+        if self.port:
+            url += f":{self.port}"
+        return url
 
     @cached_property
     def relative(self):
