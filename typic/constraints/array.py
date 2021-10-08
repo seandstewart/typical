@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 from types import MappingProxyType
 from typing import (
@@ -22,7 +23,7 @@ from typic import gen, checks, util
 from typic.types.frozendict import freeze
 from .common import BaseConstraints, ContextT, AssertionsT, ConstraintsProtocolT
 
-Array = Union[FrozenSet, Set, List, Tuple]
+Array = Union[FrozenSet, Set, List, Tuple, collections.deque]
 """The supported builtin types for defining restricted array-types."""
 
 
@@ -239,3 +240,11 @@ class FrozenSetConstraints(ArrayConstraints):
 
     type: ClassVar[Type[frozenset]] = frozenset
     unique: bool = True
+
+
+@util.slotted
+@dataclasses.dataclass(frozen=True, repr=False)
+class DequeConstraints(ArrayConstraints):
+    """Array constraints pinned to the :py:class:`collections.deque` type."""
+
+    type: ClassVar[Type[collections.deque]] = collections.deque

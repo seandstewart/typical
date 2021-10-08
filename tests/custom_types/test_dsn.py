@@ -71,3 +71,14 @@ def test_is_private(raw):
 def test_invalid_dsn(raw):
     with pytest.raises(dsn.DSNValueError):
         dsn.DSN(raw)
+
+
+@pytest.mark.parametrize(
+    argnames="raw",
+    argvalues=[
+        "sqlite://my.db",
+        "sqlite:///my.db",
+    ],
+)
+def test_sqlite_dsn(raw):
+    assert dsn.DSN(raw).info.address == raw

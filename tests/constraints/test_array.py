@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
 
 import pytest
 
 from typic.constraints import (
+    DequeConstraints,
     ListConstraints,
+    SetContraints,
+    FrozenSetConstraints,
     TupleConstraints,
     StrConstraints,
     IntContraints,
@@ -26,6 +30,9 @@ class Foo:
         ([1, 2], ListConstraints(max_items=2), [1, 2]),
         ([1, 2, 2], ListConstraints(unique=True), [1, 2]),
         ([Foo(), Foo(), 2], ListConstraints(unique=True), [Foo(), 2]),
+        (collections.deque(), DequeConstraints(), collections.deque()),
+        ({1, 2}, SetContraints(max_items=2), {1, 2}),
+        (frozenset([1, 2]), FrozenSetConstraints(), frozenset([1, 2])),
     ],
 )
 def test_validate_values(val: str, constraint: ListConstraints, expected: list):
