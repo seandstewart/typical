@@ -292,24 +292,15 @@ class NetworkAddress(str):
     JSON-serializable.
     """
 
+    __slots__ = ("info",)
+
     def __new__(cls, *args, **kwargs):
         v = super().__new__(cls, *args, **kwargs)
         # Initialize the info so we get validation immediately.
-        v.info
+        object.__setattr__(v, "info", v._getinfo())
         return v
 
-    def __setattr__(self, key, value):
-        raise AttributeError(
-            f"attempting to set attribute on immutable type {type(self)}"
-        )
-
-    def __delattr__(self, key):
-        raise AttributeError(
-            f"attempting to delete attribute on immutable type {type(self)}"
-        )
-
-    @cached_property
-    def info(self) -> NetAddrInfo:
+    def _getinfo(self) -> NetAddrInfo:
         return NetAddrInfo.from_str(self)
 
 

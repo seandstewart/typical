@@ -210,8 +210,7 @@ class DSN(NetworkAddress):
     This object inherits from :py:class:`str` and, so is natively JSON-serializable.
     """
 
-    @cached_property
-    def info(self) -> DSNInfo:  # type: ignore
+    def _getinfo(self) -> DSNInfo:  # type: ignore
         """Get detailed information about your DSN string.
 
         See Also
