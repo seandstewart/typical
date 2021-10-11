@@ -639,6 +639,7 @@ constraints system:
 - `tuple`
 - `set`
 - `frozenset`
+- `collections.deque`
 
 Array constraints share the following parameters:
 

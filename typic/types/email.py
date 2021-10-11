@@ -176,8 +176,7 @@ class Email(NetworkAddress):
     This object inherits from :py:class:`str` and so is natively JSON-serializable.
     """
 
-    @cached_property
-    def info(self) -> EmailAddrInfo:  # type: ignore
+    def _getinfo(self) -> EmailAddrInfo:  # type: ignore
         """Get detailed information about your email string.
 
         See Also
