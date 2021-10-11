@@ -232,12 +232,12 @@ class Method:
         return a * a
 
 
-@typic.klass(delay=True)
+@typic.klass(delay=True, always=False)
 class KlassDelayed:
     foo: str
 
 
-@typic.al(delay=True)
+@typic.al(delay=True, always=False)
 @dataclasses.dataclass
 class Delayed:
     foo: str

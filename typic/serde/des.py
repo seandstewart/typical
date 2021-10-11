@@ -736,8 +736,10 @@ class DesFactory:
             desers = {f"{n}_des": p.transmute for n, p in annos.items()}
             types = {n: p.annotation.resolved_origin for n, p in annos.items()}
             ctx: Mapping[str, Union[Type, DeserializerT]] = {**types, **desers}
-            names = (*annos,)
             for name in annos:
+                # Can't do subclass checks with these...
+                if name in {"Literal", "Final"}:
+                    continue
                 with func.b(f"if issubclass({name}, {self.VTYPE}):") as b:
                     b.l(f"return {name}_des({self.VNAME})")
             for name in desers:
@@ -748,9 +750,8 @@ class DesFactory:
             func.namespace.update(ctx)
             func.l(
                 "raise ValueError("
-                f'f"Value could not be deserialized into one of {names}: {{val!r}}"'
+                f'f"Value could not be deserialized into one of {(*annos,)}: {{val!r}}"'
                 ")",
-                names=names,
             )
             return False
 
