@@ -364,7 +364,13 @@ def typed(
     ...
 
 
-def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
+def typed(
+    _cls_or_callable=None,
+    *,
+    delay: bool = False,
+    strict: bool = None,
+    always: bool = None,
+):
     """A convenience function which automatically selects the correct wrapper.
 
     Parameters
@@ -373,6 +379,8 @@ def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
         Optionally delay annotation resolution until first call.
     strict
         Turn on "validator mode": e.g. validate incoming data rather than coerce.
+    always
+        Whether classes should always coerce values on their attributes.
 
     Returns
     -------
@@ -382,8 +390,8 @@ def typed(_cls_or_callable=None, *, delay: bool = False, strict: bool = None):
 
     def _typed(obj: Union[Callable, Type[ObjectT]]):
         if inspect.isclass(obj):
-            return wrap_cls(obj, delay=delay, strict=strict)  # type: ignore
-        elif isinstance(obj, Callable):  # type: ignore
+            return wrap_cls(obj, delay=delay, strict=strict, always=always)  # type: ignore
+        elif callable(obj):  # type: ignore
             return wrap(obj, delay=delay, strict=strict)  # type: ignore
         else:
             raise TypeError(
@@ -657,7 +665,9 @@ def settings(
 
     def settings_wrapper(_cls):
         _resolve_from_env(_cls, prefix, case_sensitive, aliases)
-        cls = wrap_cls(dataclasses.dataclass(_cls, frozen=frozen), jsonschema=False)
+        cls = wrap_cls(
+            dataclasses.dataclass(_cls, frozen=frozen), jsonschema=False, always=False
+        )
         return cls
 
     return settings_wrapper(_klass) if _klass is not None else settings_wrapper
