@@ -185,6 +185,7 @@ class MemberInt:
             ListUnion([MemberStr("string"), MemberInt(1)]),
             {"members": [{"field": "string"}, {"field": 1}]},
         ),
+        (objects.SubTypic, objects.SubTypic(var="", sub=""), {"var": "", "sub": ""}),
     ],
 )
 def test_serde_serialize(t, obj, prim):
@@ -261,6 +262,7 @@ def test_serde_serialize(t, obj, prim):
             "1",
         ),
         (typing.Union[float, int, str], "foo", "foo"),
+        (objects.SubTypic, objects.SubTypic(var="", sub=""), {"var": "", "sub": ""}),
     ],
 )
 def test_serde_deserialize(t, obj, prim):
