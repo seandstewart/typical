@@ -365,12 +365,14 @@ class SerFactory:
                     # Mapping types need special nested processing as well
                     istypeddict = checks.istypeddict(origin)
                     istypedtuple = checks.istypedtuple(origin)
+                    istypicklass = checks.istypicklass(origin)
                     if not istypeddict and issubclass(origin, self._DICTITER):
                         self._build_dict_serializer(func, annotation)
                     # Array types need nested processing.
                     elif (
                         not istypedtuple
                         and not istypeddict
+                        and not istypicklass
                         and issubclass(origin, self._LISTITER)
                     ):
                         self._build_list_serializer(func, annotation)

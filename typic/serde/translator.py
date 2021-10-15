@@ -24,6 +24,7 @@ from typic.checks import (
     isnamedtuple,
     isiteratortype,
     isbuiltinsubtype,
+    istypicklass,
 )
 from typic.compat import lru_cache
 from typic.gen import Block, Keyword, ParameterKind
@@ -153,16 +154,17 @@ class TranslatorFactory:
         exclude: Tuple[str, ...] = (),
     ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
-        mapping, iterable, builtin, namedtuple = (
+        mapping, iterable, builtin, namedtuple, typicklass = (
             ismappingtype(type),
             isiterabletype(type),
             isbuiltinsubtype(type),
             isnamedtuple(type),
+            istypicklass(type),
         )
         if mapping:
             return _valuescaller if values else _itemscaller
 
-        if (iterable, namedtuple) == (True, False):
+        if (iterable, namedtuple, typicklass) == (True, False, False):
             return iter if values else enumerate
 
         if (builtin, iterable) == (True, False):

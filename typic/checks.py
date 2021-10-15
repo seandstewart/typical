@@ -28,6 +28,7 @@ from typing import (
     Iterator,
     Hashable,
     NamedTuple,
+    TYPE_CHECKING,
 )
 
 import typic
@@ -45,6 +46,9 @@ from typic.compat import (
     Protocol,
     Record,
 )
+
+if TYPE_CHECKING:
+    from typic.api import TypicObjectT
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -841,3 +845,7 @@ def isabstract(o) -> TypeGuard[abc.ABC]:
 
 # Custom list of ABCs which incorrectly evaluate to false
 _ABCS = frozenset({numbers.Number})
+
+
+def istypicklass(obj) -> TypeGuard[TypicObjectT]:
+    return hasattr(obj, "__typic_fields__")
