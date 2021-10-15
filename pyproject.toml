@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.7.4"
+version = "2.7.5"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -157,7 +157,7 @@ requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
 [bumpver]
-current_version = "v2.7.4"
+current_version = "v2.7.5"
 version_pattern = "vMAJOR.MINOR.PATCH[-TAGNUM]"
 commit_message = "bump version to {new_version} [ci skip]"
 tag = false
