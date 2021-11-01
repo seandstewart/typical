@@ -634,8 +634,9 @@ class DesFactory:
         # Secondary branch - we have some other input for a user-defined class
         func.l("# Unknown path, just try casting it directly.")
         with func.b(
-            f"elif isbuiltinsubtype({self.VTYPE}):",
+            f"elif isbuiltinsubtype({self.VTYPE}) and not isnamedtuple({self.VTYPE}):",
             isbuiltinsubtype=checks.isbuiltinsubtype,
+            isnamedtuple=checks.isnamedtuple,
         ) as b:
             b.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
         # Final branch - user-defined class for another user-defined class
