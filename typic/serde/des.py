@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import decimal
 import functools
 import inspect
 import pathlib
@@ -132,8 +133,9 @@ class DesFactory:
     def _set_checks(self, func: gen.Block, anno_name: str, annotation: Annotation):
         _ctx = {}
         # run a safe eval if input is text and anno isn't
-        if inspect.isclass(annotation.resolved_origin) and issubclass(
-            annotation.resolved_origin, (str, bytes)
+        if inspect.isclass(annotation.resolved_origin) and (
+            issubclass(annotation.resolved_origin, (str, bytes))
+            or checks.isdecimaltype(annotation.resolved_origin)
         ):
             self._add_vtype(func)
         else:
@@ -570,6 +572,11 @@ class DesFactory:
             },
         )
 
+    def _build_decimal_des(self, context: BuildContext):
+        func, anno_name = context.func, context.anno_name
+        self._add_type_check(func, anno_name)
+        func.l(f"{self.VNAME} = {anno_name}({self.VNAME})")
+
     def _build_path_des(self, context: BuildContext):
         func, anno_name = context.func, context.anno_name
         self._add_type_check(func, anno_name)
@@ -809,6 +816,7 @@ class DesFactory:
         lambda origin, args: checks.isuuidtype(origin): _build_uuid_des,
         lambda origin, args: origin in {Pattern, re.Pattern}: _build_pattern_des,
         lambda origin, args: issubclass(origin, pathlib.Path): _build_path_des,
+        lambda origin, args: checks.isdecimaltype(origin): _build_decimal_des,
         # MUST come before subtype check.
         lambda origin, args: (
             not args and checks.isbuiltintype(origin)

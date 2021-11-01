@@ -85,7 +85,7 @@ class SerFactory:
         types.SecretStr: cast(SerializerT, attrgetter("secret")),
         types.URL: str,
         uuid.UUID: str,
-        decimal.Decimal: float,
+        decimal.Decimal: str,
         bytes: cast(SerializerT, _decode),
         bytearray: cast(SerializerT, _decode),
         datetime.date: cast(SerializerT, util.isoformat),
