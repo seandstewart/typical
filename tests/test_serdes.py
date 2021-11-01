@@ -263,6 +263,7 @@ def test_serde_serialize(t, obj, prim):
         ),
         (typing.Union[float, int, str], "foo", "foo"),
         (objects.SubTypic, objects.SubTypic(var="", sub=""), {"var": "", "sub": ""}),
+        (objects.TClass, objects.TClass(1), objects.NTup(1)),
     ],
 )
 def test_serde_deserialize(t, obj, prim):
