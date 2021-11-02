@@ -10,6 +10,8 @@ import inspect
 import ipaddress
 import numbers
 import pathlib
+import sqlite3
+
 import types
 import uuid
 from collections import namedtuple
@@ -538,10 +540,8 @@ def ismappingtype(obj: Type[ObjectT]) -> TypeGuard[Type[Mapping]]:
     True
     """
     obj = util.origin(obj)
-    return (
-        builtins.issubclass(obj, dict)
-        or builtins.issubclass(obj, Mapping)
-        or builtins.issubclass(obj, Record)
+    return builtins.issubclass(obj, (dict, Record, sqlite3.Row)) or builtins.issubclass(
+        obj, Mapping
     )
 
 
