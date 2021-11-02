@@ -41,7 +41,6 @@ from typic.util import (
     get_name,
     slotted,
 )
-from typic.checks import ismappingtype
 from typic.common import DEFAULT_ENCODING, ObjectT
 from typic.compat import TypeGuard, Literal
 from .common import (
@@ -503,7 +502,7 @@ class DesFactory:
                 it_name: item_des,
                 "Mapping": abc.Mapping,
                 "iterate": self.resolver.iterate,
-                "ismappingtype": ismappingtype,
+                "ismappingtype": checks.ismappingtype,
             }
         )
 
@@ -590,7 +589,9 @@ class DesFactory:
         # This is where the serde configuration comes in.
         # WINDY PATH AHEAD
         func.l("# Happy path - deserialize a mapping into the object.")
-        with func.b(f"if issubclass({self.VTYPE}, Mapping):", Mapping=abc.Mapping) as b:
+        with func.b(
+            f"if ismappingtype({self.VTYPE}):", ismappingtype=checks.ismappingtype
+        ) as b:
             # Universal line - transform input to known keys/values.
             # Specific values may change.
             def mainline(k, v):
