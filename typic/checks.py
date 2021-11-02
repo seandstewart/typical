@@ -79,6 +79,7 @@ __all__ = (
     "iscollectiontype",
     "isconstrained",
     "isdatetype",
+    "isdecimaltype",
     "isdescriptor",
     "isenumtype",
     "isfinal",
@@ -426,6 +427,28 @@ def istimedeltatype(obj: Type[ObjectT]) -> TypeGuard[Type[datetime.timedelta]]:
     True
     """
     return builtins.issubclass(util.origin(obj), datetime.timedelta)
+
+
+@lru_cache(maxsize=None)
+def isdecimaltype(obj: Type[ObjectT]) -> TypeGuard[Type[decimal.Decimal]]:
+    """Test whether this annotation is a Decimal object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import decimal
+    >>> from typing import NewType
+    >>> typic.isdecimaltype(decimal.Decimal)
+    True
+    >>> typic.isdecimaltype(NewType("Foo", decimal.Decimal))
+    True
+    """
+    return builtins.issubclass(util.origin(obj), decimal.Decimal)
 
 
 @lru_cache(maxsize=None)
