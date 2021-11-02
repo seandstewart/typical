@@ -79,6 +79,7 @@ __all__ = (
     "iscollectiontype",
     "isconstrained",
     "isdatetype",
+    "isdecimaltype",
     "isdescriptor",
     "isenumtype",
     "isfinal",
