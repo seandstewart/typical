@@ -1,6 +1,6 @@
 name: Test
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test:
@@ -10,8 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        poetry-version: ["1.4.2"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        poetry-version: ["1.1.11"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -27,6 +27,10 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
+    - name: Install Linux dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        ./.github/ubuntu-install.sh
     - name: Install macOS dependencies
       if: startsWith(matrix.os, 'macos')
       run: |
@@ -48,9 +52,7 @@ jobs:
     - name: Set Poetry config
       run: |
         poetry config virtualenvs.in-project true
-    - name: Use legacy installer (Poetry+py3.10)
-      run: |
-        poetry config experimental.new-installer false
+        poetry config experimental.new-installer true
     - name: Install Dependencies
       if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9) }}
       run: poetry install --no-dev -E tests

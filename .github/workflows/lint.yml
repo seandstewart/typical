@@ -1,6 +1,6 @@
 name: Lint
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,8 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9"]
-        poetry-version: ["1.4.2"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,10 +22,12 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
+    - name: Install Linux dependencies
+      run: |
+        ./.github/ubuntu-install.sh
+
     - name: Install Poetry
       uses: abatilo/actions-poetry@v2.1.3
-      with:
-        poetry-version: ${{ matrix.poetry-version }}
 
     - name: Cache Poetry virtualenv
       uses: actions/cache@v1
