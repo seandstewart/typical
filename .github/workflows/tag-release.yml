@@ -1,0 +1,64 @@
+name: tag-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'The level to bump the current version: (major, minor, patch)'
+        required: false
+        default: 'patch'
+      pre-release:
+        description: 'Optionally provide a pre-release tag: (alpha, beta, rc, post, final)'
+        required: false
+        default: ''
+      version:
+        description: 'Override the current version with a custom, SemVer-compliant version'
+        required: false
+        default: ''
+
+jobs:
+  tag:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ "3.9" ]
+        poetry-version: [ "1.1.11" ]
+        bumpver-version: [ "2021.1113" ]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ matrix.python-version }}-${{ runner.os }}-pip-bumpver-${{ matrix.bumpver-version }}
+          restore-keys: |
+            ${{ matrix.python-version }}-${{ runner.os }}-pip-bumpver-
+
+      - name: Install bumpver
+        run: pip install bumpver==${{ matrix.bumpver-version }}
+
+      - name: Bump Version (Override)
+        if: ${{ github.event.inputs.version }}
+        run: bumpver --set-version ${{ github.event.inputs.version }}
+
+      - name: Bump Version (Pre-Release)
+        if: ${{ github.event.inputs.pre-release }}
+        run: bumpver update --${{ github.event.inputs.bump}} --tag=${{ github.event.inputs.pre-release }} --tag-num
+
+      - name: Bump Version
+        if: ${{ github.event.inputs.version == '' && github.event.inputs.pre-release == '' }}
+        run: bumpver update --${{ github.event.inputs.bump}}
