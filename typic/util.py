@@ -469,10 +469,17 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
     for name, value in raw_annotations.items():
         if isinstance(value, str):
             value = transform_annotation(value)
-            if sys.version_info >= (3, 7):
-                value = ForwardRef(value, is_argument=False)
-            else:
-                value = ForwardRef(value)
+            if not isinstance(value, ForwardRef):
+                if sys.version_info >= (3, 9, 8):
+                    value = ForwardRef(
+                        value,
+                        is_argument=False,
+                        is_class=inspect.isclass(annotation),  # type: ignore
+                    )
+                elif sys.version_info >= (3, 7):
+                    value = ForwardRef(value, is_argument=False)
+                else:
+                    value = ForwardRef(value)
         try:
             value = _eval_type(value, base_globals or None, None)
         except NameError:

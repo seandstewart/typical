@@ -394,7 +394,7 @@ class ABar:
 @typic.klass
 class CBlah:
     key: typing.ClassVar[int] = 3
-    field: "typing.Union[CFoo, CBar, CBlah, None]"
+    field: typing.Union[CFoo, CBar, CBlah, None]
 
 
 @typic.klass
