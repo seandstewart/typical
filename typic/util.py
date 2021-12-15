@@ -470,7 +470,7 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
         if isinstance(value, str):
             value = transform_annotation(value)
             if not isinstance(value, ForwardRef):
-                if sys.version_info >= (3, 9, 8):
+                if sys.version_info >= (3, 9, 8) and sys.version_info != (3, 10, 0):
                     value = ForwardRef(
                         value,
                         is_argument=False,
