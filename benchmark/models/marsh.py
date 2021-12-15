@@ -4,7 +4,6 @@ import dataclasses
 import datetime
 from typing import Optional, List
 
-import marshmallow
 from marshmallow import fields, Schema, validate as mvalidate, ValidationError
 
 
@@ -82,10 +81,8 @@ def initialize(**data):
 
 def validate(data):
     try:
-        result: marshmallow.UnmarshalResult = SCHEMA.load(data)
-        if result.errors:
-            return False, result.errors
-        return True, initialize(**result.data)
+        result = SCHEMA.load(data)
+        return True, initialize(**result)
 
     except ValidationError as err:
         return False, err.messages
