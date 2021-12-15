@@ -186,6 +186,8 @@ class MemberInt:
             {"members": [{"field": "string"}, {"field": 1}]},
         ),
         (objects.SubTypic, objects.SubTypic(var="", sub=""), {"var": "", "sub": ""}),
+        (Optional[objects.FooNum], None, None),
+        (Optional[objects.FooNum], objects.FooNum.bar, objects.FooNum.bar.value),
     ],
 )
 def test_serde_serialize(t, obj, prim):

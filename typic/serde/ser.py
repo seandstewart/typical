@@ -253,13 +253,38 @@ class SerFactory:
         # If we can predict a single type the return the serializer for that
         if len(ts) == 1:
             t = ts.pop()
-            va = self.resolver.annotation(t, flags=annotation.serde.flags)
+            va = self.resolver.annotation(
+                t,
+                flags=annotation.serde.flags,
+                is_optional=annotation.optional,
+                is_strict=annotation.strict,
+                parameter=annotation.parameter,
+                default=annotation.parameter.default,
+            )
             vser = self.factory(va)
+            if va.optional:
 
-            def serializer(
-                o: enum.Enum, *, lazy: bool = False, name: util.ReprT = None, _vser=vser
-            ):
-                return _vser(o.value, lazy=lazy, name=name)
+                def serializer(
+                    o: Optional[enum.Enum],
+                    *,
+                    lazy: bool = False,
+                    name: util.ReprT = None,
+                    _vser=vser,
+                ):
+                    if o is None:
+                        return o
+                    return _vser(o.value, lazy=lazy, name=name)
+
+            else:
+
+                def serializer(
+                    o: enum.Enum,
+                    *,
+                    lazy: bool = False,
+                    name: util.ReprT = None,
+                    _vser=vser,
+                ):
+                    return _vser(o.value, lazy=lazy, name=name)
 
             return cast(SerializerT, serializer)
         # Else default to lazy serialization
