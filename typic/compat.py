@@ -62,7 +62,6 @@ if sys.version_info < (3, 7):  # pragma: nocover
     ) -> Any:
         return type_._eval_type(globalns, localns)
 
-
 elif sys.version_info >= (3, 9):  # pragma: nocover
     from typing import ForwardRef
 
@@ -74,7 +73,6 @@ elif sys.version_info >= (3, 9):  # pragma: nocover
     ) -> Any:
         recursive_guard = recursive_guard or set()
         return type_._evaluate(globalns, localns, recursive_guard)  # type: ignore
-
 
 else:  # pragma: nocover
     from typing import ForwardRef  # type: ignore
@@ -95,7 +93,6 @@ if TYPE_CHECKING:
         maxsize: Optional[int] = 128, typed: bool = False
     ) -> Callable[[F], F]:
         pass
-
 
 else:
     from functools import lru_cache
