@@ -36,7 +36,7 @@ from typing import (
 
 from typic import util, checks, gen, types
 from typic.common import DEFAULT_ENCODING
-from typic.compat import Literal
+from typic.compat import Literal, Record
 from .common import (
     SerializerT,
     SerdeConfig,
@@ -104,7 +104,7 @@ class SerFactory:
         Iterable,
         Iterable_abc,
     )
-    _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict)
+    _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict, Record)
     _PRIMITIVES = (str, int, bool, float, type(None), type(...))
     _DYNAMIC = frozenset(
         {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar, Literal}
@@ -201,14 +201,12 @@ class SerFactory:
             ns["case"] = annotation.serde.flags.case.transformer
             ksercall = f"case({ksercall})"
         gencall = f"({ksercall}, vser(v)) for k, v in o.items()"
+        itercall = f"{ksercall}: vser(v) for k, v in o.items()"
         if annotation.serde.flags.omit:
             ns["omit"] = annotation.serde.flags.omit
-            gencall = f"{gencall} if v not in omit"
-        func.l(
-            f"gen = ({gencall})",
-            **ns,
-        )
-        func.l(f"{gen.Keyword.RET} gen if lazy else {{k: v for k, v in gen}}")
+            gencall += "if v not in omit"
+            itercall += "if v not in omit"
+        func.l(f"{gen.Keyword.RET} ({gencall}) if lazy else {{{itercall}}}", **ns)
 
     def _build_class_serializer(
         self,
@@ -240,12 +238,13 @@ class SerFactory:
             f = "transforms.get(f, f)"
         # Define the generator expression.
         gencall = f"({f}, fields_ser[f](v)) for f, v in iterator(o) if f in fields_out"
+        itercall = f"{f}: fields_ser[f](v) for f, v in iterator(o) if f in fields_out"
         if annotation.serde.flags.omit:
             ns["omit"] = annotation.serde.flags.omit
-            gencall = f"{gencall} and v not in omit"
+            gencall += " and v not in omit"
+            itercall += " and v not in omit"
 
-        func.l(f"gen = ({gencall})", **ns)
-        func.l(f"{gen.Keyword.RET} gen if lazy else {{f: v for f, v in gen}}")
+        func.l(f"{gen.Keyword.RET} ({gencall}) if lazy else {{{itercall}}}", **ns)
 
     def _compile_enum_serializer(self, annotation: Annotation) -> SerializerT:
         origin: Type[enum.Enum] = cast(Type[enum.Enum], annotation.resolved_origin)

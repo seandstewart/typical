@@ -221,6 +221,8 @@ def _resolve_class(
     protos = protocols(cls, strict=strict)
     if hasattr(cls, SERDE_FLAGS_ATTR):
         pserde: SerdeFlags = getattr(cls, SERDE_FLAGS_ATTR)
+        if isinstance(pserde, dict):
+            pserde = SerdeFlags(**pserde)
         serde = pserde.merge(serde) if serde else pserde
     serde = serde or SerdeFlags()
     ns: Dict[str, Any] = {

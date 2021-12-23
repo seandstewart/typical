@@ -110,23 +110,6 @@ Typical is built upon the standard `typing` library. Virtually any valid static 
 be reflected and managed by Typical. Just follow the rules defined by
 [PEP 484](https://www.python.org/dev/peps/pep-0484/) and you're good to go!
 
-!!! important "Primitive Unions"
-
-    `Union` types will not be proactively transmuted to a type within 
-     union's definition. This is because the resolution of a Union
-     is inherently unclear. In such cases, you may define a
-     [custom converter]() for handling your union-type.
-    
-    The major exception to this rule is `Optional`/`Union[..., None]`. 
-    This is a defined use-case for union-types which as a clear 
-    resolution.
-
-!!! important "Tagged Unions"
-
-    Tagged Unions, i.e., Polymorphic or Discriminated Types, are now supported as an
-    experimental feature. See our docs on [Experimental Features](experimental.md) for 
-    more.
-
 Beyond classes, standard types, and the annotation syntax provided by the `typing`
 library, Typical also natively supports extended types defined in the following standard
 modules & bases:
