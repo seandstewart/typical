@@ -33,18 +33,21 @@ Here's a short list:
 
 ## Benchmarks
 
-The following benchmarks Typical's three public APIs against:
+The following benchmarks Typical's three public APIs against on Python 3.9:
 
 - [Django Rest Framework (DRF)](https://www.django-rest-framework.org/)
 - [Marshmallow](https://marshmallow.readthedocs.io/en/stable/)
 - [Pydantic](https://pydantic-docs.helpmanual.io/)
 
-As can be seen, Typical's three APIs comparable in speed to Pydantic (and in many cases
-slightly faster), without the need for Cython as a build-dependency, making it far more
-portable.
+As can be seen, Typical's three APIs are consistently faster than all three libraries, 
+without the need for Cython as a build-dependency, making it far more portable than 
+other libraries on this list. 
 
 
 ### Validation Only
+
+> Typical is 25% faster, on average, than the nearest alternative when validating 
+> data, and up to 8X faster when validating invalid data.
 
 [![Average time (in μs) for validation of invalid data in
 a complex, nested
@@ -56,6 +59,9 @@ complex, nested object.][validate-valid]][validate-valid]
 
 ### Deserialization & Validation
 
+> Typical is comparable in performance to the nearest alternative when deserializing 
+> valid data into your model, and up to 4x faster when deserializing invalid data.
+
 [![Average time (in μs) for attempted deserialization of
 invalid data in a complex, nested
 object.][deser-invalid]][deser-invalid]
@@ -65,6 +71,10 @@ complex, nested object.][deser-valid]][deser-valid]
 
 
 ### Serialization & Validation
+
+> Typical is consistently 3-4x faster than the nearest alternative when serializing 
+> data to JSON, and requires no additional configuration of your JSON library to 
+> dump your models.
 
 *It should be noted that at the time of this writing, both
 Pydantic and Marshmallow will passively allow or ignore
@@ -82,9 +92,9 @@ a complex, nested object.][ser-valid]][ser-valid]
 
 ### Translate *to* an Arbitrary Class
 
-Typical supports automated translation of one known,
-custom class to an unknown, unlike other popular
-libraries.
+> Typical supports automated translation of one known,
+> custom class to an unknown, unlike other popular
+> libraries.
 
 [![Average time (in μs) for translation of a known class
 to another unknown class a complex, nested
@@ -93,9 +103,9 @@ object.][trans-to]][trans-to]
 
 ### Translate *from* an Arbitrary Class
 
-Typical also supports translation from an arbitrary class
-to a known class. Pydantic supports this feature with the
-`from_orm()` method.
+> Typical also supports translation from an arbitrary class
+> to a known class. Pydantic supports this feature with the
+> `from_orm()` method.
 
 [![Average time (in μs) for translation of a known class
 to another unknown class a complex, nested
