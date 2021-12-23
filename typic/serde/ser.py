@@ -36,7 +36,7 @@ from typing import (
 
 from typic import util, checks, gen, types
 from typic.common import DEFAULT_ENCODING
-from typic.compat import Literal
+from typic.compat import Literal, Record
 from .common import (
     SerializerT,
     SerdeConfig,
@@ -104,7 +104,7 @@ class SerFactory:
         Iterable,
         Iterable_abc,
     )
-    _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict)
+    _DICTITER = (dict, Mapping, Mapping_abc, MappingProxyType, types.FrozenDict, Record)
     _PRIMITIVES = (str, int, bool, float, type(None), type(...))
     _DYNAMIC = frozenset(
         {Union, Any, inspect.Parameter.empty, dataclasses.MISSING, ClassVar, Literal}

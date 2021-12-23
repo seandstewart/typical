@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import sys
+import types
+from datetime import date, datetime
+from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     _SpecialForm as SpecialForm,  # type: ignore
     TypeVar,
     Optional,
-    Callable,
+    Union,
 )
 
 try:
@@ -37,9 +41,44 @@ except ImportError:  # pragma: nocover
 
 
 try:  # pragma: nocover
-    from asyncpg import Record
+    import asyncpg
+
+    Record = asyncpg.Record
+
+    def _patch_asyncpg_range():
+        # N.B.: Some hacking ahead.
+        # asyncpg's builtin Range object has some limitations which make ser/des finnicky.
+        #   It takes the parameter `empty`, but exposes that value as the property
+        #   `isempty`, hides all its attributes behind properties, and has no annotations.
+        #
+        # I'd rather just update the db client to return our own type for pg Ranges, but that
+        #   would require writing a custom encoder/decoder for postgres :(
+        #   See: https://magicstack.github.io/asyncpg/current/usage.html#custom-type-conversions
+        #
+        # Instead, I'm just flagging to typical that we should use `isempty` as the value for
+        #   `empty` when we serialize a range to JSON, etc.
+
+        asyncpg.Range.__serde_flags__ = dict(
+            # Don't try to get the attribute `empty`.
+            exclude=("empty",),
+            # Alias `isempty` to `empty` when serializing.
+            fields={"isempty": "empty"},
+        )
+        # We're also adding in annotations so we preserve these fields when serializing.
+        asyncpg.Range.__annotations__ = {
+            "lower": Union[int, date, datetime, None],
+            "upper": Union[int, date, datetime, None],
+            "lower_inc": bool,
+            "upper_inc": bool,
+            "isempty": bool,
+        }
+
+    _patch_asyncpg_range()
+
 except (ImportError, ModuleNotFoundError):
     Record = dict
+    asyncpg = types.ModuleType("asyncpg")
+    asyncpg.Record = Record
 
 
 if sys.version_info < (3, 7):  # pragma: nocover
