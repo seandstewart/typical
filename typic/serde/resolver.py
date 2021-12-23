@@ -376,7 +376,7 @@ class Resolver:
         parameter: Optional[inspect.Parameter] = None,
         is_optional: bool = None,
         is_strict: StrictModeT = None,
-        flags: "SerdeFlags" = None,
+        flags: SerdeFlags | dict = None,
         default: Any = EMPTY,
         namespace: Type = None,
     ) -> Annotation[Type[ObjectT]]:
@@ -385,9 +385,17 @@ class Resolver:
         Unlike a :py:class:`ResolvedAnnotation`, this does not provide access to a
         serializer/deserializer/validator protocol.
         """
-        flags = cast(
-            "SerdeFlags", getattr(annotation, SERDE_FLAGS_ATTR, flags or SerdeFlags())
-        )
+        flags = flags or SerdeFlags()
+        if isinstance(flags, dict):
+            flags = SerdeFlags(**flags)
+        if hasattr(annotation, SERDE_FLAGS_ATTR):
+            pflags = getattr(annotation, SERDE_FLAGS_ATTR)
+            if isinstance(flags, dict):
+                pflags = SerdeFlags(**flags)
+                setattr(annotation, SERDE_FLAGS_ATTR, pflags)
+            flags = pflags.merge(flags)
+        fflags = cast("SerdeFlags", flags)
+
         if parameter is None:
             parameter = inspect.Parameter(
                 name or "_",
@@ -454,7 +462,7 @@ class Resolver:
                 parameter=parameter,
                 is_optional=is_optional,
                 is_strict=is_strict,
-                flags=flags,
+                flags=fflags,
                 default=default,
                 module=module,
                 frame=inspect.currentframe(),
@@ -473,7 +481,7 @@ class Resolver:
                 parameter=parameter,
                 is_optional=is_optional,
                 is_strict=is_strict,
-                flags=flags,
+                flags=fflags,
                 default=default,
             )
             return cast(Annotation, da)
@@ -481,9 +489,9 @@ class Resolver:
         if not checks.isstdlibtype(use):
             self.__stack.add(use)
         serde = (
-            self._get_configuration(util.origin(use), flags)
+            self._get_configuration(util.origin(use), fflags)
             if is_static and not is_literal
-            else SerdeConfig(flags)
+            else SerdeConfig(fflags)
         )
 
         anno: Annotation = Annotation(
