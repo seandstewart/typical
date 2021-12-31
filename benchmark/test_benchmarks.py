@@ -8,7 +8,7 @@ from copy import deepcopy
 import pytest
 import typic
 
-from benchmark.models import drf, functional, klass, marsh, protocol, pyd
+from benchmark.models import apisch, drf, functional, klass, marsh, protocol, pyd
 
 THIS_DIR = pathlib.Path(__file__).parent.resolve()
 
@@ -24,6 +24,7 @@ _MODS = {
     "pydantic": pyd,
     "marshmallow": marsh,
     "djangorestframework": drf,
+    "apischema": apisch,
 }
 
 
@@ -51,7 +52,7 @@ class NotASkill:
 def test_benchmarks_validate_valid_data(benchmark, mod):
     benchmark.group = "Validate Valid Data"
     benchmark.name = mod
-    raw = VALID_RAW if mod == "marshmallow" else VALID_DESER
+    raw = VALID_RAW if mod in ("marshmallow", "apischema") else VALID_DESER
     validate = _MODS[mod].validate
     valid, data = benchmark(validate, deepcopy(raw))
     assert valid, data
@@ -90,9 +91,12 @@ def test_benchmarks_serialize_valid_data(benchmark, mod):
     benchmark.name = mod
     serialize = _MODS[mod].tojson
     model = _MODS[mod].Model
-    instance = (
-        model(**VALID_RAW) if mod == "pydantic" else typic.transmute(model, VALID_RAW)
-    )
+    if mod == "pydantic":
+        instance = model(**VALID_RAW)
+    elif mod == "apischema":
+        _, instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
+    else:
+        instance = typic.transmute(model, VALID_RAW)
     valid, data = benchmark(serialize, instance)
     assert valid, data
 
@@ -103,9 +107,12 @@ def test_benchmarks_serialize_invalid_data(benchmark, mod):
     benchmark.name = mod
     serialize = _MODS[mod].tojson
     model = _MODS[mod].Model
-    instance = (
-        model(**VALID_RAW) if mod == "pydantic" else typic.transmute(model, VALID_RAW)
-    )
+    if mod == "pydantic":
+        instance = model(**VALID_RAW)
+    elif mod == "apischema":
+        instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
+    else:
+        instance = typic.transmute(model, VALID_RAW)
     instance.skills.append(NotASkill())
     valid, data = benchmark(serialize, instance)
     # Marshmallow implicitly filters invalid data, and pydantic doesn't care at all.
