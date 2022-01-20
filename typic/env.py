@@ -115,7 +115,7 @@ class Environ:
         except (TypeError, ValueError, KeyError) as err:
             raise EnvironmentValueError(
                 f"Couldn't parse <{var}:{value}> to {t!r}: {err}."
-            ) from None
+            ) from err
 
     def setenv(self, var: str, value: Any):
         """Set the `value` as `var` in the OS environ."""
