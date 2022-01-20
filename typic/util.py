@@ -52,6 +52,7 @@ __all__ = (
     "extract",
     "fastcachedmethod",
     "filtered_repr",
+    "fromstr",
     "get_args",
     "get_name",
     "get_defname",
@@ -97,7 +98,7 @@ GENERIC_TYPE_MAP = {
 }
 
 
-@lru_cache(maxsize=2000, typed=True)
+# @lru_cache(maxsize=2000, typed=True)
 def safe_eval(string: str) -> Tuple[bool, Any]:
     """Try a few methods to evaluate a string and get the correct Python data-type.
 
@@ -129,6 +130,14 @@ def safe_eval(string: str) -> Tuple[bool, Any]:
             result, processed = string, False
 
     return processed, result
+
+
+@lru_cache(maxsize=2000)
+def fromstr(string: str | bytes) -> Any:
+    try:
+        return json.loads(string)
+    except (TypeError, ValueError, SyntaxError):
+        return string
 
 
 def _check_generics(hint: Any):
@@ -550,13 +559,15 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
     so we should be able to declare a matching signature for it.
     """
     hints = cached_type_hints(obj)
+    total = getattr(obj, "__total__", True)
+    default = inspect.Parameter.empty if total else ...
     return inspect.Signature(
         parameters=tuple(
             inspect.Parameter(
                 name=x,
                 kind=inspect.Parameter.KEYWORD_ONLY,
                 annotation=y,
-                default=getattr(obj, x, inspect.Parameter.empty),
+                default=getattr(obj, x, default),
             )
             for x, y in hints.items()
         )

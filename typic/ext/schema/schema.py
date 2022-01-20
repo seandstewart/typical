@@ -277,6 +277,7 @@ class SchemaBuilder:
         # If a field isn't required an empty default is functionally the same
         # as a default to None for the JSON schema.
         default = anno.parameter.default if anno.has_default else None
+        default = None if default is ... else default
         # `use` is the based annotation we will use for building the schema
         use = getattr(anno.origin, "__parent__", anno.origin)
         # This is a flat optional, handle it separately from the Union block.

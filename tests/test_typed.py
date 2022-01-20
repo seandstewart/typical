@@ -58,7 +58,6 @@ def test_isbuiltintype(obj: typing.Any):
     argnames=("annotation", "value", "expected"),
     argvalues=[
         (dict, [("foo", "bar")], {"foo": "bar"}),
-        (dict, [1], {0: 1}),
         (typing.Dict, [("foo", "bar")], {"foo": "bar"}),
         (list, set(), []),
         (typing.List, set(), []),
@@ -72,9 +71,7 @@ def test_isbuiltintype(obj: typing.Any):
         (bool, 1, True),
         (bool, "1", True),
         (bool, "true", True),
-        (bool, "True", True),
         (bool, "false", False),
-        (bool, "False", False),
         (bool, "0", False),
         (bool, 0, False),
         (
@@ -106,7 +103,7 @@ def test_isbuiltintype(obj: typing.Any):
         (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
         (objects.Data, {"foo": "bar!"}, objects.Data("bar!")),
         (dict, objects.Data("bar!"), {"foo": "bar!"}),
-        (list, objects.Data("bar!"), ["bar!"]),
+        (list, objects.Data("bar!"), [("foo", "bar!")]),
         (objects.TDict, objects.TClass(1), objects.TDict(a=1)),
         (objects.NTup, objects.TClass(1), objects.NTup(a=1)),
         (objects.TDict, objects.NTup(1), objects.TDict(a=1)),
@@ -409,15 +406,9 @@ def test_transmute_mapping_subscripted(annotation, value):
         ),
         (
             typing.Mapping[typing.Optional[str], typing.Optional[int]],
-            "{None:None}",
-            {None: None},
+            '{"1":1}',
+            {"1": 1},
         ),
-        (
-            typing.Mapping[typing.Optional[str], typing.Optional[int]],
-            "{None:1}",
-            {None: 1},
-        ),
-        (typing.Mapping[typing.Optional[str], typing.Optional[int]], "{1:1}", {"1": 1}),
     ],
     ids=objects.get_id,
 )

@@ -52,7 +52,7 @@ from .common import (
     PrimitiveT,
     FieldIteratorT,
 )
-from .des import DesFactory
+from .des.factory import DesFactory
 from .ser import SerFactory
 from .translator import TranslatorFactory
 
@@ -740,7 +740,9 @@ class Resolver:
         return resolved
 
     @lru_cache(maxsize=None)
-    def protocols(self, obj, *, strict: bool = False) -> SerdeProtocolsT:
+    def protocols(
+        self, obj, *, strict: bool = False, signature_only: bool = False
+    ) -> SerdeProtocolsT:
         """Get a mapping of param/attr name -> :py:class:`SerdeProtocol`
 
         Parameters
@@ -774,7 +776,10 @@ class Resolver:
         if dataclasses.is_dataclass(obj):
             fields = {f.name: f for f in dataclasses.fields(obj)}
         ann = {}
-        for name in params.keys() | hints.keys():
+        keys = params.keys()
+        if signature_only is False:
+            keys |= hints.keys()
+        for name in keys:
             param = params.get(name)
             hint = hints.get(name)
             field = fields.get(name)
