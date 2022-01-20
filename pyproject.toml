@@ -44,10 +44,10 @@ sqlalchemy = {version = "^1.3.13", optional = true}
 # benchmarks
 pytest-benchmark = {version = "^3.2", extras = ["histogram"], optional = true}
 marshmallow = {version = "^3.2", optional = true}
-toastedmarshmallow = {version = "^2.15", optional = true}
 djangorestframework = {version = "^3.10", optional = true}
 pydantic = {version = "^1.0", extras = ["email"], optional = true}
-django = {version = "^2.2", optional = true}
+django = {version = "^3", optional = true}
+apischema = {version = "^0.17.1", optional = true}
 # lint
 flake8 = {version = "^3.7.9", optional = true}
 mypy = {version = "^0.910", optional = true}
@@ -72,10 +72,9 @@ black = {version = "^21", allow-prereleases = true}
 pre-commit = "^2"
 pytest-benchmark = {version = "^3.2", extras = ["histogram"]}
 marshmallow = "^3.2"
-toastedmarshmallow = "^2.15"
 djangorestframework = "^3.10"
 pydantic = {version = "^1.0", extras = ["email"]}
-django = "^2.2"
+django = "^3"
 flake8 = "^3.7.9"
 mypy = "^0.910"
 ujson = "^3.2"
@@ -92,6 +91,7 @@ bumpver = "^2021.1113"
 orjson = "^3.6.3"
 bpython = "^0.21"
 asyncpg = "^0.25.0"
+apischema = "^0.17.1"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
@@ -110,12 +110,11 @@ tests = [
 benchmarks = [
     "pytest-benchmark",
     "marshmallow",
-    "toastedmarshmallow",
     "djangorestframework",
-    "pydantic",
     "django",
     "pydantic",
     "sqlalchemy",
+    "apischema",
 ]
 lint = [
     "mypy",
