@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import django
+import orjson
 from django.conf import settings
 
 settings.configure(
@@ -63,6 +64,6 @@ def deserialize(data):
 def tojson(instance):
     result = ModelSerializer(instance=instance)
     try:
-        return True, result.data
+        return True, orjson.dumps(result.data).decode()
     except AttributeError as err:
         return False, err
