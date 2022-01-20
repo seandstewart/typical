@@ -382,7 +382,33 @@ def isdatetype(
     >>> typic.isdatetype(NewType("Foo", datetime.datetime))
     True
     """
-    return builtins.issubclass(util.origin(obj), (datetime.datetime, datetime.date))
+    return builtins.issubclass(util.origin(obj), datetime.date)
+
+
+@lru_cache(maxsize=None)
+def isdatetimetype(
+    obj: Type[ObjectT],
+) -> TypeGuard[Type[Union[datetime.datetime, datetime.date]]]:
+    """Test whether this annotation is a a date/datetime object.
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+
+    >>> import typic
+    >>> import datetime
+    >>> from typing import NewType
+    >>> typic.isdatetype(datetime.datetime)
+    True
+    >>> typic.isdatetype(datetime.date)
+    True
+    >>> typic.isdatetype(NewType("Foo", datetime.datetime))
+    True
+    """
+    return builtins.issubclass(util.origin(obj), datetime.datetime)
 
 
 @lru_cache(maxsize=None)
