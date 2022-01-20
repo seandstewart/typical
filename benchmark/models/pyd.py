@@ -3,7 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional, Any
 
+import orjson
 from pydantic import BaseModel, ConstrainedStr, PositiveInt, BaseConfig, ValidationError
+
+
+def orjson_dumps(v, *, default):
+    # orjson.dumps returns bytes, to match standard json.dumps we need to decode
+    return orjson.dumps(v, default=default).decode()
 
 
 class DBString(ConstrainedStr):
@@ -24,6 +30,8 @@ class Location(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -34,6 +42,8 @@ class Skill(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     subject: str
     subject_id: int
@@ -48,6 +58,8 @@ class Model(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     id: int
     client_name: DBString
