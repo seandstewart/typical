@@ -49,7 +49,7 @@ from typic.common import (
     TYPIC_ANNOS_NAME,
 )
 from typic.serde.resolver import resolver
-from typic.serde.ser import SerializationValueError
+from typic.serde.ser.factory import SerializationValueError
 from typic.strict import (
     is_strict_mode,
     strict_mode,
@@ -318,7 +318,7 @@ def wrap_cls(
     def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
         if isinstance(delay, bool):
             warnings.warn(
-                "The `delay` argument is no longer required and is deprecated."
+                "The `delay` argument is no longer required and is deprecated. "
                 "It will be removed in a future version.",
                 category=DeprecationWarning,
             )
