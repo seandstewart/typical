@@ -130,7 +130,7 @@ class DesFactory:
             *annotation.serde.fields_in.values()
         }
         if checks.isliteral(origin):
-            return routines.LiteralRoutine(
+            return routines.LiteralDeserializerRoutine(
                 annotation, self.resolver, namespace
             ).deserializer()
 
@@ -143,67 +143,75 @@ class DesFactory:
             if check(origin, args, aliased):
                 return Routine(annotation, self.resolver, namespace).deserializer()
 
-        return routines.FieldsRoutine(
+        return routines.FieldsDeserializerRoutine(
             annotation, self.resolver, namespace
         ).deserializer()
 
     # Order is IMPORTANT! This is a FIFO queue.
-    _HANDLERS: Mapping[HandlerCheckT, type[routines.BaseRoutine]] = {
+    _HANDLERS: Mapping[HandlerCheckT, type[routines.BaseDeserializerRoutine]] = {
         # Special handler for Unions...
-        lambda origin, args, aliased: checks.isuniontype(origin): routines.UnionRoutine,
+        lambda origin, args, aliased: checks.isuniontype(
+            origin
+        ): routines.UnionDeserializerRoutine,
         # Non-intersecting types (order doesn't matter here.
         lambda origin, args, aliased: checks.isdatetimetype(
             origin
-        ): routines.DateTimeRoutine,
-        lambda origin, args, aliased: checks.isdatetype(origin): routines.DateRoutine,
-        lambda origin, args, aliased: checks.istimetype(origin): routines.TimeRoutine,
+        ): routines.DateTimeDeserializerRoutine,
+        lambda origin, args, aliased: checks.isdatetype(
+            origin
+        ): routines.DateDeserializerRoutine,
+        lambda origin, args, aliased: checks.istimetype(
+            origin
+        ): routines.TimeDeserializerRoutine,
         lambda origin, args, aliased: checks.istimedeltatype(
             origin
-        ): routines.TimeDeltaRoutine,
-        lambda origin, args, aliased: checks.isuuidtype(origin): routines.UUIDRoutine,
+        ): routines.TimeDeltaDeserializerRoutine,
+        lambda origin, args, aliased: checks.isuuidtype(
+            origin
+        ): routines.UUIDDeserializerRoutine,
         lambda origin, args, aliased: origin
-        in {Pattern, re.Pattern}: routines.PatternRoutine,
+        in {Pattern, re.Pattern}: routines.PatternDeserializerRoutine,
         lambda origin, args, aliased: issubclass(
             origin, pathlib.Path
-        ): routines.SimpleRoutine,
+        ): routines.SimpleDeserializerRoutine,
         lambda origin, args, aliased: checks.isdecimaltype(
             origin
-        ): routines.SimpleRoutine,
+        ): routines.SimpleDeserializerRoutine,
         lambda origin, args, aliased: issubclass(
             origin, (str, bytes, bytearray)
-        ): routines.TextRoutine,
+        ): routines.TextDeserializerRoutine,
         # MUST come before subtype check.
         lambda origin, args, aliased: (
             not args and checks.isbuiltintype(origin)
-        ): routines.SimpleRoutine,
+        ): routines.SimpleDeserializerRoutine,
         # Psuedo-structured containers, should check before generics.
         lambda origin, args, aliased: checks.istypeddict(
             origin
-        ): routines.FieldsRoutine,
+        ): routines.FieldsDeserializerRoutine,
         lambda origin, args, aliased: checks.istypedtuple(
             origin
-        ): routines.FieldsRoutine,
+        ): routines.FieldsDeserializerRoutine,
         lambda origin, args, aliased: checks.isnamedtuple(
             origin
-        ): routines.FieldsRoutine,
+        ): routines.FieldsDeserializerRoutine,
         lambda origin, args, aliased: (
             not args and not aliased and checks.isbuiltinsubtype(origin)
-        ): routines.SimpleRoutine,
+        ): routines.SimpleDeserializerRoutine,
         lambda origin, args, aliased: (
             not args and not aliased and checks.iscollectiontype(origin)
-        ): routines.SimpleRoutine,
+        ): routines.SimpleDeserializerRoutine,
         # A mapping is a collection so must come before that check.
         lambda origin, args, aliased: checks.ismappingtype(
             origin
-        ): routines.MappingRoutine,
+        ): routines.MappingDeserializerRoutine,
         # A tuple is a collection so must come before that check.
         lambda origin, args, aliased: (
             checks.istupletype(origin) and args[-1] is not ...
-        ): routines.FixedTupleRoutine,
+        ): routines.FixedTupleDeserializerRoutine,
         # Generic collection handler
         lambda origin, args, aliased: checks.iscollectiontype(
             origin
-        ): routines.CollectionRoutine,
+        ): routines.CollectionDeserializerRoutine,
     }
 
     def factory(

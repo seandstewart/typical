@@ -26,12 +26,31 @@ if TYPE_CHECKING:
     from typic.serde.resolver import Resolver
 
 
+__all__ = (
+    "BaseSerializerRoutine",
+    "BaseCastSerializerSerializerRoutine",
+    "BytesSerializerRoutine",
+    "CastSerializerRoutine",
+    "CollectionSerializerRoutine",
+    "EnumSerializerRoutine",
+    "FieldsSerializerRoutine",
+    "FixedTupleSerializerRoutine",
+    "ISOFormatSerializerRoutine",
+    "MappingSerializerRoutine",
+    "NoopSerializerRoutine",
+    "PatternSerializerRoutine",
+    "SecretSerializerRoutine",
+    "StringSerializerRoutine",
+    "SerializationValueError",
+)
+
+
 _T = TypeVar("_T")
 
 
 @util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass
-class BaseRoutine(Generic[_T]):
+class BaseSerializerRoutine(Generic[_T]):
     annotation: Annotation[type[_T]]
     resolver: Resolver
     namespace: type | None = None
@@ -167,7 +186,7 @@ class BaseRoutine(Generic[_T]):
         return cast("_CheckT", check)
 
 
-class BaseCastRoutine(BaseRoutine[_T]):
+class BaseCastSerializerSerializerRoutine(BaseSerializerRoutine[_T]):
     def serializer(self) -> SerializerT[_T]:
         check = self._get_checks()
         ser = self._get_serializer()
@@ -187,7 +206,7 @@ class BaseCastRoutine(BaseRoutine[_T]):
         return cast("SerializerT[_T]", serializer)
 
 
-class NoopRoutine(BaseCastRoutine[_T]):
+class NoopSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def serializer(self) -> SerializerT[_T]:
         if self.annotation.resolved_origin in self.resolver.OPTIONALS:
 
@@ -217,27 +236,27 @@ class NoopRoutine(BaseCastRoutine[_T]):
         return cast("SerializerT[_T]", noop_serializer)
 
 
-class CastRoutine(BaseCastRoutine[_T]):
+class CastSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         return cast("SerializerT[_T]", self.namespace)
 
 
-class StringRoutine(BaseCastRoutine[_T]):
+class StringSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         return cast("SerializerT[_T]", str)
 
 
-class PatternRoutine(BaseCastRoutine[_T]):
+class PatternSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         return cast("SerializerT[_T]", _pattern)
 
 
-class ISOFormatRoutine(BaseCastRoutine[_T]):
+class ISOFormatSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         return cast("SerializerT[_T]", util.isoformat)
 
 
-class SecretRoutine(BaseCastRoutine[_T]):
+class SecretSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         if issubclass(self.annotation.resolved_origin, types.SecretBytes):
             return cast(
@@ -246,7 +265,7 @@ class SecretRoutine(BaseCastRoutine[_T]):
         return cast("SerializerT[_T]", _secret)
 
 
-class BytesRoutine(BaseCastRoutine[_T]):
+class BytesSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         return cast("SerializerT[_T]", _decode)
 
@@ -254,7 +273,7 @@ class BytesRoutine(BaseCastRoutine[_T]):
 _VT = TypeVar("_VT")
 
 
-class ListRoutine(BaseRoutine[Collection[_VT]]):
+class CollectionSerializerRoutine(BaseSerializerRoutine[Collection[_VT]]):
     def _get_serializer(self) -> SerializerT[_T]:
         annotation = self.annotation
         arg_ser: SerializerT[_VT] = cast("SerializerT[_VT]", self.resolver.primitive)
@@ -301,7 +320,7 @@ class ListRoutine(BaseRoutine[Collection[_VT]]):
 _KT = TypeVar("_KT")
 
 
-class DictSerializer(BaseRoutine[Mapping[_KT, _VT]]):
+class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
     def _get_serializer(self) -> SerializerT[_T]:
         annotation = self.annotation
         kser_: SerializerT
@@ -521,7 +540,7 @@ class DictSerializer(BaseRoutine[Mapping[_KT, _VT]]):
         return cast("SerializerT[_T]", dict_serializer)
 
 
-class FieldsRoutine(BaseRoutine[_T]):
+class FieldsSerializerRoutine(BaseSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         annotation = self.annotation
         fields_ser = {
@@ -576,7 +595,7 @@ class FieldsRoutine(BaseRoutine[_T]):
         return cast("SerializerT[_T]", field_serializer)
 
 
-class FixedTupleRoutine(BaseRoutine[Tuple[_VT]]):
+class FixedTupleSerializerRoutine(BaseSerializerRoutine[Tuple[_VT]]):
     def _get_serializer(self) -> SerializerT[_T]:
         annotation = self.annotation
         fields_ser = {
@@ -600,7 +619,7 @@ class FixedTupleRoutine(BaseRoutine[Tuple[_VT]]):
         return cast("SerializerT[_T]", fixed_tuple_serializer)
 
 
-class EnumRoutine(BaseRoutine[_T]):
+class EnumSerializerRoutine(BaseSerializerRoutine[_T]):
     def _get_serializer(self) -> SerializerT[_T]:
         annotation = self.annotation
         origin: type[enum.Enum] = cast("type[enum.Enum]", annotation.resolved_origin)

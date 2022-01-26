@@ -64,33 +64,33 @@ class SerFactory:
     Should not be used directly.
     """
 
-    _DEFINED: Mapping[type, type[routines.BaseRoutine]] = {
-        ipaddress.IPv4Address: routines.StringRoutine,
-        ipaddress.IPv4Network: routines.StringRoutine,
-        ipaddress.IPv6Address: routines.StringRoutine,
-        ipaddress.IPv6Interface: routines.StringRoutine,
-        ipaddress.IPv6Network: routines.StringRoutine,
-        re.Pattern: routines.PatternRoutine,  # type: ignore
-        pathlib.Path: routines.StringRoutine,
-        types.AbsoluteURL: routines.StringRoutine,
-        types.DSN: routines.StringRoutine,
-        types.DirectoryPath: routines.StringRoutine,
-        types.Email: routines.StringRoutine,
-        types.FilePath: routines.StringRoutine,
-        types.HostName: routines.StringRoutine,
-        types.NetworkAddress: routines.StringRoutine,
-        types.RelativeURL: routines.StringRoutine,
-        types.SecretBytes: routines.SecretRoutine,
-        types.SecretStr: routines.SecretRoutine,
-        types.URL: routines.StringRoutine,
-        uuid.UUID: routines.StringRoutine,
-        decimal.Decimal: routines.StringRoutine,
-        bytes: routines.BytesRoutine,
-        bytearray: routines.BytesRoutine,
-        datetime.date: routines.ISOFormatRoutine,
-        datetime.datetime: routines.ISOFormatRoutine,
-        datetime.time: routines.ISOFormatRoutine,
-        datetime.timedelta: routines.ISOFormatRoutine,
+    _DEFINED: Mapping[type, type[routines.BaseSerializerRoutine]] = {
+        ipaddress.IPv4Address: routines.StringSerializerRoutine,
+        ipaddress.IPv4Network: routines.StringSerializerRoutine,
+        ipaddress.IPv6Address: routines.StringSerializerRoutine,
+        ipaddress.IPv6Interface: routines.StringSerializerRoutine,
+        ipaddress.IPv6Network: routines.StringSerializerRoutine,
+        re.Pattern: routines.PatternSerializerRoutine,  # type: ignore
+        pathlib.Path: routines.StringSerializerRoutine,
+        types.AbsoluteURL: routines.StringSerializerRoutine,
+        types.DSN: routines.StringSerializerRoutine,
+        types.DirectoryPath: routines.StringSerializerRoutine,
+        types.Email: routines.StringSerializerRoutine,
+        types.FilePath: routines.StringSerializerRoutine,
+        types.HostName: routines.StringSerializerRoutine,
+        types.NetworkAddress: routines.StringSerializerRoutine,
+        types.RelativeURL: routines.StringSerializerRoutine,
+        types.SecretBytes: routines.SecretSerializerRoutine,
+        types.SecretStr: routines.SecretSerializerRoutine,
+        types.URL: routines.StringSerializerRoutine,
+        uuid.UUID: routines.StringSerializerRoutine,
+        decimal.Decimal: routines.StringSerializerRoutine,
+        bytes: routines.BytesSerializerRoutine,
+        bytearray: routines.BytesSerializerRoutine,
+        datetime.date: routines.ISOFormatSerializerRoutine,
+        datetime.datetime: routines.ISOFormatSerializerRoutine,
+        datetime.time: routines.ISOFormatSerializerRoutine,
+        datetime.timedelta: routines.ISOFormatSerializerRoutine,
     }
 
     _LISTITER = (
@@ -158,14 +158,18 @@ class SerFactory:
 
         # Enums are special
         if checks.isenumtype(annotation.resolved):
-            serializer = routines.EnumRoutine(annotation, self.resolver).serializer()
+            serializer = routines.EnumSerializerRoutine(
+                annotation, self.resolver
+            ).serializer()
             self._serializer_cache[func_name] = serializer
             return serializer
 
         # Primitives don't require further processing.
         # Just check for nullable and the correct type.
         if origin in self._PRIMITIVES:
-            serializer = routines.NoopRoutine(annotation, self.resolver).serializer()
+            serializer = routines.NoopSerializerRoutine(
+                annotation, self.resolver
+            ).serializer()
             self._serializer_cache[func_name] = serializer
             return serializer
 
@@ -179,7 +183,7 @@ class SerFactory:
 
         for t in self._PRIMITIVES:
             if issubclass(origin, t):
-                serializer = routines.CastRoutine(
+                serializer = routines.CastSerializerRoutine(
                     annotation=annotation, resolver=self.resolver, namespace=t
                 ).serializer()
                 self._serializer_cache[func_name] = serializer
@@ -191,21 +195,21 @@ class SerFactory:
         iscollection = issubclass(origin, self._LISTITER)
         ismapping = issubclass(origin, self._DICTITER)
 
-        Routine = routines.FieldsRoutine
+        Routine = routines.FieldsSerializerRoutine
         if any((istypeddict, istypedtuple, istypicklass)):
-            Routine = routines.FieldsRoutine
+            Routine = routines.FieldsSerializerRoutine
 
         elif (
             issubclass(origin, tuple)
             and annotation.args
             and annotation.args[-1] is not ...
         ):
-            Routine = routines.FixedTupleRoutine
+            Routine = routines.FixedTupleSerializerRoutine
 
         elif ismapping:
-            Routine = routines.DictSerializer
+            Routine = routines.MappingSerializerRoutine
         elif iscollection:
-            Routine = routines.ListRoutine
+            Routine = routines.CollectionSerializerRoutine
 
         serializer = Routine(annotation=annotation, resolver=self.resolver).serializer()
         self._serializer_cache[func_name] = serializer
