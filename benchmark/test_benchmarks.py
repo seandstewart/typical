@@ -110,7 +110,7 @@ def test_benchmarks_serialize_invalid_data(benchmark, mod):
     if mod == "pydantic":
         instance = model(**VALID_RAW)
     elif mod == "apischema":
-        instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
+        _, instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
     else:
         instance = typic.transmute(model, VALID_RAW)
     instance.skills.append(NotASkill())
