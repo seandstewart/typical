@@ -11,6 +11,7 @@ import typing
 from types import MappingProxyType
 from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
 
+import orjson
 import pytest
 import ujson
 
@@ -302,7 +303,7 @@ class Bar:
     ],
 )
 def test_tojson(obj, expected):
-    assert typic.tojson(obj) == expected
+    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS) == expected
 
 
 @typic.klass
@@ -328,7 +329,7 @@ class Bar:
 )
 def test_tojson_native(obj, expected):
     native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
-    assert typic.tojson(obj).decode() == native == expected
+    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS).decode() == native == expected
 
 
 badbar = Bar([])
