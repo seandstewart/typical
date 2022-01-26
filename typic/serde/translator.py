@@ -152,6 +152,8 @@ class TranslatorFactory:
         values: bool = False,
         relaxed: bool = False,
         exclude: Tuple[str, ...] = (),
+        only: frozenset[str] = frozenset(),
+        omit: Tuple[Any, ...] = (),
     ) -> IteratorT:
         """Get an iterator function for a given type, if possible."""
         mapping, iterable, builtin, namedtuple, typicklass = (
@@ -180,15 +182,26 @@ class TranslatorFactory:
                 f"unable to determine fields."
             ) from None
 
-        func_name = get_defname("iterator", (type, values))
+        fields = {f: fields[f] for f in fields.keys() & only} if only else fields
+        func_name = get_defname("iterator", (type, values, omit))
         oname = "o"
         ctx: dict = {}
         with Block(ctx) as main:
             with main.f(func_name, Block.p(oname)) as func:
                 if fields:
-                    if values:
+                    if values and omit:
+                        for f in fields:
+                            func.l(f"v = {oname}.{f}")
+                            with func.b("if v not in omit:", omit=omit) as b:
+                                b.l(f"{Keyword.YLD} v")
+                    elif values:
                         for f in fields:
                             func.l(f"{Keyword.YLD} {oname}.{f}")
+                    elif omit:
+                        for f in fields:
+                            func.l(f"v = {oname}.{f}")
+                            with func.b("if v not in omit:", omit=omit) as b:
+                                b.l(f"{Keyword.YLD} {f!r}, {oname}.{f}")
                     else:
                         for f in fields:
                             func.l(f"{Keyword.YLD} {f!r}, {oname}.{f}")
