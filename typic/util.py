@@ -738,13 +738,15 @@ ReprT = Union[str, joinedrepr, collectionrepr]
 def isoformat(t: date | datetime | time | timedelta) -> str:
     if isinstance(t, (date, datetime, time)):
         return t.isoformat()
-    d: pendulum.Duration = t
-    if not isinstance(t, pendulum.Duration):
-        d = pendulum.duration(
+    d: pendulum.Duration = (
+        t
+        if isinstance(t, pendulum.Duration)
+        else pendulum.duration(
             days=t.days,
             seconds=t.seconds,
             microseconds=t.microseconds,
         )
+    )
 
     periods: list[tuple[str, int]] = [
         ("Y", d.years),
