@@ -53,7 +53,7 @@ from .common import (
     FieldIteratorT,
 )
 from .des.factory import DesFactory
-from .ser import SerFactory
+from .ser.factory import SerFactory
 from .translator import TranslatorFactory
 
 _T = TypeVar("_T")
@@ -67,7 +67,7 @@ class Resolver:
         {("asdict", methodcaller("asdict")), ("to_dict", methodcaller("to_dict"))}
     )
     _DYNAMIC = SerFactory._DYNAMIC
-    OPTIONALS = (None, ...)
+    OPTIONALS = (None, ..., type(None), type(...))
     LITERALS = (int, bytes, str, bool, Enum, type(None))
 
     def __init__(self):

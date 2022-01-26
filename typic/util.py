@@ -735,31 +735,31 @@ ReprT = Union[str, joinedrepr, collectionrepr]
 
 
 @functools.lru_cache(maxsize=100_000)
-def isoformat(t: Union[date, datetime, time, timedelta]) -> str:
+def isoformat(t: date | datetime | time | timedelta) -> str:
     if isinstance(t, (date, datetime, time)):
         return t.isoformat()
-    d = t
-    if not isinstance(d, pendulum.Duration):
+    d: pendulum.Duration = t
+    if not isinstance(t, pendulum.Duration):
         d = pendulum.duration(
             days=t.days,
             seconds=t.seconds,
             microseconds=t.microseconds,
         )
 
-    periods = [
+    periods: list[tuple[str, int]] = [
         ("Y", d.years),
         ("M", d.months),
         ("D", d.remaining_days),
     ]
-    period = "P"
+    period: str = "P"
     for sym, val in periods:
         period += f"{val}{sym}"
-    times = [
+    times: list[tuple[str, int]] = [
         ("H", d.hours),
         ("M", d.minutes),
         ("S", d.remaining_seconds),
     ]
-    time_ = "T"
+    time_: str = "T"
     for sym, val in times:
         time_ += f"{val}{sym}"
     if d.microseconds:
