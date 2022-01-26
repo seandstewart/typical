@@ -40,21 +40,21 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "BaseRoutine",
-    "CollectionRoutine",
-    "DateRoutine",
-    "DateTimeRoutine",
-    "FieldsRoutine",
-    "FixedTupleRoutine",
-    "LiteralRoutine",
-    "MappingRoutine",
-    "PatternRoutine",
-    "SimpleRoutine",
-    "TextRoutine",
-    "TimeRoutine",
-    "TimeDeltaRoutine",
-    "UnionRoutine",
-    "UUIDRoutine",
+    "BaseDeserializerRoutine",
+    "CollectionDeserializerRoutine",
+    "DateDeserializerRoutine",
+    "DateTimeDeserializerRoutine",
+    "FieldsDeserializerRoutine",
+    "FixedTupleDeserializerRoutine",
+    "LiteralDeserializerRoutine",
+    "MappingDeserializerRoutine",
+    "PatternDeserializerRoutine",
+    "SimpleDeserializerRoutine",
+    "TextDeserializerRoutine",
+    "TimeDeserializerRoutine",
+    "TimeDeltaDeserializerRoutine",
+    "UnionDeserializerRoutine",
+    "UUIDDeserializerRoutine",
 )
 
 _T = TypeVar("_T")
@@ -62,7 +62,7 @@ _T = TypeVar("_T")
 
 @slotted(dict=False, weakref=True)
 @dataclasses.dataclass
-class BaseRoutine(Generic[_T]):
+class BaseDeserializerRoutine(Generic[_T]):
     annotation: Annotation[type[_T]]
     resolver: Resolver
     namespace: type | None = None
@@ -367,7 +367,7 @@ _CheckT = Callable[..., Tuple[Any, TypeGuard[_T]]]
 _EvaluateT = Callable[..., Any]
 
 
-class SimpleRoutine(BaseRoutine[_T]):
+class SimpleDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         rorigin = self.annotation.resolved_origin
         if rorigin is defaultdict:
@@ -378,7 +378,7 @@ class SimpleRoutine(BaseRoutine[_T]):
 _Text = TypeVar("_Text", str, bytes, bytearray)
 
 
-class TextRoutine(BaseRoutine[_Text]):
+class TextDeserializerRoutine(BaseDeserializerRoutine[_Text]):
     def _get_deserializer(self) -> DeserializerT[_Text]:
         annotation = self.annotation
         rorigin: type[_Text] = annotation.resolved_origin
@@ -408,7 +408,7 @@ class TextRoutine(BaseRoutine[_Text]):
         return cast("DeserializerT", str_deserializer)
 
 
-class DateRoutine(BaseRoutine[datetime.date]):
+class DateDeserializerRoutine(BaseDeserializerRoutine[datetime.date]):
     def _get_deserializer(self) -> DeserializerT:
         annotation = self.annotation
         rorigin: type[datetime.date] = annotation.resolved_origin
@@ -430,7 +430,7 @@ class DateRoutine(BaseRoutine[datetime.date]):
         return cast("DeserializerT", date_deserializer)
 
 
-class DateTimeRoutine(BaseRoutine[datetime.datetime]):
+class DateTimeDeserializerRoutine(BaseDeserializerRoutine[datetime.datetime]):
     def _get_deserializer(self) -> DeserializerT:
         annotation = self.annotation
         rorigin: type[datetime.datetime] = annotation.resolved_origin
@@ -466,7 +466,7 @@ class DateTimeRoutine(BaseRoutine[datetime.datetime]):
         return cast("DeserializerT", datetime_deserializer)
 
 
-class TimeRoutine(BaseRoutine[datetime.time]):
+class TimeDeserializerRoutine(BaseDeserializerRoutine[datetime.time]):
     def _get_deserializer(self) -> DeserializerT[datetime.time]:
         annotation = self.annotation
         rorigin: type[datetime.time] = annotation.resolved_origin
@@ -500,7 +500,7 @@ class TimeRoutine(BaseRoutine[datetime.time]):
         return cast("DeserializerT", time_deserializer)
 
 
-class TimeDeltaRoutine(BaseRoutine[datetime.timedelta]):
+class TimeDeltaDeserializerRoutine(BaseDeserializerRoutine[datetime.timedelta]):
     def _get_deserializer(self) -> DeserializerT:
         annotation = self.annotation
         rorigin: type[datetime.timedelta] = annotation.resolved_origin
@@ -529,7 +529,7 @@ class TimeDeltaRoutine(BaseRoutine[datetime.timedelta]):
         return cast("DeserializerT", timedelta_deserializer)
 
 
-class UUIDRoutine(BaseRoutine[uuid.UUID]):
+class UUIDDeserializerRoutine(BaseDeserializerRoutine[uuid.UUID]):
     def _get_deserializer(self) -> DeserializerT[uuid.UUID]:
         annotation = self.annotation
         rorigin: type[uuid.UUID] = annotation.resolved_origin
@@ -550,7 +550,7 @@ class UUIDRoutine(BaseRoutine[uuid.UUID]):
         return cast("DeserializerT", uuid_deserializer)
 
 
-class PatternRoutine(BaseRoutine[re.Pattern]):
+class PatternDeserializerRoutine(BaseDeserializerRoutine[re.Pattern]):
     def _get_deserializer(self) -> DeserializerT[re.Pattern]:
         annotation = self.annotation
         rorigin: type[re.Pattern] = annotation.resolved_origin
@@ -567,7 +567,7 @@ _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
-class MappingRoutine(BaseRoutine[Mapping[_KT, _VT]]):
+class MappingDeserializerRoutine(BaseDeserializerRoutine[Mapping[_KT, _VT]]):
     def _get_deserializer(self) -> DeserializerT[Mapping[_KT, _VT]]:
         rorigin = self.annotation.resolved_origin
         if rorigin is dict:
@@ -727,7 +727,7 @@ class MappingRoutine(BaseRoutine[Mapping[_KT, _VT]]):
         return factory
 
 
-class CollectionRoutine(BaseRoutine[Collection[_VT]]):
+class CollectionDeserializerRoutine(BaseDeserializerRoutine[Collection[_VT]]):
     def _get_deserializer(self) -> DeserializerT[Collection[_VT]]:
         vtype = self.annotation.args[0]
         flags = self.annotation.serde.flags
@@ -782,7 +782,7 @@ class CollectionRoutine(BaseRoutine[Collection[_VT]]):
         return cast("DeserializerT", collection_deserializer)
 
 
-class FixedTupleRoutine(BaseRoutine[Tuple[_VT]]):
+class FixedTupleDeserializerRoutine(BaseDeserializerRoutine[Tuple[_VT]]):
     def _get_deserializer(self) -> DeserializerT:
         annotation = self.annotation
         rorigin = self.annotation.resolved_origin
@@ -823,7 +823,7 @@ class FixedTupleRoutine(BaseRoutine[Tuple[_VT]]):
         return cast("DeserializerT", fixed_tuple_sub_deserializer)
 
 
-class FieldsRoutine(BaseRoutine[_T]):
+class FieldsDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         serde = self.annotation.serde
         rorigin = self.annotation.resolved_origin
@@ -909,7 +909,7 @@ class FieldsRoutine(BaseRoutine[_T]):
         return cast("DeserializerT", aliased_fields_deserializer)
 
 
-class UnionRoutine(BaseRoutine[_T]):
+class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         # Get all types which we may coerce to.
         args = (
@@ -991,7 +991,7 @@ class UnionRoutine(BaseRoutine[_T]):
         return cast("DeserializerT", tagged_union_deserializer)
 
 
-class LiteralRoutine(BaseRoutine[_T]):
+class LiteralDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         annotation = self.annotation
         args = annotation.args
