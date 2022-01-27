@@ -76,6 +76,7 @@ class SerdeProtocol(Generic[OriginT]):
 
 _OutputT = TypeVar("_OutputT", covariant=True)
 _InputT = TypeVar("_InputT", contravariant=True)
+_InputT_co = TypeVar("_InputT_co", covariant=True)
 
 
 class EncoderT(Protocol[_InputT]):
@@ -85,6 +86,16 @@ class EncoderT(Protocol[_InputT]):
     __qualname__: str
 
     def __call__(self, value: _InputT, **kwargs) -> AnyStr:
+        ...
+
+
+class EncoderMethodT(Protocol[_InputT_co]):
+    """The signature of an on-the-wire encoder for an output."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self: _InputT_co, **kwargs) -> AnyStr:
         ...
 
 
@@ -108,6 +119,16 @@ class TranslatorT(Protocol[_InputT]):
         ...
 
 
+class TranslatorMethodT(Protocol[_InputT_co]):
+    """The signature of a type translator pinned to the origin type of `InputT`."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(self: _InputT_co, target: Type[_OutputT]) -> _OutputT:
+        ...
+
+
 class SerializerT(Protocol[_InputT]):
     """The signature of a type serializer."""
 
@@ -116,6 +137,18 @@ class SerializerT(Protocol[_InputT]):
 
     def __call__(
         self, obj: _InputT, *, lazy: bool = False, name: util.ReprT = None
+    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
+        ...
+
+
+class SerializerMethodT(Protocol[_InputT_co]):
+    """The signature of a type serializer."""
+
+    __name__: str
+    __qualname__: str
+
+    def __call__(
+        self: _InputT_co, *, lazy: bool = False, name: util.ReprT = None
     ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
         ...
 

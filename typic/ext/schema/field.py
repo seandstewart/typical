@@ -5,6 +5,7 @@ import dataclasses
 import datetime
 import decimal
 import enum
+import inspect
 import ipaddress
 import pathlib
 import re
@@ -29,10 +30,14 @@ from typing import (
 import pendulum
 
 from typic.compat import Literal
-from typic.ext.json import dumps
-from typic.serde.common import SerdeFlags
+from typic.serde.common import (
+    SerdeFlags,
+    SerdeProtocol,
+    SerializerMethodT,
+    EncoderMethodT,
+)
 from typic.serde.resolver import resolver
-from typic.util import filtered_repr, cached_property, TypeMap, ReprT, slotted
+from typic.util import filtered_repr, cached_property, TypeMap, slotted
 from typic.types import dsn, email, frozendict, path, secret, url
 from .compat import fastjsonschema
 
@@ -74,19 +79,22 @@ class SchemaType(str, enum.Enum):
 
 class _Serializable:
     __slots__ = ()
+    __serde_flags__ = SerdeFlags(exclude={"proto", "primitive", "tojson"})
 
-    def primitive(self, *, lazy: bool = False, name: ReprT = None) -> Mapping[str, Any]:
-        return resolver.primitive(self, lazy=lazy, name=name)  # type: ignore
+    proto: SerdeProtocol
+    primitive: SerializerMethodT
+    tojson: EncoderMethodT
 
-    def tojson(
-        self, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
-    ) -> Union[str, bytes]:
-        return dumps(
-            self.primitive(),
-            indent=indent,
-            ensure_ascii=ensure_ascii,
-            **kwargs,
-        )
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        flags = cls.__serde_flags__
+        for p in inspect.getmro(cls)[1:]:
+            if hasattr(p, "__serde_flags__"):
+                flags = flags.merge(p.__serde_flags__)
+        cls.__serde_flags__ = flags
+        cls.proto: SerdeProtocol[_Serializable] = resolver.resolve(cls)
+        cls.primitive = cls.proto.primitive
+        cls.tojson = cls.proto.tojson
 
 
 @slotted
