@@ -524,16 +524,16 @@ def constrained(
     ...     '''A small map that only allows short strings.'''
     ...
     >>> import json
-    >>> print(json.dumps(typic.schema(SmallMap, primitive=True), indent=2))
+    >>> print(json.dumps(typic.schema(SmallMap, primitive=True), indent=2, sort_keys=True))
     {
-      "type": "object",
-      "title": "SmallMap",
-      "description": "A small map that only allows short strings.",
       "additionalProperties": {
-        "type": "string",
-        "maxLength": 10
+        "maxLength": 10,
+        "type": "string"
       },
-      "maxProperties": 2
+      "description": "A small map that only allows short strings.",
+      "maxProperties": 2,
+      "title": "SmallMap",
+      "type": "object"
     }
 
 
@@ -734,6 +734,7 @@ def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
     Examples
     --------
     >>> import typic
+    >>> import json
     >>>
     >>> @typic.klass
     ... class Foo:
@@ -741,9 +742,22 @@ def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
     ...
     >>> typic.schema(Foo)
     ObjectSchemaField(title='Foo', description='Foo(bar: str)', properties={'bar': StrSchemaField()}, additionalProperties=False, required=('bar',))
-    >>> typic.schema(Foo, primitive=True)
-    {'type': 'object', 'title': 'Foo', 'description': 'Foo(bar: str)', 'properties': {'bar': {'type': 'string'}}, 'additionalProperties': False, 'required': ['bar'], 'definitions': {}}
-
+    >>> print(json.dumps(typic.schema(Foo, primitive=True), sort_keys=True, indent=2))
+    {
+      "additionalProperties": false,
+      "definitions": {},
+      "description": "Foo(bar: str)",
+      "properties": {
+        "bar": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bar"
+      ],
+      "title": "Foo",
+      "type": "object"
+    }
     """
     if obj in {FunctionType, MethodType}:
         raise ValueError("Cannot build schema for function or method.")

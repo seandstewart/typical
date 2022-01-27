@@ -445,20 +445,20 @@ class SchemaBuilder:
         >>> import json
         >>> import typic
         >>> schemas = typic.schemas(primitive=True)
-        >>> print(json.dumps(schemas["definitions"]["Duck"], indent=2))
+        >>> print(json.dumps(schemas["definitions"]["Duck"], indent=2, sort_keys=True))
         {
-          "type": "object",
-          "title": "Duck",
+          "additionalProperties": false,
           "description": "Duck(color: str)",
           "properties": {
             "color": {
               "type": "string"
             }
           },
-          "additionalProperties": false,
           "required": [
             "color"
-          ]
+          ],
+          "title": "Duck",
+          "type": "object"
         }
         """
         definitions = SchemaDefinitions(definitions={})
@@ -479,7 +479,7 @@ class SchemaBuilder:
             ] = dataclasses.replace(schm, definitions=None)
         if primitive:
             definitions["definitions"] = {
-                x: y.primitive() if isinstance(y, ObjectSchemaField) else y
+                x: y.primitive() if isinstance(y, ObjectSchemaField) else y  # type: ignore
                 for x, y in definitions["definitions"].items()
             }
         return definitions
