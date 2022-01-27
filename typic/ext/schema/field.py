@@ -79,7 +79,7 @@ class SchemaType(str, enum.Enum):
 
 class _Serializable:
     __slots__ = ()
-    __serde_flags__ = SerdeFlags(exclude={"proto", "primitive", "tojson"})
+    __serde_flags__ = SerdeFlags(signature_only=True)
 
     proto: SerdeProtocol
     primitive: SerializerMethodT
@@ -139,7 +139,7 @@ class StringFormat(str, enum.Enum):
 class BaseSchemaField(_Serializable):
     """The base JSON Schema Field."""
 
-    __serde_flags__ = SerdeFlags(omit=(None, NotImplemented))
+    __serde_flags__ = SerdeFlags(fields=("type",), omit=(None, NotImplemented))
 
     type: ClassVar[SchemaType] = NotImplemented
     format: Optional[str] = None
