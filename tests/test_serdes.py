@@ -328,7 +328,11 @@ class Bar:
     ],
 )
 def test_tojson_native(obj, expected):
-    native = json.dumps(typic.primitive(obj)).replace("\n", "").replace(" ", "")
+    native = (
+        json.dumps(typic.primitive(obj), sort_keys=True)
+        .replace("\n", "")
+        .replace(" ", "")
+    )
     assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS).decode() == native == expected
 
 
