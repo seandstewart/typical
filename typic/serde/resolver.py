@@ -303,6 +303,11 @@ class Resolver:
         # This is probably a builtin and has no signature
         fields: Dict[str, Annotation] = {}
         hints = util.cached_type_hints(origin)
+        include = (
+            flags.fields
+            if isinstance(flags.fields, Mapping)
+            else {x: x for x in flags.fields}
+        )
         for name, t in hints.items():
             fields[name] = self.annotation(
                 t,
@@ -312,17 +317,12 @@ class Resolver:
             )
 
         # Filter out any annotations which aren't part of the object's signature.
-        if flags.signature_only:
-            fields = {x: fields[x] for x in fields.keys() & params.keys()}
-        # Create a field-to-field mapping
-        fields_out = {x: x for x in fields}
         # Make sure to include any fields explicitly listed
-        include = flags.fields
-        if include:
-            if isinstance(include, Mapping):
-                fields_out.update(include)
-            else:
-                fields_out.update({x: x for x in include})
+        if flags.signature_only:
+            keys = (fields.keys() & params.keys()) | include.keys()
+            fields = {x: fields[x] for x in keys if x in fields}
+        # Create a field-to-field mapping
+        fields_out = {x: include.get(x, x) for x in fields.keys() | include.keys()}
         # Transform the output fields to the correct case.
         if flags.case:
             case = Case(flags.case)
