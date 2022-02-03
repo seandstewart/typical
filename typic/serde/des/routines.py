@@ -119,7 +119,7 @@ class BaseDeserializerRoutine(Generic[_T]):
             return evaluate_for_str
 
         def evaluate(o, *, __fromstr=fromstr):
-            if isinstance(o, str):
+            if isinstance(o, (str, bytes)):
                 return __fromstr(o)
             return o
 
@@ -417,10 +417,12 @@ class DateDeserializerRoutine(BaseDeserializerRoutine[datetime.date]):
             val: Any, *, __origin=rorigin, __parse=dateparse
         ) -> datetime.date:
             if isinstance(val, (int, float)):
-                return rorigin.fromtimestamp(val)
+                return __origin.fromtimestamp(val)
             date = val
             if isinstance(val, str):
                 date = __parse(val, exact=True)
+            if isinstance(val, bytes):
+                date = __parse(val.decode(), exact=True)
 
             if date.__class__ is __origin:
                 return date
@@ -443,6 +445,8 @@ class DateTimeDeserializerRoutine(BaseDeserializerRoutine[datetime.datetime]):
             dt = val
             if isinstance(val, str):
                 dt = __parse(val)
+            if isinstance(val, bytes):
+                dt = __parse(val.decode())
 
             cls = dt.__class__
             if cls is __origin:
@@ -477,8 +481,11 @@ class TimeDeserializerRoutine(BaseDeserializerRoutine[datetime.time]):
             if isinstance(val, (int, float)):
                 return __origin(int(val))
             time = val
-            if isinstance(val, (str, bytes)):
+            if isinstance(val, str):
                 time = __parse(val, exact=True)
+
+            if isinstance(val, bytes):
+                time = __parse(val.decode(), exact=True)
 
             if isinstance(time, datetime.datetime):
                 time = time.time()
@@ -510,9 +517,12 @@ class TimeDeltaDeserializerRoutine(BaseDeserializerRoutine[datetime.timedelta]):
         ) -> datetime.timedelta:
             if isinstance(val, (int, float)):
                 return __origin(int(val))
+
             td = val
-            if isinstance(val, (str, bytes)):
+            if isinstance(val, str):
                 td = __parse(val, exact=True)
+            if isinstance(val, bytes):
+                td = __parse(val.decode(), exact=True)
 
             if td.__class__ is __origin:
                 return td
@@ -691,38 +701,38 @@ class MappingDeserializerRoutine(BaseDeserializerRoutine[Mapping[_KT, _VT]]):
 
     def _get_default_factory(self, annotation: Annotation = None):
         annotation = annotation or self.annotation
-        factory: type | Callable[..., Any] | None = None
         args: tuple = annotation.args if isinstance(annotation, Annotation) else ()
-        if args:
-            factory_anno = self.resolver.annotation(args[-1])
-            if isinstance(factory_anno, ForwardDelayedAnnotation):
-                return factory
-            elif isinstance(factory_anno, DelayedAnnotation):
-                use = factory_anno.type
-                raw = use
-            else:
-                use = factory_anno.resolved_origin
-                raw = factory_anno.un_resolved
-            factory = use
-            if issubclass(use, defaultdict):
-                factory_nested = self._get_default_factory(annotation=factory_anno)
+        factory_anno = self.resolver.annotation(args[-1]) if args else None
+        if not args or isinstance(factory_anno, ForwardDelayedAnnotation):
+            return None
 
-                def factory():
-                    return defaultdict(factory_nested)
+        if isinstance(factory_anno, DelayedAnnotation):
+            use = factory_anno.type
+            raw = use
+        else:
+            use = factory_anno.resolved_origin
+            raw = factory_anno.un_resolved
+        factory = use
+        if use in {Any, ..., None}:
+            return None
 
-                factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
+        if issubclass(use, defaultdict):
+            factory_nested = self._get_default_factory(annotation=factory_anno)
 
-            if not checks.isbuiltinsubtype(use):  # type: ignore
+            factory = functools.partial(defaultdict, factory_nested)  # type: ignore
 
-                params: Mapping[str, inspect.Parameter] = cached_signature(
-                    use
-                ).parameters
-                if not any(p.default is p.empty for p in params.values()):
+            factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
-                    def factory(*, __origin=use):
-                        return __origin()
+        if not checks.isbuiltinsubtype(use):  # type: ignore
 
-                    factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
+            params: Mapping[str, inspect.Parameter] = cached_signature(use).parameters
+            if any(p.default is p.empty for p in params.values()):
+                return None
+
+            def factory(*, __origin=use):  # type: ignore
+                return __origin()
+
+            factory.__qualname__ = f"factory({repr(raw)})"  # type: ignore
 
         return factory
 
@@ -845,6 +855,7 @@ class FieldsDeserializerRoutine(BaseDeserializerRoutine[_T]):
                 __origin=rorigin,
                 __desers=types.MappingProxyType(_desers),
                 __translate=self.resolver.translate,
+                __bind=self.resolver.bind,
             ) -> _T:
                 cls = val.__class__
                 if checks.ismappingtype(cls):
@@ -853,34 +864,27 @@ class FieldsDeserializerRoutine(BaseDeserializerRoutine[_T]):
                     )
                 if not checks.isnamedtuple(cls):
                     if issubclass(cls, (list, set, frozenset, tuple)):
-                        return __origin(*val)
+                        return __bind(__origin, *val).eval()
                     if checks.isbuiltinsubtype(cls):
                         return __origin(val)
                 return __translate(val, __origin)
 
             return cast("DeserializerT", fields_deserializer)
 
-        if ismatching:
-            aliases = types.MappingProxyType(serde.fields_in)
-            reversed = {v: k for k, v in aliases.items()}
-            _desers = {
-                reversed[f]: self.resolver._resolve_from_annotation(
-                    serde.fields[f], namespace=namespace
-                ).transmute
-                for f in matched
-            }
-
-        else:
-            aliases = types.MappingProxyType(serde.fields_in)
+        aliases = types.MappingProxyType(serde.fields_in)
+        reversed = {v: k for k, v in aliases.items()}
+        keys = matched
+        if ismatching is False:
             unmatched = {f: f for f in serde.fields.keys() - matched}
-            reversed = {v: k for k, v in aliases.items()}
             reversed.update(unmatched)
-            _desers = {
-                reversed[f]: self.resolver._resolve_from_annotation(
-                    serde.fields[f], namespace=namespace
-                ).transmute
-                for f in matched | unmatched.keys()
-            }
+            keys = matched | unmatched.keys()
+
+        _desers = {
+            reversed[f]: self.resolver._resolve_from_annotation(
+                serde.fields[f], namespace=namespace
+            ).transmute
+            for f in keys
+        }
 
         def aliased_fields_deserializer(
             val: Any,
@@ -895,15 +899,15 @@ class FieldsDeserializerRoutine(BaseDeserializerRoutine[_T]):
             if checks.ismappingtype(cls):
                 return __origin(
                     **{
-                        __aliases[f]: __desers[f](v)
-                        for f, v in val.keys() & __aliases.keys()
+                        __aliases[f]: __desers[f](val[f])
+                        for f in val.keys() & __aliases.keys()
                     }
                 )
-            isnamedtuple = checks.isnamedtuple(cls)
-            if not isnamedtuple and issubclass(cls, (list, set, frozenset, tuple)):
-                return __origin(*__bind(__origin, *val).eval())
-            if not isnamedtuple and checks.isbuiltinsubtype(cls):
-                return __origin(val)
+            if not checks.isnamedtuple(cls):
+                if issubclass(cls, (list, set, frozenset, tuple)):
+                    return __bind(__origin, *val).eval()
+                if checks.isbuiltinsubtype(cls):
+                    return __origin(val)
             return __translate(val, __origin)
 
         return cast("DeserializerT", aliased_fields_deserializer)
@@ -912,9 +916,7 @@ class FieldsDeserializerRoutine(BaseDeserializerRoutine[_T]):
 class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         # Get all types which we may coerce to.
-        args = (
-            *(a for a in self.annotation.args if a not in {None, Ellipsis, type(None)}),
-        )
+        args = self.annotation.nargs
         if not args:
             return cast("DeserializerT", lambda val: val)
 
@@ -933,14 +935,15 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
         return self._get_tagged_union_deserializer(tagged)
 
     def _get_generic_union_deserializer(self) -> DeserializerT[_T]:
-        args = self.annotation.args
-        protos = tuple(
-            self.resolver.resolve(a, namespace=self.namespace)
+        args = self.annotation.nargs
+        _desers = {
+            anno.resolved_origin: self.resolver.des.factory(
+                anno,
+                namespace=self.namespace,
+            )
             for a in args
-            if a not in {None, Ellipsis, type(None)}
-        )
-
-        _desers = {p.annotation.resolved_origin: p.transmute for p in protos}
+            if (anno := self.resolver.annotation(a))
+        }
         desers = types.MappingProxyType(_desers)
 
         def union_deserializer(val: Any, *, __desers=desers) -> _T:
@@ -954,7 +957,7 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
                 except (TypeError, ValueError, KeyError):
                     pass
 
-            raise ValueError(
+            raise UnionValueError(
                 f"Value could not be deserialized into one of {(*__desers,)}: {val!r}"
             )
 
@@ -962,7 +965,10 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
 
     def _get_tagged_union_deserializer(self, tagged: TaggedUnion) -> DeserializerT[_T]:
         _desers = {
-            value: self.resolver.resolve(t, namespace=self.namespace).transmute
+            value: self.resolver.des.factory(
+                self.resolver.annotation(t),
+                namespace=self.namespace,
+            )
             for value, t in tagged.types_by_values
         }
         desers = types.MappingProxyType(_desers)
@@ -984,19 +990,23 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
             if tag in __desers:
                 return __desers[tag](val)
 
-            raise ValueError(
+            raise UnionValueError(
                 f"Value is missing field {__tag!r} with one of {__types}: {val!r}"
             )
 
         return cast("DeserializerT", tagged_union_deserializer)
 
 
+class UnionValueError(ValueError):
+    ...
+
+
 class LiteralDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_deserializer(self) -> DeserializerT[_T]:
         annotation = self.annotation
         args = annotation.args
-        types: set[type] = {a.__class__ for a in args}
-        t = types.pop() if len(types) == 1 else Union[tuple(types)]
+        types: tuple[type, ...] = (*(a.__class__ for a in args),)
+        t = types[0] if len(types) == 1 else Union[types]
         t_anno = cast(
             "Annotation",
             self.resolver.annotation(
@@ -1009,4 +1019,18 @@ class LiteralDeserializerRoutine(BaseDeserializerRoutine[_T]):
                 namespace=self.namespace,
             ),
         )
-        return self.resolver.des.factory(t_anno, namespace=self.namespace)
+        des = self.resolver.des.factory(t_anno, namespace=self.namespace)
+
+        def deserializer(val: Any, *, __des=des, __args=frozenset(args)) -> _T:
+            d = __des(val)
+            if d not in __args:
+                raise LiteralValueError(
+                    f"<{d!r}> is not one of {(*__args,)}."
+                ) from None
+            return d
+
+        return cast("DeserializerT[_T]", deserializer)
+
+
+class LiteralValueError(ValueError):
+    ...

@@ -344,7 +344,7 @@ class Annotation(Generic[_AT]):
     """
     un_resolved: Any
     """The type annotation before resolving super-types."""
-    parameter: inspect.Parameter
+    parameter: inspect.Parameter = dataclasses.field(hash=False)
     """The parameter this annotation refers to."""
     translator: TranslatorT[_AT] = dataclasses.field(init=False)
     """A factory for generating a translation protocol between higher-level types."""
@@ -363,10 +363,12 @@ class Annotation(Generic[_AT]):
     is_class_var: bool = dataclasses.field(init=False)
     resolved_origin: _AT = dataclasses.field(init=False)
     args: Tuple[Type, ...] = dataclasses.field(init=False)
+    nargs: Tuple[Type, ...] = dataclasses.field(init=False)
 
     def __post_init__(self):
         self.has_default = self.parameter.default is not self.EMPTY
         self.args = util.get_args(self.resolved)
+        self.nargs = (*(a for a in self.args if a not in OPTIONALS),)
         self.resolved_origin = util.origin(self.resolved)
         self.generic = getattr(self.resolved, "__origin__", self.resolved_origin)
         self.is_class_var = isclassvartype(self.un_resolved)
@@ -550,3 +552,4 @@ Omit = _Omit()
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 KVPairT = Tuple[KT, VT]
+OPTIONALS = frozenset((None, ..., type(None), type(...)))

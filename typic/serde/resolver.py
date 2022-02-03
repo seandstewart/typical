@@ -31,7 +31,7 @@ from typic.common import (
     Case,
     ReadOnly,
 )
-from typic.compat import lru_cache
+from typic.compat import lru_cache, ForwardRef
 from typic.ext import json
 from typic.strict import StrictModeT
 from .binder import Binder
@@ -401,7 +401,7 @@ class Resolver:
                 name or "_",
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 annotation=annotation,
-                default=default if checks.ishashable(default) else ...,
+                default=default,
             )
         # Check for the super-type
         non_super = util.resolve_supertype(annotation)
@@ -811,6 +811,8 @@ class Resolver:
             if not checks.ishashable(param.default):
                 param = param.replace(default=...)
 
+            if annotation.__class__ is str:
+                annotation = ForwardRef(annotation, is_argument=True)
             resolved = self.resolve(
                 annotation, name=name, parameter=param, is_strict=strict, namespace=obj
             )
