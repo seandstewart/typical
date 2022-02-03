@@ -189,7 +189,7 @@ def test_transmute_literal(annotation, value, expected):
     ],
 )
 def test_transmute_literal_invalid(annotation, value):
-    with pytest.raises(ConstraintValueError):
+    with pytest.raises(ValueError):
         transmute(annotation, value)
 
 
