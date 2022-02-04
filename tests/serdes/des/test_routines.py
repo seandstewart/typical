@@ -4,6 +4,7 @@ import dataclasses
 import datetime
 import inspect
 import re
+import sys
 import uuid
 from collections import defaultdict
 from typing import (
@@ -431,7 +432,7 @@ class TestSimpleDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is t
 
 
 class TestTextDeserializerRoutine:
@@ -476,7 +477,7 @@ class TestDateDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is datetime.date
 
 
 class TestDateTimeDeserializerRoutine:
@@ -505,7 +506,7 @@ class TestDateTimeDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is datetime.datetime
 
 
 class TestTimeDeserializerRoutine:
@@ -532,7 +533,7 @@ class TestTimeDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is datetime.timedelta
 
 
 class TestUUIDDeserializerRoutine:
@@ -558,7 +559,7 @@ class TestUUIDDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is uuid.UUID
 
 
 class TestPatternDeserializerRoutine:
@@ -578,7 +579,7 @@ class TestPatternDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert d.__class__ is routine.annotation.resolved_origin
+        assert d.__class__ is re.Pattern
 
 
 class TestMappingDeserializerRoutine:
@@ -657,7 +658,7 @@ class TestMappingDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert isinstance(d, routine.annotation.resolved_origin) and d == expected
+        assert isinstance(d, expected.__class__) and d == expected
 
     def test_defaultdict_nested_deserializer(self, resolver):
         # Given
@@ -694,11 +695,16 @@ class TestCollectionDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert isinstance(d, routine.annotation.resolved_origin) and d == expected
+        assert isinstance(d, expected.__class__) and d == expected
 
 
-class MyTup(Tuple[_VT]):
-    ...
+if sys.version_info < (3, 9):
+    MyTup = Tuple.__class__(tuple, (), inst=False, special=True)
+
+else:
+
+    class MyTup(Tuple[_VT]):
+        ...
 
 
 class TestFixedTupleDeserializerRoutine:
@@ -716,7 +722,7 @@ class TestFixedTupleDeserializerRoutine:
         # When
         d = deserializer(v)
         # Then
-        assert isinstance(d, routine.annotation.resolved_origin) and d == expected
+        assert isinstance(d, expected.__class__) and d == expected
 
 
 @dataclasses.dataclass
