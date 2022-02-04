@@ -29,7 +29,7 @@ exclude = ["tests", "docs", "docsrc", "benchmark"]
 
 [tool.poetry.dependencies]
 # package
-python = "^3.7"
+python = "^3.8"
 inflection = "^0.5"
 pendulum = "^2.1"
 fastjsonschema = {version = "^2.14", optional = true}
@@ -135,7 +135,7 @@ docs = [
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38']
+target-version = ['py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 /(
