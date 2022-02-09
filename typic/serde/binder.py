@@ -5,43 +5,45 @@ import inspect
 import warnings
 from types import MappingProxyType
 from typing import (
-    Dict,
     Any,
-    Tuple,
     TYPE_CHECKING,
-    Optional,
-    Union,
-    Type,
-    Callable,
-    Mapping,
-    MutableMapping,
+    TypeVar,
 )
+from typic.compat import Generic
 
 from typic import util
 
+_T = TypeVar("_T")
+
 if TYPE_CHECKING:  # pragma: nocover
+    from typing import Callable, Mapping, Union, Tuple, Type
     from .resolver import Resolver  # noqa: F401
     from .common import SerdeProtocol, SerdeProtocolsT, DeserializerT  # noqa: F401
 
     BindingT = Mapping[Union[str, int], DeserializerT]
+    EnforcerT = Callable[..., Tuple[tuple, dict]]
+    BindingCacheKeyT = Tuple[Union[Type[_T], Callable[..., _T]], bool]
+    BindingCacheValueT = Tuple[
+        Mapping[str, inspect.Parameter], SerdeProtocolsT, EnforcerT
+    ]
 
 
 @util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True)
-class BoundArguments:
-    obj: Union[Type, Callable]
+class BoundArguments(Generic[_T]):
+    obj: type[_T] | Callable[..., _T]
     """The object we "bound" the input to."""
     annotations: SerdeProtocolsT
     """A mapping of the resolved annotations."""
     parameters: Mapping[str, inspect.Parameter]
     """A mapping of the parameters."""
-    args: Tuple[Any, ...]
+    args: tuple[Any, ...]
     """A tuple of positional inputs."""
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
     """A mapping of keyword inputs."""
-    enforcer: Callable
+    enforcer: EnforcerT
 
-    def eval(self) -> Any:
+    def eval(self) -> _T:
         """Evaluate the callable against the input provided.
 
         Examples
@@ -55,20 +57,21 @@ class BoundArguments:
         >>> bound.eval()
         4
         """
-        args, kwargs = self.enforcer(*self.args, **self.kwargs)
-        return self.obj(*args, **kwargs)
+        args, kwargs = self.enforcer(*self.args, **self.kwargs)  # type: ignore
+        return self.obj(*args, **kwargs)  # type: ignore
 
 
 class Binder:
-    _ENFORCER_CACHE: MutableMapping[Tuple[Union[Type, Callable], bool], Tuple] = {}
+    _ENFORCER_CACHE: dict[BindingCacheKeyT, BindingCacheValueT] = {}
 
     def __init__(self, resolver: Resolver):
         self.resolver = resolver
 
     @staticmethod
     def get_binding(
-        parameters, protocols
-    ) -> Tuple[BindingT, Optional[DeserializerT], Optional[DeserializerT]]:
+        parameters: Mapping[str, inspect.Parameter],
+        protocols: SerdeProtocolsT,
+    ) -> tuple[BindingT, DeserializerT | None, DeserializerT | None]:
         binding = _binding()
         vararg = None
         varkwarg = None
@@ -90,104 +93,108 @@ class Binder:
             varkwarg,
         )
 
-    def get_enforcer(self, parameters, protocols):  # noqa: C901
+    def get_enforcer(  # noqa: C901
+        self,
+        parameters: Mapping[str, inspect.Parameter],
+        protocols: SerdeProtocolsT,
+    ) -> EnforcerT:
         binding, vararg, varkwarg = self.get_binding(parameters, protocols)
         argixes = [k for k in binding if isinstance(k, int)]
         maxarg = max(argixes) + 1 if argixes else None
         if vararg and varkwarg:
             if maxarg:
 
-                def enforce_binding(*args, __binding=binding, **kwargs):
-                    vargs = [...] * len(args)
-                    for i, v in enumerate(args[:maxarg]):
-                        vargs[i] = __binding[i](v) if i in binding else v
-                    for i, v in enumerate(args[maxarg:], start=maxarg):
-                        vargs[i] = vararg(v)
+                def enforce_binding_vararg_warkwarg_maxarg(
+                    *args, __binding=binding, **kwargs
+                ):
+                    vargs = [
+                        __binding[i](v) if i in __binding else v
+                        for i, v in enumerate(args[:maxarg])
+                    ]
+                    vargs.extend((vararg(v) for v in args[maxarg:]))
                     for k, v in kwargs.items():
                         kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
                     return vargs, kwargs
 
-                return enforce_binding
+                return enforce_binding_vararg_warkwarg_maxarg
 
-            def enforce_binding(*args, __binding=binding, **kwargs):
+            def enforce_binding_vararg_varkwarg(*args, __binding=binding, **kwargs):
                 vargs = [vararg(v) for v in args]
                 for k, v in kwargs.items():
                     kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
                 return vargs, kwargs
 
-            return enforce_binding
+            return enforce_binding_vararg_varkwarg
 
         if vararg:
             if maxarg:
 
-                def enforce_binding(*args, __binding=binding, **kwargs):
-                    vargs = [...] * len(args)
-                    for i, v in enumerate(args[:maxarg]):
-                        vargs[i] = __binding[i](v) if i in __binding else v
-                    for i, v in enumerate(args[maxarg:], start=maxarg):
-                        vargs[i] = vararg(v)
+                def enforce_binding_vararg_maxarg(*args, __binding=binding, **kwargs):
+                    vargs = [
+                        __binding[i](v) if i in __binding else v
+                        for i, v in enumerate(args[:maxarg])
+                    ]
+                    vargs.extend((vararg(v) for v in args[maxarg:]))
                     for k, v in kwargs.items():
                         kwargs[k] = __binding[k](v) if k in __binding else v
                     return vargs, kwargs
 
-                return enforce_binding
+                return enforce_binding_vararg_maxarg
 
-            def enforce_binding(*args, __binding=binding, **kwargs):
+            def enforce_binding_vararg(*args, __binding=binding, **kwargs):
                 vargs = [vararg(v) for v in args]
                 for k, v in kwargs.items():
                     kwargs[k] = __binding[k](v)
                 return vargs, kwargs
 
-            return enforce_binding
+            return enforce_binding_vararg
 
         if varkwarg:
             if argixes:
 
-                def enforce_binding(*args, __binding=binding, **kwargs):
-                    vargs = [...] * len(args)
-                    for i, v in enumerate(args):
-                        vargs[i] = __binding[i](v) if i in __binding else v
+                def enforce_binding_varkwarg_posonly(
+                    *args, __binding=binding, **kwargs
+                ):
+                    vargs = [__binding[i](v) for i, v in enumerate(args)]
                     for k, v in kwargs.items():
                         kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
                     return vargs, kwargs
 
-                return enforce_binding
+                return enforce_binding_varkwarg_posonly
 
-            def enforce_binding(*args, __binding=binding, **kwargs):
+            def enforce_binding_varkwarg(*args, __binding=binding, **kwargs):
                 for k, v in kwargs.items():
                     kwargs[k] = __binding[k](v) if k in __binding else varkwarg(v)
                 return args, kwargs
 
-            return enforce_binding
+            return enforce_binding_varkwarg
 
         if argixes:
 
-            def enforce_binding(*args, __binding=binding, **kwargs):
-                vargs = [...] * len(args)
-                for i, v in enumerate(args):
-                    vargs[i] = __binding[i](v)
+            def enforce_binding_posonly(*args, __binding=binding, **kwargs):
+                vargs = [__binding[i](v) for i, v in enumerate(args)]
                 for k, v in kwargs.items():
                     kwargs[k] = __binding[k](v) if k in __binding else v
                 return vargs, kwargs
 
-            return enforce_binding
+            return enforce_binding_posonly
 
-        def enforce_binding(*args, __binding=binding, **kwargs):
+        def enforce_binding_kwdonly(*args, __binding=binding, **kwargs):
             for k, v in kwargs.items():
                 kwargs[k] = __binding[k](v) if k in __binding else v
             return args, kwargs
 
-        return enforce_binding
+        return enforce_binding_kwdonly
 
     def bind(
         self,
-        obj: Union[Type, Callable],
+        obj: type[_T] | Callable[..., _T],
         *args: Any,
         partial: bool = None,
         coerce: bool = None,
         strict: bool = False,
         **kwargs: Mapping[str, Any],
-    ) -> BoundArguments:
+    ) -> BoundArguments[_T]:
         """Bind a received input to a callable or object's signature.
 
         If we can locate an annotation for any args or kwargs, we'll automatically
@@ -253,6 +260,7 @@ class Binder:
                 "and will be removed in a future version.",
                 category=DeprecationWarning,
             )
+        enforcer: EnforcerT
         if (obj, strict) in self.__class__._ENFORCER_CACHE:
             params, protocols, enforcer = self.__class__._ENFORCER_CACHE[(obj, strict)]
         else:
