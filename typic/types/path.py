@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pathlib
 
-
 __all__ = ("FilePathError", "FilePath", "DirectoryPathError", "DirectoryPath")
 
 

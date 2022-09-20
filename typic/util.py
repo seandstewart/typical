@@ -8,39 +8,38 @@ import functools
 import inspect
 import sys
 import types
+import typing
 import warnings
-from datetime import date, datetime, timedelta, time
+from datetime import date, datetime, time, timedelta
 from threading import RLock
 from types import MappingProxyType, MemberDescriptorType
-import typing
-from typing import (  # type: ignore  # ironic...
-    Tuple,
+from typing import (
+    AbstractSet,
     Any,
-    Sequence,
-    Collection,
-    Mapping,
-    Hashable,
-    Type,
-    TypeVar,
     Callable,
-    get_type_hints as _get_type_hints,
-    Union,
+    Collection,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
     MutableMapping,
     MutableSequence,
-    Iterable,
-    AbstractSet,
     MutableSet,
-    Dict,
     Optional,
-    _eval_type,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
 )
+from typing import get_type_hints as _get_type_hints  # type: ignore  # ironic...
 
 import pendulum
 from future_typing import transform_annotation
 
 import typic.checks as checks
-from typic.compat import ForwardRef, lru_cache, KW_ONLY, get_origin
-from typic.ext import json
+from typic.compat import KW_ONLY, ForwardRef, eval_type, get_origin, lru_cache
+from typic.core import constants, json
 
 __all__ = (
     "cached_issubclass",
@@ -75,8 +74,7 @@ __all__ = (
 
 from typic.compat import SQLAMetaData, sqla_registry
 
-
-GENERIC_TYPE_MAP = {
+GENERIC_TYPE_MAP: dict[type, type] = {
     Sequence: list,
     MutableSequence: list,
     collections.abc.Sequence: list,
@@ -152,7 +150,9 @@ def filtered_str(self) -> str:
     fields = []
     for f in dataclasses.fields(self):
         val = getattr(self, f.name)
-        if (val or val in {False, 0}) and f.repr:
+        if val in (constants.EMPTY, ..., None):
+            continue
+        if f.repr:
             fields.append(f"{f.name}={val!r}")
     return f"({', '.join(fields)})"
 
@@ -263,11 +263,7 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     strobj = str(obj)
     if isinstance(obj, ForwardRef):
         strobj = str(obj.__forward_arg__)
-    isgeneric = (
-        strobj.startswith("typing.")
-        or strobj.startswith("typing_extensions.")
-        or "[" in strobj
-    )
+    isgeneric = checks.isgeneric(strobj)
     # We got a typing thing.
     if isgeneric:
         # If this is a subscripted generic we should clean that up.
@@ -452,28 +448,19 @@ def signature(obj: Union[Callable, Type]) -> inspect.Signature:
 
     Also supports TypedDict subclasses
     """
-    return (
-        typed_dict_signature(obj)
-        if checks.istypeddict(obj)  # type: ignore
-        else inspect.signature(obj)
-    )
+    if inspect.isclass(obj):
+        if checks.istypeddict(obj):
+            return typed_dict_signature(obj)
+        if checks.istupletype(obj) and not checks.isnamedtuple(obj):
+            return tuple_signature(obj)
+    return inspect.signature(obj)
 
 
 cached_signature = lru_cache(maxsize=None)(signature)
 
 
 def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[Any]]:
-    raw_annotations: Dict[str, Any] = {}
-    base_globals: Dict[str, Any] = {"typing": typing}
-    if isinstance(annotation, type):
-        for base in reversed(annotation.__mro__):
-            base_globals.update(sys.modules[base.__module__].__dict__)
-            raw_annotations.update(getattr(base, "__annotations__", None) or {})
-    else:
-        raw_annotations = getattr(annotation, "__annotations__", None) or {}
-        module_name = getattr(annotation, "__module__", None)
-        if module_name:
-            base_globals.update(sys.modules[module_name].__dict__)
+    base_globals, raw_annotations = _get_globalns(annotation)
     annotations = {}
     for name, value in raw_annotations.items():
         if isinstance(value, str):
@@ -490,7 +477,7 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
                 else:
                     value = ForwardRef(value)
         try:
-            value = _eval_type(value, base_globals or None, None)
+            value = eval_type(value, base_globals or None, None)
         except NameError:
             # this is ok, we deal with it later.
             pass
@@ -501,14 +488,61 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
     return annotations
 
 
-def get_type_hints(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
+def _get_globalns(
+    annotation: Union[Type, Callable]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    raw_annotations: Dict[str, Any] = {}
+    base_globals: Dict[str, Any] = {"typing": typing}
+    if isinstance(annotation, type):
+        for base in reversed(annotation.__mro__):
+            base_globals.update(sys.modules[base.__module__].__dict__)
+            raw_annotations.update(getattr(base, "__annotations__", None) or {})
+    else:
+        raw_annotations = getattr(annotation, "__annotations__", None) or {}
+        module_name = getattr(annotation, "__module__", None)
+        if module_name:
+            base_globals.update(sys.modules[module_name].__dict__)
+    return base_globals, raw_annotations
+
+
+def get_type_hints(
+    obj: Union[Type, Callable], exhaustive: bool = True
+) -> Dict[str, Type[Any]]:
     try:
         hints = _get_type_hints(obj)
     except (NameError, TypeError):
         hints = _safe_get_type_hints(obj)
     # KW_ONLY is a special sentinel to denote kw-only params in a dataclass.
     #  We don't want to do anything with this hint/field. It's not real.
-    return {f: t for f, t in hints.items() if t is not KW_ONLY}
+    hints = {f: t for f, t in hints.items() if t is not KW_ONLY}
+    if not hints and exhaustive:
+        hints = _hints_from_signature(obj)
+    return hints
+
+
+def _hints_from_signature(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
+    try:
+        globalns, _ = _get_globalns(obj)
+        params: dict[str, inspect.Parameter] = {**signature(obj).parameters}
+    except (TypeError, ValueError):
+        return {}
+    hints = {}
+    for name, param in params.items():
+        annotation = param.annotation
+        if annotation is param.empty:
+            annotation = Any
+            hints[name] = annotation
+            continue
+        if annotation.__class__ is str:
+            ref = ForwardRef(transform_annotation(annotation))
+            try:
+                annotation = eval_type(ref, globalns or None, None)
+            except NameError:
+                annotation = ref
+            hints[name] = annotation
+            continue
+        hints[name] = annotation
+    return hints
 
 
 cached_type_hints = lru_cache(maxsize=None)(get_type_hints)
@@ -574,6 +608,24 @@ def typed_dict_signature(obj: Callable) -> inspect.Signature:
     )
 
 
+def tuple_signature(t: type[tuple]) -> inspect.Signature:
+    args = get_args(t)
+    if not args or args[-1] is ...:
+        argt = Any if not args else args[0]
+        param = inspect.Parameter(
+            name="args", kind=inspect.Parameter.VAR_POSITIONAL, annotation=argt
+        )
+        sig = inspect.Signature(parameters=(param,))
+        return sig
+    kind = inspect.Parameter.POSITIONAL_ONLY
+    params = tuple(
+        inspect.Parameter(name=str(i), kind=kind, annotation=at)
+        for i, at in enumerate(args)
+    )
+    sig = inspect.Signature(parameters=params)
+    return sig
+
+
 @lru_cache(maxsize=None)
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
@@ -600,7 +652,7 @@ class TypeMap(Dict[Type, VT]):
 
         # Get the MRO - the first value is the given type so skip it
         try:
-            for ptype in inspect.getmro(t)[1:]:
+            for ptype in t.__bases__:
                 if ptype in self:
                     v = self[ptype]
                     # Cache for later use
@@ -615,8 +667,8 @@ class TypeMap(Dict[Type, VT]):
 def slotted(
     _cls: Type = None,
     *,
-    dict: bool = True,
-    weakref: bool = False,
+    dict: bool = False,
+    weakref: bool = True,
 ):
     """Decorator to create a "slotted" version of the provided class.
 
@@ -779,9 +831,6 @@ class TaggedUnion:
     types_by_values: Tuple[Tuple[Any, Type], ...]
 
 
-empty = object()
-
-
 @functools.lru_cache(maxsize=None)
 def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
     if any(
@@ -807,9 +856,9 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
         #  we need to add a branch for tagged unions from generics.
         while intersection and tag is None:
             f = intersection.pop()
-            v = getattr(root, f, empty)
+            v = getattr(root, f, constants.EMPTY)
             if (
-                v is not empty
+                v is not constants.EMPTY
                 and not isinstance(v, MemberDescriptorType)
                 and checks.ishashable(v)
                 and not checks.isdescriptor(v)
@@ -832,19 +881,42 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
     return None
 
 
+@functools.lru_cache(maxsize=None)
+def flatten_union(t: _UnionT) -> _UnionT | None:
+    stack = collections.deque([t])
+    args = {}
+    while stack:
+        u = stack.popleft()
+        uargs = get_args(u)
+        for a in uargs:
+            if a in args:
+                continue
+            if checks.isuniontype(a):
+                stack.append(a)
+                continue
+            args[a] = ...
+    if not args:
+        return None
+    return typing.cast("_UnionT", Union[tuple(args)])
+
+
+_UnionT = TypeVar("_UnionT")
+
+
 def extract(name: str, *, frame: types.FrameType = None) -> Optional[Any]:
     """Extract `name` from the stacktrace of `frame`.
 
     If `frame` is not provided, this function will use the current frame.
     """
     frame = frame or inspect.currentframe()
-    seen = set()
+    seen: set[types.FrameType] = set()
+    add = seen.add
     while frame and frame not in seen:
         if name in frame.f_globals:
             return frame.f_globals[name]
         if name in frame.f_locals:
             return frame.f_locals[name]
-        seen.add(frame)
+        add(frame)
         frame = frame.f_back
 
     return None

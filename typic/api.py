@@ -6,70 +6,64 @@ import functools
 import inspect
 import types
 import warnings
-from types import FunctionType, MethodType
 from typing import (
-    Union,
-    Callable,
-    Type,
-    Tuple,
-    Optional,
-    Mapping,
-    TypeVar,
-    cast,
-    Iterable,
     Any,
+    Callable,
     Dict,
     List,
+    Mapping,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
     overload,
 )
 
-import typic.constraints as c
-from typic.checks import issubclass, isfrozendataclass, isbuiltintype
-from typic.compat import lru_cache, Generic
-from typic.env import Environ, EnvironmentTypeError, EnvironmentValueError
-from typic.serde.binder import BoundArguments
-from typic.serde.common import (
-    Annotation,
-    SerdeFlags,
-    SerializerT,
-    SerdeProtocol,
-    SerdeProtocolsT,
-    DeserializerT,
-    TranslatorT,
-    FieldIteratorT,
-)
-from typic.common import (
+from typic.checks import isfrozendataclass
+from typic.compat import Generic, lru_cache
+from typic.core.annotations import ReadOnly, WriteOnly
+from typic.core.constants import (
     ORIG_SETTER_NAME,
-    SCHEMA_NAME,
-    SERDE_FLAGS_ATTR,
-    Case,
-    ReadOnly,
-    WriteOnly,
     SERDE_ATTR,
+    SERDE_FLAGS_ATTR,
     TYPIC_ANNOS_NAME,
 )
-from typic.serde.resolver import resolver
-from typic.serde.ser.factory import SerializationValueError
-from typic.strict import (
+from typic.core.constraints import ConstrainedType, constrained
+from typic.core.constraints.core.validators import ValidatorProtocol
+from typic.core.interfaces import (
+    Annotation,
+    DeserializerT,
+    FieldIteratorT,
+    SerdeFlags,
+    SerdeProtocol,
+    SerdeProtocolsT,
+    SerializerT,
+    TranslatorT,
+)
+from typic.core.resolver import resolver
+from typic.core.serde.binder import BoundArguments
+from typic.core.serde.ser import SerializationValueError
+from typic.core.strict import (
+    STRICT_MODE,
+    Strict,
+    StrictModeT,
+    StrictStrT,
     is_strict_mode,
     strict_mode,
-    Strict,
-    StrictStrT,
-    STRICT_MODE,
-    StrictModeT,
 )
-from typic.ext.schema import SchemaFieldT, builder as schema_builder, ObjectSchemaField
-from typic.util import origin, cached_type_hints, cached_signature
-from typic.types import FrozenDict, freeze
+from typic.core.strings import Case
+from typic.env import Environ, EnvironmentTypeError, EnvironmentValueError
+from typic.types import freeze
+from typic.util import cached_signature, cached_type_hints
 
 __all__ = (
     "Annotation",
-    "annotations",
     "bind",
     "BoundArguments",
     "Case",
-    "coerce",
     "constrained",
+    "ConstrainedType",
     "decode",
     "encode",
     "environ",
@@ -106,7 +100,7 @@ __all__ = (
 )
 
 ObjectT = TypeVar("ObjectT", bound=object)
-SchemaGenT = Callable[[Type[ObjectT]], SchemaFieldT]
+SchemaGenT = Callable[[Type[ObjectT]], Any]
 
 
 transmute = resolver.transmute
@@ -115,7 +109,8 @@ validate = resolver.validate
 bind = resolver.bind
 register = resolver.des.register
 primitive = resolver.primitive
-schemas = schema_builder.all
+schemas = resolver.schemas.all
+schema = resolver.schema
 protocols = resolver.protocols
 protocol = resolver.resolve
 tojson = resolver.tojson
@@ -123,10 +118,6 @@ iterate = resolver.iterate
 flags = SerdeFlags
 encode = resolver.encode
 decode = resolver.decode
-
-# TBDeprecated
-coerce = resolver.coerce_value
-annotations = resolver.protocols
 
 
 _T = TypeVar("_T")
@@ -146,7 +137,7 @@ class TypicObjectT(Generic[_T]):
     primitive: SerializerT[_T]
     transmute: DeserializerT[_T]
     translate: TranslatorT[_T]
-    validate: c.ValidatorT[_T]
+    validate: ValidatorProtocol[_T]
     tojson: Callable[..., str]
     iterate: FieldIteratorT[_T]
 
@@ -242,7 +233,7 @@ def _resolve_class(
         always = True
     if jsonschema:
         ns["schema"] = classmethod(schema)
-        schema_builder.attach(cls)
+        resolver.schemas.attach(cls)
 
     # Wrap the init if
     #   a) this is a "frozen" dataclass
@@ -426,190 +417,6 @@ def resolve():
     )
 
 
-_CONSTRAINT_TYPE_MAP = {
-    x.type: x
-    for x in c.ConstraintsT.__args__  # type: ignore
-    if hasattr(x, "type") and x.type != object
-}
-
-
-def _get_constraint_cls(cls: Type) -> Optional[Type[c.ConstraintsT]]:
-    if cls in _CONSTRAINT_TYPE_MAP:  # pragma: nocover
-        return _CONSTRAINT_TYPE_MAP[cls]
-    for typ, constr in _CONSTRAINT_TYPE_MAP.items():
-        if issubclass(origin(cls), typ):
-            _CONSTRAINT_TYPE_MAP[cls] = constr
-            return constr
-
-    return None
-
-
-def _get_maybe_multi_constraints(
-    v,
-) -> Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]:
-    cons: Union[c.ConstraintsProtocolT, Tuple[c.ConstraintsProtocolT, ...]]
-    if isinstance(v, Iterable):
-        cons_gen = (c.get_constraints(x) for x in v)
-        cons = tuple((x for x in cons_gen if x is not None))
-    else:
-        cons = c.get_constraints(v)
-    return cons
-
-
-def _handle_constraint_values(constraints, values, args):
-    vcons = _get_maybe_multi_constraints(values)
-    if vcons:
-        constraints["values"] = vcons
-        if not isinstance(values, tuple) or len(values) == 1:
-            args = values if isinstance(values, tuple) else (values,)  # type: ignore
-    return args
-
-
-def _handle_constraint_keys(constraints, args):
-    if "keys" in constraints:
-        ks = constraints["keys"]
-        kcons = _get_maybe_multi_constraints(ks)
-        if kcons:
-            constraints["keys"] = kcons
-        if not isinstance(ks, tuple) or len(ks) == 1:
-            args = (ks if isinstance(ks, tuple) else (ks,)) + args
-            if len(args) == 1:
-                args = args + (Any,)
-    if len(args) == 1:
-        args = (Any,) + args
-    for k in ("items", "patterns", "key_dependencies"):
-        if k in constraints:
-            f = {}
-            for n, c_ in constraints[k].items():
-                c__cons = _get_maybe_multi_constraints(c_)
-                if c__cons:
-                    f[n] = c__cons
-
-            constraints[k] = FrozenDict(f)
-    return args
-
-
-def constrained(
-    _klass=None, *, values: Union[Type, Tuple[Type, ...]] = None, **constraints
-):
-    """A wrapper to indicate a 'constrained' type.
-
-    Parameters
-    ----------
-    values
-        For container-types, you can pass in other constraints for the values to be
-        validated against. Can be a single constraint for all values or a tuple of
-        constraints to choose from.
-
-    **constraints
-        The restrictions to apply to values being cast as the decorated type.
-
-    Examples
-    --------
-    >>> import typic
-    >>>
-    >>> @typic.constrained(max_length=10)
-    ... class ShortStr(str):
-    ...     '''A short string.'''
-    ...     ...
-    ...
-    >>> ShortStr('foo')
-    'foo'
-    >>> ShortStr('waytoomanycharacters')
-    Traceback (most recent call last):
-    ...
-    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, max_length=10)
-    >>> @typic.constrained(values=ShortStr, max_items=2)
-    ... class SmallMap(dict):
-    ...     '''A small map that only allows short strings.'''
-    ...
-    >>> import json
-    >>> print(json.dumps(typic.schema(SmallMap, primitive=True), indent=2, sort_keys=True))
-    {
-      "additionalProperties": {
-        "maxLength": 10,
-        "type": "string"
-      },
-      "description": "A small map that only allows short strings.",
-      "maxProperties": 2,
-      "title": "SmallMap",
-      "type": "object"
-    }
-
-
-    See Also
-    --------
-    :py:mod:`typic.constraints.array`
-
-    :py:mod:`typic.constraints.common`
-
-    :py:mod:`typic.constraints.error`
-
-    :py:mod:`typic.constraints.mapping`
-
-    :py:mod:`typic.constraints.number`
-
-    :py:mod:`typic.constraints.text`
-    """
-
-    def constr_wrapper(cls_: Type[ObjectT]) -> Type[ObjectT]:
-        nonlocal constraints
-        nonlocal values
-        cdict = dict(cls_.__dict__)
-        cdict.pop("__dict__", None)
-        cdict.pop("__weakref__", None)
-        constr_cls = _get_constraint_cls(cls_)
-        if not constr_cls:
-            raise TypeError(f"can't constrain type {cls_.__name__!r}")
-
-        args: Tuple[Type, ...] = ()
-        if values and constr_cls.type in {list, dict, set, tuple, frozenset}:  # type: ignore
-            args = _handle_constraint_values(constraints, values, args)
-        if constr_cls.type == dict:  # type: ignore
-            args = _handle_constraint_keys(constraints, args)
-        if args:
-            cdict["__args__"] = args
-
-        constraints_inst = constr_cls(**constraints)
-        bases = inspect.getmro(cls_)
-
-        def new(_new):
-            @functools.wraps(_new)
-            def __constrained_new(*args, **kwargs):
-                result = _new(*args, **kwargs)
-                return constraints_inst.validate(result)
-
-            return __constrained_new
-
-        def init(_init):
-            @functools.wraps(_init)
-            def __constrained_init(self, *args, **kwargs):
-                _init(self, *args, **kwargs)
-                constraints_inst.validate(self)
-
-            return __constrained_init
-
-        name = cls_.__name__
-        if isbuiltintype(cls_):
-            name = f"Constrained{cls_.__name__.capitalize()}"
-
-        cdict.update(
-            __constraints__=constraints_inst,
-            __parent__=constraints_inst.type,
-            __module__=cls_.__module__,
-            **(
-                {"__new__": new(cls_.__new__)}
-                if constraints_inst.type in {str, bytes, int, float}
-                else {"__init__": init(cls_.__init__)}
-            ),
-        )
-        cls: Type[ObjectT] = cast(Type[ObjectT], type(name, bases, cdict))
-
-        return cls
-
-    return constr_wrapper(_klass) if _klass else constr_wrapper
-
-
 environ = Environ(resolver)
 
 
@@ -716,56 +523,4 @@ def _resolve_from_env(
 
 PrimitiveT = Union[Dict, List, str, int, bool]
 SchemaPrimitiveT = Dict[str, PrimitiveT]
-SchemaReturnT = Union[SchemaPrimitiveT, ObjectSchemaField]
-
-
-@lru_cache(maxsize=None)
-def schema(obj: Type[ObjectT], *, primitive: bool = False) -> SchemaReturnT:
-    """Get a JSON schema for object for the given object.
-
-    Parameters
-    ----------
-    obj
-        The class for which you wish to generate a JSON schema
-    primitive
-        Whether to return an instance of :py:class:`typic.schema.ObjectSchemaField` or
-        a "primitive" (dict object).
-
-    Examples
-    --------
-    >>> import typic
-    >>> import json
-    >>>
-    >>> @typic.klass
-    ... class Foo:
-    ...     bar: str
-    ...
-    >>> typic.schema(Foo)
-    ObjectSchemaField(title='Foo', description='Foo(bar: str)', properties={'bar': StrSchemaField()}, additionalProperties=False, required=('bar',))
-    >>> print(json.dumps(typic.schema(Foo, primitive=True), sort_keys=True, indent=2))
-    {
-      "additionalProperties": false,
-      "definitions": {},
-      "description": "Foo(bar: str)",
-      "properties": {
-        "bar": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "bar"
-      ],
-      "title": "Foo",
-      "type": "object"
-    }
-    """
-    if obj in {FunctionType, MethodType}:
-        raise ValueError("Cannot build schema for function or method.")
-
-    annotation = resolver.resolve(obj)
-    schm = schema_builder.get_field(annotation)
-    try:
-        setattr(obj, SCHEMA_NAME, schm)
-    except (AttributeError, TypeError):
-        pass
-    return cast(SchemaReturnT, schm.primitive() if primitive else schm)
+SchemaReturnT = Union[SchemaPrimitiveT, Any]

@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import ClassVar, Pattern, Match, Optional
+from typing import ClassVar, Match, Optional, Pattern
 from urllib.parse import quote
 
 from typic.util import cached_property, slotted
+
 from .url import (
-    NetworkAddress,
-    PRIVATE_HOSTS,
     INTERNAL_HOSTS,
     INTERNAL_IP_PATTERN,
+    PRIVATE_HOSTS,
+    NetworkAddress,
     NetworkAddressValueError,
 )
 

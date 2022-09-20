@@ -37,7 +37,7 @@ from typic.api import (
 )
 from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
 from typic.compat import Literal
-from typic.constraints import ConstraintValueError
+from typic.core.constraints.core.error import ConstraintValueError
 from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
 from typic.types import NetworkAddress, DirectoryPath
 from typic.klass import klass
@@ -626,13 +626,12 @@ def test_cast_constrained(type, value, expected):
         (objects.LargeInt, 500),
         (objects.LargeIntDict, {"foo": 1}),
         (objects.LargeIntDict, {"fooooo": 1001}),
-        (objects.ItemizedValuedDict, {"foo": 1}),
-        (objects.ItemizedDict, {"foo": 1}),
-        (objects.ItemizedKeyedValuedDict, {"foo": 1}),
-        (objects.ItemizedKeyedDict, {"foo": 1}),
-        (objects.ItemizedValuedDict, {"blah": "foooooooo"}),
-        (objects.ItemizedKeyedValuedDict, {"blah": "foooooooo"}),
-        (objects.ItemizedKeyedDict, {"foooooooo": "blah"}),
+        (objects.ValuedDict, {"foo": 1}),
+        (objects.KeyedValuedDict, {"foo": 1}),
+        (objects.KeyedDict, {"foo": 1}),
+        (objects.ValuedDict, {"blah": "foooooooo"}),
+        (objects.KeyedValuedDict, {"blah": "foooooooo"}),
+        (objects.KeyedDict, {"foooooooo": "blah"}),
         (objects.ShortKeyDict, {"fooooooo": "blah"}),
     ],
     ids=objects.get_id,

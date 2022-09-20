@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import copy
 import inspect
-from operator import attrgetter
-from typing import Union, Tuple, List, Any, TypeVar, Mapping, Generic, FrozenSet
-from collections.abc import Hashable
+from typing import (
+    Generic,
+    Hashable,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    TypeVar,
+    overload,
+)
 
+from typic.checks import ishashable
 from typic.util import cached_property
 
 __all__ = ("FrozenDict", "freeze")
 
 KT = TypeVar("KT")  # Key type.
 VT = TypeVar("VT", covariant=True)  # Value type.
-
-_hashgetter = attrgetter("__hash__")
 
 
 class FrozenDict(Generic[KT, VT], dict):
@@ -62,9 +68,9 @@ class FrozenDict(Generic[KT, VT], dict):
 
     def __init__(
         self,
-        __obj: Union[Mapping, List[Tuple[str, Hashable]]] = None,
+        __obj: Mapping | Iterable[tuple[str, HashableT]] = None,
         *,
-        __hashgetter=_hashgetter,
+        __hashgetter=ishashable,
         **kwargs,
     ):
         super().__init__(
@@ -133,10 +139,40 @@ class FrozenDict(Generic[KT, VT], dict):
         return self.__class__({**self, **(other or {}), **kwargs})
 
 
-FrozenT = Union[FrozenDict, Hashable, Tuple, FrozenSet, None]
+HashableT = TypeVar("HashableT", bound=Hashable)
 
 
-def freeze(o: Any, *, __hashgetter=_hashgetter) -> FrozenT:
+@overload
+def freeze(o: set) -> frozenset:
+    ...
+
+
+@overload
+def freeze(o: type[None]) -> None:
+    ...
+
+
+@overload
+def freeze(o: MutableMapping) -> FrozenDict:
+    ...
+
+
+@overload
+def freeze(o: MutableSequence) -> tuple:
+    ...
+
+
+@overload
+def freeze(o: Iterable) -> tuple:
+    ...
+
+
+@overload
+def freeze(o: HashableT) -> HashableT:
+    ...
+
+
+def freeze(o, *, __hashgetter=ishashable):
     if __hashgetter(o) or inspect.isclass(o) or inspect.isfunction(o):
         return o
 
