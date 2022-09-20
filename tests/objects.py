@@ -262,12 +262,12 @@ class ShortStrList(list):
     ...
 
 
-@typic.constrained(gt=1000)
+@typic.constrained(min=1000)
 class LargeInt(int):
     ...
 
 
-@typic.constrained(gt=1000)
+@typic.constrained(min=1000)
 class LargeFloat(float):
     ...
 
@@ -282,23 +282,18 @@ class ShortKeyDict(dict):
     ...
 
 
-@typic.constrained(items={"foo": LargeInt}, values=ShortStr)
-class ItemizedValuedDict(dict):
+@typic.constrained(values=ShortStr)
+class ValuedDict(dict):
     ...
 
 
-@typic.constrained(items={"foo": LargeInt}, keys=ShortStr)
-class ItemizedKeyedDict(dict):
+@typic.constrained(keys=ShortStr)
+class KeyedDict(dict):
     ...
 
 
-@typic.constrained(items={"foo": LargeInt})
-class ItemizedDict(dict):
-    ...
-
-
-@typic.constrained(items={"foo": LargeInt}, keys=ShortStr, values=ShortStr)
-class ItemizedKeyedValuedDict(dict):
+@typic.constrained(keys=ShortStr, values=ShortStr)
+class KeyedValuedDict(dict):
     ...
 
 

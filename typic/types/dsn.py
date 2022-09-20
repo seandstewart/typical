@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import dataclasses
 from types import MappingProxyType
-from typing import ClassVar, Pattern, Dict, Set, Match, Optional, Mapping, List
-from urllib.parse import urlencode, urlparse, ParseResult, quote, parse_qs
+from typing import ClassVar, Dict, List, Mapping, Match, Optional, Pattern, Set
+from urllib.parse import ParseResult, parse_qs, quote, urlencode, urlparse
 
 from typic.util import cached_property, slotted
+
 from .secret import SecretStr
 from .url import (
     DEFAULT_PORTS,
     INTERNAL_HOSTS,
     INTERNAL_IP_PATTERN,
-    NetworkAddress,
     NET_ADDR_PATTERN,
-    NetworkAddressValueError,
     PRIVATE_HOSTS,
+    NetworkAddress,
+    NetworkAddressValueError,
 )
 
 __all__ = ("DSN", "DSNInfo", "DSNValueError")

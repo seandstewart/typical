@@ -4,10 +4,11 @@ import dataclasses
 import re
 from collections import defaultdict
 from types import MappingProxyType
-from typing import Dict, List, ClassVar, Pattern, Match, Mapping, Set, Optional
+from typing import ClassVar, Dict, List, Mapping, Match, Optional, Pattern, Set
 from urllib import parse
 
 from typic.util import cached_property, slotted
+
 from .secret import SecretStr
 
 __all__ = (

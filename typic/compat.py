@@ -5,49 +5,32 @@ from __future__ import annotations
 import sys
 import types
 from datetime import date, datetime
-from types import ModuleType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    _SpecialForm as SpecialForm,  # type: ignore
-    TypeVar,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
+from typing import _eval_type as eval_type  # type: ignore
+from typing import _SpecialForm as SpecialForm  # type: ignore
 
 try:
-    from typing import Final  # type: ignore
+    from typing import (  # type: ignore
+        Final,
+        Generic,
+        Literal,
+        Protocol,
+        TypedDict,
+        TypeGuard,
+        get_args,
+        get_origin,
+    )
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final  # type: ignore
-try:
-    from typing import TypedDict  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import TypedDict  # type: ignore
-try:
-    from typing import Literal  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import Literal  # type: ignore
-try:
-    from typing import Protocol  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import Protocol  # type: ignore
-try:
-    from typing import Generic  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import Generic  # type: ignore
-try:
-    from typing import TypeGuard  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import TypeGuard  # type: ignore
-try:
-    from typing import get_origin  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import get_origin  # type: ignore
-try:
-    from typing import get_args  # type: ignore
-except ImportError:  # pragma: nocover
-    from typing_extensions import get_args  # type: ignore
+    from typing_extensions import (  # type: ignore
+        Final,
+        Generic,
+        Literal,
+        Protocol,
+        TypedDict,
+        TypeGuard,
+        get_args,
+        get_origin,
+    )
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover
@@ -184,6 +167,7 @@ __all__ = (
     "TypedDict",
     "Literal",
     "Protocol",
+    "Generic",
     "TypeGuard",
     "ForwardRef",
     "SQLAMetaData",
@@ -194,4 +178,5 @@ __all__ = (
     "DATACLASS_MATCH_ARGS",
     "DATACLASS_NATIVE_SLOTS",
     "KW_ONLY",
+    "UnionType",
 )

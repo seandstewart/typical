@@ -2,55 +2,56 @@ from __future__ import annotations
 
 import abc
 import builtins
+import collections
 import dataclasses
 import datetime
 import decimal
 import enum
+import functools
 import inspect
 import ipaddress
 import numbers
 import pathlib
 import sqlite3
-
 import types
 import uuid
 from collections import namedtuple
 from operator import attrgetter
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
-    Collection,
-    Mapping,
     ClassVar,
-    Type,
-    Tuple,
-    TypeVar,
+    Collection,
+    Hashable,
     Iterable,
     Iterator,
-    Hashable,
+    Mapping,
     NamedTuple,
-    TYPE_CHECKING,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
 )
 
 import typic
-import typic.common
+import typic.core.strict as strict
 import typic.util as util
-import typic.strict as strict
-
 from typic.compat import (
     Final,
     ForwardRef,
     Literal,
-    lru_cache,
-    TypeGuard,
-    TypedDict,
     Protocol,
     Record,
+    TypedDict,
+    TypeGuard,
+    lru_cache,
 )
+from typic.core.annotations import ReadOnly, WriteOnly
 
 if TYPE_CHECKING:
     from typic.api import TypicObjectT
+    from typic.core.constraints import AbstractConstraintValidator
 
 ObjectT = TypeVar("ObjectT")
 """A type-alias for a python object.
@@ -83,9 +84,11 @@ __all__ = (
     "isdescriptor",
     "isenumtype",
     "isfinal",
+    "isfixedtuple",
     "isforwardref",
     "isfromdictclass",
     "isfrozendataclass",
+    "isgeneric",
     "ishashable",
     "isinstance",
     "isiterabletype",
@@ -101,6 +104,7 @@ __all__ = (
     "isstdlibtype",
     "isstdlibsubtype",
     "issubclass",
+    "istexttype",
     "istimetype",
     "istimedeltatype",
     "istupletype",
@@ -134,6 +138,8 @@ STDLibTypeT = Union[
     pathlib.Path,
     uuid.UUID,
     uuid.SafeUUID,
+    collections.defaultdict,
+    collections.deque,
 ]
 STDLIB_TYPES = frozenset(
     (type(None), *(t for t in STDLibTypeT.__args__ if t is not None))  # type: ignore
@@ -142,7 +148,9 @@ STDLIB_TYPES_TUPLE = tuple(STDLIB_TYPES)
 
 
 @lru_cache(maxsize=None)
-def isbuiltintype(obj: Type[ObjectT]) -> TypeGuard[Type[BuiltInTypeT]]:
+def isbuiltintype(
+    obj: Type[ObjectT] | types.FunctionType,
+) -> TypeGuard[Type[BuiltInTypeT]]:
     """Check whether the provided object is a builtin-type.
 
     Python stdlib and Python documentation have no "definitive list" of
@@ -272,7 +280,7 @@ def isuniontype(obj: Type[ObjectT]) -> TypeGuard[Union]:
 
 
 @lru_cache(maxsize=None)
-def isreadonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.ReadOnly]:
+def isreadonly(obj: Type[ObjectT]) -> TypeGuard[ReadOnly]:
     """Test whether an annotation is marked as :py:class:`typic.ReadOnly`
 
     Parameters
@@ -289,7 +297,7 @@ def isreadonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.ReadOnly]:
     >>> typic.isreadonly(NewType("Foo", typic.ReadOnly[str]))
     True
     """
-    return util.origin(obj) is typic.common.ReadOnly
+    return util.origin(obj) is ReadOnly
 
 
 @lru_cache(maxsize=None)
@@ -318,7 +326,7 @@ def isliteral(obj: Type) -> TypeGuard[Literal]:
 
 
 @lru_cache(maxsize=None)
-def iswriteonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.WriteOnly]:
+def iswriteonly(obj: Type[ObjectT]) -> TypeGuard[WriteOnly]:
     """Test whether an annotation is marked as :py:class:`typic.WriteOnly`.
 
     Parameters
@@ -335,7 +343,7 @@ def iswriteonly(obj: Type[ObjectT]) -> TypeGuard[typic.common.WriteOnly]:
     >>> typic.iswriteonly(NewType("Foo", typic.WriteOnly[str]))
     True
     """
-    return util.origin(obj) is typic.common.WriteOnly
+    return util.origin(obj) is WriteOnly
 
 
 @lru_cache(maxsize=None)
@@ -764,7 +772,7 @@ def isconstrained(obj: Type[ObjectT]) -> TypeGuard[_Constrained]:
 
 
 class _Constrained(Protocol):
-    __constraints__: typic.ConstraintsProtocolT
+    __constraints__: AbstractConstraintValidator
 
 
 __hashgetter = attrgetter("__hash__")
@@ -865,6 +873,31 @@ def isnamedtuple(obj: Type[ObjectT]) -> TypeGuard[namedtuple]:
     return inspect.isclass(obj) and issubclass(obj, tuple) and hasattr(obj, "_fields")
 
 
+@lru_cache(maxsize=None)
+def isfixedtuple(obj: Type[ObjectT]) -> TypeGuard[tuple]:
+    """Check whether an object is a "fixed" tuple, e.g., tuple[int, int].
+
+    Parameters
+    ----------
+    obj
+
+    Examples
+    --------
+    >>> import typic
+    >>> from typing import Tuple
+    >>>
+    >>>
+    >>> typic.isfixedtuple(Tuple[str, int])
+    True
+    >>> typic.isfixedtuple(Tuple[str, ...])
+    False
+    """
+    args = util.get_args(obj)
+    if not args or args[-1] is ...:
+        return False
+    return inspect.isclass(obj) and issubclass(obj, tuple)
+
+
 def isforwardref(obj: Any) -> TypeGuard[ForwardRef]:
     return obj.__class__ is ForwardRef
 
@@ -881,11 +914,11 @@ def isdescriptor(obj) -> TypeGuard[types.GetSetDescriptorType]:
     )
 
 
-_ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)
-
-
 def issimpleattribute(v) -> bool:
     return not any(c(v) for c in _ATTR_CHECKS)
+
+
+_ATTR_CHECKS = (inspect.isclass, inspect.isroutine, isproperty)
 
 
 def isabstract(o) -> TypeGuard[abc.ABC]:
@@ -898,3 +931,34 @@ _ABCS = frozenset({numbers.Number})
 
 def istypicklass(obj) -> TypeGuard[TypicObjectT]:
     return hasattr(obj, "__typic_fields__")
+
+
+@functools.lru_cache(maxsize=None)
+def istexttype(t: Type[Any]) -> TypeGuard[Type[str | bytes | bytearray]]:
+    return issubclass(t, (str, bytes, bytearray))
+
+
+@functools.lru_cache(maxsize=None)
+def isnumbertype(t: Type[Any]) -> TypeGuard[Type[numbers.Number]]:
+    return issubclass(t, numbers.Number)
+
+
+@functools.lru_cache(maxsize=None)
+def isstructuredtype(t: Type[Any]) -> bool:
+    return (
+        isfixedtuple(t)
+        or isnamedtuple(t)
+        or istypeddict(t)
+        or (not isstdlibsubtype(t) and not isuniontype(t) and not isliteral(t))
+    )
+
+
+@functools.lru_cache(maxsize=None)
+def isgeneric(t: type | str) -> bool:
+    strobj = str(t)
+    isgeneric = (
+        strobj.startswith("typing.")
+        or strobj.startswith("typing_extensions.")
+        or "[" in strobj
+    )
+    return isgeneric

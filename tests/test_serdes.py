@@ -17,8 +17,7 @@ import ujson
 
 import typic
 import typic.api
-import typic.common
-import typic.ext.json
+from typic.core import strings
 from tests import objects
 
 
@@ -27,7 +26,7 @@ class FieldMapp:
     foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typic.klass(serde=typic.flags(case=typic.common.Case.CAMEL))
+@typic.klass(serde=typic.flags(case=strings.Case.CAMEL))
 class Camel:
 
     foo_bar: str = "bar"
@@ -125,15 +124,15 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
 
 
 class SerDict(Dict):
-    __serde_flags__ = typic.flags(fields=("foo_bar",), case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
 
 
 class CaseDict(Dict):
-    __serde_flags__ = typic.flags(case=typic.common.Case.CAMEL)
+    __serde_flags__ = typic.flags(case=strings.Case.CAMEL)
 
 
 @dataclasses.dataclass

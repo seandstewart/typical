@@ -1,42 +1,41 @@
 from __future__ import annotations
 
-from typing import Optional, Callable, List, Union
-from typing_extensions import Final
+from typing import Callable, List, Optional, Union
 
+from mypy.nodes import (
+    ARG_NAMED_OPT,
+    ARG_POS,
+    MDEF,
+    Argument,
+    Block,
+    Decorator,
+    FuncBase,
+    FuncDef,
+    NameExpr,
+    PassStmt,
+    SymbolNode,
+    SymbolTableNode,
+    TypeVarExpr,
+    Var,
+)
+from mypy.plugin import ClassDefContext, MethodContext, Plugin
+from mypy.plugins.common import _get_decorator_bool_argument
+from mypy.plugins.dataclasses import DataclassTransformer
 from mypy.semanal import SemanticAnalyzer
 from mypy.semanal_shared import set_callable_name
 from mypy.typeops import TypingType
-
-from mypy.nodes import (
-    MDEF,
-    Argument,
-    SymbolTableNode,
-    Var,
-    TypeVarExpr,
-    Decorator,
-    NameExpr,
-    PassStmt,
-    Block,
-    FuncDef,
-    FuncBase,
-    SymbolNode,
-    ARG_POS,
-    ARG_NAMED_OPT,
-)
-from mypy.plugin import ClassDefContext, Plugin, MethodContext
-from mypy.plugins.common import _get_decorator_bool_argument
 from mypy.types import (
+    AnyType,
+    CallableType,
     Type,
+    TypeOfAny,
+    TypeType,
     TypeVarDef,
     TypeVarType,
-    AnyType,
-    TypeOfAny,
-    CallableType,
-    TypeType,
 )
-from mypy.plugins.dataclasses import DataclassTransformer
 from mypy.typevars import fill_typevars
 from mypy.util import get_unique_redefinition_name
+from typing_extensions import Final
 
 typic_class_maker_decorators = {
     "klass",
@@ -141,12 +140,14 @@ class TypicTransformer:
             "typic.SchemaReturnT"
         )
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
-        arg_type = api.named_type("__builtins__.bool")
-        arg = Argument(Var("primitive", arg_type), arg_type, None, ARG_NAMED_OPT)
+        bool_type = api.named_type("__builtins__.bool")
+        str_type = api.named_type("__builtins__.str")
+        primarg = Argument(Var("primitive", bool_type), bool_type, None, ARG_NAMED_OPT)
+        fmtarg = Argument(Var("format", str_type), str_type, None, ARG_NAMED_OPT)
         add_method(
             ctx,
             "schema",
-            args=[arg],
+            args=[primarg, fmtarg],
             return_type=return_type_info.node.target,
             self_type=TypeVarType(self_tvar_def),
             tvar_def=self_tvar_def,

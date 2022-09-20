@@ -7,7 +7,7 @@ import typing
 import pytest
 
 import typic
-from typic.constraints.factory import get_constraints
+from typic.core.constraints.factory import factory
 
 
 @dataclasses.dataclass
@@ -61,7 +61,7 @@ class MyURL(typic.URL):
     ],
 )
 def test_get_contraints(t, v):
-    c = get_constraints(t)
+    c = factory.build(t)
     assert c.validate(v) == v
 
 
@@ -101,6 +101,6 @@ def test_get_contraints(t, v):
     ids=repr,
 )
 def test_get_contraints_invalid(t, v):
-    c = get_constraints(t)
-    with pytest.raises(typic.ConstraintValueError):
+    c = factory.build(t)
+    with pytest.raises(typic.constraints.error.ConstraintValueError):
         c.validate(v)

@@ -26,9 +26,9 @@ import pendulum
 import pytest
 
 from typic.compat import TypedDict, Literal
-from typic.serde.common import Annotation
-from typic.serde.des import routines
-from typic.serde.resolver import Resolver
+from typic.core.interfaces import Annotation
+from typic.core.serde.des import routines
+from typic.core.resolver import Resolver
 
 
 class NoopDeserializerRoutine(routines.BaseDeserializerRoutine):

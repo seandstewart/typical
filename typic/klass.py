@@ -2,25 +2,16 @@ from __future__ import annotations
 
 import dataclasses
 from types import MappingProxyType
-from typing import (
-    Type,
-    Tuple,
-    cast,
-    Mapping,
-    Hashable,
-    Any,
-    Callable,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, Hashable, Mapping, Optional, Tuple, Type, Union, cast
 
-from typic.api import wrap_cls, ObjectT
-from typic.compat import DATACLASS_NATIVE_SLOTS, DATACLASS_KW_ONLY, DATACLASS_MATCH_ARGS
+from typic.api import ObjectT, wrap_cls
+from typic.compat import DATACLASS_KW_ONLY, DATACLASS_MATCH_ARGS, DATACLASS_NATIVE_SLOTS
+from typic.core.interfaces import SerdeFlags
 from typic.types import freeze
 from typic.util import slotted
-from .serde.common import SerdeFlags
 
-_field_slots: Tuple[str, ...] = cast(Tuple[str, ...], dataclasses.Field.__slots__) + (
+_df_slots = cast(Tuple[str, ...], dataclasses.Field.__slots__)  # type: ignore[attr-defined]
+_field_slots: Tuple[str, ...] = _df_slots + (
     "exclude",
     "external_name",
 )
@@ -83,7 +74,7 @@ class Field(dataclasses.Field):
         if DATACLASS_KW_ONLY:
             kwargs["kw_only"] = f.kw_only  # type: ignore
 
-        tf = cls(**kwargs)
+        tf = cls(**kwargs)  # type: ignore[arg-type]
         tf.name = f.name
         tf.type = f.type
         return tf

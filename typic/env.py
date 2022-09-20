@@ -3,16 +3,15 @@ from __future__ import annotations
 import builtins
 import inspect
 import os
-from typing import TypeVar, Type, Any, TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Type, TypeVar
 
 from typic import types
 from typic.checks import STDLIB_TYPES
-from typic.serde import common
+from typic.core import interfaces
 from typic.util import get_name
 
-
 if TYPE_CHECKING:  # pragma: nocover
-    from typic.serde.resolver import Resolver
+    from typic.core.resolver import Resolver
 
 
 _ET = TypeVar("_ET")
@@ -59,7 +58,7 @@ class Environ:
         """Register a handler for the target type `t`."""
         anno = self.resolver.annotation(t)
         if isinstance(
-            anno, (common.ForwardDelayedAnnotation, common.DelayedAnnotation)
+            anno, (interfaces.ForwardDelayedAnnotation, interfaces.DelayedAnnotation)
         ):
             anno = anno.resolved.annotation  # type: ignore
 
