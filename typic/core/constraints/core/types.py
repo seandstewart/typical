@@ -220,7 +220,7 @@ class TextConstraints(AbstractConstraints[_TT]):
     """A regex pattern which the input must match."""
 
 
-_ET = TypeVar("_ET", enum.EnumMeta, Literal)  # type: ignore[misc]
+_ET = TypeVar("_ET", enum.EnumMeta, Literal[...])  # type: ignore[misc]
 
 
 @util.slotted(dict=False, weakref=True)

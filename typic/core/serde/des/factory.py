@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import pathlib
 import re
 from collections import abc, deque
@@ -70,6 +71,7 @@ class DesFactory:
             EMPTY,
             Callable,
             abc.Callable,
+            inspect.Parameter.empty,
         )
     )
     VNAME = "val"

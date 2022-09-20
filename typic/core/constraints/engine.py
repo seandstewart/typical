@@ -350,7 +350,7 @@ class AbstractMultiConstraintValidator(types.AbstractConstraintValidator, Generi
         self.constraints = constraints
         self.cvs = constraint_validators
         self.cvs_by_type = util.TypeMap(
-            (util.origin(c.type), c) for c in self.constraints.constraints
+            (util.origin(c.constraints.type), c) for c in self.cvs
         )
         self.cvs_by_tag = None
         if self.constraints.tag:

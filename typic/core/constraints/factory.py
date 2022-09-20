@@ -277,7 +277,7 @@ class ConstraintsFactory:
             engine.FieldEntryValidator(keys) if keys else None
         )
         values_cv: engine.ValueEntryValidator | None = (
-            engine.ValueEntryValidator(values) if keys else None
+            engine.ValueEntryValidator(values) if values else None
         )
         items: engine.FieldEntryValidator | engine.ValueEntryValidator | engine.CompoundEntryValidator | None
         items = keys_cv or values_cv
