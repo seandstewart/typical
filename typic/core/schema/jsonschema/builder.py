@@ -246,8 +246,8 @@ class JSONSchemaBuilder(
         return desc
 
     @staticmethod
-    def _get_defname(t) -> str | None:
-        name = inflection.camelize(inflection.underscore(util.get_name(t)))
+    def _get_defname(t, tname: str) -> str | None:
+        name = inflection.camelize(inflection.underscore(tname))
         if t in (Any, Ellipsis, type(Ellipsis), None, type(None)):
             return None
         if checks.isgeneric(t):
@@ -262,7 +262,9 @@ class JSONSchemaBuilder(
         return name
 
     def _get_field_meta(self, c) -> tuple[str, str]:
-        title, doc = self._get_defname(c.type), self._get_description(c.type)
+        title, doc = self._get_defname(c.type, c.type_name), self._get_description(
+            c.type
+        )
         if checks.isgeneric(c.type) or checks.isstdlibtype(c.type):
             doc = None
         return title, doc

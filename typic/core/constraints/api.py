@@ -118,7 +118,7 @@ def constrained(
     def constrained_wrapper(
         cls_: type[T],
     ):
-        name, module = cls_.__name__, cls_.__module__
+        name, module, qualname = cls_.__name__, cls_.__module__, cls_.__qualname__
         # If we called this function on a builtin:
         #   - create a new name and for the type
         #   - walk back to the callsite to get the correct module name.
@@ -131,6 +131,7 @@ def constrained(
                 frame = stack[2]
                 mod = inspect.getmodule(frame)
                 module = mod and mod.__name__ or module
+            qualname = f"{module}.{name}"
         else:
             # Otherwise, we need to determine the "parent" type to validate against
             #   in the new constructor.
@@ -141,7 +142,15 @@ def constrained(
         bases = (cls_, *cls_.__bases__, factory.ConstrainedType)
         cdict = {"__module__": module}
         constrained_type = type(
-            name, bases, cdict, keys=keys, values=values, parent=parent, **constraints
+            name,
+            bases,
+            cdict,
+            keys=keys,
+            values=values,
+            parent=parent,
+            type_name=name,
+            type_qualname=qualname,
+            **constraints,
         )
         return cast(factory.ConstrainedType[T], constrained_type)
 

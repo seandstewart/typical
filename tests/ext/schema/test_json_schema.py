@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Tuple, Set, Union, Mapping, Dict, Any, DefaultDict
+from typing import Any, DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 import pytest
+
 import typic
+from tests import objects
+from typic.compat import Final, Literal
 from typic.core.annotations import ReadOnly, WriteOnly
 from typic.core.schema import jsonschema
-from typic.compat import Final, Literal
-from tests import objects
 
 
 @pytest.mark.parametrize(
@@ -327,18 +328,19 @@ class Container:
                 title=objects.A.__name__,
                 description=objects.A.__doc__,
                 properties={
-                    "b": jsonschema.MultiSchemaField(
-                        title=f"Optional{objects.B.__name__}",
-                        anyOf=(
-                            jsonschema.Ref(title="B"),
-                            jsonschema.NullSchemaField(),
-                        ),
-                    )
+                    "b": jsonschema.Ref(title="NullableOptional"),
                 },
                 additionalProperties=False,
                 required=(),
                 definitions=typic.FrozenDict(
                     {
+                        "NullableOptional": jsonschema.MultiSchemaField(
+                            title=f"Optional{objects.B.__name__}",
+                            anyOf=(
+                                jsonschema.Ref(title="B"),
+                                jsonschema.NullSchemaField(),
+                            ),
+                        ),
                         "A": jsonschema.ObjectSchemaField(
                             title=objects.A.__name__,
                             description=objects.A.__doc__,

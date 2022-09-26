@@ -65,15 +65,17 @@ class AbstractConstraints(Generic[_VT]):
     type: Type[_VT]
     nullable: bool = False
     default: Hashable | Callable[[], _VT] | constants._Empty = empty
-    type_name: str = dataclasses.field(init=False, repr=False)
-    type_qualname: str = dataclasses.field(init=False, repr=False)
+    type_name: str = dataclasses.field(default=None, repr=False)
+    type_qualname: str = dataclasses.field(default=None, repr=False)
 
     def __init_subclass__(cls, **kwargs):
         cls.__ignore_repr__ = AbstractConstraints.__ignore_repr__ | cls.__ignore_repr__
 
     def __post_init__(self):
-        object.__setattr__(self, "type_name", util.get_name(self.type))
-        object.__setattr__(self, "type_qualname", util.get_qualname(self.type))
+        if self.type_name is None:
+            object.__setattr__(self, "type_name", util.get_name(self.type))
+        if self.type_qualname is None:
+            object.__setattr__(self, "type_qualname", util.get_qualname(self.type))
 
     @reprlib.recursive_repr()
     def __str__(self) -> str:
@@ -405,6 +407,10 @@ class DelayedConstraintsProxy:
         if self._resolved is None:
             self._resolved = self.dcv.constraints
         return self._resolved
+
+    @property
+    def type(self):
+        return self.ref
 
 
 _ICV = TypeVar("_ICV")
