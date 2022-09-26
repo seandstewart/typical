@@ -50,7 +50,7 @@ class AbstractStructuredObjectAssertion(assertions.AbstractAssertions[_ST]):
             ")>"
         )
 
-    def __init__(self, *, fields: set[str] | set[int], size: int):
+    def __init__(self, *, fields: frozenset[str] | frozenset[int], size: int):
         self.fields = fields
         self.size = size
         super().__init__()
@@ -74,7 +74,7 @@ class StructuredFieldsObjectAssertion(AbstractStructuredObjectAssertion[_ST]):
         ) -> bool:
             cls = val.__class__
             if __ismappingtype(cls):
-                return __fields <= val.keys()
+                return __fields <= val.keys()  # type: ignore
             if __iscollectiontype(cls) and len(val[0]) == 2:  # type: ignore[index]
                 fields = {f for f, v in val}  # type: ignore[misc]
                 return __fields <= fields
@@ -105,7 +105,7 @@ class StructuredTupleAssertion(AbstractStructuredObjectAssertion[_TT]):
 
 
 _ASSERTION_TRUTH_TABLE: dict[
-    StructuredObjectAssertionSelector, type[StructuredFieldsObjectAssertion]
+    StructuredObjectAssertionSelector, type[AbstractStructuredObjectAssertion]
 ] = {
     StructuredFieldsObjectAssertion.selector: StructuredFieldsObjectAssertion,
     StructuredFieldsTupleAssertion.selector: StructuredFieldsTupleAssertion,

@@ -79,9 +79,9 @@ class AbstractDecimalAssertion(assertions.AbstractAssertions[_DT]):
     def __init__(
         self,
         *,
-        number_assertions: number.AbstractNumberAssertion[_DT] = None,
-        max_digits: numbers.Number = None,
-        max_decimal_places: numbers.Number = None,
+        number_assertions: number.AbstractNumberAssertion[_DT] = None,  # type: ignore[type-var]
+        max_digits: numbers.Real = None,
+        max_decimal_places: numbers.Real = None,
     ):
         self.number_assertions = number_assertions
         self.max_digits = max_digits

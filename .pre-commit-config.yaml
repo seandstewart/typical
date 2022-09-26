@@ -25,12 +25,18 @@ repos:
   hooks:
     - id: isort
       name: isort (python)
+      args:
+      - --profile=black
     - id: isort
       name: isort (cython)
       types: [cython]
+      args:
+      - --profile=black
     - id: isort
       name: isort (pyi)
       types: [pyi]
+      args:
+      - --profile=black
 - repo: .
   rev: v2.8.0
   hooks:

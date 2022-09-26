@@ -241,7 +241,7 @@ class SerdeFlags:
         self.case = case
         self.omit = types.freeze(omit)  # type: ignore
         self.fields = cast(FieldSettingsT, types.freeze(fields)) or ()
-        self.exclude = types.freeze(exclude) or ()
+        self.exclude = types.freeze((*exclude,)) or ()
         self.encoder = encoder
         self.decoder = decoder
 

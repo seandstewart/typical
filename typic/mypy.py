@@ -24,18 +24,16 @@ from mypy.plugins.dataclasses import DataclassTransformer
 from mypy.semanal import SemanticAnalyzer
 from mypy.semanal_shared import set_callable_name
 from mypy.typeops import TypingType
-from mypy.types import (
-    AnyType,
-    CallableType,
-    Type,
-    TypeOfAny,
-    TypeType,
-    TypeVarDef,
-    TypeVarType,
-)
+from mypy.types import AnyType, CallableType, Type, TypeOfAny, TypeType, TypeVarType
 from mypy.typevars import fill_typevars
 from mypy.util import get_unique_redefinition_name
 from typing_extensions import Final
+
+try:
+    from mypy.types import TypeVarDef  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover
+    # Backward-compatible with TypeVarDef from Mypy 0.930.
+    from mypy.types import TypeVarType as TypeVarDef
 
 typic_class_maker_decorators = {
     "klass",
@@ -54,6 +52,9 @@ typic_methods = {
     "validate",
     "schema",
     "tojson",
+    "__iter__",
+    "iterate",
+    "translate",
 }  # type: Final
 
 SELF_TVAR_NAME = "_TT"

@@ -17,7 +17,7 @@ def get_validator(
     nullable: bool,
     has_fields: bool,
     is_tuple: bool,
-) -> validators.ValidatorProtocol[_VT]:
+) -> validators.AbstractValidator[_VT]:
     precheck_cls = validators.NoOpPrecheck
     validator_cls = validators.get_validator_cls(
         return_if_instance=return_if_instance,

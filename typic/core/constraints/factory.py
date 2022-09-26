@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import decimal as stdlib_decimal
 import functools
-from typing import Any, Callable, Collection, Hashable, TypeVar, Union
+from typing import Any, Callable, Collection, Hashable, TypeVar, Union, cast
 
 from typic import checks, util
 from typic.compat import Generic, Protocol
@@ -138,7 +138,7 @@ class ConstraintsFactory:
         **config,
     ) -> engine.ConstraintValidator[VT]:
         return_if_instance = not config
-        constraints = types.TextConstraints(
+        constraints = types.TextConstraints(  # type: ignore[type-var]
             type=t, nullable=nullable, default=default, **config
         )
         validator = text.get_validator(
@@ -183,7 +183,10 @@ class ConstraintsFactory:
         constraints: types.NumberConstraints
         if is_decimal:
             constraints = types.DecimalConstraints(
-                type=t, nullable=nullable, default=default, **config
+                type=cast("type[stdlib_decimal.Decimal]", t),
+                nullable=nullable,
+                default=default,
+                **config,
             )
             validator = decimal.get_validator(
                 constraints=constraints,
@@ -232,7 +235,7 @@ class ConstraintsFactory:
             return engine.ConstraintValidator(
                 constraints=constraints, validator=validator
             )
-        return engine.ArrayConstraintValidator(
+        return engine.ArrayConstraintValidator(  # type: ignore[return-value]
             constraints=constraints, validator=validator, items=values, assertion=None
         )
 
@@ -269,10 +272,12 @@ class ConstraintsFactory:
             return_if_instance=return_if_instance,
             nullable=nullable,
         )
+        cv: engine.ConstraintValidator | engine.MappingConstraintValidator
         if (keys, values) == (None, None):
-            return engine.ConstraintValidator(
+            cv = engine.ConstraintValidator(
                 constraints=constraints, validator=validator
             )
+            return cv
         keys_cv: engine.FieldEntryValidator | None = (
             engine.FieldEntryValidator(keys) if keys else None
         )
@@ -283,12 +288,13 @@ class ConstraintsFactory:
         items = keys_cv or values_cv
         if keys_cv and values_cv:
             items = engine.CompoundEntryValidator(keys_cv, values_cv)
-        return engine.MappingConstraintValidator(
+        cv = engine.MappingConstraintValidator(
             constraints=constraints,
             validator=validator,
             items=items,
             assertion=None,
         )
+        return cv
 
     def _from_union_type(
         self,
@@ -305,7 +311,7 @@ class ConstraintsFactory:
         tag = util.get_tag_for_types(args)
         value_constraints = (*(cv.constraints for cv in args_cvs),)
         constraints = types.MultiConstraints(
-            type=ut,
+            type=cast("type[Any]", ut),
             nullable=nullable,
             default=default,
             constraints=value_constraints,
@@ -384,16 +390,16 @@ class ConstraintsFactory:
         default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
     ):
         isnamedtuple = checks.isnamedtuple(t)
-        fields: dict[str, types.AbstractConstraints]
         constraints: types.AbstractConstraints
+        cv: engine.StructuredTupleConstraintValidator | engine.StructuredObjectConstraintValidator
+        validator: validators.AbstractValidator
         if checks.istupletype(t) and not isnamedtuple:
             hints = util.cached_type_hints(t)
             cvs = (*(self.build(h, cls=cls) for h in hints),)
-            fields = frozendict.freeze(dict(enumerate(cv.constraints for cv in cvs)))
             assertion_cls = structured.get_assertion_cls(
                 has_fields=False, is_tuple=True
             )
-            assertion = assertion_cls(fields=fields, size=len(cvs))
+            assertion = assertion_cls(fields=frozenset(range(len(cvs))), size=len(cvs))
             constraints = types.ArrayConstraints(
                 type=Collection, nullable=nullable, default=default
             )
@@ -414,9 +420,10 @@ class ConstraintsFactory:
         hints = util.cached_type_hints(t)
         params = {**sig.parameters}
         items: dict[str, types.AbstractConstraintValidator] = {}
-        fields = {}
+        fields: dict[str, types.AbstractConstraints] = {}
         required: list[str] = []
         istypeddict = checks.istypeddict(t)
+        fcv: types.AbstractConstraintValidator
         for name, param in params.items():
             annotation = param.annotation
             if (
@@ -437,15 +444,15 @@ class ConstraintsFactory:
                 required.append(name)
             if annotation in (Any, Ellipsis, param.empty, constants.EMPTY):
                 continue
-            cv = self.build(
+            fcv = self.build(
                 annotation,
                 nullable=pnullable,
                 name=name,
                 default=default,
                 cls=t,  # type: ignore[arg-type]
             )
-            items[name] = cv
-            fields[name] = cv.constraints
+            items[name] = fcv
+            fields[name] = fcv.constraints
 
         assertion_cls = structured.get_assertion_cls(
             has_fields=True, is_tuple=isnamedtuple
@@ -506,7 +513,7 @@ class _limit_cyclic:
 class ConstrainedType(Generic[VT]):
     __constraints__: types.AbstractConstraintValidator[VT]
     __parent__: type[VT]
-    __args__: tuple[()] | tuple[type] | tuple[type, type]
+    __args__: tuple[type, ...]
 
     def __init_subclass__(
         cls: type[VT],
@@ -519,37 +526,37 @@ class ConstrainedType(Generic[VT]):
 
     @classmethod
     def __resolve_constraints(
-        cls: type[VT],
+        cls,
         keys: type | tuple[type, ...] = None,
         values: type | tuple[type, ...] = None,
         **constraints,
     ):
         args = []
         if keys and checks.ismappingtype(cls):
-            kcv = cls.__handle_sub_constraints(keys)  # type: ignore[attr-defined]
+            kcv = cls.__handle_sub_constraints(keys)
             args.append(kcv.constraints.type)
             constraints["keys"] = kcv
         if values and checks.iscollectiontype(cls):
-            vcv = cls.__handle_sub_constraints(values)  # type: ignore[attr-defined]
+            vcv = cls.__handle_sub_constraints(values)
             args.append(vcv.constraints.type)
             constraints["values"] = vcv
         cv = factory.build(t=cls, **constraints)  # type: ignore[arg-type]
-        cls.__constraints__ = cv  # type: ignore[attr-defined]
-        cls.__args__ = (*args,)  # type: ignore[attr-defined]
-        cls.__parent__ = cv.constraints.type  # type: ignore[attr-defined,union-attr]
+        cls.__constraints__ = cv
+        cls.__args__ = (*args,)
+        cls.__parent__ = cv.constraints.type
 
     @classmethod
-    def __set_constructor(cls: type[VT]):
+    def __set_constructor(cls):
         if issubclass(cls, (str, bytes, int, float)):
-            wrapper = cls.__get_new_wrapper()  # type: ignore[attr-defined]
-            cls.__new__ = wrapper(cls.__new__)  # type: ignore[assignment]
+            wrapper = cls.__get_new_wrapper()
+            cls.__new__ = wrapper(cls.__new__)
             return
-        wrapper = cls.__get_init_wrapper()  # type: ignore[attr-defined]
-        cls.__init__ = wrapper(cls.__init__)  # type: ignore[assignment]
+        wrapper = cls.__get_init_wrapper()
+        cls.__init__ = wrapper(cls.__init__)
 
     @classmethod
-    def __get_new_wrapper(cls: type[VT]):
-        __validate = cls.__constraints__.validate  # type: ignore[attr-defined]
+    def __get_new_wrapper(cls):
+        __validate = cls.__constraints__.validate
 
         def new(_new):
             @functools.wraps(_new)
@@ -562,8 +569,8 @@ class ConstrainedType(Generic[VT]):
         return new
 
     @classmethod
-    def __get_init_wrapper(cls: type[VT]):
-        __validate = cls.__constraints__.validate  # type: ignore[attr-defined]
+    def __get_init_wrapper(cls):
+        __validate = cls.__constraints__.validate
 
         def init(_init):
             @functools.wraps(_init)

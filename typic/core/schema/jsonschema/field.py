@@ -127,7 +127,7 @@ class BaseSchemaField:
     examples: list[Any] | None = None
     readOnly: bool | None = None
     writeOnly: bool | None = None
-    extensions: tuple[frozendict.FrozenDict[str, BaseSchemaField], ...] | None = None
+    extensions: tuple[frozendict.FrozenDict[str, SchemaFieldT], ...] | None = None
 
     @reprlib.recursive_repr()
     def __repr__(self) -> str:  # pragma: nocover
@@ -238,21 +238,14 @@ class ObjectSchemaField(BaseSchemaField):
 
     type = SchemaType.OBJ
     properties: _PropertiesT | None = None
-    additionalProperties: Literal[False] | BaseSchemaField | Ref | None = None
+    additionalProperties: Literal[False] | SchemaFieldT | None = None
     maxProperties: int | None = None
     minProperties: int | None = None
     required: Collection | None = None
     propertyNames: Mapping[str, Pattern] | None = None
     patternProperties: _PatternsT | None = None
     dependencies: _DependenciesT | None = None
-    definitions: frozendict.FrozenDict[str, BaseSchemaField] | None = None
-
-
-_PropertiesT = Union[Mapping[str, BaseSchemaField], Mapping[str, Ref]]
-_PatternsT = Union[Mapping[Pattern, BaseSchemaField], Mapping[Pattern, Ref]]
-_DependenciesT = Union[
-    Mapping[str, Tuple[str]], Mapping[str, BaseSchemaField], Mapping[str, Ref]
-]
+    definitions: frozendict.FrozenDict[str, SchemaFieldT] | None = None
 
 
 @slotted
@@ -266,8 +259,8 @@ class ArraySchemaField(BaseSchemaField):
     """
 
     type = SchemaType.ARR
-    prefixItems: tuple[BaseSchemaField, ...] | None = None
-    items: BaseSchemaField | None = None
+    prefixItems: tuple[SchemaFieldT, ...] | None = None
+    items: SchemaFieldT | None = None
     contains: Any | None = None
     minItems: int | None = None
     maxItems: int | None = None
@@ -290,6 +283,13 @@ SchemaFieldT = Union[
     Ref,
 ]
 """A type-alias for the defined JSON Schema Fields."""
+
+_PropertiesT = Union[Mapping[str, SchemaFieldT], Mapping[str, Ref]]
+_PatternsT = Union[Mapping[Pattern, SchemaFieldT], Mapping[Pattern, Ref]]
+_DependenciesT = Union[
+    Mapping[str, Tuple[str]], Mapping[str, SchemaFieldT], Mapping[str, Ref]
+]
+
 
 SCHEMA_FIELD_FORMATS = util.TypeMap(
     {

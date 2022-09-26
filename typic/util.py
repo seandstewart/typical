@@ -290,7 +290,7 @@ def get_defname(pre: str, obj: Hashable) -> str:
 
 
 @lru_cache(maxsize=None)
-def resolve_supertype(annotation: Type[Any]) -> Any:
+def resolve_supertype(annotation: Type[Any] | types.FunctionType) -> Any:
     """Get the highest-order supertype for a NewType.
 
     Examples
@@ -303,7 +303,7 @@ def resolve_supertype(annotation: Type[Any]) -> Any:
     <class 'int'>
     """
     while hasattr(annotation, "__supertype__"):
-        annotation = annotation.__supertype__
+        annotation = annotation.__supertype__  # type: ignore[union-attr]
     return annotation
 
 
