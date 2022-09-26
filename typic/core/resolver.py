@@ -514,7 +514,9 @@ class Resolver:
         constraints: constr.AbstractConstraintValidator[ObjectT],
     ) -> Tuple[DeserializerT[ObjectT], constr.validators.ValidatorProtocol[ObjectT]]:
         # Set the default returns.
-        validator = constraints.validate
+        validator = cast(
+            constr.validators.ValidatorProtocol[ObjectT], constraints.validate
+        )
         contraint_config = constraints.constraints
         rdeserializer = deserializer
         # If we're in "strict" mode, we want to default to only validation.

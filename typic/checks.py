@@ -263,20 +263,17 @@ def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
     False
     """
     args = getattr(obj, "__args__", ())
-    return (
-        len(args) > 1
-        and args[-1]
-        in {
-            type(None),
-            None,
-        }  # noqa: E721 - we don't know what args[-1] is, so this is safer
-        and util.get_name(util.origin(obj)) in {"Optional", "Union", "Literal"}
+    tname = util.get_name(obj)
+    nullarg = next((a for a in args if a in (type(None), None)), ...)
+    isoptional = tname == "Optional" or (
+        nullarg is not ... and tname in ("Union", "UnionType", "Literal")
     )
+    return isoptional
 
 
 @lru_cache(maxsize=None)
 def isuniontype(obj: Type[ObjectT]) -> TypeGuard[Union]:
-    return util.get_name(util.origin(obj)) in {"Union", "UnionType"}
+    return util.get_name(util.origin(obj)) in ("Union", "UnionType")
 
 
 @lru_cache(maxsize=None)

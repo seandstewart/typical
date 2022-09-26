@@ -27,6 +27,7 @@ __all__ = (
 # region: interface
 
 VT = TypeVar("VT")
+VT_co = TypeVar("VT_co", covariant=True)
 
 
 @overload
@@ -79,10 +80,10 @@ def get_validator_cls(
     return _VALIDATOR_TRUTH_TABLE[selector]
 
 
-class ValidatorProtocol(Protocol[VT]):
+class ValidatorProtocol(Protocol[VT_co]):
     """The required signature for a type-validator."""
 
-    def __call__(self, value: Any) -> tuple[bool, VT]:
+    def __call__(self, value: Any) -> tuple[bool, VT_co]:
         ...
 
 

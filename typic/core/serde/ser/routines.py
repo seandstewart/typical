@@ -41,7 +41,6 @@ __all__ = (
     "PatternSerializerRoutine",
     "SecretSerializerRoutine",
     "StringSerializerRoutine",
-    "SerializationValueError",
 )
 
 

@@ -26,10 +26,14 @@ def get_validator(
         nullable=nullable,
         has_assertion=assertion_cls is not None,
     )
-    assertion = assertion_cls and assertion_cls(
-        min=constraints.min,
-        max=constraints.max,
-        mul=constraints.mul,
+    assertion = (
+        assertion_cls(
+            min=constraints.min,
+            max=constraints.max,
+            mul=constraints.mul,
+        )
+        if assertion_cls
+        else None
     )
     precheck = validators.NoOpPrecheck()
     validator = validator_cls(

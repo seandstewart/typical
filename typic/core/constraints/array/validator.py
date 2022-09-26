@@ -21,6 +21,7 @@ def get_validator(
         has_min=constraints.min_items is not None,
         has_max=constraints.max_items is not None,
     )
+    precheck_cls: type[validators.NoOpPrecheck | prechecks.UniquePrecheck]
     precheck_cls = validators.NoOpPrecheck
     if constraints.unique and not issubclass(constraints.type, set):
         precheck_cls = prechecks.UniquePrecheck

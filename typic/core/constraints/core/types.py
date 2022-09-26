@@ -15,7 +15,6 @@ from typing import (
     Collection,
     Generic,
     Hashable,
-    Iterable,
     Mapping,
     Pattern,
     Text,
@@ -139,30 +138,27 @@ class NumberConstraints(AbstractConstraints[_NT]):
 
     type: Type[_NT] = cast("Type[_NT]", int)
     """The builtin type for this constraint."""
-    min: numbers.Number | None = None
+    min: numbers.Real | None = None
     """The value inputs must be greater-than."""
-    max: numbers.Number | None = None
+    max: numbers.Real | None = None
     """The value inputs must be greater-than-or-equal-to."""
     inclusive_min: bool = False
     """The value inputs must be less-than."""
     inclusive_max: bool = False
     """The value inputs must be less-than-or-equal-to."""
-    mul: numbers.Number | None = None
+    mul: numbers.Real | None = None
     """The value inputs must be a multiple-of."""
-
-
-_DT = TypeVar("_DT", bound=decimal.Decimal)
 
 
 @util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True, repr=False)
-class DecimalConstraints(NumberConstraints[_DT]):
+class DecimalConstraints(NumberConstraints):
     """An extension of our :py:class:`NumberConstraints` for subclasses of :py:class:`decimal.Decimal`."""
 
-    type: Type[_DT] = cast("Type[_DT]", decimal.Decimal)
-    max_digits: numbers.Number | None = None
+    type = decimal.Decimal
+    max_digits: numbers.Real | None = None
     """The maximum allowed digits for the input."""
-    decimal_places: numbers.Number | None = None
+    decimal_places: numbers.Real | None = None
     """The maximum allowed decimal places for the input."""
 
 
@@ -314,12 +310,11 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
         value: Any,
         *,
         path: str = None,
-        error_cls: type[error.ConstraintValueError] = error.ConstraintValueError,
         raises: bool = True,
         **errors,
     ) -> error.ConstraintValueError:
         path = f"{path}:" if path is not None else "Given"
-        err = error_cls(
+        err = error.ConstraintValueError(
             f"{path} value <{value!r}> fails constraints: {self.constraints}",
             path=path or "",
             constraints=self.constraints,
@@ -328,9 +323,6 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
         if raises:
             raise err from None
         return err
-
-
-_ErrorT = TypeVar("_ErrorT", bound=Exception)
 
 
 class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
@@ -362,6 +354,7 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
         self.factory = factory
         self._cv: AbstractConstraintValidator[_VT] = None
         self._config: dict = config
+        self.constraints = cast(AbstractConstraints, DelayedConstraintsProxy(self))
 
     def _evaluate_reference(self) -> AbstractConstraintValidator[_VT]:
         type = self.ref
@@ -374,7 +367,7 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
                     f"Counldn't resolve forward reference: {e}. "
                     f"Make sure this type is available in {self.module}."
                 )
-                type = Any  # make it a no-op
+                type = Any  # type: ignore
 
         c = self.factory(type, nullable=self.nullable, name=self.name, **self._config)
         return c
@@ -385,13 +378,8 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
             self._cv = self._evaluate_reference()
         return self._cv
 
-    @property
-    def constraints(self) -> AbstractConstraints[_VT]:  # type: ignore
-        return DelayedConstraintsProxy(self)  # type: ignore
-
-    @property
-    def validate(self) -> validators.AbstractValidator[_VT]:  # type: ignore
-        return self.cv.validate  # type: ignore
+    def validate(self, value, *, path=None, exhaustive=False):
+        return self.cv.validate(value, path=path, exhaustive=exhaustive)
 
     def __getattr__(self, item):
         return self.cv.__getattribute__(item)
@@ -404,7 +392,7 @@ class DelayedConstraintsProxy:
         self.dcv = dcv
         self.ref = dcv.ref
         self.nullable = dcv.nullable
-        self._resolved = None
+        self._resolved: AbstractConstraints[_VT] | None = None
 
     def __repr__(self):
         if not self._resolved:
@@ -440,7 +428,5 @@ class AbstractContainerValidator(AbstractConstraintValidator[_VT], Generic[_VT, 
         self.items = items
 
     @abc.abstractmethod
-    def itervalidate(
-        self, value: Iterable, *, path: str, exhaustive: TrueOrFalseT = False
-    ):
+    def itervalidate(self, value, *, path: str, exhaustive: TrueOrFalseT = False):
         ...

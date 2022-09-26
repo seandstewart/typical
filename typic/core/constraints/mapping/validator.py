@@ -16,7 +16,7 @@ def get_validator(
     *,
     return_if_instance: TrueOrFalseT,
     nullable: TrueOrFalseT,
-) -> validators.ValidatorProtocol:
+) -> validators.AbstractValidator:
     assertion_cls = assertions.get_assertion_cls(
         has_min=constraints.min_items is not None,
         has_max=constraints.max_items is not None,

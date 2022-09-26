@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import inflection
 
@@ -22,9 +22,7 @@ class JSONSchemaPackage(TypedDict):
 
 
 class JSONSchemaBuilder(
-    abc.AbstractSchemaBuilder[
-        Union[field.BaseSchemaField, field.Ref], JSONSchemaPackage
-    ]
+    abc.AbstractSchemaBuilder[field.SchemaFieldT, JSONSchemaPackage]
 ):
     def _from_structured_object_constraint(
         self, c: constraints.StructuredObjectConstraints
@@ -80,7 +78,7 @@ class JSONSchemaBuilder(
     def _from_array_constraint(
         self, c: constraints.ArrayConstraints
     ) -> field.ArraySchemaField:
-        items = c.values and self.build(c.values)
+        items = self.build(c.values) if c.values else None
         title, description = self._get_field_meta(c)
         if items and title.startswith(items.title) is False:
             title = items.title + title
@@ -235,9 +233,7 @@ class JSONSchemaBuilder(
             refs.append(field.Ref(schema.title))
         return {"definitions": definitions, "oneOf": (*refs,)}
 
-    def _wrap_nullable(
-        self, definition: field.BaseSchemaField
-    ) -> field.BaseSchemaField | field.Ref:
+    def _wrap_nullable(self, definition: field.SchemaFieldT) -> field.SchemaFieldT:
         return field.MultiSchemaField(
             title=f"Nullable{definition.title}",
             oneOf=(definition, field.NullSchemaField()),

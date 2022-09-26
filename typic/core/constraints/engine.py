@@ -1,9 +1,19 @@
 from __future__ import annotations
 
 import abc
-import re
 from itertools import zip_longest
-from typing import Any, Generic, Iterable, Literal, Mapping, TypeVar, Union, overload
+from typing import (
+    Any,
+    Collection,
+    Generic,
+    Iterable,
+    Literal,
+    Mapping,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from typic import checks, util
 from typic.core.annotations import TrueOrFalseT
@@ -24,7 +34,6 @@ __all__ = (
     # Entry/Nested ConstraintValidators
     "CompoundEntryValidator",
     "FieldEntryValidator",
-    "PatternsEntryValidator",
     "ValueEntryValidator",
 )
 
@@ -63,25 +72,15 @@ class ConstraintValidator(types.AbstractConstraintValidator[VT]):
 # endregion
 # region: container-type constraint validation
 
+_IV = TypeVar("_IV")
 _IVT = TypeVar("_IVT")
+_AVT = TypeVar("_AVT", bound=Collection)
 
 
-class ArrayConstraintValidator(types.AbstractContainerValidator[VT, _IVT]):
-    constraints: types.ArrayConstraints
-    validator: validators.ValidatorProtocol
-
-    def itervalidate(
-        self, value: Iterable, *, path: str, exhaustive: Literal[True, False] = False
-    ):
-        ivalidator = self.items.validate
-        irepr = util.collectionrepr
-        yield from (
-            ivalidator(entry, path=irepr(path, i), exhaustive=exhaustive)
-            for i, entry in enumerate(value)
-        )
-
-    def _exhaust(self, it):
-        return [*it]
+class BaseContainerValidator(types.AbstractContainerValidator[_AVT, _IV]):
+    @abc.abstractmethod
+    def _exhaust(self, it: Iterable) -> _AVT:
+        ...
 
     def validate(self, value, *, path=None, exhaustive=False):
         name = path or self.constraints.type_qualname
@@ -106,23 +105,28 @@ class ArrayConstraintValidator(types.AbstractContainerValidator[VT, _IVT]):
         return validated
 
 
-class MappingConstraintValidator(ArrayConstraintValidator[VT, _IVT]):
-    constraints: types.MappingConstraints[VT]
-    validator: validators.ValidatorProtocol[VT]
-    items: AbstractEntryConstraintValidator[_IVT]
-
-    def _exhaust(self, it):
-        return dict(it)
+class ArrayConstraintValidator(
+    BaseContainerValidator[_AVT, types.AbstractConstraintValidator[_IVT]]
+):
+    constraints: types.ArrayConstraints
+    validator: validators.ValidatorProtocol
 
     def itervalidate(
-        self, value: Mapping, *, path: str, exhaustive: TrueOrFalseT = False
+        self, value: Collection, *, path: str, exhaustive: Literal[True, False] = False
     ):
-        ivalidator = self.items
+        ivalidator = self.items.validate
         irepr = util.collectionrepr
+        entry: Any
         yield from (
-            ivalidator(f, v, path=irepr(path, f), exhaustive=exhaustive)
-            for f, v in value.items()
+            ivalidator(entry, path=irepr(path, i), exhaustive=exhaustive)
+            for i, entry in enumerate(value)
         )
+
+    def _exhaust(self, it):
+        return [*it]
+
+
+_MT = TypeVar("_MT", bound=Mapping)
 
 
 class StructuredObjectConstraintValidator(
@@ -134,14 +138,12 @@ class StructuredObjectConstraintValidator(
     validator: _StructuredValidatorT[VT]
     items: Mapping[str, types.AbstractConstraintValidator[_IVT]]
 
-    def itervalidate(
-        self, value: Iterable | Mapping, *, path: str, exhaustive: TrueOrFalseT = False
-    ):
+    def itervalidate(self, value, *, path: str, exhaustive: TrueOrFalseT = False):
         items = self.items
         irepr = util.joinedrepr
         it = value
         if checks.ismappingtype(value.__class__):
-            it = value.items()
+            it = value.items()  # type: ignore[attr-defined]
         yield from (
             (
                 f,
@@ -176,16 +178,19 @@ class StructuredObjectConstraintValidator(
         return validated
 
 
+_TT = TypeVar("_TT", bound=tuple)
+
+
 class StructuredTupleConstraintValidator(
-    types.AbstractContainerValidator[VT, "tuple[AbstractConstraintValidator, ...]"]
+    types.AbstractContainerValidator[
+        _TT, "tuple[types.AbstractConstraintValidator, ...]"
+    ]
 ):
-    constraints: types.StructuredObjectConstraints[VT]
-    validator: _StructuredValidatorT[VT]
+    constraints: types.StructuredObjectConstraints[_TT]
+    validator: _StructuredValidatorT[_TT]
     items: tuple[types.AbstractConstraintValidator, ...]
 
-    def itervalidate(
-        self, value: Iterable, *, path: str, exhaustive: TrueOrFalseT = False
-    ):
+    def itervalidate(self, value: _TT, *, path: str, exhaustive: TrueOrFalseT = False):
         irepr = util.collectionrepr
         it = zip_longest(value, (cv.validate for cv in self.items), fillvalue=None)
         yield from (
@@ -285,7 +290,7 @@ class CompoundEntryValidator(AbstractEntryConstraintValidator[_FT, VT]):
 class _KVMappingEntryValidator(AbstractEntryConstraintValidator[_FT, VT]):
     __slots__ = ("cv",)
 
-    def __init__(self, cv: ArrayConstraintValidator):
+    def __init__(self, cv: types.AbstractConstraintValidator):
         self.cv = cv
 
 
@@ -309,26 +314,26 @@ class ValueEntryValidator(_KVMappingEntryValidator[_FT, VT]):
         return field, vvalue
 
 
-class PatternsEntryValidator(AbstractEntryConstraintValidator[_FT, VT]):
-    __slots__ = ("patterns",)
-
-    def __init__(self, patterns: Mapping[re.Pattern, AbstractEntryConstraintValidator]):
-        self.patterns = patterns
-
-    def __call__(
-        self, field: _FT, value: VT, *, path: str, exhaustive: TrueOrFalseT = False
-    ):
-        for pattern, validator in self.patterns.items():
-            if pattern.match(field) is None:
-                continue
-            vvalue = validator(value, path=path, exhaustive=exhaustive)
-            if exhaustive and isinstance(vvalue, error.ConstraintValueError):
-                return vvalue
-            return field, vvalue
-        return field, value
+_EntryCVReturnT = Union[Tuple[_FT, VT], _ET]
 
 
-_EntryCVReturnT = "tuple[_FT, VT] | _ET"
+class MappingConstraintValidator(
+    BaseContainerValidator[_MT, AbstractEntryConstraintValidator[_FT, _IVT]]
+):
+    constraints: types.MappingConstraints[_MT]
+    validator: validators.ValidatorProtocol[_MT]
+
+    def _exhaust(self, it):
+        return dict(it)
+
+    def itervalidate(self, value: _MT, *, path: str, exhaustive: TrueOrFalseT = False):
+        ivalidator = self.items
+        irepr = util.collectionrepr
+        yield from (
+            ivalidator(f, v, path=irepr(path, f), exhaustive=exhaustive)
+            for f, v in value.items()
+        )
+
 
 # endregion
 # region: type-union constraint validation
@@ -345,7 +350,7 @@ class AbstractMultiConstraintValidator(types.AbstractConstraintValidator, Generi
     def __init__(
         self,
         constraints: types.MultiConstraints,
-        constraint_validators: tuple[types.AbstractConstraints, ...],
+        constraint_validators: tuple[types.AbstractConstraintValidator, ...],
     ):
         self.constraints = constraints
         self.cvs = constraint_validators

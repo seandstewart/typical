@@ -2,16 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
-from typing import (
-    Generic,
-    Hashable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    TypeVar,
-    overload,
-)
+from typing import Generic, Hashable, Iterable, Mapping, Protocol, TypeVar, overload
 
 from typic.checks import ishashable
 from typic.util import cached_property
@@ -139,11 +130,19 @@ class FrozenDict(Generic[KT, VT], dict):
         return self.__class__({**self, **(other or {}), **kwargs})
 
 
+class Unhashable(Protocol):
+    def __hash__(self) -> None:
+        ...
+
+
+UnhashableT = TypeVar("UnhashableT", bound=Unhashable)
 HashableT = TypeVar("HashableT", bound=Hashable)
+_VT = TypeVar("_VT")
+_KT = TypeVar("_KT")
 
 
 @overload
-def freeze(o: set) -> frozenset:
+def freeze(o: HashableT | UnhashableT) -> HashableT:
     ...
 
 
@@ -153,26 +152,24 @@ def freeze(o: type[None]) -> None:
 
 
 @overload
-def freeze(o: MutableMapping) -> FrozenDict:
+def freeze(o: set[_VT]) -> frozenset[_VT]:
     ...
 
 
 @overload
-def freeze(o: MutableSequence) -> tuple:
+def freeze(o: dict[_KT, _VT]) -> FrozenDict[_KT, _VT]:
     ...
 
 
 @overload
-def freeze(o: Iterable) -> tuple:
-    ...
-
-
-@overload
-def freeze(o: HashableT) -> HashableT:
+def freeze(o: list[_VT]) -> tuple[_VT]:
     ...
 
 
 def freeze(o, *, __hashgetter=ishashable):
+    if o is None:
+        return o
+
     if __hashgetter(o) or inspect.isclass(o) or inspect.isfunction(o):
         return o
 

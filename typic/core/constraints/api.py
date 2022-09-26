@@ -11,7 +11,19 @@ __all__ = ("constrained",)
 
 
 @overload
-def constrained(cls: type[T]) -> type[factory.ConstrainedType[T]]:
+def constrained(cls: type[T], /) -> type[factory.ConstrainedType[T]]:
+    ...
+
+
+@overload
+def constrained(
+    cls: type[T],
+    /,
+    *,
+    keys: type | tuple[type, ...],
+    values: type | tuple[type, ...],
+    **constraints,
+) -> factory.ConstrainedType[T]:
     ...
 
 
