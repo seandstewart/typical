@@ -473,6 +473,8 @@ class ConstraintsFactory:
             type=ot,
             fields=frozendict.freeze(fields),
             required=tuple(required),
+            type_name=util.get_name(t),
+            type_qualname=util.get_qualname(t),
         )
         validator = structured.get_validator(
             constraints=constraints,
