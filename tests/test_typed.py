@@ -19,28 +19,30 @@ from tests import objects
 from tests.module.index import MyClass
 from tests.module.other import factory
 from typic.api import (
+    Strict,
+    StrictStrT,
+    constrained,
+    is_strict_mode,
+    primitive,
+    register,
+    resolve,
+    resolver,
+    strict_mode,
+    translate,
     transmute,
     typed,
-    resolve,
-    register,
-    resolver,
+    validate,
     wrap,
     wrap_cls,
-    constrained,
-    strict_mode,
-    is_strict_mode,
-    StrictStrT,
-    Strict,
-    validate,
-    translate,
-    primitive,
 )
-from typic.checks import isbuiltintype, BUILTIN_TYPES, istypeddict
+from typic.checks import BUILTIN_TYPES, isbuiltintype, istypeddict
 from typic.compat import Literal
 from typic.core.constraints.core.error import ConstraintValueError
-from typic.util import safe_eval, resolve_supertype, origin as get_origin, get_args
-from typic.types import NetworkAddress, DirectoryPath
 from typic.klass import klass
+from typic.types import DirectoryPath, NetworkAddress
+from typic.util import get_args
+from typic.util import origin as get_origin
+from typic.util import resolve_supertype, safe_eval
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
@@ -547,7 +549,7 @@ def test_register():
 
     def ismycustomclass(obj) -> bool:
         args = set(getattr(obj, "__args__", [obj]))
-        return args.issubset({*MyCustomType.__args__})
+        return bool(args) and args.issubset({MyCustomClass, MyOtherCustomClass})
 
     register(MyCustomClass, ismycustomclass)
     assert resolver.resolve(MyCustomType).deserialize is MyCustomClass
@@ -626,15 +628,21 @@ def test_cast_constrained(type, value, expected):
         (objects.LargeInt, 500),
         (objects.LargeIntDict, {"foo": 1}),
         (objects.LargeIntDict, {"fooooo": 1001}),
-        (objects.ValuedDict, {"foo": 1}),
-        (objects.KeyedValuedDict, {"foo": 1}),
-        (objects.KeyedDict, {"foo": 1}),
         (objects.ValuedDict, {"blah": "foooooooo"}),
         (objects.KeyedValuedDict, {"blah": "foooooooo"}),
         (objects.KeyedDict, {"foooooooo": "blah"}),
         (objects.ShortKeyDict, {"fooooooo": "blah"}),
     ],
-    ids=objects.get_id,
+    ids=[
+        "short-str-too-long",
+        "large-int-too-small",
+        "large-int-dict-value-too-small",
+        "large-int-dict-key-too-long",
+        "valued-dict-value-too-long",
+        "keyed-valued-dict-value-too-long",
+        "keyed-dict-key-too-long",
+        "short-key-dict-key-too-long",
+    ],
 )
 def test_cast_constrained_invalid(type, value):
     with pytest.raises(ConstraintValueError):
@@ -796,7 +804,14 @@ def test_transmute_nested_constrained(anno, val, expected):
         (typing.Union[str, pathlib.Path], pathlib.Path(".")),
         (typing.Union[str, pathlib.Path], "."),
     ],
-    ids=objects.get_id,
+    ids=[
+        "typic-klass-from-dict",
+        "typed-dict-from-dict",
+        "default-ellipsis-with-default",
+        "default-none-with-default",
+        "union-str-path-from-path",
+        "union-str-path-from-str",
+    ],
 )
 def test_validate(t, v):
     assert validate(t, v) == v
@@ -829,7 +844,19 @@ def test_validate_transmute(t, v):
         ),
         (typing.Union[str, pathlib.Path], 1),
     ],
-    ids=objects.get_id,
+    ids=[
+        "int-wrong-type",
+        "str-wrong-type",
+        "bytes-wrong-type",
+        "float-wrong-type",
+        "list-wrong-type",
+        "dict-wrong-type",
+        "typic-klass-wrong-field-type",
+        "typed-dict-wrong-field-type",
+        "mapping-wrong-value-type",
+        "mapping-wrong-key-type",
+        "union-wrong-type",
+    ],
 )
 def test_validate_invalid(t, v):
     with pytest.raises(ConstraintValueError):

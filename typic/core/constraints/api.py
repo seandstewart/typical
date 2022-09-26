@@ -123,17 +123,25 @@ def constrained(
         #   - create a new name and for the type
         #   - walk back to the callsite to get the correct module name.
         if checks.isbuiltintype(cls_):
+            # If we have a builtin, this is by definition the "parent".
+            parent = cls_
             name = f"Constrained{cls_.__name__.capitalize()}"
             stack = inspect.stack()
             if len(stack) > 2:
                 frame = stack[2]
                 mod = inspect.getmodule(frame)
                 module = mod and mod.__name__ or module
+        else:
+            # Otherwise, we need to determine the "parent" type to validate against
+            #   in the new constructor.
+            bases = cls_.__bases__
+            pix = 1 if len(bases) > 1 else 0
+            parent = bases[pix]
         # Create the new type, inheriting from our Constraint class.
         bases = (cls_, *cls_.__bases__, factory.ConstrainedType)
         cdict = {"__module__": module}
         constrained_type = type(
-            name, bases, cdict, keys=keys, values=values, **constraints
+            name, bases, cdict, keys=keys, values=values, parent=parent, **constraints
         )
         return cast(factory.ConstrainedType[T], constrained_type)
 

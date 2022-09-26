@@ -59,6 +59,9 @@ class ConstraintsFactory:
             if _nullable:
                 args = args[:-1]
             nullable = nullable or _nullable
+            if not args:
+                break
+
             t = args[0] if len(args) == 1 else Union[args]
         if t in (Any, ..., type(...)):
             return engine.ConstraintValidator(
@@ -423,6 +426,9 @@ class ConstraintsFactory:
         fields: dict[str, types.AbstractConstraints] = {}
         required: list[str] = []
         istypeddict = checks.istypeddict(t)
+        ot = util.origin(t)
+        if istypeddict:
+            ot = dict
         fcv: types.AbstractConstraintValidator
         for name, param in params.items():
             annotation = param.annotation
@@ -459,7 +465,7 @@ class ConstraintsFactory:
         )
         assertion = assertion_cls(fields=frozenset(required), size=len(required))
         constraints = types.StructuredObjectConstraints(
-            type=t,
+            type=ot,
             fields=frozendict.freeze(fields),
             required=tuple(required),
         )
@@ -470,7 +476,10 @@ class ConstraintsFactory:
             has_fields=bool(required),
             is_tuple=isnamedtuple,
         )
-        cv = engine.StructuredObjectConstraintValidator(
+        cv_cls = engine.StructuredObjectConstraintValidator
+        if istypeddict:
+            cv_cls = engine.StructuredDictConstraintValidator
+        cv = cv_cls(
             constraints=constraints,
             validator=validator,
             assertion=assertion,
@@ -516,33 +525,52 @@ class ConstrainedType(Generic[VT]):
     __args__: tuple[type, ...]
 
     def __init_subclass__(
-        cls: type[VT],
+        cls,
         keys: type | tuple[type, ...] = None,
         values: type | tuple[type, ...] = None,
+        parent: type[VT] = None,
         **constraints,
     ):
-        cls.__resolve_constraints(keys=keys, values=values, **constraints)  # type: ignore[attr-defined]
-        cls.__set_constructor()  # type: ignore[attr-defined]
+        parent = parent or cls.__get_parent()
+        cls.__resolve_constraints(
+            parent=parent, keys=keys, values=values, **constraints
+        )
+        cls.__set_constructor()
+
+    @classmethod
+    def __get_parent(cls) -> type[VT]:
+        # The "parent" is the immediate superclass of this type
+        #   we will want to validate against that superclass in the constructor.
+        mro = cls.mro()
+        # The first entry in the mro is this class itself. Get the second entry.
+        return mro[1]
 
     @classmethod
     def __resolve_constraints(
         cls,
+        parent: type[VT],
         keys: type | tuple[type, ...] = None,
         values: type | tuple[type, ...] = None,
         **constraints,
     ):
         args = []
-        if keys and checks.ismappingtype(cls):
-            kcv = cls.__handle_sub_constraints(keys)
-            args.append(kcv.constraints.type)
-            constraints["keys"] = kcv
+        if checks.ismappingtype(cls):
+            args = [Any, Any]
+        elif checks.iscollectiontype(cls):
+            args = [Any]
+
         if values and checks.iscollectiontype(cls):
             vcv = cls.__handle_sub_constraints(values)
-            args.append(vcv.constraints.type)
+            args[-1] = vcv.constraints.type
             constraints["values"] = vcv
-        cv = factory.build(t=cls, **constraints)  # type: ignore[arg-type]
+        if keys and checks.ismappingtype(cls):
+            kcv = cls.__handle_sub_constraints(keys)
+            args[0] = kcv.constraints.type
+            constraints["keys"] = kcv
+
+        cv = factory.build(t=parent, **constraints)  # type: ignore[arg-type]
         cls.__constraints__ = cv
-        cls.__args__ = (*args,)
+        cls.__args__ = (*args,)  # type: ignore[arg-type]
         cls.__parent__ = cv.constraints.type
 
     @classmethod

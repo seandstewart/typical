@@ -140,6 +140,7 @@ STDLibTypeT = Union[
     uuid.SafeUUID,
     collections.defaultdict,
     collections.deque,
+    types.MappingProxyType,
 ]
 STDLIB_TYPES = frozenset(
     (type(None), *(t for t in STDLibTypeT.__args__ if t is not None))  # type: ignore
@@ -594,9 +595,9 @@ def ismappingtype(obj: Type[ObjectT]) -> TypeGuard[Type[Mapping]]:
     True
     """
     obj = util.origin(obj)
-    return builtins.issubclass(obj, (dict, Record, sqlite3.Row)) or builtins.issubclass(
-        obj, Mapping
-    )
+    return builtins.issubclass(
+        obj, (dict, Record, sqlite3.Row, types.MappingProxyType)
+    ) or builtins.issubclass(obj, Mapping)
 
 
 @lru_cache(maxsize=None)

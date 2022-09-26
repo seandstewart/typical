@@ -91,7 +91,7 @@ class Resolver:
         value :
             The value to be transmuted
         """
-        resolved: SerdeProtocol = self.resolve(annotation)
+        resolved: SerdeProtocol[ObjectT] = self.resolve(annotation)
         transmuted: ObjectT = resolved.transmute(value)
 
         return transmuted
