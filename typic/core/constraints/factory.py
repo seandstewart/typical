@@ -5,7 +5,7 @@ import functools
 from typing import Any, Callable, Collection, Hashable, TypeVar, Union, cast
 
 from typic import checks, util
-from typic.compat import Generic, Protocol
+from typic.compat import ForwardRef, Generic, Protocol
 from typic.core import constants
 from typic.core.constraints import (
     array,
@@ -32,7 +32,7 @@ class ConstraintsFactory:
             checks.isliteral: self._from_literal_type,
             checks.isuniontype: self._from_union_type,
             checks.istexttype: self._from_text_type,
-            lambda t: issubclass(t, bool): self._from_bool_type,
+            lambda t: checks.issubclass(t, bool): self._from_bool_type,
             checks.isnumbertype: self._from_number_type,
             checks.isstructuredtype: self._from_user_type,
             checks.ismappingtype: self._from_mapping_type,
@@ -88,6 +88,11 @@ class ConstraintsFactory:
                 factory=self.build,
                 **config,
             )
+        # Handle forward refs that aren't forward refs for some reason....
+        tcls = t.__class__
+        if checks.issubclass(tcls, str):  # type: ignore[arg-type]
+            t = ForwardRef(str(t))  # type: ignore[assignment]
+
         if checks.isforwardref(t):
             if not cls or cls is ...:
                 raise TypeError(
