@@ -24,6 +24,8 @@ __all__ = (
     "NullableIsInstanceAssertionsValidator",
 )
 
+from typic.core import constants
+
 # region: interface
 
 VT = TypeVar("VT")
@@ -99,7 +101,7 @@ class AbstractValidator(abc.ABC, Generic[VT]):
     minimal zero loss of debugging context.
     """
 
-    NULLABLES = (None, Ellipsis)
+    NULLABLES = constants.NULLABLES
     __call__: ValidatorProtocol[VT]
 
     __slots__ = (
@@ -194,9 +196,9 @@ class NullableIsInstanceAssertionsValidator(
             __assertion=self.assertion,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
-            retval = (__precheck(value),)
-            if retval in __nullables or __isinstance(retval, __type):
-                return True, retval  # type: ignore[return-value]
+            if value in __nullables or __isinstance(value, __type):
+                return True, value  # type: ignore[return-value]
+            retval = __precheck(value)
             return __assertion(retval), retval  # type: ignore[return-value]
 
         return nullable_isinstance_assertions_validator
@@ -222,13 +224,13 @@ class NullableNotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __assertion=self.assertion,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
+            if value in __nullables:
+                return True, value
+
+            if not __isinstance(value, __type):
+                return False, value
+
             retval = __precheck(value)
-            if retval in __nullables:
-                return True, retval
-
-            if not __isinstance(retval, __type):
-                return False, retval
-
             return __assertion(retval), retval
 
         return nullable_not_isinstance_assertions_validator
@@ -253,10 +255,10 @@ class IsInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __assertion=self.assertion,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
-            retval = (__precheck(value),)
-            if __isinstance(retval, __type):
-                return True, retval  # type: ignore[return-value]
+            if __isinstance(value, __type):
+                return True, value  # type: ignore[return-value]
 
+            retval = __precheck(value)
             return __assertion(retval), retval  # type: ignore[return-value]
 
         return isinstance_assertions_validator
@@ -278,10 +280,10 @@ class NullableIsInstanceValidator(AbstractInstanceValidator[VT]):
             __type=self.type,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
-            retval = __precheck(value)
-            if retval in __nullables:
-                return True, retval
+            if value in __nullables:
+                return True, value
 
+            retval = __precheck(value)
             return __isinstance(retval, __type), retval
 
         return nullable_isinstance_assertions_validator
@@ -306,10 +308,10 @@ class NotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __assertion=self.assertion,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
-            retval = __precheck(value)
-            if not __isinstance(retval, self.type):
-                return False, retval
+            if not __isinstance(value, self.type):
+                return False, value
 
+            retval = __precheck(value)
             return __assertion(retval), retval
 
         return nullable_isinstance_assertions_validator
@@ -339,8 +341,11 @@ class IsInstanceValidator(AbstractInstanceValidator[VT]):
             __type=self.type,
             __isinstance=isinstance,
         ) -> tuple[bool, VT]:
-            retval = __precheck(value)
-            return __isinstance(retval, __type), retval
+            if __isinstance(value, __type):
+                retval = __precheck(value)
+                return True, retval
+
+            return False, value
 
         return isinstance_validator
 
