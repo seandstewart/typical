@@ -22,28 +22,26 @@ _SchemaBuilderMapT = Dict[Type[CT], _SchemaBuilderT]
 class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
     """The base interface for building schemas from typical's Constraint syntax."""
 
-    def __init_subclass__(cls, **kwargs):
-        cls._CONSTRAINT_TO_HANDLER = {
-            constraints.StructuredObjectConstraints: cls._from_structured_object_constraint,
-            constraints.MappingConstraints: cls._from_mapping_constraint,
-            constraints.ArrayConstraints: cls._from_array_constraint,
-            constraints.TextConstraints: cls._from_text_constraint,
-            constraints.DecimalConstraints: cls._from_decimal_constraint,
-            constraints.NumberConstraints: cls._from_number_constraint,
-            constraints.MultiConstraints: cls._from_multi_constraint,
-            constraints.EnumerationConstraints: cls._from_enumeration_constraint,
-            constraints.TypeConstraints: cls._from_type_constraint,
-            constraints.DelayedConstraintsProxy: cls._from_delayed_constraint,
-        }
-
     def __init__(self):
         self._cache: dict[CT, DefinitionT] = {}
         self._attached: set[CT] = set()
-        self._stack: set[CT] = set()
+        self._visited: set[CT] = set()
+        self._CONSTRAINT_TO_HANDLER = {
+            constraints.StructuredObjectConstraints: self._from_structured_object_constraint,
+            constraints.MappingConstraints: self._from_mapping_constraint,
+            constraints.ArrayConstraints: self._from_array_constraint,
+            constraints.TextConstraints: self._from_text_constraint,
+            constraints.DecimalConstraints: self._from_decimal_constraint,
+            constraints.NumberConstraints: self._from_number_constraint,
+            constraints.MultiConstraints: self._from_multi_constraint,
+            constraints.EnumerationConstraints: self._from_enumeration_constraint,
+            constraints.TypeConstraints: self._from_type_constraint,
+            constraints.UndeclaredTypeConstraints: self._from_undeclared_constraint,
+        }
 
-    def build(self, c: CT) -> DefinitionT:
-        if c in self._stack:
-            return self._handle_cyclic_constraint(c=c)
+    def build(self, c: CT, *, field_name: str = None) -> DefinitionT:
+        if isinstance(c, constraints.DelayedConstraintsProxy):
+            c = c.resolved
 
         if c in self._cache:
             return self._cache[c]
@@ -52,13 +50,23 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         if ctype not in self._CONSTRAINT_TO_HANDLER:
             raise TypeError(f"Unrecognized constraint type: {ctype.__qualname__}.")
 
-        self._stack.add(c)
-        handler = self._CONSTRAINT_TO_HANDLER[ctype]
-        definition = handler(self, c)  # type: ignore[call-arg]
+        if c in self._visited:
+            definition = self._handle_cyclic_constraint(c=c)
+
+        else:
+            self._visited.add(c)
+            handler = self._CONSTRAINT_TO_HANDLER[ctype]
+            definition = handler(c)
+            self._visited.remove(c)
+
         if c.nullable:
             definition = self._wrap_nullable(definition=definition)
+        if c.readonly:
+            definition = self._handle_readonly(definition=definition)
+        if c.writeonly:
+            definition = self._handle_writeonly(definition=definition)
+
         self._cache[c] = definition
-        self._stack.remove(c)
         return definition
 
     def attach(self, c: CT):
@@ -85,56 +93,77 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
 
     @abc.abstractmethod
     def _from_structured_object_constraint(
-        self, cv: constraints.StructuredObjectConstraints
+        self, cv: constraints.StructuredObjectConstraints, *, field_name: str = None
     ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
     def _from_mapping_constraint(
-        self, c: constraints.MappingConstraints
+        self,
+        c: constraints.MappingConstraints,
+        *,
+        field_name: str = None,
     ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
-    def _from_array_constraint(self, c: constraints.ArrayConstraints) -> DefinitionT:
+    def _from_array_constraint(
+        self, c: constraints.ArrayConstraints, *, field_name: str = None
+    ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
-    def _from_text_constraint(self, c: constraints.TextConstraints) -> DefinitionT:
+    def _from_text_constraint(
+        self, c: constraints.TextConstraints, *, field_name: str = None
+    ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
     def _from_decimal_constraint(
-        self, c: constraints.DecimalConstraints
+        self, c: constraints.DecimalConstraints, *, field_name: str = None
     ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
-    def _from_number_constraint(self, c: constraints.NumberConstraints) -> DefinitionT:
+    def _from_number_constraint(
+        self, c: constraints.NumberConstraints, *, field_name: str = None
+    ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
     def _from_enumeration_constraint(
-        self, c: constraints.EnumerationConstraints
+        self,
+        c: constraints.EnumerationConstraints,
+        *,
+        field_name: str = None,
     ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
-    def _from_type_constraint(self, c: constraints.TypeConstraints) -> DefinitionT:
-        ...
-
-    @abc.abstractmethod
-    def _from_multi_constraint(self, c: constraints.MultiConstraints) -> DefinitionT:
-        ...
-
-    @abc.abstractmethod
-    def _from_delayed_constraint(
-        self, c: constraints.DelayedConstraintsProxy
+    def _from_type_constraint(
+        self, c: constraints.TypeConstraints, *, field_name: str = None
     ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
-    def _handle_cyclic_constraint(self, c: CT) -> DefinitionT:
+    def _from_multi_constraint(
+        self, c: constraints.MultiConstraints, *, field_name: str = None
+    ) -> DefinitionT:
+        ...
+
+    @abc.abstractmethod
+    def _from_undeclared_constraint(
+        self,
+        c: constraints.UndeclaredTypeConstraints,
+        *,
+        field_name: str = None,
+    ) -> DefinitionT:
+        ...
+
+    @abc.abstractmethod
+    def _handle_cyclic_constraint(
+        self, c: CT, *, field_name: str = None
+    ) -> DefinitionT:
         ...
 
     @abc.abstractmethod
@@ -143,6 +172,14 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
 
     @abc.abstractmethod
     def _wrap_nullable(self, definition: DefinitionT) -> DefinitionT:
+        ...
+
+    @abc.abstractmethod
+    def _handle_readonly(self, definition: DefinitionT) -> DefinitionT:
+        ...
+
+    @abc.abstractmethod
+    def _handle_writeonly(self, definition: DefinitionT) -> DefinitionT:
         ...
 
     _CONSTRAINT_TO_HANDLER: _SchemaBuilderMapT

@@ -23,7 +23,7 @@ def get_validator(
     )
     precheck_cls: type[validators.NoOpPrecheck | prechecks.UniquePrecheck]
     precheck_cls = validators.NoOpPrecheck
-    if constraints.unique and not issubclass(constraints.type, set):
+    if constraints.unique and not issubclass(constraints.type, (set, frozenset)):
         precheck_cls = prechecks.UniquePrecheck
     validator_cls = validators.get_validator_cls(
         return_if_instance=return_if_instance,
@@ -38,7 +38,7 @@ def get_validator(
         if assertion_cls
         else None
     )
-    precheck = precheck_cls(cls=constraints.type)
+    precheck = precheck_cls(cls=constraints.origin)
     validator = validator_cls(
         type=constraints.type,
         precheck=precheck,

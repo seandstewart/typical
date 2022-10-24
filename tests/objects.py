@@ -13,12 +13,13 @@ except ImportError:
     from typing import TypedDict  # type: ignore
 
 import inflection
-import typic
 
 # import pandas
 import pydantic
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
+
+import typic
 from typic.compat import Literal
 
 
@@ -68,11 +69,6 @@ class DefaultNone:
     none: typing.Optional[str] = None
 
 
-@dataclasses.dataclass
-class DefaultEllipsis:
-    ellipsis: str = ...
-
-
 @typic.klass
 class Forward:
     foo: "FooNum"
@@ -85,49 +81,49 @@ class FooNum(str, enum.Enum):
 @dataclasses.dataclass
 class NestedDoubleReference:
     first: Data
-    second: Data = ...
+    second: Data | None = None
 
 
 @typic.klass
 class A:
-    b: typing.Optional[B] = None
+    b: B | None = None
 
 
 @typic.klass
 class B:
-    a: typing.Optional[A] = None
+    a: A | None = None
 
 
 @typic.klass
 class ABs:
-    a: typing.Optional[A] = None
-    bs: typing.Optional[typing.Iterable[B]] = None
+    a: A | None = None
+    bs: typing.Iterable[B] | None = None
 
 
 @typic.klass
 class C:
-    c: typing.Optional[C] = None
+    c: C | None = None
 
 
 @dataclasses.dataclass
 class D:
-    d: typing.Optional[D] = None
+    d: D | None = None
 
 
 @dataclasses.dataclass
 class E:
-    d: typing.Optional[D] = None
-    f: typing.Optional[F] = None
+    d: D | None = None
+    f: F | None = None
 
 
 @dataclasses.dataclass
 class F:
-    g: "G"
+    g: G
 
 
 @typic.klass
 class G:
-    h: typing.Optional[int] = None
+    h: int | None = None
 
 
 @typic.klass
@@ -142,9 +138,9 @@ class J:
 
 @dataclasses.dataclass
 class ThreeOptionals:
-    a: typing.Optional[str]
-    b: typing.Optional[str] = None
-    c: typing.Optional[str] = None
+    a: str | None
+    b: str | None = None
+    c: str | None = None
 
 
 class Class:
@@ -232,18 +228,18 @@ class Method:
         return a * a
 
 
-@typic.klass(delay=True, always=False)
+@typic.klass(always=False)
 class KlassDelayed:
     foo: str
 
 
-@typic.al(delay=True, always=False)
+@typic.al(always=False)
 @dataclasses.dataclass
 class Delayed:
     foo: str
 
 
-@typic.al(delay=True)
+@typic.al
 def delayed(foo: str) -> str:
     return foo
 

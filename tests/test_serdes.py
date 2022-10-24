@@ -9,7 +9,7 @@ import json
 import re
 import typing
 from types import MappingProxyType
-from typing import ClassVar, Optional, Dict, TypeVar, Generic, List, Mapping
+from typing import ClassVar, Dict, Generic, List, Mapping, Optional, TypeVar
 
 import orjson
 import pytest
@@ -17,8 +17,8 @@ import ujson
 
 import typic
 import typic.api
-from typic.core import strings
 from tests import objects
+from typic.core import strings
 
 
 @typic.klass
@@ -540,4 +540,4 @@ def test_routine_protocol():
     with pytest.raises(TypeError):
         proto.serialize(foo)
 
-    assert list(proto.iterate(foo)) == [None]
+    assert list(proto.iterate(foo)) == []

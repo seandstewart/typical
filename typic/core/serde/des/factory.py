@@ -20,7 +20,7 @@ from typing import (
 from typic import checks, util
 from typic.compat import TypeGuard
 from typic.core.annotations import ObjectT
-from typic.core.constants import EMPTY
+from typic.core.constants import empty
 from typic.core.interfaces import (
     Annotation,
     DeserializerRegistryT,
@@ -68,7 +68,7 @@ class DesFactory:
             Match,
             re.Match,  # type: ignore
             type(None),
-            EMPTY,
+            empty,
             Callable,
             abc.Callable,
             inspect.Parameter.empty,

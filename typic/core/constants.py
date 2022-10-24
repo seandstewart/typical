@@ -1,13 +1,12 @@
 import inspect
 
 
-class _Empty:
+class empty:
     def __bool__(self):
         return False
 
 
 DEFAULT_ENCODING = "utf-8"
-EMPTY = _Empty()
 ORIG_SETTER_NAME = "__setattr_original__"
 POSITIONAL_ONLY = inspect.Parameter.POSITIONAL_ONLY
 POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD

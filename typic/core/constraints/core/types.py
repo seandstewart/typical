@@ -39,6 +39,7 @@ __all__ = (
     "AbstractConstraints",
     "AbstractConstraintValidator",
     "AbstractContainerValidator",
+    "UndeclaredTypeConstraints",
     "TypeConstraints",
     "ArrayConstraints",
     "NumberConstraints",
@@ -53,18 +54,21 @@ __all__ = (
 )
 
 
-empty = constants.EMPTY
+empty = constants.empty
 
 
 @util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True, repr=False)
 class AbstractConstraints(Generic[_VT]):
 
-    __ignore_repr__ = frozenset(("type",))
+    __ignore_repr__ = frozenset(("type", "origin"))
 
     type: Type[_VT]
+    origin: Type = None
     nullable: bool = False
-    default: Hashable | Callable[[], _VT] | constants._Empty = empty
+    readonly: bool = False
+    writeonly: bool = False
+    default: Hashable | Callable[[], _VT] | constants.empty = empty
     type_name: str = dataclasses.field(default=None, repr=False)
     type_qualname: str = dataclasses.field(default=None, repr=False)
 
@@ -76,6 +80,8 @@ class AbstractConstraints(Generic[_VT]):
             object.__setattr__(self, "type_name", util.get_name(self.type))
         if self.type_qualname is None:
             object.__setattr__(self, "type_qualname", util.get_qualname(self.type))
+        if self.origin is None:
+            object.__setattr__(self, "origin", util.origin(self.type))
 
     @reprlib.recursive_repr()
     def __str__(self) -> str:
@@ -91,6 +97,14 @@ class AbstractConstraints(Generic[_VT]):
 
     def __repr__(self):
         return self.__str__()
+
+
+@util.slotted(dict=False, weakref=True)
+@dataclasses.dataclass(frozen=True, repr=False)
+class UndeclaredTypeConstraints(AbstractConstraints[constants.empty]):
+    """Simple type-constraint when complex validation is unnecessary."""
+
+    type = constants.empty
 
 
 @util.slotted(dict=False, weakref=True)
@@ -333,6 +347,8 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
         "module",
         "localns",
         "nullable",
+        "readonly",
+        "writeonly",
         "name",
         "factory",
         "_cv" "_config",
@@ -344,6 +360,8 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
         module: str,
         localns: Mapping,
         nullable: bool,
+        readonly: bool,
+        writeonly: bool,
         name: str | None,
         factory: Callable,
         **config,
@@ -352,6 +370,8 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
         self.module = module
         self.localns = localns
         self.nullable = nullable
+        self.readonly = readonly
+        self.writeonly = writeonly
         self.name = name
         self.factory = factory
         self._cv: AbstractConstraintValidator[_VT] = None
@@ -405,7 +425,7 @@ class DelayedConstraintsProxy:
     @property
     def resolved(self) -> AbstractConstraints[_VT]:
         if self._resolved is None:
-            self._resolved = self.dcv.constraints
+            self._resolved = self.dcv.cv.constraints
         return self._resolved
 
     @property

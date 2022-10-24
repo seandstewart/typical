@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import decimal as stdlib_decimal
 import functools
+import inspect
 from typing import Any, Callable, Collection, Hashable, TypeVar, Union, cast
 
 from typic import checks, util
@@ -26,8 +27,9 @@ __all__ = ("ConstrainedType", "factory")
 
 class ConstraintsFactory:
     def __init__(self):
-        self.__stack = set()
+        self.__visited = set()
         self._RESOLUTION_STACK = {
+            lambda t: t in self.NOOP: self._from_undeclared_type,
             checks.isenumtype: self._from_enum_type,
             checks.isliteral: self._from_literal_type,
             checks.isuniontype: self._from_union_type,
@@ -39,15 +41,19 @@ class ConstraintsFactory:
             checks.iscollectiontype: self._from_array_type,
         }
 
+    NOOP = (Any, constants.empty, inspect.Parameter.empty, Ellipsis)
+
     @functools.lru_cache(maxsize=None)
     def build(
         self,
         t: type[VT],
         *,
-        nullable: bool = False,
         name: str = None,
+        nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> types.AbstractConstraintValidator:
         if hasattr(t, "__constraints__"):
@@ -55,27 +61,40 @@ class ConstraintsFactory:
 
         while checks.should_unwrap(t):
             _nullable = checks.isoptionaltype(t)
+            nullable = nullable or _nullable
+            readonly = readonly or checks.isreadonly(t)
+            writeonly = writeonly or checks.iswriteonly(t)
             args = util.get_args(t)
             if _nullable:
                 args = args[:-1]
-            nullable = nullable or _nullable
+
             if not args:
                 break
 
             t = args[0] if len(args) == 1 else Union[args]
+
         if t in (Any, ..., type(...)):
             return engine.ConstraintValidator(
                 constraints=types.TypeConstraints(
-                    type=t, nullable=nullable, default=default
+                    type=t,
+                    nullable=nullable,
+                    readonly=readonly,
+                    writeonly=writeonly,
+                    default=default,
                 ),
                 validator=validators.NoOpInstanceValidator(
                     type=t,
                     precheck=validators.NoOpPrecheck(
-                        type=t, nullable=nullable, name=name, **config
+                        type=t,
+                        nullable=nullable,
+                        readonly=readonly,
+                        writeonly=writeonly,
+                        name=name,
+                        **config,
                     ),
                 ),
             )
-        if t is cls or t in self.__stack:
+        if t is cls or t in self.__visited:
             module = getattr(t, "__module__", None)
             if cls and cls is not ...:
                 module = cls.__module__
@@ -84,6 +103,8 @@ class ConstraintsFactory:
                 module=module,
                 localns={},
                 nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
                 name=name,
                 factory=self.build,
                 **config,
@@ -103,31 +124,72 @@ class ConstraintsFactory:
                 module=cls.__module__,
                 localns=(getattr(cls, "__dict__") or {}).copy(),
                 nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
                 name=name,
                 factory=self.build,
                 **config,
             )
-        with _limit_cyclic(t, self.__stack):
+        with _limit_cyclic(t, self.__visited):
             ot = util.origin(t)
             handler = self._from_strict_type
             for check, factory in self._RESOLUTION_STACK.items():
                 if check(ot):
                     handler = factory  # type: ignore[assignment]
                     break
-            cv = handler(t, nullable=nullable, cls=cls, **config)
+            cv = handler(
+                t,
+                nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
+                cls=cls,
+                **config,
+            )
         return cv
 
     _RESOLUTION_STACK: dict[_FactoryCheckT, _ConstraintFactoryT]
+
+    def _from_undeclared_type(
+        self,
+        t: type[VT],
+        *,
+        nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
+        cls: type | None | ... = ...,  # type: ignore[misc]
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
+    ) -> engine.ConstraintValidator[VT]:
+        return engine.ConstraintValidator(
+            constraints=types.UndeclaredTypeConstraints(
+                type=constants.empty,
+                nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
+                default=default,
+            ),
+            validator=validators.NoOpInstanceValidator(
+                type=constants.empty,
+                precheck=validators.NoOpPrecheck(type=constants.empty),
+            ),
+        )
 
     def _from_strict_type(
         self,
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
     ) -> engine.ConstraintValidator[VT]:
-        constraints = types.TypeConstraints(type=t, nullable=nullable, default=default)
+        constraints = types.TypeConstraints(
+            type=t,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
+            default=default,
+        )
         validator_cls = (
             validators.NullableIsInstanceValidator
             if nullable
@@ -141,13 +203,20 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> engine.ConstraintValidator[VT]:
         return_if_instance = not config
         constraints = types.TextConstraints(  # type: ignore[type-var]
-            type=t, nullable=nullable, default=default, **config
+            type=t,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
+            default=default,
+            **config,
         )
         validator = text.get_validator(
             constraints=constraints,
@@ -161,11 +230,19 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> engine.ConstraintValidator[VT]:
-        constraints = types.TypeConstraints(type=t, nullable=nullable, default=default)
+        constraints = types.TypeConstraints(
+            type=t,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
+            default=default,
+        )
         validator_cls = (
             validators.NullableIsInstanceValidator
             if nullable
@@ -182,8 +259,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> engine.ConstraintValidator[VT]:
         is_decimal = issubclass(t, stdlib_decimal.Decimal)
@@ -193,6 +272,8 @@ class ConstraintsFactory:
             constraints = types.DecimalConstraints(
                 type=cast("type[stdlib_decimal.Decimal]", t),
                 nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
                 default=default,
                 **config,
             )
@@ -202,7 +283,13 @@ class ConstraintsFactory:
                 nullable=nullable,
             )
         else:
-            constraints = types.NumberConstraints(type=t, **config)
+            constraints = types.NumberConstraints(
+                type=t,
+                nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
+                **config,
+            )
             validator = number.get_validator(
                 constraints=constraints,
                 return_if_instance=return_if_instance,
@@ -215,8 +302,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         values: types.AbstractConstraintValidator = None,
         **config,
     ) -> types.AbstractConstraintValidator[VT]:
@@ -231,6 +320,8 @@ class ConstraintsFactory:
             type=origin,
             values=values.constraints if values else None,
             nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
             default=default,
             **config,
         )
@@ -252,10 +343,12 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         keys: types.AbstractConstraintValidator = None,
         values: types.AbstractConstraintValidator = None,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> types.AbstractConstraintValidator[VT]:
         args = util.get_args(t)
@@ -271,6 +364,8 @@ class ConstraintsFactory:
             keys=keys.constraints if keys else None,
             values=values.constraints if values else None,
             nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
             default=default,
             **config,
         )
@@ -309,8 +404,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
     ) -> engine.AbstractMultiConstraintValidator[VT]:
         ut = util.flatten_union(t)  # type: ignore[arg-type]
         nullable = nullable or checks.isoptionaltype(ut)  # type: ignore[arg-type]
@@ -321,6 +418,8 @@ class ConstraintsFactory:
         constraints = types.MultiConstraints(
             type=cast("type[Any]", ut),
             nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
             default=default,
             constraints=value_constraints,
             tag=tag,
@@ -346,8 +445,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
     ) -> engine.ConstraintValidator[VT]:
         items = util.get_args(t)
         if items[-1] is None:
@@ -359,7 +460,12 @@ class ConstraintsFactory:
         )
         validator = v_cls(*items, type=t)
         constraints = types.EnumerationConstraints(
-            type=t, nullable=nullable, default=default, items=items
+            type=t,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
+            default=default,
+            items=items,
         )
         cv: engine.ConstraintValidator[VT] = engine.ConstraintValidator(
             constraints=constraints,
@@ -372,8 +478,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
     ) -> engine.ConstraintValidator[VT]:
         items = (*(v.value for v in t), *t)  # type: ignore[misc,attr-defined]
         v_cls = (
@@ -381,7 +489,12 @@ class ConstraintsFactory:
         )
         validator = v_cls(*items, type=t)
         constraints = types.EnumerationConstraints(
-            type=t, nullable=nullable, default=default, items=items
+            type=t,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
+            default=default,
+            items=items,
         )
         cv: engine.ConstraintValidator[VT] = engine.ConstraintValidator(
             constraints=constraints,
@@ -394,8 +507,10 @@ class ConstraintsFactory:
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
     ):
         isnamedtuple = checks.isnamedtuple(t)
         constraints: types.AbstractConstraints
@@ -415,6 +530,8 @@ class ConstraintsFactory:
                 constraints=constraints,
                 return_if_instance=False,
                 nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
             )
             cv = engine.StructuredTupleConstraintValidator(
                 constraints=constraints,
@@ -444,17 +561,14 @@ class ConstraintsFactory:
             ) and name in hints:
                 annotation = hints[name]
                 params[name] = param.replace(annotation=annotation)
-            pnullable = param.default in (None, Ellipsis) or checks.isoptionaltype(
-                annotation
-            )
-            default = constants.EMPTY if param.default is param.empty else param.default
+            pnullable = param.default is None or checks.isoptionaltype(annotation)
+            default = constants.empty if param.default is param.empty else param.default
             if (
                 param.kind not in {param.VAR_POSITIONAL, param.VAR_KEYWORD}
-                and default is constants.EMPTY
+                and default is constants.empty
             ):
                 required.append(name)
-            if annotation in (Any, Ellipsis, param.empty, constants.EMPTY):
-                continue
+
             fcv = self.build(
                 annotation,
                 nullable=pnullable,
@@ -465,16 +579,36 @@ class ConstraintsFactory:
             items[name] = fcv
             fields[name] = fcv.constraints
 
+        for name in hints.keys() - params.keys():
+            hint = hints[name]
+            if name.startswith("_"):
+                continue
+
+            item = getattr(t, name, constants.empty)
+            if item is not constants.empty and checks.issimpleattribute(item):
+                option = frozendict.freeze(item)
+                fcv = self.build(
+                    cast(Hashable, hint),
+                    name=name,
+                    readonly=True,
+                    cls=cast(Hashable, t),
+                    default=option,
+                )
+                items[name] = fcv
+                fields[name] = fcv.constraints
+
         assertion_cls = structured.get_assertion_cls(
             has_fields=True, is_tuple=isnamedtuple
         )
         assertion = assertion_cls(fields=frozenset(required), size=len(required))
         constraints = types.StructuredObjectConstraints(
-            type=ot,
+            type=t,
+            origin=ot,
+            nullable=nullable,
+            readonly=readonly,
+            writeonly=writeonly,
             fields=frozendict.freeze(fields),
             required=tuple(required),
-            type_name=util.get_name(t),
-            type_qualname=util.get_qualname(t),
         )
         validator = structured.get_validator(
             constraints=constraints,
@@ -505,8 +639,10 @@ class _ConstraintFactoryT(Protocol[VT]):
         t: type[VT],
         *,
         nullable: bool = False,
+        readonly: bool = False,
+        writeonly: bool = False,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], VT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> types.AbstractConstraintValidator[VT]:
         ...

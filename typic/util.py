@@ -150,7 +150,7 @@ def filtered_str(self) -> str:
     fields = []
     for f in dataclasses.fields(self):
         val = getattr(self, f.name)
-        if val in (constants.EMPTY, ..., None):
+        if val in (constants.empty, ..., None):
             continue
         if f.repr:
             fields.append(f"{f.name}={val!r}")
@@ -856,9 +856,9 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
         #  we need to add a branch for tagged unions from generics.
         while intersection and tag is None:
             f = intersection.pop()
-            v = getattr(root, f, constants.EMPTY)
+            v = getattr(root, f, constants.empty)
             if (
-                v is not constants.EMPTY
+                v is not constants.empty
                 and not isinstance(v, MemberDescriptorType)
                 and checks.ishashable(v)
                 and not checks.isdescriptor(v)
