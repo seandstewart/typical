@@ -941,12 +941,11 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
     def _get_generic_union_deserializer(self) -> DeserializerT[_T]:
         args = self.annotation.nargs
         _desers = {
-            anno.resolved_origin: self.resolver.des.factory(
-                anno,
+            a: self.resolver.resolve(
+                a,
                 namespace=self.namespace,
-            )
+            ).transmute
             for a in args
-            if (anno := self.resolver.annotation(a))
         }
         desers = types.MappingProxyType(_desers)
 
@@ -969,10 +968,10 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
 
     def _get_tagged_union_deserializer(self, tagged: TaggedUnion) -> DeserializerT[_T]:
         _desers = {
-            value: self.resolver.des.factory(
-                self.resolver.annotation(t),
+            value: self.resolver.resolve(
+                t,
                 namespace=self.namespace,
-            )
+            ).transmute
             for value, t in tagged.types_by_values
         }
         desers = types.MappingProxyType(_desers)

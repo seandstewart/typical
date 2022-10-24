@@ -78,7 +78,6 @@ __all__ = (
     "protocols",
     "ReadOnly",
     "register",
-    "resolve",
     "resolver",
     "settings",
     "schema",
@@ -145,17 +144,13 @@ class TypicObjectT(Generic[_T]):
 WrappedObjectT = Union[TypicObjectT[_T], _T]
 
 
-def wrap(
-    func: _Callable, *, delay: bool = None, strict: StrictModeT = STRICT_MODE
-) -> _Callable:
+def wrap(func: _Callable, *, strict: StrictModeT = STRICT_MODE) -> _Callable:
     """Wrap a callable to automatically enforce type-coercion.
 
     Parameters
     ----------
     func
         The callable for which you wish to ensure type-safety
-    delay
-        Delay annotation resolution until the first call
     strict
         Turn on "validator mode": e.g. validate incoming data rather than coerce.
 
@@ -164,12 +159,6 @@ def wrap(
     :py:func:`inspect.signature`
     :py:meth:`inspect.Signature.bind`
     """
-    if isinstance(delay, bool):
-        warnings.warn(
-            "The `delay` argument is no longer required and is deprecated. "
-            "It will be removed in a future version.",
-            category=DeprecationWarning,
-        )
     protos = protocols(func, strict=cast(bool, strict))
     params = cached_signature(func).parameters
     enforcer = resolver.binder.get_enforcer(parameters=params, protocols=protos)
@@ -337,30 +326,35 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 
 
 @overload
-def typed(
-    _cls_or_callable: _Type, *, delay: bool = False, strict: bool = None
-) -> Type[WrappedObjectT[_Type]]:
+def typed(_cls_or_callable: _Type) -> Type[WrappedObjectT[_Type]]:
+    ...
+
+
+@overload
+def typed(_cls_or_callable: _Type, *, strict: bool) -> Type[WrappedObjectT[_Type]]:
+    ...
+
+
+@overload
+def typed(_cls_or_callable: _Func) -> _Func:
+    ...
+
+
+@overload
+def typed(_cls_or_callable: _Func, *, strict: bool) -> _Func:
     ...
 
 
 @overload
 def typed(
-    _cls_or_callable: _Func, *, delay: bool = False, strict: bool = None
-) -> _Func:
-    ...
-
-
-@overload
-def typed(
-    *, delay: bool = False, strict: bool = None
-) -> Union[Callable[[_Type], Type[WrappedObjectT[_Type]]], Callable[[_Func], _Func]]:
+    *, strict: bool
+) -> Callable[[_Type], Type[WrappedObjectT[_Type]]] | Callable[[_Func], _Func]:
     ...
 
 
 def typed(
     _cls_or_callable=None,
     *,
-    delay: bool = False,
     strict: bool = None,
     always: bool = None,
 ):
@@ -368,8 +362,6 @@ def typed(
 
     Parameters
     ----------
-    delay
-        Optionally delay annotation resolution until first call.
     strict
         Turn on "validator mode": e.g. validate incoming data rather than coerce.
     always
@@ -383,38 +375,15 @@ def typed(
 
     def _typed(obj: Union[Callable, Type[ObjectT]]):
         if inspect.isclass(obj):
-            return wrap_cls(obj, delay=delay, strict=strict, always=always)  # type: ignore
+            return wrap_cls(obj, strict=strict, always=always)  # type: ignore
         elif callable(obj):  # type: ignore
-            return wrap(obj, delay=delay, strict=strict)  # type: ignore
+            return wrap(obj, strict=strict)  # type: ignore
         else:
             raise TypeError(
                 f"{__name__} requires a callable or class. Provided: {type(obj)}: {obj}"
             )
 
     return _typed(_cls_or_callable) if _cls_or_callable is not None else _typed
-
-
-def resolve():
-    """Resolve any delayed annotations.
-
-    If this is not called, annotations will be resolved on first call
-    of the wrapped class or callable.
-
-    Examples
-    --------
-    >>> import typic
-    >>>
-    >>> @typic.klass(delay=True)
-    ... class Duck:
-    ...     color: str
-    ...
-    >>> typic.resolve()
-    """
-    warnings.warn(
-        "Delayed type resolution is handled automatically as of v2.3.0. "
-        "This function is now a no-op and will be removed in a future version.",
-        category=DeprecationWarning,
-    )
 
 
 environ = Environ(resolver)

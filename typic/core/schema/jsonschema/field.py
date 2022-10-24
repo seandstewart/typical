@@ -82,10 +82,13 @@ class Ref:
     __serde_flags__ = interfaces.SerdeFlags(fields={"ref": "$ref"}, exclude=("title",))
 
     title: str
+    ref: str = dataclasses.field(init=False, repr=False)
 
-    @property
-    def ref(self) -> str:
-        return f"#/definitions/{self.title}"
+    def __init__(self, title: str, *path: str):
+        path = path or ("definitions",)
+        pathstr = "/".join(path)
+        object.__setattr__(self, "title", title)
+        object.__setattr__(self, "ref", f"#/{pathstr}/{self.title}")
 
 
 class StringFormat(str, enum.Enum):
@@ -115,7 +118,7 @@ class BaseSchemaField:
 
     __serde_flags__ = interfaces.SerdeFlags(
         fields=("type",),
-        omit=(None, NotImplemented, inspect.Signature.empty, constants.EMPTY),
+        omit=(None, NotImplemented, inspect.Signature.empty, constants.empty),
     )
 
     type: ClassVar[SchemaType] = NotImplemented
@@ -123,7 +126,7 @@ class BaseSchemaField:
     enum: tuple[Any, ...] | None = None
     title: str | None = None
     description: str | None = None
-    default: Any | constants._Empty = constants.EMPTY
+    default: Any | constants.empty = constants.empty
     examples: list[Any] | None = None
     readOnly: bool | None = None
     writeOnly: bool | None = None

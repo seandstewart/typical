@@ -6,9 +6,9 @@ from typing import Any, cast
 
 import inflection
 
-from typic import checks, util
+from typic import checks
 from typic.compat import TypedDict
-from typic.core import constraints
+from typic.core import constants, constraints
 from typic.core.schema import abc
 from typic.core.schema.jsonschema import field
 from typic.types import frozendict
@@ -25,9 +25,14 @@ class JSONSchemaBuilder(
     abc.AbstractSchemaBuilder[field.SchemaFieldT, JSONSchemaPackage]
 ):
     def _from_structured_object_constraint(
-        self, c: constraints.StructuredObjectConstraints
+        self,
+        c: constraints.StructuredObjectConstraints,
+        *,
+        field_name: str = None,
     ) -> field.ObjectSchemaField | field.ArraySchemaField:
-        items = {prop: self.build(f) for prop, f in c.fields.items()}
+        items = {
+            prop: self.build(f, field_name=str(prop)) for prop, f in c.fields.items()
+        }
         if isinstance(next(iter(c.fields), None), int):
             return field.ArraySchemaField(
                 title=c.type_name,
@@ -36,8 +41,18 @@ class JSONSchemaBuilder(
                 default=c.default,
             )
 
-        refs = {prop: field.Ref(f.title) for prop, f in items.items()}
-        definitions = {f.title: f for f in items.values()}
+        refs = {}
+        definitions = {}
+        for prop, f in items.items():
+            if f.title is None:
+                refs[prop] = f
+                continue
+
+            f, fdefs = self._unnest_definitions(f)
+            definitions.update(fdefs)
+            definitions[f.title] = f
+            refs[prop] = field.Ref(f.title)
+
         title, description = self._get_field_meta(c)
         return field.ObjectSchemaField(
             title=title,
@@ -49,14 +64,75 @@ class JSONSchemaBuilder(
             default=c.default,
         )
 
+    def _unnest_definitions(self, f: field.SchemaFieldT):
+        definitions: dict[str, field.SchemaFieldT] = {}
+        if isinstance(f, field.MultiSchemaField):
+            attribs: dict[str, list[field.SchemaFieldT]] = {
+                "oneOf": [],
+                "allOf": [],
+                "anyOf": [],
+            }
+            replacements = {}
+            for attrname, replaces in attribs.items():
+                value: tuple[field.SchemaFieldT, ...] | None = (
+                    getattr(f, attrname) or ()
+                )
+                if not value:
+                    continue
+                replaces = []
+                for _f in value:
+                    if not _f.title:
+                        replaces.append(_f)
+                        continue
+
+                    _f, fdefs = self._unnest_definitions(_f)
+                    definitions[_f.title] = _f
+                    definitions.update(fdefs)
+                    replaces.append(field.Ref(_f.title))
+                if replaces:
+                    replacements[attrname] = (*replaces,)
+
+            if replacements:
+                f = dataclasses.replace(f, **replacements)
+            return f, definitions
+
+        if isinstance(f, field.ObjectSchemaField):
+            if f.definitions:
+                definitions.update(f.definitions)
+                f = definitions[f.title] = dataclasses.replace(f, definitions=None)
+            return f, definitions
+
+        if isinstance(f, field.ArraySchemaField):
+            to_replace: dict[
+                str, field.SchemaFieldT | tuple[field.SchemaFieldT, ...]
+            ] = {}
+            if f.items and f.items.title:
+                definitions[f.items.title] = f.items
+                to_replace["items"] = field.Ref(f.items.title)
+            if f.prefixItems:
+                prefix_refs: list[field.SchemaFieldT] = []
+                for _f in f.prefixItems:
+                    if not _f.title:
+                        prefix_refs.append(_f)
+                        continue
+
+                    _f, fdefs = self._unnest_definitions(_f)
+                    definitions.update(fdefs)
+                    prefix_refs.append(field.Ref(_f.title))
+                to_replace["prefixItems"] = (*prefix_refs,)
+
+            if to_replace:
+                f = dataclasses.replace(f, **to_replace)
+        return f, definitions
+
     def _from_mapping_constraint(
-        self, c: constraints.MappingConstraints
+        self, c: constraints.MappingConstraints, *, field_name: str = None
     ) -> field.ObjectSchemaField:
         additional_ref = None
         definitions = None
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
         if isinstance(c.values, constraints.AbstractConstraints):
-            additional = self.build(c.values)
+            additional = self.build(c.values, field_name=f"{title}Items")
             definitions = {additional.title: additional}
             additional_ref = field.Ref(additional.title)
             if title.startswith(additional.title) is False:
@@ -76,10 +152,10 @@ class JSONSchemaBuilder(
         )
 
     def _from_array_constraint(
-        self, c: constraints.ArrayConstraints
+        self, c: constraints.ArrayConstraints, *, field_name: str = None
     ) -> field.ArraySchemaField:
         items = self.build(c.values) if c.values else None
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
         if items and title.startswith(items.title) is False:
             title = items.title + title
         return field.ArraySchemaField(
@@ -93,9 +169,26 @@ class JSONSchemaBuilder(
         )
 
     def _from_text_constraint(
-        self, c: constraints.TextConstraints
+        self,
+        c: constraints.TextConstraints,
+        *,
+        field_name: str = None,
     ) -> field.StrSchemaField:
-        title, description = self._get_field_meta(c)
+        base: field.StrSchemaField | None = cast(
+            "field.StrSchemaField | None",
+            field.SCHEMA_FIELD_FORMATS.get_by_parent(t=c.type, default=None),
+        )
+        title, description = self._get_field_meta(c, field_name=field_name)
+        if base:
+            return dataclasses.replace(
+                base,
+                title=title,
+                description=description,
+                default=c.default,
+                pattern=c.regex,
+                minLength=c.min_length,
+                maxLength=c.max_length,
+            )
 
         return field.StrSchemaField(
             title=title,
@@ -107,9 +200,9 @@ class JSONSchemaBuilder(
         )
 
     def _from_decimal_constraint(
-        self, c: constraints.DecimalConstraints
+        self, c: constraints.DecimalConstraints, *, field_name: str = None
     ) -> field.NumberSchemaField:
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
         kwargs = {
             "title": title,
             "description": description,
@@ -122,14 +215,17 @@ class JSONSchemaBuilder(
         return field.NumberSchemaField(**kwargs)  # type: ignore[arg-type]
 
     def _from_number_constraint(
-        self, c: constraints.NumberConstraints
+        self,
+        c: constraints.NumberConstraints,
+        *,
+        field_name: str = None,
     ) -> field.IntSchemaField:
         if issubclass(c.type, float):
             return self._from_decimal_constraint(
                 cast(constraints.DecimalConstraints, c)
             )
 
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
 
         kwargs = {
             "title": title,
@@ -142,7 +238,10 @@ class JSONSchemaBuilder(
         return field.IntSchemaField(**kwargs)  # type: ignore[arg-type]
 
     def _from_enumeration_constraint(
-        self, c: constraints.EnumerationConstraints
+        self,
+        c: constraints.EnumerationConstraints,
+        *,
+        field_name: str = None,
     ) -> field.BaseSchemaField:
         types = {it.__class__ for it in c.items}
         t = object
@@ -151,7 +250,7 @@ class JSONSchemaBuilder(
         base = field.SCHEMA_FIELD_FORMATS.get_by_parent(
             t, field.UndeclaredSchemaField()
         )
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
 
         return dataclasses.replace(
             base,
@@ -162,12 +261,15 @@ class JSONSchemaBuilder(
         )
 
     def _from_type_constraint(
-        self, c: constraints.TypeConstraints
+        self,
+        c: constraints.TypeConstraints,
+        *,
+        field_name: str = None,
     ) -> field.BaseSchemaField:
         base = field.SCHEMA_FIELD_FORMATS.get_by_parent(
             c.type, default=field.UndeclaredSchemaField()
         )
-        title, description = self._get_field_meta(c)
+        title, description = self._get_field_meta(c, field_name=field_name)
         return dataclasses.replace(
             base,
             default=c.default,
@@ -176,22 +278,31 @@ class JSONSchemaBuilder(
         )
 
     def _from_multi_constraint(
-        self, c: constraints.MultiConstraints
+        self,
+        c: constraints.MultiConstraints,
+        *,
+        field_name: str = None,
     ) -> field.MultiSchemaField:
-        field_schemas = (*(self.build(fc) for fc in c.constraints),)
+        field_schemas = (
+            *(self.build(fc, field_name=field_name) for fc in c.constraints),
+        )
         return field.MultiSchemaField(
             default=c.default,
             anyOf=field_schemas,
             title="Or".join(f.title for f in field_schemas),
         )
 
-    def _from_delayed_constraint(
-        self, c: constraints.DelayedConstraintsProxy
-    ) -> field.Ref:
-        return field.Ref(util.get_name(c.ref))
+    def _from_undeclared_constraint(
+        self, c: constraints.UndeclaredTypeConstraints, *, field_name: str = None
+    ) -> field.UndeclaredSchemaField:
+        title = self._get_defname(..., "", field_name=field_name)
+        return field.UndeclaredSchemaField(title=title, default=c.default)
 
-    def _handle_cyclic_constraint(self, c: abc.CT) -> field.Ref:
-        return field.Ref(c.type_name)
+    def _handle_cyclic_constraint(
+        self, c: abc.CT, *, field_name: str = None
+    ) -> field.Ref:
+        title = self._get_defname(c.type, c.type_name, field_name=field_name)
+        return field.Ref(title)
 
     def _gather_definitions(self) -> JSONSchemaPackage:
         unprocessed = {schema.title: schema for schema in self._cache.values()}
@@ -234,9 +345,35 @@ class JSONSchemaBuilder(
         return {"definitions": definitions, "oneOf": (*refs,)}
 
     def _wrap_nullable(self, definition: field.SchemaFieldT) -> field.SchemaFieldT:
+        if (
+            isinstance(definition, field.MultiSchemaField)
+            and definition.oneOf
+            and isinstance(definition.oneOf[-1], field.NullSchemaField)
+        ):
+            return definition
+
         return field.MultiSchemaField(
             title=f"Nullable{definition.title}",
             oneOf=(definition, field.NullSchemaField()),
+        )
+
+    def _handle_readonly(self, definition: field.SchemaFieldT) -> field.SchemaFieldT:
+        if isinstance(definition, field.Ref):
+            return definition
+        replacements: dict[str, Any] = dict(
+            readOnly=True,
+            title=f"ReadOnly{definition.title}",
+        )
+        if definition.default is not constants.empty:
+            replacements["enum"] = (definition.default,)
+
+        return dataclasses.replace(definition, **replacements)
+
+    def _handle_writeonly(self, definition: field.SchemaFieldT) -> field.SchemaFieldT:
+        if isinstance(definition, field.Ref):
+            return definition
+        return dataclasses.replace(
+            definition, writeOnly=True, title=f"WriteOnly{definition.title}"
         )
 
     @staticmethod
@@ -246,9 +383,11 @@ class JSONSchemaBuilder(
         return desc
 
     @staticmethod
-    def _get_defname(t, tname: str) -> str | None:
+    def _get_defname(t, tname: str, *, field_name: str = None) -> str | None:
         name = inflection.camelize(inflection.underscore(tname))
         if t in (Any, Ellipsis, type(Ellipsis), None, type(None)):
+            if field_name:
+                return inflection.camelize(field_name)
             return None
         if checks.isgeneric(t):
             match = re.match(r"(?:.*\[)(?P<args>.*)(?:\])", str(t))
@@ -256,15 +395,15 @@ class JSONSchemaBuilder(
             argname = "".join(
                 inflection.camelize(a.replace("'", "").replace('"', ""))
                 for a in argstring.split(", ")
-                if a not in ("None", "Ellipsis", "_Empty", "_Any")
+                if a not in ("None", "Ellipsis", "empty", "_Any", "Any")
             )
             name = f"{argname}{name}"
         return name
 
-    def _get_field_meta(self, c) -> tuple[str, str]:
-        title, doc = self._get_defname(c.type, c.type_name), self._get_description(
-            c.type
-        )
+    def _get_field_meta(self, c, *, field_name: str = None) -> tuple[str, str]:
+        title, doc = self._get_defname(
+            c.type, c.type_name, field_name=field_name
+        ), self._get_description(c.type)
         if checks.isgeneric(c.type) or checks.isstdlibtype(c.type):
             doc = None
         return title, doc

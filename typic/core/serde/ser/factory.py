@@ -224,7 +224,7 @@ class SerFactory:
             dataclasses.MISSING,
             ClassVar,
             Literal,
-            constants.EMPTY,
+            constants.empty,
         }
     )
     _FNAME = "fname"

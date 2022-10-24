@@ -26,7 +26,7 @@ def get_validator(
     )
     precheck = precheck_cls(type=constraints.type)
     validator = validator_cls(
-        type=constraints.type,
+        type=constraints.origin,
         precheck=precheck,
         assertion=None,
     )

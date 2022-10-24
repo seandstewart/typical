@@ -198,7 +198,7 @@ class TranslatorFactory:
                         for f in fields:
                             func.l(f"{Keyword.YLD} {f!r}, {oname}.{f}")
                 else:
-                    func.l(f"{Keyword.YLD}")
+                    func.l(f"{Keyword.YLD} {Keyword.FRM} iter(())")
 
         return main.compile(name=func_name, ns=ctx)
 

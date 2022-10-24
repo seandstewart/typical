@@ -81,7 +81,6 @@ def test_get_contraints(t, v):
         (typing.List[typing.Optional[typing.Dict[str, int]]], [[]]),
         (typing.List[typing.Optional[typing.Dict[str, int]]], [{"foo": ""}]),
         (Foo, {"bar": 1}),
-        (Foo, {"bar": "", "unknown": 1}),
         (typing.Optional[Foo], {"bar": 1}),
         (typing.Optional[Foo], 1),
         (
@@ -112,7 +111,6 @@ def test_get_contraints(t, v):
         "list-optional-dict-str-int-wrong-list-value-type",
         "list-optional-dict-str-int-wrong-dict-value-type",
         "structured-wrong-field-type",
-        "structured-unknown-field",
         "optional-structured-wrong-field-type",
         "optional-structured-wrong-type",
         "list-optional-union-structured-dict-wrong-list-value-type",

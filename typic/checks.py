@@ -295,7 +295,7 @@ def isreadonly(obj: Type[ObjectT]) -> TypeGuard[ReadOnly]:
     >>> typic.isreadonly(NewType("Foo", typic.ReadOnly[str]))
     True
     """
-    return util.origin(obj) is ReadOnly
+    return util.origin(obj) in (ReadOnly, Final) or isclassvartype(obj)
 
 
 @lru_cache(maxsize=None)

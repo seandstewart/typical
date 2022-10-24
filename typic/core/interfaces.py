@@ -334,7 +334,7 @@ _AT = TypeVar("_AT")
 class Annotation(Generic[_AT]):
     """The resolved, actionable annotation for a given annotation."""
 
-    EMPTY = constants.EMPTY
+    EMPTY = constants.empty
 
     resolved: _AT
     """The type annotation used to build the coercer."""
@@ -387,7 +387,7 @@ class ForwardDelayedAnnotation:
     is_optional: Optional[bool] = None
     is_strict: Optional[st.StrictModeT] = None
     flags: Optional["SerdeFlags"] = None
-    default: Any = constants.EMPTY
+    default: Any = constants.empty
     frame: Optional[FrameType] = dataclasses.field(default=None, hash=False)
     _name: Optional[str] = None
     _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
@@ -395,7 +395,7 @@ class ForwardDelayedAnnotation:
     @reprlib.recursive_repr()
     def __repr__(self):
         return (
-            f"{self.__class__}("
+            f"{self.__class__.__name__}("
             f"ref={self.ref},"
             f"module={self.module}!r, "
             f"parameter={self.parameter}, "
@@ -427,7 +427,7 @@ class ForwardDelayedAnnotation:
                 is_optional=self.is_optional,
                 is_strict=self.is_strict,
                 flags=self.flags,
-                default=constants.EMPTY
+                default=constants.empty
                 if self.default is inspect.Parameter.empty
                 else self.default,
             )
@@ -448,14 +448,14 @@ class DelayedAnnotation:
     is_optional: Optional[bool] = None
     is_strict: Optional[st.StrictModeT] = None
     flags: Optional["SerdeFlags"] = None
-    default: Any = constants.EMPTY
+    default: Any = constants.empty
     _name: Optional[str] = None
     _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
 
     @reprlib.recursive_repr()
     def __repr__(self):
         return (
-            f"{self.__class__}("
+            f"{self.__class__.__name__}("
             f"parameter={self.parameter}, "
             f"is_optional={self.is_optional}, "
             f"is_strict={self.is_strict}, "
@@ -473,7 +473,7 @@ class DelayedAnnotation:
                 is_optional=self.is_optional,
                 is_strict=self.is_strict,
                 flags=self.flags,
-                default=constants.EMPTY
+                default=constants.empty
                 if self.default is inspect.Parameter.empty
                 else self.default,
             )
@@ -482,6 +482,10 @@ class DelayedAnnotation:
 
     @property
     def origin(self):
+        return self.type
+
+    @property
+    def resolved_origin(self):
         return self.type
 
     @property

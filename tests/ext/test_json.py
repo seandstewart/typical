@@ -1,6 +1,5 @@
 import importlib
 import sys
-
 from unittest import mock
 
 import pytest
@@ -30,7 +29,7 @@ def ser(obj, *, lazy=False, name=None):
 
 def test_orjson():
     # Given
-    from typic.ext import json
+    from typic.core import json
 
     # When
     tojson = json.get_tojson(serializer=ser)
@@ -40,7 +39,7 @@ def test_orjson():
 
 
 def test_ujson(drop_orjson):
-    from typic.ext import json
+    from typic.core import json
 
     importlib.reload(json)
     # When
@@ -50,7 +49,7 @@ def test_ujson(drop_orjson):
 
 
 def test_native_json(drop_orjson, drop_ujson):
-    from typic.ext import json
+    from typic.core import json
 
     importlib.reload(json)
     # When

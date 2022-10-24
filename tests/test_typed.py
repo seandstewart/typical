@@ -25,7 +25,6 @@ from typic.api import (
     is_strict_mode,
     primitive,
     register,
-    resolve,
     resolver,
     strict_mode,
     translate,
@@ -246,11 +245,6 @@ def test_default_none():
     assert transmuted.none is None
 
 
-def test_default_ellipsis():
-    transmuted = transmute(objects.DefaultEllipsis, {})
-    assert transmuted.ellipsis is ...
-
-
 @pytest.mark.parametrize(
     argnames=("annotation", "origin"),
     argvalues=[
@@ -373,10 +367,6 @@ def test_transmute_tuple_subscripted(annotation, value, expected):
             typing.DefaultDict[str, objects.DefaultNone],
             {"foo": {}},
         ),
-        (
-            typing.DefaultDict[str, objects.DefaultEllipsis],
-            {"foo": {}},
-        ),
         (typing.Mapping[str, str], objects.TClass(1)),
     ],
     ids=objects.get_id,
@@ -457,13 +447,6 @@ def test_wrap_class(klass, var, type):
         (objects.optional, None, None, type(None), inspect.isfunction),
         (objects.Data, 1, attrgetter("foo"), str, inspect.isclass),
         (objects.DefaultNone, None, attrgetter("none"), type(None), inspect.isclass),
-        (
-            objects.DefaultEllipsis,
-            ...,
-            attrgetter("ellipsis"),
-            type(...),
-            inspect.isclass,
-        ),
         (objects.Forward, "bar", attrgetter("foo"), objects.FooNum, inspect.isclass),
         (objects.Frozen, "0", attrgetter("var"), bool, inspect.isclass),
     ],
@@ -599,11 +582,6 @@ def test_classvar(instance, attr, type):
 
 def test_typic_callable_delayed():
     assert isinstance(objects.delayed(1), str)
-
-
-def test_typic_resolve():
-    resolve()
-    assert objects.Delayed(1).foo == "1"
 
 
 @pytest.mark.parametrize(
@@ -799,7 +777,6 @@ def test_transmute_nested_constrained(anno, val, expected):
     argvalues=[
         (objects.Typic, {"var": "foo"}),
         (objects.TDict, {"a": 1}),
-        (objects.DefaultEllipsis, {"ellipsis": ...}),
         (objects.DefaultNone, {"none": None}),
         (typing.Union[str, pathlib.Path], pathlib.Path(".")),
         (typing.Union[str, pathlib.Path], "."),
@@ -807,7 +784,6 @@ def test_transmute_nested_constrained(anno, val, expected):
     ids=[
         "typic-klass-from-dict",
         "typed-dict-from-dict",
-        "default-ellipsis-with-default",
         "default-none-with-default",
         "union-str-path-from-path",
         "union-str-path-from-str",

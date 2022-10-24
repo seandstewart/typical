@@ -30,7 +30,7 @@ from typic.core import json, schema, serde
 from typic.core import strict as st
 from typic.core import strings
 from typic.core.annotations import ObjectT, ReadOnly
-from typic.core.constants import EMPTY, SERDE_FLAGS_ATTR, TYPIC_ANNOS_NAME
+from typic.core.constants import SERDE_FLAGS_ATTR, TYPIC_ANNOS_NAME, empty
 from typic.core.interfaces import (
     Annotation,
     DecoderT,
@@ -270,7 +270,7 @@ class Resolver:
         nullable: bool = False,
         name: str = None,
         cls: type | None | ... = ...,  # type: ignore[misc]
-        default: Hashable | Callable[[], ObjectT] | constants._Empty = constants.EMPTY,
+        default: Hashable | Callable[[], ObjectT] | constants.empty = constants.empty,
         **config,
     ) -> constr.AbstractConstraintValidator[ObjectT]:
         cv = self.constraints_factory.build(
@@ -288,7 +288,8 @@ class Resolver:
         cv = self.constraints(annotation)
         sch = self.schemas.build(cv.constraints, format=format)
         if primitive:
-            prim = cast(schema.DefinitionT, self.primitive(sch))
+            resolved = self.resolve(annotation=sch.__class__)
+            prim = cast(schema.DefinitionT, resolved.primitive(sch))
             return prim
         return sch
 
@@ -310,7 +311,7 @@ class Resolver:
             fields[name] = self.annotation(
                 t,
                 flags=dataclasses.replace(flags, fields={}),
-                default=getattr(origin, name, EMPTY),
+                default=getattr(origin, name, empty),
                 namespace=origin,
             )
 
@@ -338,7 +339,7 @@ class Resolver:
             anno: Union[Annotation, DelayedAnnotation, ForwardDelayedAnnotation]
             for name, out in fields_out.items():
                 anno = fields[name]
-                default = anno.parameter.default if anno.parameter else EMPTY
+                default = anno.parameter.default if anno.parameter else empty
                 if isinstance(anno, ForwardDelayedAnnotation):
                     if (
                         not {util.get_name(anno.ref), util.get_name(default)}
@@ -375,7 +376,7 @@ class Resolver:
         is_optional: bool = None,
         is_strict: st.StrictModeT = None,
         flags: SerdeFlags | dict = None,
-        default: Any = EMPTY,
+        default: Any = empty,
         namespace: Type = None,
     ) -> Annotation[Type[ObjectT]]:
         """Get a :py:class:`Annotation` for this type.
@@ -796,11 +797,11 @@ class Resolver:
             param = param or inspect.Parameter(
                 name,
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=EMPTY,
+                default=empty,
                 annotation=hint or annotation,
             )
             if repr(param.default) == "<factory>":
-                param = param.replace(default=EMPTY)
+                param = param.replace(default=empty)
             if checks.isclassvartype(annotation):
                 val = getattr(obj, name)
                 if annotation is ClassVar:
@@ -810,7 +811,7 @@ class Resolver:
             if (
                 field
                 and field.default is not dataclasses.MISSING
-                and param.default is EMPTY
+                and param.default is empty
             ):
                 if field.init is False and util.origin(annotation) is not ReadOnly:
                     annotation = ReadOnly[annotation]  # type: ignore
