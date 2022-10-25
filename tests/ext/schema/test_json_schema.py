@@ -271,14 +271,14 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=objects.KlassVarSubscripted.__name__,
             description=objects.KlassVarSubscripted.__doc__,
-            properties={
-                "var": jsonschema.StrSchemaField(
-                    enum=("foo",), default="foo", readOnly=True
-                )
-            },
+            properties={"var": jsonschema.Ref(title="ReadOnlyStr")},
             additionalProperties=False,
             required=(),
-            definitions=typic.FrozenDict(),
+            definitions=typic.FrozenDict(
+                ReadOnlyStr=jsonschema.StrSchemaField(
+                    title="ReadOnlyStr", enum=("foo",), default="foo", readOnly=True
+                )
+            ),
         ),
     ),
     "all-optional-fields": (

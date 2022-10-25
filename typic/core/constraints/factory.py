@@ -107,6 +107,7 @@ class ConstraintsFactory:
                 writeonly=writeonly,
                 name=name,
                 factory=self.build,
+                default=default,
                 **config,
             )
         # Handle forward refs that aren't forward refs for some reason....
@@ -128,6 +129,7 @@ class ConstraintsFactory:
                 writeonly=writeonly,
                 name=name,
                 factory=self.build,
+                default=default,
                 **config,
             )
         with _limit_cyclic(t, self.__visited):
@@ -143,6 +145,7 @@ class ConstraintsFactory:
                 readonly=readonly,
                 writeonly=writeonly,
                 cls=cls,
+                default=default,
                 **config,
             )
         return cv
