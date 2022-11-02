@@ -94,7 +94,7 @@ schema_test_matrix = {
                         jsonschema.NullSchemaField(),
                     ),
                 ),
-                Str=jsonschema.StrSchemaField(title="Str"),
+                Str=jsonschema.StrSchemaField(title="Str", default=None),
             ),
         ),
     ),
@@ -301,7 +301,7 @@ schema_test_matrix = {
                         jsonschema.NullSchemaField(),
                     ),
                 ),
-                Str=jsonschema.StrSchemaField(title="Str"),
+                Str=jsonschema.StrSchemaField(title="Str", default=None),
             ),
         ),
     ),
@@ -410,7 +410,8 @@ schema_test_matrix = {
     ids=[*schema_test_matrix.keys()],
 )
 def test_typic_schema(obj, expected):
-    assert typic.schema(obj) == expected
+    schema = typic.schema(obj)
+    assert schema == expected
 
 
 @pytest.mark.parametrize(
