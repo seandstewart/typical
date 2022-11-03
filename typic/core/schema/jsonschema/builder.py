@@ -351,10 +351,19 @@ class JSONSchemaBuilder(
             and isinstance(definition.oneOf[-1], field.NullSchemaField)
         ):
             return definition
+        # If we've assigned a default to the definition, bubble that up to the multi.
+        default = constants.empty
+        if (
+            isinstance(definition, field.BaseSchemaField)
+            and definition is not constants.empty
+        ):
+            default = definition.default
+            definition = dataclasses.replace(definition, default=constants.empty)
 
         return field.MultiSchemaField(
             title=f"Nullable{definition.title}",
             oneOf=(definition, field.NullSchemaField()),
+            default=default,
         )
 
     def _handle_readonly(self, definition: field.SchemaFieldT) -> field.SchemaFieldT:
