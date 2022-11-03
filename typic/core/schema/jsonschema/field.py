@@ -20,6 +20,7 @@ from typing import (
     Pattern,
     Text,
     Tuple,
+    Type,
     Union,
 )
 
@@ -126,7 +127,7 @@ class BaseSchemaField:
     enum: tuple[Any, ...] | None = None
     title: str | None = None
     description: str | None = None
-    default: Any | constants.empty = constants.empty
+    default: Any | Type[constants.empty] = constants.empty
     examples: list[Any] | None = None
     readOnly: bool | None = None
     writeOnly: bool | None = None
@@ -134,7 +135,14 @@ class BaseSchemaField:
 
     @reprlib.recursive_repr()
     def __repr__(self) -> str:  # pragma: nocover
-        return util.filtered_repr(self)
+        vars = ", ".join(
+            f"{f.name}={v!r}"
+            for f in dataclasses.fields(self)
+            if (v := getattr(self, f.name))
+            not in (f.default, NotImplemented, constants.empty)
+        )
+
+        return f"{self.__class__.__name__}({vars})"
 
 
 NestedSchemaT = Union[Ref, BaseSchemaField]
