@@ -52,7 +52,7 @@ except (ImportError, ModuleNotFoundError):
                 o: Any,
                 *,
                 ensure_ascii: bool = False,
-                indent: int = None,
+                indent: int = 0,
                 __prim=serializer,
                 __dumps=ujson.dumps,
                 **kwargs,

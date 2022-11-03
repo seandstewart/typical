@@ -5,32 +5,29 @@ from __future__ import annotations
 import sys
 import types
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
-from typing import _eval_type as eval_type  # type: ignore
-from typing import _SpecialForm as SpecialForm  # type: ignore
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Final,
+    Generic,
+    Literal,
+    Optional,
+    Protocol,
+    TypedDict,
+    TypeVar,
+    Union,
+)
 
 try:
-    from typing import (  # type: ignore
-        Final,
-        Generic,
-        Literal,
-        Protocol,
-        TypedDict,
-        TypeGuard,
-        get_args,
-        get_origin,
-    )
-except ImportError:  # pragma: nocover
-    from typing_extensions import (  # type: ignore
-        Final,
-        Generic,
-        Literal,
-        Protocol,
-        TypedDict,
-        TypeGuard,
-        get_args,
-        get_origin,
-    )
+    from typing import TypeGuard  # type: ignore[attr-defined]
+except ImportError:
+    from typing_extensions import TypeGuard
+
+from typing import _eval_type as eval_type  # type: ignore
+from typing import _SpecialForm as SpecialForm  # type: ignore
+from typing import get_args, get_origin  # type: ignore
+
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover
