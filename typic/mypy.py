@@ -1,39 +1,23 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional
+from typing import Type as TypingType
 
 from mypy.nodes import (
     ARG_NAMED_OPT,
     ARG_POS,
     MDEF,
     Argument,
-    Block,
-    Decorator,
-    FuncBase,
-    FuncDef,
-    NameExpr,
-    PassStmt,
-    SymbolNode,
     SymbolTableNode,
     TypeVarExpr,
     Var,
 )
 from mypy.plugin import ClassDefContext, MethodContext, Plugin
-from mypy.plugins.common import _get_decorator_bool_argument
+from mypy.plugins.common import _get_decorator_bool_argument, add_method_to_class
 from mypy.plugins.dataclasses import DataclassTransformer
 from mypy.semanal import SemanticAnalyzer
-from mypy.semanal_shared import set_callable_name
-from mypy.typeops import TypingType
-from mypy.types import AnyType, CallableType, Type, TypeOfAny, TypeType, TypeVarType
-from mypy.typevars import fill_typevars
-from mypy.util import get_unique_redefinition_name
+from mypy.types import AnyType, Type, TypeOfAny, TypeType, TypeVarType
 from typing_extensions import Final
-
-try:
-    from mypy.types import TypeVarDef  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover
-    # Backward-compatible with TypeVarDef from Mypy 0.930.
-    from mypy.types import TypeVarType as TypeVarDef
 
 typic_class_maker_decorators = {
     "klass",
@@ -64,7 +48,7 @@ def typic_method_callback(ctx: MethodContext) -> Type:
     return ctx.default_return_type
 
 
-def plugin(version: str) -> "TypingType[Plugin]":
+def plugin(version: str) -> TypingType[Plugin]:
     """
     `version` is the mypy version string
     We might want to use this to print a warning if the mypy version being used is
@@ -119,7 +103,7 @@ class TypicTransformer:
 
     def _add_tvar_expr(self, name: str, ctx):
         info = ctx.cls.info
-        obj_type = ctx.api.named_type("__builtins__.object")
+        obj_type = ctx.api.named_type("builtins.object")
         self_tvar_expr = TypeVarExpr(
             name, self._get_tvar_name(name, info), [], obj_type
         )
@@ -129,28 +113,26 @@ class TypicTransformer:
         self._add_tvar_expr(SELF_TVAR_NAME, ctx)
 
     def _get_tvar_def(self, name: str, ctx):
-        obj_type = ctx.api.named_type("__builtins__.object")
-        return TypeVarDef(
+        obj_type = ctx.api.named_type("builtins.object")
+        return TypeVarType(
             SELF_TVAR_NAME, self._get_tvar_name(name, ctx.cls.info), -1, [], obj_type
         )
 
     def add_schema_method(self):
         ctx = self._ctx
         api: SemanticAnalyzer = ctx.api
-        return_type_info: SymbolTableNode = api.lookup_fully_qualified(
-            "typic.SchemaReturnT"
-        )
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
-        bool_type = api.named_type("__builtins__.bool")
-        str_type = api.named_type("__builtins__.str")
+        bool_type = api.named_type("builtins.bool")
+        str_type = api.named_type("builtins.str")
         primarg = Argument(Var("primitive", bool_type), bool_type, None, ARG_NAMED_OPT)
         fmtarg = Argument(Var("format", str_type), str_type, None, ARG_NAMED_OPT)
-        add_method(
-            ctx,
-            "schema",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="schema",
             args=[primarg, fmtarg],
-            return_type=return_type_info.node.target,
-            self_type=TypeVarType(self_tvar_def),
+            return_type=AnyType(TypeOfAny.unannotated),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
             is_classmethod=True,
         )
@@ -158,33 +140,35 @@ class TypicTransformer:
     def add_primitive_method(self):
         ctx = self._ctx
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
-        bool_type = ctx.api.named_type("__builtins__.bool")
+        bool_type = ctx.api.named_type("builtins.bool")
         arg = Argument(Var("lazy", bool_type), bool_type, None, ARG_NAMED_OPT)
-        add_method(
-            ctx,
-            "primitive",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="primitive",
             args=[arg],
             return_type=AnyType(TypeOfAny.unannotated),
-            self_type=TypeVarType(self_tvar_def),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
         )
 
     def add_json_method(self):
         ctx = self._ctx
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
-        bool_type = ctx.api.named_type("__builtins__.bool")
-        int_type = ctx.api.named_type("__builtins__.int")
-        str_type = ctx.api.named_type("__builtins__.str")
+        bool_type = ctx.api.named_type("builtins.bool")
+        int_type = ctx.api.named_type("builtins.int")
+        str_type = ctx.api.named_type("builtins.str")
         indent = Argument(Var("indent", int_type), int_type, None, ARG_NAMED_OPT)
         ensure = Argument(
             Var("ensure_ascii", bool_type), bool_type, None, ARG_NAMED_OPT
         )
-        add_method(
-            ctx,
-            "tojson",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="tojson",
             args=[indent, ensure],
             return_type=str_type,
-            self_type=TypeVarType(self_tvar_def),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
         )
 
@@ -193,13 +177,15 @@ class TypicTransformer:
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         arg_type = AnyType(TypeOfAny.explicit)
         arg = Argument(Var("obj", arg_type), arg_type, None, ARG_POS)
-        add_method(
-            ctx,
-            "validate",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="validate",
             args=[arg],
-            return_type=TypeVarType(self_tvar_def),
+            return_type=self_tvar_def,
+            self_type=TypeType(self_tvar_def),
             tvar_def=self_tvar_def,
-            is_staticmethod=True,
+            is_classmethod=True,
         )
 
     def add_transmute_method(self):
@@ -207,13 +193,15 @@ class TypicTransformer:
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         arg_type = AnyType(TypeOfAny.explicit)
         arg = Argument(Var("obj", arg_type), arg_type, None, ARG_POS)
-        add_method(
-            ctx,
-            "transmute",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="transmute",
             args=[arg],
-            return_type=TypeVarType(self_tvar_def),
+            return_type=self_tvar_def,
+            self_type=TypeType(self_tvar_def),
             tvar_def=self_tvar_def,
-            is_staticmethod=True,
+            is_classmethod=True,
         )
 
     def add_translate_method(self):
@@ -222,12 +210,13 @@ class TypicTransformer:
         r_type = AnyType(TypeOfAny.explicit)
         arg_type = TypeType(r_type)
         arg = Argument(Var("target", arg_type), arg_type, None, ARG_POS)
-        add_method(
-            ctx,
-            "translate",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="translate",
             args=[arg],
             return_type=r_type,
-            self_type=TypeVarType(self_tvar_def),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
         )
 
@@ -235,14 +224,15 @@ class TypicTransformer:
         ctx = self._ctx
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         r_type = AnyType(TypeOfAny.explicit)
-        bool_type = ctx.api.named_type("__builtins__.bool")
+        bool_type = ctx.api.named_type("builtins.bool")
         arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
-        add_method(
-            ctx,
-            "iterate",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="iterate",
             args=[arg],
             return_type=r_type,
-            self_type=TypeVarType(self_tvar_def),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
         )
 
@@ -250,14 +240,15 @@ class TypicTransformer:
         ctx = self._ctx
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         r_type = AnyType(TypeOfAny.explicit)
-        bool_type = ctx.api.named_type("__builtins__.bool")
+        bool_type = ctx.api.named_type("builtins.bool")
         arg = Argument(Var("values", bool_type), bool_type, None, ARG_NAMED_OPT)
-        add_method(
-            ctx,
-            "__iter__",
+        add_method_to_class(
+            api=ctx.api,
+            cls=ctx.cls,
+            name="__iter__",
             args=[arg],
             return_type=r_type,
-            self_type=TypeVarType(self_tvar_def),
+            self_type=self_tvar_def,
             tvar_def=self_tvar_def,
         )
 
@@ -265,109 +256,3 @@ class TypicTransformer:
 def typic_klass_maker_callback(ctx: ClassDefContext) -> None:
     transformer = TypicTransformer(ctx)
     transformer.transform()
-
-
-def add_method(
-    ctx: ClassDefContext,
-    name: str,
-    args: List[Argument],
-    return_type: Type,
-    self_type: Optional[Type] = None,
-    tvar_def: Optional[TypeVarDef] = None,
-    is_classmethod: bool = False,
-    is_new: bool = False,
-    is_staticmethod: bool = False,
-) -> None:
-    """
-    Adds a new method to a class.
-    This can be dropped if/when https://github.com/python/mypy/issues/7301 is merged
-    """
-    info = ctx.cls.info
-
-    # First remove any previously generated methods with the same name
-    # to avoid clashes and problems in the semantic analyzer.
-    if name in info.names:
-        sym = info.names[name]
-        if sym.plugin_generated and isinstance(sym.node, FuncDef):
-            ctx.cls.defs.body.remove(sym.node)
-
-    self_type = self_type or fill_typevars(info)
-    if is_classmethod or is_new:
-        first = [
-            Argument(Var("_cls"), TypeType.make_normalized(self_type), None, ARG_POS)
-        ]
-    elif is_staticmethod:
-        first = []
-    else:
-        self_type = self_type or fill_typevars(info)
-        first = [Argument(Var("self"), self_type, None, ARG_POS)]
-    args = first + args
-    arg_types, arg_names, arg_kinds = [], [], []
-    for arg in args:
-        assert arg.type_annotation, "All arguments must be fully typed."
-        arg_types.append(arg.type_annotation)
-        arg_names.append(get_name(arg.variable))
-        arg_kinds.append(arg.kind)
-
-    function_type = ctx.api.named_type("__builtins__.function")
-    signature = CallableType(
-        arg_types, arg_kinds, arg_names, return_type, function_type
-    )
-    if tvar_def:
-        signature.variables = [tvar_def]
-
-    func = FuncDef(name, args, Block([PassStmt()]))
-    func.info = info
-    func.type = set_callable_name(signature, func)
-    func.is_class = is_classmethod
-    func.is_static = is_staticmethod
-    func._fullname = get_fullname(info) + "." + name
-    func.line = info.line
-
-    # NOTE: we would like the plugin generated node to dominate, but we still
-    # need to keep any existing definitions so they get semantically analyzed.
-    if name in info.names:
-        # Get a nice unique name instead.
-        r_name = get_unique_redefinition_name(name, info.names)
-        info.names[r_name] = info.names[name]
-
-    if is_classmethod or is_staticmethod:
-        func.is_decorated = True
-        v = Var(name, func.type)
-        v.info = info
-        v._fullname = func._fullname
-        if is_classmethod:
-            v.is_classmethod = True
-            dec = Decorator(func, [NameExpr("classmethod")], v)
-        else:
-            v.is_staticmethod = True
-            dec = Decorator(func, [NameExpr("staticmethod")], v)
-
-        dec.line = info.line
-        sym = SymbolTableNode(MDEF, dec)
-    else:
-        sym = SymbolTableNode(MDEF, func)
-    sym.plugin_generated = True
-
-    info.names[name] = sym
-    info.defn.defs.body.append(func)
-
-
-def get_fullname(x: Union[FuncBase, SymbolNode]) -> str:
-    """
-    Used for compatibility with mypy 0.740; can be dropped once support for 0.740 is dropped.
-    """
-    fn = x.fullname
-    if callable(fn):  # pragma: nocover
-        return fn()
-    return fn
-
-
-def get_name(x: Union[FuncBase, SymbolNode]) -> str:
-    """
-    Used for compatibility with mypy 0.740; can be dropped once support for 0.740 is dropped.
-    """
-    fn = x.name
-    if callable(fn):  # pragma: nocover
-        return fn()
-    return fn

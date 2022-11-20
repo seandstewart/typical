@@ -416,68 +416,67 @@ def test_typic_schema(obj, expected):
     assert schema == expected
 
 
+schema_primitive_test_matrix = {
+    "string": (str, {"title": "Str", "type": "string"}),
+    "integer": (int, {"title": "Int", "type": "integer"}),
+    "boolean": (bool, {"title": "Bool", "type": "boolean"}),
+    "float": (float, {"title": "Float", "type": "number"}),
+    "list": (list, {"title": "List", "type": "array"}),
+    "set": (set, {"title": "Set", "type": "array", "uniqueItems": True}),
+    "frozenset": (
+        frozenset,
+        {"title": "Frozenset", "type": "array", "uniqueItems": True},
+    ),
+    "tuple": (tuple, {"title": "Tuple", "type": "array"}),
+    "string-list": (
+        List[str],
+        {
+            "items": {"title": "Str", "type": "string"},
+            "title": "StrList",
+            "type": "array",
+        },
+    ),
+    "string-set": (
+        Set[str],
+        {
+            "items": {"title": "Str", "type": "string"},
+            "title": "StrSet",
+            "type": "array",
+        },
+    ),
+    "string-tuple": (
+        Tuple[str],
+        {
+            "items": {"title": "Str", "type": "string"},
+            "title": "StrTuple",
+            "type": "array",
+        },
+    ),
+    "user-class": (
+        objects.FromDict,
+        {
+            "additionalProperties": False,
+            "definitions": {
+                "NullableStr": {
+                    "oneOf": [{"$ref": "#/definitions/Str"}, {"type": "null"}],
+                    "title": "NullableStr",
+                },
+                "Str": {"title": "Str", "type": "string"},
+            },
+            "description": "FromDict(foo: 'typing.Optional[str]' = None)",
+            "properties": {"foo": {"$ref": "#/definitions/NullableStr"}},
+            "required": [],
+            "title": "FromDict",
+            "type": "object",
+        },
+    ),
+}
+
+
 @pytest.mark.parametrize(
     argnames=("obj", "expected"),
-    argvalues=[
-        (str, {"title": "Str", "type": "string"}),
-        (int, {"title": "Int", "type": "integer"}),
-        (bool, {"title": "Bool", "type": "boolean"}),
-        (float, {"title": "Float", "type": "number"}),
-        (list, {"title": "List", "type": "array"}),
-        (set, {"title": "Set", "type": "array", "uniqueItems": True}),
-        (frozenset, {"title": "Frozenset", "type": "array", "uniqueItems": True}),
-        (tuple, {"title": "Tuple", "type": "array"}),
-        (
-            List[str],
-            {
-                "items": {"title": "Str", "type": "string"},
-                "title": "StrList",
-                "type": "array",
-            },
-        ),
-        (
-            Set[str],
-            {
-                "items": {"title": "Str", "type": "string"},
-                "title": "StrSet",
-                "type": "array",
-            },
-        ),
-        (
-            Tuple[str],
-            {
-                "items": {"title": "Str", "type": "string"},
-                "title": "StrTuple",
-                "type": "array",
-            },
-        ),
-        (
-            Tuple[str, ...],
-            {
-                "items": {"title": "Str", "type": "string"},
-                "title": "StrTuple",
-                "type": "array",
-            },
-        ),
-        (
-            objects.FromDict,
-            {
-                "additionalProperties": False,
-                "definitions": {
-                    "NullableStr": {
-                        "oneOf": [{"$ref": "#/definitions/Str"}, {"type": "null"}],
-                        "title": "NullableStr",
-                    },
-                    "Str": {"title": "Str", "type": "string"},
-                },
-                "description": "FromDict(foo: 'typing.Optional[str]' = None)",
-                "properties": {"foo": {"$ref": "#/definitions/NullableStr"}},
-                "required": [],
-                "title": "FromDict",
-                "type": "object",
-            },
-        ),
-    ],
+    argvalues=schema_primitive_test_matrix.values(),
+    ids=schema_primitive_test_matrix.keys(),
 )
 def test_typic_schema_primitive(obj, expected):
     assert typic.schema(obj, primitive=True) == expected
