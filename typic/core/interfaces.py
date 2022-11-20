@@ -498,7 +498,7 @@ AnnotationT = TypeVar(
 )
 
 
-class DelayedSerdeProtocol(SerdeProtocol):
+class DelayedSerdeProtocol(SerdeProtocol[ObjectT]):
     __slots__ = (
         "delayed",
         "_resolved",

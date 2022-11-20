@@ -284,12 +284,12 @@ class Resolver:
         *,
         primitive: bool = False,
         format: str = "jsonschema",
-    ) -> schema.DefinitionT:
+    ):
         cv = self.constraints(annotation)
         sch = self.schemas.build(cv.constraints, format=format)
         if primitive:
             resolved = self.resolve(annotation=sch.__class__)
-            prim = cast(schema.DefinitionT, resolved.primitive(sch))
+            prim = resolved.primitive(sch)
             return prim
         return sch
 
@@ -545,7 +545,7 @@ class Resolver:
         ):
             d = deserializer
 
-            def des(val: Any, *, __d=d, __v=validator) -> ObjectT:
+            def des(val: Any, *, __d=d, __v=validator) -> ObjectT:  # type: ignore[misc]
                 return __d(__v(val))
 
             rdeserializer = cast(DeserializerT[ObjectT], des)

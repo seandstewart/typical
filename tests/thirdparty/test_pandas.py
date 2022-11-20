@@ -4,6 +4,7 @@ import sys
 from typing import Union
 
 import pytest
+
 import typic
 
 

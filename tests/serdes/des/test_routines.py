@@ -8,30 +8,32 @@ import sys
 import uuid
 from collections import defaultdict
 from typing import (
-    Dict,
-    TypeVar,
-    List,
-    DefaultDict,
-    Set,
-    FrozenSet,
-    Tuple,
-    Iterable,
-    Collection,
-    NamedTuple,
-    Union,
     ClassVar,
+    Collection,
+    DefaultDict,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    NamedTuple,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
 )
 
 import pendulum
 import pytest
 
-from typic.compat import TypedDict, Literal
+from typic.compat import Literal, TypedDict
 from typic.core.interfaces import Annotation
-from typic.core.serde.des import routines
 from typic.core.resolver import Resolver
+from typic.core.serde.des import routines
+
+_T = TypeVar("_T")
 
 
-class NoopDeserializerRoutine(routines.BaseDeserializerRoutine):
+class NoopDeserializerRoutine(routines.BaseDeserializerRoutine[_T]):
     def _get_deserializer(self):
         return lambda val: val
 
@@ -699,7 +701,7 @@ class TestCollectionDeserializerRoutine:
 
 
 if sys.version_info < (3, 9):
-    MyTup = Tuple.__class__(tuple, (), inst=False, special=True)
+    MyTup = Tuple.__class__(tuple, (), inst=False, special=True)  # type: ignore[call-arg]
 
 else:
 
