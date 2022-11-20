@@ -301,6 +301,7 @@ def wrap_cls(
                 "The `delay` argument is no longer required and is deprecated. "
                 "It will be removed in a future version.",
                 category=DeprecationWarning,
+                stacklevel=6,
             )
         setattr(cls_, "__delayed__", False)
         return _resolve_class(
