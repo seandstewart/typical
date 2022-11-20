@@ -237,8 +237,6 @@ class Resolver:
         b'"1970-01-01T00:00:00"'
         >>> typic.tojson(b"foo")
         b'"foo"'
-        >>> typic.tojson(ipaddress.IPv4Address("0.0.0.0"))
-        b'"0.0.0.0"'
         >>> typic.tojson(uuid.UUID(int=0))
         b'"00000000-0000-0000-0000-000000000000"'
         """
