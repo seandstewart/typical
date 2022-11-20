@@ -28,7 +28,6 @@ include = ["README.md", "LICENSE"]
 exclude = ["tests", "docs", "docsrc", "benchmark"]
 
 [tool.poetry.dependencies]
-# package
 python = "^3.8"
 inflection = "^0.5"
 pendulum = "^2.1"
@@ -36,102 +35,52 @@ fastjsonschema = {version = "^2.14", optional = true}
 ujson = {version = ">=2.0", optional = true}
 orjson = {version = "^3.6.3", optional = true}
 typing-extensions = {version = "^4", python = "<3.12"}
-# tests
-pytest = {version = "^7.2", optional = true}
-pytest-cov = {version = "^4", optional = true}
-pandas = {version = "^1.1.3", python = ">=3.7.1,<=3.9", optional = true}
-sqlalchemy = {version = "^1.3.13", optional = true}
-# benchmarks
-pytest-benchmark = {version = "^4", extras = ["histogram"], optional = true}
-marshmallow = {version = "^3.2", optional = true}
-djangorestframework = {version = "^3.10", optional = true}
-pydantic = {version = "^1", extras = ["email"], optional = true}
-django = {version = "^4", optional = true}
-apischema = {version = "^0.17.1", optional = true}
-# lint
-flake8 = {version = "^5", optional = true}
-mypy = {version = "^0.982", optional = true}
-black = {version = "^22", allow-prereleases = true, optional = true}
-# mypy needs these....
-types-python-dateutil = {version = "*", optional = true}
-types-setuptools = {version = "*", optional = true}
-types-toml = {version = "*", optional = true}
-types-typed-ast = {version = "*", optional = true}
-types-ujson = {version = "*", optional = true}
-# docs
-mkdocs = {version = "^1.1", optional = true}
-mkdocs-material = {version = "^8", optional = true}
-mkdocs-awesome-pages-plugin = {version = "^2.2.1", optional = true}
-pymdown-extensions = {version = "^9.0", optional = true}
 future-typing = "^0.4.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^7.2"
 pytest-cov = "^4"
-black = {version = "^22", allow-prereleases = true}
-pre-commit = "^2"
+pandas = "^1.1.3"
+sqlalchemy = "^1.3.13"
+asyncpg = "^0.27.0"
+
+[tool.poetry.group.benchmarks.dependencies]
 pytest-benchmark = {version = "^4", extras = ["histogram"]}
 marshmallow = "^3.2"
 djangorestframework = "^3.10"
 pydantic = {version = "^1", extras = ["email"]}
 django = "^4"
+apischema = "^0.17.1"
+
+[tool.poetry.group.lint.dependencies]
 flake8 = "^5"
-mypy = "^0.982"
-ujson = "^5"
-sqlalchemy = "^1.3.13"
-sqlalchemy-stubs = "^0.4"
+mypy = "^0.990"
+black = "^22"
+# mypy needs these....
+types-python-dateutil = "*"
+types-setuptools = "*"
+types-toml = "*"
+types-typed-ast = "*"
+types-ujson = "*"
+
+[tool.poetry.group.docs.dependencies]
 mkdocs = "^1.1"
 mkdocs-material = "^8"
-pymdown-extensions = "^9.0"
 mkdocs-awesome-pages-plugin = "^2.2.1"
-# Pandas doesn't yet officially support py3.10 and installs consistently fail.
-pandas = {version = "^1.3", python = ">=3.7.1,<=3.9"}
-fastjsonschema = "^2.14.5"
+pymdown-extensions = "^9.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^2"
+sqlalchemy-stubs = "^0.4"
 bumpver = "^2022"
-orjson = "^3.6.3"
 bpython = "^0.21"
-asyncpg = "^0.27.0"
-apischema = "^0.17.1"
+fastjsonschema = "^2.14"
+orjson = "^3.6.3"
+ujson = "^5"
 
 [tool.poetry.extras]
 schema = ["fastjsonschema"]
-json = ["ujson"]
-tests = [
-    "fastjsonschema",
-    "ujson",
-    "orjson",
-    "pydantic",
-    "sqlalchemy",
-    "pandas",
-    "mypy",
-    "pytest",
-    "pytest-cov",
-]
-benchmarks = [
-    "pytest-benchmark",
-    "marshmallow",
-    "djangorestframework",
-    "django",
-    "pydantic",
-    "sqlalchemy",
-    "apischema",
-]
-lint = [
-    "mypy",
-    "flake8",
-    "black",
-    "types-python-dateutil",
-    "types-setuptools",
-    "types-toml",
-    "types-typed-ast",
-    "types-ujson",
-]
-docs = [
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocs-awesome-pages-plugin",
-    "pymdown-extensions",
-]
+json = ["orjson"]
 
 [tool.black]
 line-length = 88
@@ -153,7 +102,7 @@ exclude = '''
 '''
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
 
 [bumpver]
