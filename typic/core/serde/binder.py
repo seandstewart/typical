@@ -217,7 +217,7 @@ class Binder:
         >>> typic.bind(add, 1, 3.0, strict=True).eval()
         Traceback (most recent call last):
             ...
-        typic.constraints.error.ConstraintValueError: Given value <3.0> fails constraints: (type=int, nullable=False)
+        typic.core.constraints.core.error.ConstraintValueError: Given value <3.0> fails constraints: (type=int)
         """
         if isinstance(coerce, bool):  # pragma: nocover
             warnings.warn(

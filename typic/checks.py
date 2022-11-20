@@ -757,7 +757,7 @@ def isconstrained(obj: Type[ObjectT]) -> TypeGuard[_Constrained]:
     >>> import typic
     >>> from typing import NewType
     >>>
-    >>> @typic.constrained(ge=0, le=1)
+    >>> @typic.constrained(min=0, max=1, inclusive_min=True, inclusive_max=True)
     ... class TinyInt(int): ...
     ...
     >>> typic.isconstrained(TinyInt)
