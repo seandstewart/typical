@@ -2,9 +2,20 @@ from __future__ import annotations
 
 import dataclasses
 from types import MappingProxyType
-from typing import Any, Callable, Hashable, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Hashable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    overload,
+)
 
-from typic.api import ObjectT, wrap_cls
+from typic.api import ObjectT, WrappedObjectT, wrap_cls
 from typic.compat import DATACLASS_KW_ONLY, DATACLASS_MATCH_ARGS, DATACLASS_NATIVE_SLOTS
 from typic.core.interfaces import SerdeFlags
 from typic.types import freeze
@@ -110,7 +121,7 @@ def field(
 
 
 def make_typedclass(
-    cls: Type,
+    cls: Type[ObjectT],
     *,
     init: bool = True,
     repr: bool = True,
@@ -126,7 +137,7 @@ def make_typedclass(
     match_args: bool = True,
     serde: SerdeFlags = None,
     always: bool = None,
-):
+) -> Type[WrappedObjectT[ObjectT]]:
     """A convenience function for generating a dataclass with type-coercion.
 
     Allows the user to create typed dataclasses on-demand from a base-class, i.e.::
@@ -179,8 +190,13 @@ def make_typedclass(
     )
 
 
+@overload
+def klass(_cls: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
+    ...
+
+
+@overload
 def klass(
-    _cls: Type = None,
     *,
     init: bool = True,
     repr: bool = True,
@@ -196,6 +212,27 @@ def klass(
     match_args: bool = True,
     serde: SerdeFlags = None,
     always: bool = None,
+) -> Callable[[Type[ObjectT]], Type[WrappedObjectT[ObjectT]]]:
+    ...
+
+
+def klass(
+    _cls=None,
+    *,
+    init=True,
+    repr=True,
+    eq=True,
+    order=False,
+    unsafe_hash=False,
+    frozen=False,
+    delay=False,
+    strict=False,
+    jsonschema=True,
+    slots=False,
+    kw_only=False,
+    match_args=True,
+    serde=None,
+    always=None,
 ):
     """A convenience decorator for generating a dataclass with type-coercion.
 
