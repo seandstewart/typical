@@ -891,9 +891,10 @@ def isfixedtuple(obj: Type[ObjectT]) -> TypeGuard[tuple]:
     False
     """
     args = util.get_args(obj)
+    origin = util.get_origin(obj)
     if not args or args[-1] is ...:
         return False
-    return inspect.isclass(obj) and issubclass(obj, tuple)
+    return issubclass(origin, tuple)
 
 
 def isforwardref(obj: Any) -> TypeGuard[ForwardRef]:
