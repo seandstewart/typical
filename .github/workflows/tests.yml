@@ -54,7 +54,7 @@ jobs:
         poetry config virtualenvs.in-project true
     - name: Install Dependencies
       if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9) }}
-      run: poetry install --no-dev -E tests
+      run: poetry install
 
     - name: Install Dependencies (MacOS + Py3.9)
       if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9 }}
