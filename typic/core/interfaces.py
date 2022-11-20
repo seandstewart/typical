@@ -290,7 +290,7 @@ class SerdeConfigD(TypedDict):
     decoder: Optional[DecoderT]
 
 
-@util.slotted
+@util.slotted(dict=False, weakref=True)
 @dataclasses.dataclass
 class SerdeConfig:
     flags: SerdeFlags = dataclasses.field(default_factory=SerdeFlags)

@@ -81,7 +81,7 @@ def constrained(
     >>> ShortStr('waytoomanycharacters')
     Traceback (most recent call last):
     ...
-    typic.constraints.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=str, nullable=False, max_length=10)
+    typic.core.constraints.core.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=ShortStr, max_length=10)
     >>> @typic.constrained(values=ShortStr, max_items=2)
     ... class SmallMap(dict):
     ...     '''A small map that only allows short strings.'''
@@ -90,12 +90,17 @@ def constrained(
     >>> print(json.dumps(typic.schema(SmallMap, primitive=True), indent=2, sort_keys=True))
     {
       "additionalProperties": {
-        "maxLength": 10,
-        "type": "string"
+        "$ref": "#/definitions/ShortStr"
       },
-      "description": "A small map that only allows short strings.",
+      "definitions": {
+        "ShortStr": {
+          "maxLength": 10,
+          "title": "ShortStr",
+          "type": "string"
+        }
+      },
       "maxProperties": 2,
-      "title": "SmallMap",
+      "title": "ShortStrSmallMap",
       "type": "object"
     }
 

@@ -91,7 +91,7 @@ class AbstractConstraints(Generic[_VT]):
                 continue
 
             val = getattr(self, f.name)
-            if f.repr and (val or val in {False, 0}):
+            if f.repr and val != f.default:
                 fields.append(f"{f.name}={val!r}")
         return f"({', '.join(fields)})"
 
