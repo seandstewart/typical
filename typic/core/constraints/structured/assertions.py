@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Collection, Mapping, NamedTuple, TypeVar
+from typing import Any, Collection, Mapping, NamedTuple, TypeVar, cast
 
 from typic.core.constraints.core import assertions
 
@@ -80,7 +80,9 @@ class StructuredFieldsObjectAssertion(AbstractStructuredObjectAssertion[_ST]):
                 return __fields <= fields
             return False
 
-        return structured_fields_object_assertion
+        return cast(
+            assertions.AssertionProtocol[_ST], structured_fields_object_assertion
+        )
 
 
 class StructuredFieldsTupleAssertion(StructuredFieldsObjectAssertion[_NT]):
@@ -101,7 +103,7 @@ class StructuredTupleAssertion(AbstractStructuredObjectAssertion[_TT]):
                 return __size <= len(val)
             return False
 
-        return structured_tuple_assertion
+        return cast(assertions.AssertionProtocol[_TT], structured_tuple_assertion)
 
 
 _ASSERTION_TRUTH_TABLE: dict[

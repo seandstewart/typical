@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, NamedTuple, Sized, TypeVar
+from typing import Any, NamedTuple, Sized, TypeVar, cast
 
 from typic.core.constraints.core import assertions
 
@@ -69,7 +69,7 @@ class ItemRangeAssertion(AbstractArrayAssertion):
         ) -> bool:
             return __min_items <= len(val) <= __max_items
 
-        return item_range_assertion
+        return cast(assertions.AssertionProtocol[_AT], item_range_assertion)
 
 
 class MinItemsAssertion(AbstractArrayAssertion):
@@ -79,7 +79,7 @@ class MinItemsAssertion(AbstractArrayAssertion):
         def min_items_assertion(val: Any, *, __min_items=self.min_items) -> bool:
             return __min_items <= len(val)
 
-        return min_items_assertion
+        return cast(assertions.AssertionProtocol[_AT], min_items_assertion)
 
 
 class MaxItemsAssertion(AbstractArrayAssertion):
@@ -89,7 +89,7 @@ class MaxItemsAssertion(AbstractArrayAssertion):
         def max_items_assertion(val: Any, *, __max_items=self.max_items) -> bool:
             return len(val) <= __max_items
 
-        return max_items_assertion
+        return cast(assertions.AssertionProtocol[_AT], max_items_assertion)
 
 
 _ASSERTION_TRUTH_TABLE: dict[ArrayAssertionSelector, type[AbstractArrayAssertion]] = {

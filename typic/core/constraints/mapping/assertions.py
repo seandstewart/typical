@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import re
-from typing import Any, Mapping, NamedTuple, TypeVar
+from typing import Any, Mapping, NamedTuple, TypeVar, cast
 
 from typic.core.constraints.core import assertions
 
@@ -95,7 +95,7 @@ class ItemRangePatternAssertion(AbstractMappingAssertion[_MT]):
                 __match(k) is None for k in val
             )
 
-        return item_range_pattern_assertion
+        return cast(assertions.AssertionProtocol[_MT], item_range_pattern_assertion)
 
 
 class MinItemsPatternAssertion(AbstractMappingAssertion[_MT]):
@@ -112,7 +112,7 @@ class MinItemsPatternAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return __min_items <= len(val) and not any(__match(k) is None for k in val)
 
-        return min_items_pattern_assertion
+        return cast(assertions.AssertionProtocol[_MT], min_items_pattern_assertion)
 
 
 class MaxItemsPatternAssertion(AbstractMappingAssertion[_MT]):
@@ -129,7 +129,7 @@ class MaxItemsPatternAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return len(val) <= __max_items and not any(__match(k) is None for k in val)
 
-        return max_items_pattern_assertion
+        return cast(assertions.AssertionProtocol[_MT], max_items_pattern_assertion)
 
 
 class PatternAssertion(AbstractMappingAssertion[_MT]):
@@ -145,7 +145,7 @@ class PatternAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return not any(__match(k) is None for k in val)
 
-        return pattern_assertion
+        return cast(assertions.AssertionProtocol[_MT], pattern_assertion)
 
 
 class ItemRangeAssertion(AbstractMappingAssertion[_MT]):
@@ -162,7 +162,7 @@ class ItemRangeAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return __min_items <= len(val) <= __max_items
 
-        return item_range_assertion
+        return cast(assertions.AssertionProtocol[_MT], item_range_assertion)
 
 
 class MinItemsAssertion(AbstractMappingAssertion[_MT]):
@@ -178,7 +178,7 @@ class MinItemsAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return __min_items <= len(val)
 
-        return min_items_assertion
+        return cast(assertions.AssertionProtocol[_MT], min_items_assertion)
 
 
 class MaxItemsAssertion(AbstractMappingAssertion[_MT]):
@@ -194,7 +194,7 @@ class MaxItemsAssertion(AbstractMappingAssertion[_MT]):
         ) -> bool:
             return len(val) <= __max_items
 
-        return max_items_assertion
+        return cast(assertions.AssertionProtocol[_MT], max_items_assertion)
 
 
 _ASSERTION_TRUTH_TABLE: dict[

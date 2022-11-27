@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import re
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, NamedTuple, TypeVar, cast
 
 from typic.core.constraints.core import assertions
 
@@ -92,7 +92,7 @@ class RangeAndPatternAssertion(AbstractTextAssertion[_TT]):
 
             return __min <= len(val) <= __max and __match(val) is not None
 
-        return range_and_pattern_assertion
+        return cast(assertions.AssertionProtocol[_TT], range_and_pattern_assertion)
 
 
 class MaxAndPatternAssertion(AbstractTextAssertion[_TT]):
@@ -104,7 +104,7 @@ class MaxAndPatternAssertion(AbstractTextAssertion[_TT]):
         ) -> bool:
             return len(val) <= __max and __match(val) is not None
 
-        return max_and_pattern_assertion
+        return cast(assertions.AssertionProtocol[_TT], max_and_pattern_assertion)
 
 
 class MinAndPatternAssertion(AbstractTextAssertion[_TT]):
@@ -116,7 +116,7 @@ class MinAndPatternAssertion(AbstractTextAssertion[_TT]):
         ) -> bool:
             return __min <= len(val) and __match(val) is not None
 
-        return min_and_pattern_assertion
+        return cast(assertions.AssertionProtocol[_TT], min_and_pattern_assertion)
 
 
 class RangeAssertion(AbstractTextAssertion[_TT]):
@@ -128,7 +128,7 @@ class RangeAssertion(AbstractTextAssertion[_TT]):
         ) -> bool:
             return __min <= len(val) <= __max
 
-        return range_asseertion
+        return cast(assertions.AssertionProtocol[_TT], range_asseertion)
 
 
 class MinAssertion(AbstractTextAssertion[_TT]):
@@ -142,7 +142,7 @@ class MinAssertion(AbstractTextAssertion[_TT]):
         def min_assertion(val: Any, *, __min=self.min_length) -> bool:
             return __min <= len(val)
 
-        return min_assertion
+        return cast(assertions.AssertionProtocol[_TT], min_assertion)
 
 
 class MaxAssertion(AbstractTextAssertion[_TT]):
@@ -156,7 +156,7 @@ class MaxAssertion(AbstractTextAssertion[_TT]):
         def max_assertion(val: Any, *, __max=self.max_length) -> bool:
             return len(val) <= __max
 
-        return max_assertion
+        return cast(assertions.AssertionProtocol[_TT], max_assertion)
 
 
 class PatternAssertion(AbstractTextAssertion[_TT]):
@@ -170,7 +170,7 @@ class PatternAssertion(AbstractTextAssertion[_TT]):
         def pattern_assertion(val: Any, *, __match=self.regex.match) -> bool:
             return __match(val) is not None
 
-        return pattern_assertion
+        return cast(assertions.AssertionProtocol[_TT], pattern_assertion)
 
 
 _ASSERTION_TRUTH_TABLE: dict[TextAssertionSelector, type[AbstractTextAssertion]] = {

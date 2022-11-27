@@ -706,11 +706,11 @@ class ConstrainedType(Generic[VT]):
             args = [Any]
 
         if values and checks.iscollectiontype(cls):
-            vcv = cls.__handle_sub_constraints(values)
+            vcv = cls.__handle_sub_constraints(values)  # type: ignore[attr-defined]
             args[-1] = vcv.constraints.type
             constraints["values"] = vcv
         if keys and checks.ismappingtype(cls):
-            kcv = cls.__handle_sub_constraints(keys)
+            kcv = cls.__handle_sub_constraints(keys)  # type: ignore[attr-defined]
             args[0] = kcv.constraints.type
             constraints["keys"] = kcv
 

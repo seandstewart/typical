@@ -3,7 +3,7 @@ from __future__ import annotations
 import decimal
 import functools
 import numbers
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, NamedTuple, TypeVar, cast
 
 from typic.core.constraints.core import assertions, error
 from typic.core.constraints.number import assertions as number
@@ -138,7 +138,7 @@ class MaxDigitsAssertion(AbstractDecimalAssertion[_DT]):
             whole_digits, all_digits, decimal_places = __digits(val)
             return all_digits <= __max_digits and __number_assertions(val)
 
-        return max_digits_assertion
+        return cast(assertions.AssertionProtocol[_DT], max_digits_assertion)
 
 
 class MaxDecimalsAssertion(AbstractDecimalAssertion[_DT]):
@@ -155,7 +155,7 @@ class MaxDecimalsAssertion(AbstractDecimalAssertion[_DT]):
             whole_digits, all_digits, decimal_places = __digits
             return decimal_places <= __max_decimal_places and __number_assertions(val)
 
-        return max_decimals_assertion
+        return cast(assertions.AssertionProtocol[_DT], max_decimals_assertion)
 
 
 class MaxDigitsAndDecimalsAssertion(AbstractDecimalAssertion[_DT]):
@@ -179,7 +179,9 @@ class MaxDigitsAndDecimalsAssertion(AbstractDecimalAssertion[_DT]):
                 and __number_assertions(val)
             )
 
-        return max_digits_and_decimals_assertion
+        return cast(
+            assertions.AssertionProtocol[_DT], max_digits_and_decimals_assertion
+        )
 
 
 _ASSERTION_TRUTH_TABLE: dict[
