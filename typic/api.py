@@ -221,7 +221,7 @@ def _resolve_class(
         )
         always = True
     if jsonschema:
-        ns["schema"] = classmethod(schema)
+        ns["schema"] = classmethod(functools.partial(schema))
         resolver.schemas.attach(cls)
 
     # Wrap the init if
