@@ -15,7 +15,6 @@ import pathlib
 import sqlite3
 import types
 import uuid
-from collections import namedtuple
 from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
@@ -43,7 +42,6 @@ from typic.compat import (
     Literal,
     Protocol,
     Record,
-    TypedDict,
     TypeGuard,
     lru_cache,
 )
@@ -241,7 +239,7 @@ def isstdlibinstance(o: ObjectT) -> TypeGuard[STDLibTypeT]:
 
 
 @lru_cache(maxsize=None)
-def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
+def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional[ObjectT]]:
     """Test whether an annotation is :py:class`typing.Optional`, or can be treated as.
 
     :py:class:`typing.Optional` is an alias for `typing.Union[<T>, None]`, so both are
@@ -264,7 +262,7 @@ def isoptionaltype(obj: Type[ObjectT]) -> TypeGuard[Optional]:
     False
     """
     args = getattr(obj, "__args__", ())
-    tname = util.get_name(obj)
+    tname = util.get_name(util.origin(obj))
     nullarg = next((a for a in args if a in (type(None), None)), ...)
     isoptional = tname == "Optional" or (
         nullarg is not ... and tname in ("Union", "UnionType", "Literal")
@@ -317,7 +315,7 @@ def isfinal(obj: Type[ObjectT]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def isliteral(obj: Type) -> TypeGuard[Literal]:
+def isliteral(obj) -> bool:
     return util.origin(obj) is Literal or (
         obj.__class__ is ForwardRef and obj.__forward_arg__.startswith("Literal")
     )
@@ -623,7 +621,7 @@ def isenumtype(obj: Type[ObjectT]) -> TypeGuard[Type[enum.Enum]]:
 
 
 @lru_cache(maxsize=None)
-def isclassvartype(obj: Type[ObjectT]) -> TypeGuard[ClassVar]:
+def isclassvartype(obj: Type) -> bool:
     """Test whether an annotation is a ClassVar annotation.
 
     Examples
@@ -800,7 +798,7 @@ def ishashable(obj: ObjectT) -> TypeGuard[Hashable]:
 
 
 @lru_cache(maxsize=None)
-def istypeddict(obj: Type[ObjectT]) -> TypeGuard[Type[TypedDict]]:
+def istypeddict(obj: Type) -> bool:
     """Check whether an object is a :py:class:`typing.TypedDict`.
 
     Parameters
@@ -852,7 +850,7 @@ def istypedtuple(obj: Type[ObjectT]) -> TypeGuard[Type[NamedTuple]]:
 
 
 @lru_cache(maxsize=None)
-def isnamedtuple(obj: Type[ObjectT]) -> TypeGuard[namedtuple]:
+def isnamedtuple(obj: Type[ObjectT]) -> TypeGuard[NamedTuple]:
     """Check whether an object is a "named" tuple (:py:func:`collections.namedtuple`).
 
     Parameters
@@ -932,12 +930,12 @@ def istypicklass(obj) -> TypeGuard[TypicObjectT]:
     return hasattr(obj, "__typic_fields__")
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=None)  # type: ignore[arg-type]
 def istexttype(t: Type[Any]) -> TypeGuard[Type[str | bytes | bytearray]]:
     return issubclass(t, (str, bytes, bytearray))
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=None)  # type: ignore[arg-type]
 def isnumbertype(t: Type[Any]) -> TypeGuard[Type[numbers.Number]]:
     return issubclass(t, numbers.Number)
 
