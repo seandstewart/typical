@@ -778,6 +778,8 @@ class Resolver:
             obj = obj.__class__
 
         hints = util.cached_type_hints(obj)
+        # "return" is an invalid name for a param, so we should skip it.
+        hints.pop("return", None)
         params = util.safe_get_params(obj)
         fields: Mapping[str, dataclasses.Field] = {}
         if dataclasses.is_dataclass(obj):
