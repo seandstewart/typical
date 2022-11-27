@@ -27,15 +27,6 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
-    - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        ./.github/ubuntu-install.sh
-    - name: Install macOS dependencies
-      if: startsWith(matrix.os, 'macos')
-      run: |
-        ./.github/macos-install.sh
-
     - name: Install Poetry
       uses: abatilo/actions-poetry@v2.1.4
       with:
@@ -53,13 +44,7 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
     - name: Install Dependencies
-      if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9) }}
       run: poetry install
-
-    - name: Install Dependencies (MacOS + Py3.9)
-      if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9 }}
-      run: |
-        OPENBLAS="$(brew --prefix openblas)" poetry install
 
     - name: Test with pytest
       run: |
