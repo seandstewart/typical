@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import numbers
-from typing import NamedTuple, TypeVar
+from typing import NamedTuple, TypeVar, cast
 
 from typic.core.constraints.core import assertions, error
 
@@ -116,7 +116,7 @@ class MulOfAssertion(AbstractNumberAssertion[_NT]):
         def mul_of_assertion(val: numbers.Number, *, __mul=self.mul) -> bool:
             return val % __mul == 0
 
-        return mul_of_assertion
+        return cast(assertions.AssertionProtocol[_NT], mul_of_assertion)
 
 
 class InclusiveMaxAssertion(AbstractNumberAssertion):
@@ -132,7 +132,7 @@ class InclusiveMaxAssertion(AbstractNumberAssertion):
         def inclusive_max_assertion(val: numbers.Number, *, __max=self.max) -> bool:
             return val <= __max
 
-        return inclusive_max_assertion
+        return cast(assertions.AssertionProtocol[_NT], inclusive_max_assertion)
 
 
 class InclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
@@ -150,7 +150,7 @@ class InclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return val <= __max and val % __mul
 
-        return inclusive_max_and_mul_assertion
+        return cast(assertions.AssertionProtocol[_NT], inclusive_max_and_mul_assertion)
 
 
 class ExclusiveMaxAssertion(AbstractNumberAssertion):
@@ -166,7 +166,7 @@ class ExclusiveMaxAssertion(AbstractNumberAssertion):
         def exclusive_max_assertion(val: numbers.Number, *, __max=self.max) -> bool:
             return val < __max
 
-        return exclusive_max_assertion
+        return cast(assertions.AssertionProtocol[_NT], exclusive_max_assertion)
 
 
 class ExclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
@@ -184,7 +184,7 @@ class ExclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return val < __max and val % __mul
 
-        return exclusive_max_and_mul_assertion
+        return cast(assertions.AssertionProtocol[_NT], exclusive_max_and_mul_assertion)
 
 
 class InclusiveMinAssertion(AbstractNumberAssertion):
@@ -200,7 +200,7 @@ class InclusiveMinAssertion(AbstractNumberAssertion):
         def inclusive_min_assertion(val: numbers.Number, *, __min=self.min) -> bool:
             return val >= __min
 
-        return inclusive_min_assertion
+        return cast(assertions.AssertionProtocol[_NT], inclusive_min_assertion)
 
 
 class InclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
@@ -218,7 +218,7 @@ class InclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return val <= __min and val % __mul
 
-        return inclusive_min_and_mul_assertion
+        return cast(assertions.AssertionProtocol[_NT], inclusive_min_and_mul_assertion)
 
 
 class ExclusiveMinAssertion(AbstractNumberAssertion):
@@ -234,7 +234,7 @@ class ExclusiveMinAssertion(AbstractNumberAssertion):
         def exclusive_min_assertion(val: numbers.Number, *, __min=self.min) -> bool:
             return val > __min
 
-        return exclusive_min_assertion
+        return cast(assertions.AssertionProtocol[_NT], exclusive_min_assertion)
 
 
 class ExclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
@@ -252,7 +252,7 @@ class ExclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return val <= __min and val % __mul
 
-        return exclusive_min_and_mul_assertion
+        return cast(assertions.AssertionProtocol[_NT], exclusive_min_and_mul_assertion)
 
 
 class InclusiveRangeAssertion(AbstractNumberAssertion):
@@ -270,7 +270,7 @@ class InclusiveRangeAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min <= val <= __max
 
-        return inclusive_range_assertion
+        return cast(assertions.AssertionProtocol[_NT], inclusive_range_assertion)
 
 
 class InclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
@@ -288,7 +288,9 @@ class InclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min <= val <= __max and val % __mul == 0
 
-        return inclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], inclusive_range_and_mul_assertion
+        )
 
 
 class RightInclusiveRangeAssertion(AbstractNumberAssertion):
@@ -306,7 +308,7 @@ class RightInclusiveRangeAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min < val <= __max
 
-        return right_inclusive_range_assertion
+        return cast(assertions.AssertionProtocol[_NT], right_inclusive_range_assertion)
 
 
 class RightInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
@@ -324,7 +326,9 @@ class RightInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min < val <= __max and val % __mul == 0
 
-        return inclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], inclusive_range_and_mul_assertion
+        )
 
 
 class LeftInclusiveRangeAssertion(AbstractNumberAssertion):
@@ -342,7 +346,9 @@ class LeftInclusiveRangeAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min <= val < __max
 
-        return right_inclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], right_inclusive_range_and_mul_assertion
+        )
 
 
 class LeftInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
@@ -360,7 +366,9 @@ class LeftInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min <= val < __max and val % __mul == 0
 
-        return left_inclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], left_inclusive_range_and_mul_assertion
+        )
 
 
 class ExclusiveRangeAssertion(AbstractNumberAssertion):
@@ -378,7 +386,9 @@ class ExclusiveRangeAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min < val < __max
 
-        return exclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], exclusive_range_and_mul_assertion
+        )
 
 
 class ExclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
@@ -396,7 +406,9 @@ class ExclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
         ) -> bool:
             return __min < val < __max and val % __mul == 0
 
-        return exclusive_range_and_mul_assertion
+        return cast(
+            assertions.AssertionProtocol[_NT], exclusive_range_and_mul_assertion
+        )
 
 
 _ASSERTION_TRUTH_TABLE: dict[

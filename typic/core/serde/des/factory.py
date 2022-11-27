@@ -12,13 +12,11 @@ from typing import (
     Mapping,
     Match,
     Pattern,
-    Tuple,
     Type,
     cast,
 )
 
 from typic import checks, util
-from typic.compat import TypeGuard
 from typic.core.annotations import ObjectT
 from typic.core.constants import empty
 from typic.core.interfaces import (
@@ -215,6 +213,4 @@ class DesFactory:
     }
 
 
-HandlerCheckT = Callable[
-    [Type[ObjectT], Tuple[Any, ...], bool], TypeGuard[Type[ObjectT]]
-]
+HandlerCheckT = Callable[[Any, Any, Any], bool]
