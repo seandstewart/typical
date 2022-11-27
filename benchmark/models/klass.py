@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
 from dataclasses import field
+from datetime import datetime
 from typing import List, Optional, Type
 
 import typic
@@ -22,7 +22,7 @@ class GReCaptchaResponse(str):
     """A string representing a re-captcha response."""
 
 
-@typic.constrained(ge=0)
+@typic.constrained(min=0, inclusive_min=True)
 class PositiveInt(int):
     """A positive integer."""
 
