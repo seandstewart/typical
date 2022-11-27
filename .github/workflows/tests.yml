@@ -59,7 +59,7 @@ jobs:
     - name: Install Dependencies (MacOS + Py3.9)
       if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9 }}
       run: |
-        OPENBLAS="$(brew --prefix openblas)" poetry install --no-dev -E tests
+        OPENBLAS="$(brew --prefix openblas)" poetry install
 
     - name: Test with pytest
       run: |

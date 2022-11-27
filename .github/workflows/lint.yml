@@ -55,5 +55,4 @@ jobs:
       run: "poetry run black . --check"
 
     - name: Static type-check with MyPy
-      run: |
-        poetry run mypy typic
+      run: "poetry run mypy ."
