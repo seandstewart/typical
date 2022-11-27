@@ -33,11 +33,11 @@ class Keyword(str, enum.Enum):
     FRM = "from"
     DEC = "@"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
-    def __repr__(self):
-        return self.value
+    def __repr__(self) -> str:
+        return self.value.__repr__()
 
 
 @slotted(dict=False)
