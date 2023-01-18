@@ -2,6 +2,6 @@
   name: Convert pyproject.toml to requirements.txt
   description: Generate requirements.txt pyproject.toml for backwards compatibility with dev requirements.
   language: system
-  entry: poetry export --only docs -f requirements.txt -o requirements.txt --without-hashes
+  entry: poetry export --only=docs -f requirements.txt -o requirements.txt --without-hashes
   files: "^pyproject.toml$"
   pass_filenames: false

@@ -50,26 +50,28 @@ The decorator that started it all:
 ### `typic.al(...)`
 
 ```python
-import typic
+from typical import magic
 
 
-@typic.al
+@magic.al
 def hard_math(a: int, b: int, *c: int) -> int:
     return a + b + sum(c)
+
 
 hard_math(1, "3")
 #> 4
 
 
-@typic.al(strict=True)
+@magic.al(strict=True)
 def strict_math(a: int, b: int, *c: int) -> int:
     return a + b + sum(c)
+
 
 strict_math(1, 2, 3, "4")
 #> Traceback (most recent call last):
 #>  ...
 #> typic.constraints.error.ConstraintValueError: Given value <'4'> fails constraints: (type=int, nullable=False, coerce=False)
-  
+
 ```
 
 Typical has both a high-level *Object API* and high-level
@@ -82,27 +84,27 @@ available to the other.
 import dataclasses
 from typing import Iterable
 
-import typic
+import typical
 
 
-@typic.constrained(ge=1)
+@typical.constrained(ge=1)
 class ID(int):
     ...
 
 
-@typic.constrained(max_length=280)
+@typical.constrained(max_length=280)
 class Tweet(str):
     ...
 
 
-@dataclasses.dataclass # or typing.TypedDict or typing.NamedTuple or annotated class...
+@dataclasses.dataclass  # or typing.TypedDict or typing.NamedTuple or annotated class...
 class Tweeter:
     id: ID
     tweets: Iterable[Tweet]
 
 
 json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
-protocol = typic.protocol(Tweeter)
+protocol = typical.protocol(Tweeter)
 
 t = protocol.transmute(json)
 print(t)
@@ -123,20 +125,20 @@ protocol.validate({"id": 0, "tweets": []})
 import dataclasses
 from typing import Iterable
 
-import typic
+import typical
 
 
-@typic.constrained(ge=1)
+@typical.constrained(ge=1)
 class ID(int):
     ...
 
 
-@typic.constrained(max_length=280)
+@typical.constrained(max_length=280)
 class Tweet(str):
     ...
 
 
-@dataclasses.dataclass # or typing.TypedDict or typing.NamedTuple or annotated class...
+@dataclasses.dataclass  # or typing.TypedDict or typing.NamedTuple or annotated class...
 class Tweeter:
     id: ID
     tweets: Iterable[Tweet]
@@ -144,14 +146,14 @@ class Tweeter:
 
 json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
 
-t = typic.transmute(Tweeter, json)
+t = typical.transmute(Tweeter, json)
 print(t)
 #> Tweeter(id=1, tweets=["I don't understand Twitter"])
 
-print(typic.tojson(t))
+print(typical.tojson(t))
 #> '{"id":1,"tweets":["I don\'t understand Twitter"]}'
 
-typic.validate(Tweeter, {"id": 0, "tweets": []})
+typical.validate(Tweeter, {"id": 0, "tweets": []})
 #> Traceback (most recent call last):
 #>  ...
 #> typic.constraints.error.ConstraintValueError: Tweeter.id: value <0> fails constraints: (type=int, nullable=False, coerce=False, ge=1)
@@ -162,24 +164,25 @@ typic.validate(Tweeter, {"id": 0, "tweets": []})
 ```python
 from typing import Iterable
 
-import typic
+import typical
+from typical import magic
 
 
-@typic.constrained(ge=1)
+@typical.constrained(ge=1)
 class ID(int):
     ...
 
 
-@typic.constrained(max_length=280)
+@typical.constrained(max_length=280)
 class Tweet(str):
     ...
 
 
-@typic.klass
+@magic.klass
 class Tweeter:
     id: ID
     tweets: Iterable[Tweet]
-    
+
 
 json = '{"id":1,"tweets":["I don\'t understand Twitter"]}'
 t = Tweeter.transmute(json)

@@ -1,25 +1,21 @@
 [flake8]
-ignore = E203, E266, E501, W503
-per-file-ignores =
-    # imported but unused
-    __init__.py: F401
-max-line-length = 80
+# line-length and extend-ignore are recommended by black
+#   https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#id2
+max-line-length = 88
+extend-include =
+    # Enable flake8-bugbear warnings.
+    #   https://github.com/PyCQA/flake8-bugbear
+    B9,
+extend-ignore =
+    # whitespace before ':' (black formats these this way)
+    E203,
+    # line too long (we're using bugbear's B950, less stringent).
+    E501,
+    # do not use lru_cache on method
+    # (we use this on methods which are part of the public api and only accessed via the api)
+    B019,
+# Flake8's McCabe Complexity checker
+#   https://flake8.pycqa.org/en/latest/user/options.html#cmdoption-flake8-max-complexity
 max-complexity = 18
-select = B,C,E,F,W,T4,B9
-exclude =
-    # No need to traverse our git directory
-    .git,
-    .github,
-    # There's no value in checking caches
-    __pycache__,
-    *.py[cod],
-    .*cache,
-    .benchmarks,
-    # Don't check the dependencies
-    *venv,
-    # This contains builds that we don't want to check
-    dist,
-    # Don't check the docs directories
-    site,
-    docs,
-    static
+extend-exclude =
+    .venv,
