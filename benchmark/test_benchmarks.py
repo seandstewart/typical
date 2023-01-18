@@ -6,15 +6,15 @@ import pathlib
 from copy import deepcopy
 
 import pytest
-import typic
 
+import typical
 from benchmark.models import apisch, drf, functional, klass, marsh, protocol, pyd
 
 THIS_DIR = pathlib.Path(__file__).parent.resolve()
 
 
 VALID_RAW = json.loads((THIS_DIR / "valid.json").read_text())
-VALID_DESER = dataclasses.asdict(typic.transmute(functional.Model, VALID_RAW))
+VALID_DESER = dataclasses.asdict(typical.transmute(functional.Model, VALID_RAW))
 INVALID = json.loads((THIS_DIR / "invalid.json").read_text())
 
 _MODS = {
@@ -96,7 +96,7 @@ def test_benchmarks_serialize_valid_data(benchmark, mod):
     elif mod == "apischema":
         _, instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
     else:
-        instance = typic.transmute(model, VALID_RAW)
+        instance = typical.transmute(model, VALID_RAW)
     valid, data = benchmark(serialize, instance)
     assert valid, data
 
@@ -112,7 +112,7 @@ def test_benchmarks_serialize_invalid_data(benchmark, mod):
     elif mod == "apischema":
         _, instance = _MODS[mod].deserialize(deepcopy(VALID_RAW))
     else:
-        instance = typic.transmute(model, VALID_RAW)
+        instance = typical.transmute(model, VALID_RAW)
     instance.skills.append(NotASkill())
     valid, data = benchmark(serialize, instance)
     # Marshmallow implicitly filters invalid data, and pydantic doesn't care at all.
@@ -128,7 +128,7 @@ def test_benchmarks_translate_to_class(benchmark, mod):
     benchmark.name = mod
     translate = _MODS[mod].translate_to
     model = _MODS[mod].Model
-    instance = typic.transmute(model, VALID_RAW)
+    instance = typical.transmute(model, VALID_RAW)
     valid, data = benchmark(translate, instance, marsh.Model)
     assert valid, data
 
@@ -140,6 +140,6 @@ def test_benchmarks_translate_from_class(benchmark, mod):
     benchmark.group = "Translate from Arbitrary Class"
     benchmark.name = mod
     translate = _MODS[mod].translate_from
-    instance = typic.transmute(marsh.Model, VALID_RAW)
+    instance = typical.transmute(marsh.Model, VALID_RAW)
     valid, data = benchmark(translate, instance)
     assert valid, data

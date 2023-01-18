@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
-from typing import Optional, List
+from typing import List, Optional
 
 import orjson
-from marshmallow import fields, Schema, validate as mvalidate, ValidationError
+from marshmallow import Schema, ValidationError, fields
+from marshmallow import validate as mvalidate
 
 
 class BaseSchema(Schema):

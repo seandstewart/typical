@@ -4,25 +4,25 @@ import dataclasses
 from datetime import datetime
 from typing import List, Optional, Type
 
-import typic
+import typical
 
 
-@typic.constrained(max_length=255)
+@typical.constrained(max_length=255)
 class DBString(str):
     """A string with a max len of 255."""
 
 
-@typic.constrained(max_length=1023)
+@typical.constrained(max_length=1023)
 class HTTPReferer(str):
     """A string representing an HTTP referer."""
 
 
-@typic.constrained(min_length=10, max_length=1000)
+@typical.constrained(min_length=10, max_length=1000)
 class GReCaptchaResponse(str):
     """A string representing a re-captcha response."""
 
 
-@typic.constrained(min=0, inclusive_min=True)
+@typical.constrained(min=0, inclusive_min=True)
 class PositiveInt(int):
     """A positive integer."""
 
@@ -59,38 +59,38 @@ class Model:
 
 def validate(data):
     try:
-        return True, typic.validate(Model, data)
+        return True, typical.validate(Model, data)
     except ValueError as err:
         return False, err
 
 
 def deserialize(data):
     try:
-        return True, typic.transmute(Model, data)
+        return True, typical.transmute(Model, data)
     except (TypeError, ValueError) as err:
         return False, err
 
 
 def transmute(instance):
-    return True, typic.transmute(Model, instance)
+    return True, typical.transmute(Model, instance)
 
 
 def tojson(instance: Model):
     try:
-        return True, typic.tojson(instance)
+        return True, typical.tojson(instance)
     except ValueError as err:
         return False, err
 
 
 def translate_to(instance: Model, target: Type):
     try:
-        return True, typic.translate(instance, target)
+        return True, typical.translate(instance, target)
     except (ValueError, TypeError) as err:
         return False, err
 
 
 def translate_from(instance: Model):
     try:
-        return True, typic.translate(instance, Model)
+        return True, typical.translate(instance, Model)
     except (ValueError, TypeError) as err:
         return False, err

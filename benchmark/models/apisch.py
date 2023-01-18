@@ -2,13 +2,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, NewType, Optional
 
+import orjson
 from apischema import (
     ValidationError,
     deserialization_method,
     schema,
     serialization_method,
 )
-import orjson
 
 PositiveInt = NewType("PositiveInt", int)
 schema(exc_min=0)(PositiveInt)

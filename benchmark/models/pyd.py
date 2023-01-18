@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import orjson
-from pydantic import BaseModel, ConstrainedStr, PositiveInt, BaseConfig, ValidationError
+from pydantic import BaseConfig, BaseModel, ConstrainedStr, PositiveInt, ValidationError
 
 
 def orjson_dumps(v, *, default):

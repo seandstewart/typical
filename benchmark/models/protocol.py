@@ -4,25 +4,25 @@ import dataclasses
 from datetime import datetime
 from typing import List, Optional, Type
 
-import typic
+import typical
 
 
-@typic.constrained(max_length=255)
+@typical.constrained(max_length=255)
 class DBString(str):
     """A string with a max len of 255."""
 
 
-@typic.constrained(max_length=1023)
+@typical.constrained(max_length=1023)
 class HTTPReferer(str):
     """A string representing an HTTP referer."""
 
 
-@typic.constrained(min_length=10, max_length=1000)
+@typical.constrained(min_length=10, max_length=1000)
 class GReCaptchaResponse(str):
     """A string representing a re-captcha response."""
 
 
-@typic.constrained(min=0, inclusive_min=True)
+@typical.constrained(min=0, inclusive_min=True)
 class PositiveInt(int):
     """A positive integer."""
 
@@ -57,7 +57,7 @@ class Model:
     skills: List[Skill] = dataclasses.field(default_factory=list)
 
 
-model_protocol = typic.protocol(Model)
+model_protocol = typical.protocol(Model)
 
 
 def validate(data):
@@ -90,6 +90,6 @@ def translate_to(instance: Model, target: Type):
 
 def translate_from(instance: Model):
     try:
-        return True, typic.translate(instance, Model)
+        return True, typical.translate(instance, Model)
     except (ValueError, TypeError) as err:
         return False, err
