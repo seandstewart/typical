@@ -58,14 +58,14 @@ _T = TypeVar("_T")
 
 
 @classes.slotted(dict=False, weakref=True)
-@dataclasses.dataclass
+@dataclasses.dataclass(init=False)
 class BaseDeserializerRoutine(Generic[_T]):
     annotation: Annotation[type[_T]]
     resolver: Resolver
-    namespace: type | None = None
-    __call__: DeserializerT[_T] = dataclasses.field(init=False)
-    __name__: str = dataclasses.field(init=False)
-    __qualname__: str = dataclasses.field(init=False)
+    namespace: type | None
+    __call__: DeserializerT[_T]
+    __name__: str
+    __qualname__: str
 
     def __repr__(self) -> str:
         return (
@@ -74,7 +74,15 @@ class BaseDeserializerRoutine(Generic[_T]):
             f"namespace={self.namespace})>"
         )
 
-    def __post_init__(self):
+    def __init__(
+        self,
+        annotation: Annotation[type[_T]],
+        resolver: Resolver,
+        namespace: type | None = None,
+    ):
+        self.annotation = annotation
+        self.resolver = resolver
+        self.namespace = namespace
         self.__call__ = self._get_closure()
         self.__name__ = self.__call__.__name__
         self.__qualname__ = self.__call__.__qualname__
