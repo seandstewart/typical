@@ -1653,14 +1653,14 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "pytest-parametrize-suite"
-version = "23.1.1"
+version = "23.1.2"
 description = "A simple pytest extension for creating a named test suite."
 category = "dev"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "pytest_parametrize_suite-23.1.1-py3-none-any.whl", hash = "sha256:f48501c0f1ff6df4daed867bbc6e8c8348421f14bc0a96a31c91dbf1f0da4a47"},
-    {file = "pytest_parametrize_suite-23.1.1.tar.gz", hash = "sha256:9227955edcbe8711a95a05ad43d202f19abc2b7be3d1ab61941c6201b62c534e"},
+    {file = "pytest_parametrize_suite-23.1.2-py3-none-any.whl", hash = "sha256:a3a6258cef97943c8e7321099e903a4f782dac1bb8416d7bef37b9ee334dca2f"},
+    {file = "pytest_parametrize_suite-23.1.2.tar.gz", hash = "sha256:f3e11143d38694e6ddc55876070018351c570df25ce45041eec590191a907d1f"},
 ]
 
 [package.dependencies]
