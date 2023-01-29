@@ -50,16 +50,15 @@ class DesFactory:
         - :py:func:`collections.namedtuple`
         - User-defined classes
 
-    Examples
-    --------
-    >>> from __future__ import annotations
-    >>> import typical
-    >>> typical.transmute(bytes, "foo")
-    b'foo'
-    >>> typical.transmute(dict, '{"foo": "bar"}')
-    {'foo': 'bar'}
-    >>> typical.transmute(dict[str, int], '{"foo": "1"}')
-    {'foo': 1}
+    Examples:
+        >>> from __future__ import annotations
+        >>> import typical
+        >>> typical.transmute(bytes, "foo")
+        b'foo'
+        >>> typical.transmute(dict, '{"foo": "bar"}')
+        {'foo': 'bar'}
+        >>> typical.transmute(dict[str, int], '{"foo": "1"}')
+        {'foo': 1}
     """
 
     def __init__(self, resolver: Resolver):

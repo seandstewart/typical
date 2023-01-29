@@ -51,73 +51,65 @@ def constrained(
     values=None,
     **constraints,
 ):
-    """A wrapper to indicate a 'constrained' type.
+    """A class wrapper to declare a 'constrained' type.
 
-    Parameters
-    ----------
-    keys
-        For container-types, you can pass in other constraints for the values to be
-        validated against. Can be a single constraint for all values or a tuple of
-        constraints to choose from.
-    values
-        For container-types, you can pass in other constraints for the values to be
-        validated against. Can be a single constraint for all values or a tuple of
-        constraints to choose from.
+    Keyword Args:
+        keys
+            For container-types, you can pass in other constraints for the values to be
+            validated against. Can be a single constraint for all values or a tuple of
+            constraints to choose from.
+        values
+            For container-types, you can pass in other constraints for the values to be
+            validated against. Can be a single constraint for all values or a tuple of
+            constraints to choose from.
+        **constraints
+            The restrictions to apply to values being cast as the decorated type.
 
-    **constraints
-        The restrictions to apply to values being cast as the decorated type.
-
-    Examples
-    --------
-    >>> import typical
-    >>>
-    >>> @typical.constrained(max_length=10)
-    ... class ShortStr(str):
-    ...     '''A short string.'''
-    ...     ...
-    ...
-    >>> ShortStr('foo')
-    'foo'
-    >>> ShortStr('waytoomanycharacters')
-    Traceback (most recent call last):
-    ...
-    typic.core.constraints.core.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=ShortStr, max_length=10)
-    >>> @typical.constrained(values=ShortStr, max_items=2)
-    ... class SmallMap(dict):
-    ...     '''A small map that only allows short strings.'''
-    ...
-    >>> import json
-    >>> print(json.dumps(typical.schema(SmallMap, primitive=True), indent=2, sort_keys=True))
-    {
-      "additionalProperties": {
-        "$ref": "#/definitions/ShortStr"
-      },
-      "definitions": {
-        "ShortStr": {
-          "maxLength": 10,
-          "title": "ShortStr",
-          "type": "string"
+    Examples:
+        >>> import typical
+        >>>
+        >>> @typical.constrained(max_length=10)
+        ... class ShortStr(str):
+        ...     '''A short string.'''
+        ...     ...
+        ...
+        >>> ShortStr('foo')
+        'foo'
+        >>> ShortStr('waytoomanycharacters')
+        Traceback (most recent call last):
+        ...
+        typic.core.constraints.core.error.ConstraintValueError: Given value <'waytoomanycharacters'> fails constraints: (type=ShortStr, max_length=10)
+        >>> @typical.constrained(values=ShortStr, max_items=2)
+        ... class SmallMap(dict):
+        ...     '''A small map that only allows short strings.'''
+        ...
+        >>> import json
+        >>> from typical.magic import schema
+        >>> print(json.dumps(schema.schema(SmallMap, primitive=True), indent=2, sort_keys=True))
+        {
+          "additionalProperties": {
+            "$ref": "#/definitions/ShortStr"
+          },
+          "definitions": {
+            "ShortStr": {
+              "maxLength": 10,
+              "title": "ShortStr",
+              "type": "string"
+            }
+          },
+          "maxProperties": 2,
+          "title": "ShortStrSmallMap",
+          "type": "object"
         }
-      },
-      "maxProperties": 2,
-      "title": "ShortStrSmallMap",
-      "type": "object"
-    }
 
 
-    See Also
-    --------
-    :py:mod:`typic.constraints.array`
-
-    :py:mod:`typic.constraints.common`
-
-    :py:mod:`typic.constraints.error`
-
-    :py:mod:`typic.constraints.mapping`
-
-    :py:mod:`typic.constraints.number`
-
-    :py:mod:`typic.constraints.text`
+    See Also:
+        - :py:mod:`typic.constraints.array`
+        - :py:mod:`typic.constraints.common`
+        - :py:mod:`typic.constraints.error`
+        - :py:mod:`typic.constraints.mapping`
+        - :py:mod:`typic.constraints.number`
+        - :py:mod:`typic.constraints.text`
     """
 
     def constrained_wrapper(

@@ -37,18 +37,17 @@ class SecretStr(SecretMixin, str):
 
     The hidden value may be accessed via :py:attr:`SecretStr.secret`
 
-    Examples
-    --------
-    >>> import typical
-    >>> mysecret = typical.SecretStr("The Ring is in Frodo's pocket.")
-    >>> print(mysecret)
+    Examples:
+        >>> import typical
+        >>> mysecret = typical.SecretStr("The Ring is in Frodo's pocket.")
+        >>> print(mysecret)
     ******************************
-    >>> print(mysecret.secret)
+        >>> print(mysecret.secret)
     The Ring is in Frodo's pocket.
-    >>> f"{mysecret}"
+        >>> f"{mysecret}"
     '******************************'
-    >>> import json
-    >>> json.dumps([mysecret])
+        >>> import json
+        >>> json.dumps([mysecret])
     '["The Ring is in Frodo\\'s pocket."]'
 
     Notes

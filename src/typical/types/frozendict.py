@@ -28,27 +28,26 @@ class FrozenDict(Generic[KT, VT], dict):
     other way. The recommended use-case for this object is for compile-time objects
     (such as configurations, dictionary-dispatching, etc.).
 
-    Examples
-    --------
-    >>> from typical import types, checks
-    >>> fdict = types.FrozenDict({"foo": ["bar"]})
-    >>> checks.ishashable(fdict)
+    Examples:
+        >>> from typical import types, checks
+        >>> fdict = types.FrozenDict({"foo": ["bar"]})
+        >>> checks.ishashable(fdict)
     True
-    >>> fdict["foo"]
+        >>> fdict["foo"]
     ('bar',)
-    >>> fdict.update(foo=["car"])
+        >>> fdict.update(foo=["car"])
     Traceback (most recent call last):
     ...
     TypeError: attempting to mutate immutable type 'FrozenDict'
-    >>> del fdict["foo"]
+        >>> del fdict["foo"]
     Traceback (most recent call last):
     ...
     TypeError: attempting to mutate immutable type 'FrozenDict'
-    >>> fdict.pop("foo")
+        >>> fdict.pop("foo")
     Traceback (most recent call last):
     ...
     TypeError: attempting to mutate immutable type 'FrozenDict'
-    >>> fdict.clear()
+        >>> fdict.clear()
     Traceback (most recent call last):
     ...
     TypeError: attempting to mutate immutable type 'FrozenDict'

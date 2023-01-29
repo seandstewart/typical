@@ -347,9 +347,9 @@ class Annotation(Generic[_AT]):
     """
     un_resolved: Any
     """The type annotation before resolving super-types."""
-    parameter: inspect.Parameter = dataclasses.field(hash=False)
+    parameter: inspect.Parameter = dataclasses.field(hash=False, repr=False)
     """The parameter this annotation refers to."""
-    translator: TranslatorT[_AT] = dataclasses.field(init=False)
+    translator: TranslatorT[_AT] = dataclasses.field(init=False, repr=False)
     """A factory for generating a translation protocol between higher-level types."""
     optional: bool = False
     """Whether this annotation allows null/default values."""
@@ -357,16 +357,16 @@ class Annotation(Generic[_AT]):
     """Whether to enforce the annotation, rather than coerce."""
     static: bool = True
     """Whether we may compile a protocol ahead of time for an annotation."""
-    serde: SerdeConfig = dataclasses.field(default_factory=SerdeConfig)
+    serde: SerdeConfig = dataclasses.field(default_factory=SerdeConfig, repr=False)
     """The configuration for serializing and deserializing the given type."""
     constraints: Optional["const.AbstractConstraintValidator"] = None
     """Type restriction configuration, if any."""
-    generic: Type = dataclasses.field(init=False)
+    generic: Type = dataclasses.field(init=False, repr=False)
     has_default: bool = dataclasses.field(init=False)
     is_class_var: bool = dataclasses.field(init=False)
-    resolved_origin: _AT = dataclasses.field(init=False)
+    resolved_origin: _AT = dataclasses.field(init=False, repr=False)
     args: Tuple[Type, ...] = dataclasses.field(init=False)
-    nargs: Tuple[Type, ...] = dataclasses.field(init=False)
+    nargs: Tuple[Type, ...] = dataclasses.field(init=False, repr=False)
 
     def __post_init__(self):
         self.has_default = self.parameter.default is not self.EMPTY

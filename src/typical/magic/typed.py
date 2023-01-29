@@ -45,17 +45,15 @@ __all__ = (
 def wrap(func: _Callable, *, strict: StrictModeT = STRICT_MODE) -> _Callable:
     """Wrap a callable to automatically enforce type-coercion.
 
-    Parameters
-    ----------
-    func
-        The callable for which you wish to ensure type-safety
-    strict
-        Turn on "validator mode": e.g. validate incoming data rather than coerce.
+    Args:
+        func: The callable for which you wish to ensure type-safety
 
-    See Also
-    --------
-    :py:func:`inspect.signature`
-    :py:meth:`inspect.Signature.bind`
+    Keyword Args:
+        strict: Turn on "validator mode": e.g. validate incoming data rather than coerce.
+
+    See Also:
+        - :py:func:`inspect.signature`
+        - :py:meth:`inspect.Signature.bind`
     """
     protos = protocols(func, strict=cast(bool, strict))
     params = cached_signature(func).parameters
@@ -192,25 +190,13 @@ def wrap_cls(
 ):
     """Wrap a class to automatically enforce type-coercion on init.
 
-    Notes
-    -----
-    While `Coercer.wrap` will work with classes alone, it changes the signature of the
-    object to a function, there-by breaking inheritance. This follows a similar pattern to
-    :func:`dataclasses.dataclasses`, which executes the function when wrapped, preserving
-    the signature of the target class.
-
-    Parameters
-    ----------
-    klass
-        The class you wish to patch with coercion.
-    strict
-        Turn on "validator mode": e.g. validate incoming data rather than coerce.
-    schema
-        Add a @classmethod for generating schemas for this class. Defaults `True`.
-    serde
-        Optional settings for serialization/deserialization. Defaults `True`.
-    always
-        Whether to coerce when setting attributes. Defaults `False`.
+    Args:
+        klass: The class you wish to patch with coercion.
+    Keyword Args:
+        strict: Turn on "validator mode": e.g. validate incoming data rather than coerce.
+        schema: Add a @classmethod for generating schemas for this class. Defaults `True`.
+        serde: Optional settings for serialization/deserialization. Defaults `True`.
+        always: Whether to coerce when setting attributes. Defaults `False`.
     """
 
     def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
@@ -274,16 +260,9 @@ def typed(
 ):
     """A convenience function which automatically selects the correct wrapper.
 
-    Parameters
-    ----------
-    strict
-        Turn on "validator mode": e.g. validate incoming data rather than coerce.
-    always
-        Whether classes should always coerce values on their attributes.
-
-    Returns
-    -------
-    The target object, appropriately wrapped.
+    Keyword Args:
+        strict: Turn on "validator mode": e.g. validate incoming data rather than coerce.
+        always: Whether classes should always coerce values on their attributes.
     """
     strict = STRICT_MODE if strict is None else strict  # type: ignore
 

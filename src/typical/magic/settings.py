@@ -64,23 +64,22 @@ def settings(
         `{'other_foo': 'foo'}` will locate the env var `OTHER_FOO` and place it
         on the `Bar.foo` attribute.
 
-    Examples
-    --------
-    >>> import typical
-    >>> from typical import magic
-    >>>
-    >>> magic.environ['FOO'] = "1"
-    >>>
-    >>> @magic.settings
+    Examples:
+        >>> import typical
+        >>> from typical import magic
+        >>>
+        >>> magic.environ['FOO'] = "1"
+        >>>
+        >>> @magic.settings
     ... class Bar:
     ...     foo: int
     ...
-    >>> Bar()
+        >>> Bar()
     Bar(foo=1)
-    >>> Bar("3")
+        >>> Bar("3")
     Bar(foo=3)
-    >>> bar = Bar()
-    >>> bar.foo = 2
+        >>> bar = Bar()
+        >>> bar.foo = 2
     Traceback (most recent call last):
     ...
     dataclasses.FrozenInstanceError: cannot assign to field 'foo'

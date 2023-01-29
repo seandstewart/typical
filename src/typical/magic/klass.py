@@ -49,17 +49,16 @@ class Field(dataclasses.Field):
 
     This class adds some flags for determining the serialization protocol.
 
-    Examples
-    --------
-    >>> from typical import magic
-    >>>
-    >>> @magic.klass
-    ... class Foo:
-    ...     bar: str = magic.field(name="Bar")
-    ...     exc: str = magic.field(exclude=True)
-    ...
-    >>> Foo("foo", "exc").primitive()
-    {'Bar': 'foo'}
+    Examples:
+        >>> from typical import magic
+        >>>
+        >>> @magic.klass
+        ... class Foo:
+        ...     bar: str = magic.field(name="Bar")
+        ...     exc: str = magic.field(exclude=True)
+        ...
+        >>> Foo("foo", "exc").primitive()
+        {'Bar': 'foo'}
     """
 
     __slots__ = _field_slots
@@ -159,10 +158,9 @@ def make_typedclass(
 
     The preferred method is via the `klass` decorator, however.
 
-    See Also
-    --------
-    :py:func:`klass`
-    :py:func:`dataclasses.dataclass`
+    See Also:
+        - :py:func:`klass`
+        - :py:func:`dataclasses.dataclass`
     """
     # Make the base dataclass.
     kwargs = dict(
@@ -266,10 +264,9 @@ def klass(
         class Foo:
             bar: str
 
-    See Also
-    --------
-    :py:func:`~typic.api.wrap_cls`
-    :py:func:`dataclasses.dataclass`
+    See Also:
+        - :py:func:`~typical.magic.typed.wrap_cls`
+        - :py:func:`dataclasses.dataclass`
     """
 
     def typedclass_wrapper(cls_):
