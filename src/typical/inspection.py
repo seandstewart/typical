@@ -4,6 +4,7 @@ import collections
 import collections.abc
 import dataclasses
 import inspect
+import reprlib
 import sys
 import types
 import typing
@@ -78,20 +79,19 @@ def origin(annotation: Any) -> Any:
 
     For the purposes of this library, if we can resolve to a builtin type, we will.
 
-    Examples
-    --------
-    >>> from typical import inspection
-    >>> from typing import Dict, Mapping, NewType, Optional
-    >>> inspection.origin(Dict)
+    Examples:
+        >>> from typical import inspection
+        >>> from typing import Dict, Mapping, NewType, Optional
+        >>> inspection.origin(Dict)
     <class 'dict'>
-    >>> inspection.origin(Mapping)
+        >>> inspection.origin(Mapping)
     <class 'dict'>
-    >>> Registry = NewType('Registry', Dict)
-    >>> inspection.origin(Registry)
+        >>> Registry = NewType('Registry', Dict)
+        >>> inspection.origin(Registry)
     <class 'dict'>
-    >>> class Foo: ...
+        >>> class Foo: ...
     ...
-    >>> inspection.origin(Foo)
+        >>> inspection.origin(Foo)
     <class 'typical.inspection.Foo'>
     """
     # Resolve custom NewTypes.
@@ -144,16 +144,15 @@ GENERIC_TYPE_MAP: dict[type, type] = {
 def get_args(annotation: Any) -> Tuple[Any, ...]:
     """Get the args supplied to an annotation, excluding :py:class:`typing.TypeVar`.
 
-    Examples
-    --------
-    >>> from typical import inspection
-    >>> from typing import Dict, TypeVar
-    >>> T = TypeVar("T")
-    >>> inspection.get_args(Dict)
+    Examples:
+        >>> from typical import inspection
+        >>> from typing import Dict, TypeVar
+        >>> T = TypeVar("T")
+        >>> inspection.get_args(Dict)
     ()
-    >>> inspection.get_args(Dict[str, int])
+        >>> inspection.get_args(Dict[str, int])
     (<class 'str'>, <class 'int'>)
-    >>> inspection.get_args(Dict[str, T])
+        >>> inspection.get_args(Dict[str, T])
     (<class 'str'>,)
     """
     args = _get_args(annotation)
@@ -182,18 +181,17 @@ def normalize_typevar(tvar: TypeVar):
 def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     """Safely retrieve the name of either a standard object or a type annotation.
 
-    Examples
-    --------
-    >>> from typical import inspection
-    >>> from typing import Dict, Any
-    >>> T = TypeVar("T")
-    >>> inspection.get_name(Dict)
+    Examples:
+        >>> from typical import inspection
+        >>> from typing import Dict, Any
+        >>> T = TypeVar("T")
+        >>> inspection.get_name(Dict)
     'Dict'
-    >>> inspection.get_name(Dict[str, str])
+        >>> inspection.get_name(Dict[str, str])
     'Dict'
-    >>> inspection.get_name(Any)
+        >>> inspection.get_name(Any)
     'Any'
-    >>> inspection.get_name(dict)
+        >>> inspection.get_name(dict)
     'dict'
     """
     strobj = get_qualname(obj)
@@ -204,18 +202,17 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
 def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     """Safely retrieve the qualname of either a standard object or a type annotation.
 
-    Examples
-    --------
-    >>> from typical import inspection
-    >>> from typing import Dict, Any
-    >>> T = TypeVar("T")
-    >>> inspection.get_qualname(Dict)
+    Examples:
+        >>> from typical import inspection
+        >>> from typing import Dict, Any
+        >>> T = TypeVar("T")
+        >>> inspection.get_qualname(Dict)
     'typing.Dict'
-    >>> inspection.get_qualname(Dict[str, str])
+        >>> inspection.get_qualname(Dict[str, str])
     'typing.Dict'
-    >>> inspection.get_qualname(Any)
+        >>> inspection.get_qualname(Any)
     'typing.Any'
-    >>> inspection.get_qualname(dict)
+        >>> inspection.get_qualname(dict)
     'dict'
     """
     strobj = str(obj)
@@ -251,13 +248,12 @@ def get_defname(pre: str, obj: Hashable) -> str:
 def resolve_supertype(annotation: Type[Any] | types.FunctionType) -> Any:
     """Get the highest-order supertype for a NewType.
 
-    Examples
-    --------
-    >>> from typical import inspection
-    >>> from typing import NewType
-    >>> UserID = NewType("UserID", int)
-    >>> AdminID = NewType("AdminID", UserID)
-    >>> inspection.resolve_supertype(AdminID)
+    Examples:
+        >>> from typical import inspection
+        >>> from typing import NewType
+        >>> UserID = NewType("UserID", int)
+        >>> AdminID = NewType("AdminID", UserID)
+        >>> inspection.resolve_supertype(AdminID)
     <class 'int'>
     """
     while hasattr(annotation, "__supertype__"):
@@ -265,7 +261,7 @@ def resolve_supertype(annotation: Type[Any] | types.FunctionType) -> Any:
     return annotation
 
 
-def signature(obj: Union[Callable, Type]) -> inspect.Signature:
+def signature(obj: Callable[..., Any] | type[Any]) -> inspect.Signature:
     """Get the signature of a type or callable.
 
     Also supports TypedDict subclasses
@@ -579,3 +575,86 @@ def extract(name: str, *, frame: types.FrameType = None) -> Optional[Any]:
         frame = frame.f_back
 
     return None
+
+
+@lru_cache(maxsize=None)
+def get_type_graph(t: Type) -> TypeGraph:
+    """Get a directed graph of the type(s) this annotation represents."""
+    graph = _node(t)
+    visited = {graph.type: graph}
+    stack = collections.deque([graph])
+    while stack:
+        parent = stack.popleft()
+        for var, type in _level(parent):
+            seen = visited.get(type)
+            if seen:
+                cyclic = not checks.isstdlibtype(type)
+                node = dataclasses.replace(seen, cyclic=cyclic, parent=parent, var=var)
+                parent.nodes.append(node)
+                continue
+
+            node = _node(type, var=var)
+            parent.nodes.append(node)
+            node.parent = parent
+            stack.append(node)
+            visited[node.type] = node
+
+    return graph
+
+
+def _node(t: type, *, var: str = None) -> TypeGraph:
+    o = origin(t)
+    return TypeGraph(t, o, var=var)
+
+
+def _level(node: TypeGraph) -> Sequence[tuple[str | None, type]]:
+    args = get_args(node.type)
+    members = get_type_hints(node.type)
+    return [*((None, t) for t in args), *(members.items())]  # type: ignore
+
+
+@slotted(dict=False, weakref=True)
+@dataclasses.dataclass(unsafe_hash=True)
+class TypeGraph:
+    """A graph representation of a"""
+
+    type: Type
+    origin: Type
+    cyclic: bool = False
+    nodes: list[TypeGraph] = dataclasses.field(
+        default_factory=list, hash=False, compare=False
+    )
+    parent: TypeGraph | None = None
+    var: str | None = dataclasses.field(default=None, hash=False, compare=False)
+    _type_name: str = dataclasses.field(
+        repr=False, init=False, hash=False, compare=False
+    )
+    _origin_name: str = dataclasses.field(
+        repr=False, init=False, hash=False, compare=False
+    )
+
+    def __post_init__(self):
+        self._type_name = get_qualname(self.type)
+        self._origin_name = get_qualname(self.origin)
+
+    @property
+    def pretty_name(self) -> str:
+        pre = ""
+        if self.var:
+            pre = f"{self.var}: "
+        tname = self._type_name
+        if self._origin_name != tname:
+            tname = f"{tname} ({self._origin_name})"
+        return pre + tname
+
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        cyclic = self.cyclic
+        nodes = f"({', '.join(repr(n) for n in self.nodes)},)"
+        return (
+            f"<{self.__class__.__name__} "
+            f"type={self._type_name}, "
+            f"origin={self._origin_name}, {cyclic=}, "
+            f"parent={self.parent}, "
+            f"nodes={nodes}>"
+        )

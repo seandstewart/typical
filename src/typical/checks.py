@@ -19,6 +19,7 @@ from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
     Collection,
     Generic,
@@ -510,7 +511,7 @@ def isiteratortype(obj: type[ObjectT]) -> TypeGuard[type[Iterator]]:
 
 
 @lru_cache(maxsize=None)
-def istupletype(obj: type[Any]) -> TypeGuard[type[tuple]]:
+def istupletype(obj: Callable[..., Any] | type[Any]) -> TypeGuard[type[tuple]]:
     """Tests whether the given type is a subclass of :py:class:`tuple`.
 
     Examples:
