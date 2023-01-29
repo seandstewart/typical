@@ -17,9 +17,8 @@ class FilePathError(ValueError):
 class FilePath(PathType):  # type: ignore
     """A path object pointing to a file.
 
-    See Also
-    --------
-    :py:class:`pathlib.Path`
+    See Also:
+        - :py:class:`pathlib.Path`
     """
 
     def __init__(self, *pathsegments: str):
@@ -37,9 +36,8 @@ class DirectoryPathError(ValueError):
 class DirectoryPath(PathType):  # type: ignore
     """A path object pointing to a directory.
 
-    See Also
-    --------
-    :py:class:`pathlib.Path`
+    See Also:
+        - :py:class:`pathlib.Path`
     """
 
     def __init__(self, *pathsegments: str):

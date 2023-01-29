@@ -280,46 +280,44 @@ class NetworkAddress(str):
     This object is the base object for network-related objects.
     :py:class:`URL` has a much richer interface.
 
-    Examples
-    --------
+    Examples:
+        >>> from typical import types
+        >>> net_addr = types.NetworkAddress("http://foo.bar/bazz;foo=bar?buzz=1#loc")
+        >>> net_addr.info.is_absolute
+        True
+        >>> net_addr.info.host
+        'foo.bar'
+        >>> net_addr.info.scheme
+        'http'
+        >>> net_addr.info.address_encoded
+        'http%3A//foo.bar/bazz%3Bfoo%3Dbar%3Fbuzz%3D1%23loc'
+        >>> net_addr.info.query
+        mappingproxy({'buzz': ['1']})
+        >>> net_addr.info.parameters
+        mappingproxy({'foo': ['bar']})
+        >>> net_addr.info.fragment
+        'loc'
+        >>> domain = types.URL("foo.bar")
+        >>> domain.info.is_relative
+        True
+        >>> domain.info.host
+        'foo.bar'
+        >>> net_addr
+        'http://foo.bar/bazz;foo=bar?buzz=1#loc'
+        >>> import json
+        >>> json.dumps([net_addr])
+        '["http://foo.bar/bazz;foo=bar?buzz=1#loc"]'
 
-    >>> import typical
-    >>> net_addr = typical.NetworkAddress("http://foo.bar/bazz;foo=bar?buzz=1#loc")
-    >>> net_addr.info.is_absolute
-    True
-    >>> net_addr.info.host
-    'foo.bar'
-    >>> net_addr.info.scheme
-    'http'
-    >>> net_addr.info.address_encoded
-    'http%3A//foo.bar/bazz%3Bfoo%3Dbar%3Fbuzz%3D1%23loc'
-    >>> net_addr.info.query
-    mappingproxy({'buzz': ['1']})
-    >>> net_addr.info.parameters
-    mappingproxy({'foo': ['bar']})
-    >>> net_addr.info.fragment
-    'loc'
-    >>> domain = typical.URL("foo.bar")
-    >>> domain.info.is_relative
-    True
-    >>> domain.info.host
-    'foo.bar'
-    >>> net_addr
-    'http://foo.bar/bazz;foo=bar?buzz=1#loc'
-    >>> import json
-    >>> json.dumps([net_addr])
-    '["http://foo.bar/bazz;foo=bar?buzz=1#loc"]'
+    See Also:
+        - :py:class:`NetAddrInfo`
+        - :py:class:`URL`
 
-    See Also
-    --------
-    :py:class:`NetAddrInfo`
-    :py:class:`URL`
-
-    Notes
-    -----
-    This object inherits directly from :py:class:`str` and so is natively
-    JSON-serializable.
+    Notes:
+        This object inherits directly from :py:class:`str` and so is natively
+        JSON-serializable.
     """
+
+    info: NetAddrInfo
 
     __slots__ = ("info",)
 
@@ -344,29 +342,25 @@ class URL(NetworkAddress):
 
     Detailed information about the url string can be looked up via :py:attr:`URL.info`.
 
-    Examples
-    --------
+    Examples:
+        >>> from typical import types
+        >>> url = types.URL("http://foo.bar/bazz")
+        >>> more = url / 'foo' / 'bar'
+        >>> more
+        'http://foo.bar/bazz/foo/bar'
+        >>> types.URL(url.info.base) / 'other'
+        'http://foo.bar/other'
 
-    >>> import typical
-    >>> url = typical.URL("http://foo.bar/bazz")
-    >>> more = url / 'foo' / 'bar'
-    >>> more
-    'http://foo.bar/bazz/foo/bar'
-    >>> typical.URL(url.info.base) / 'other'
-    'http://foo.bar/other'
+    See Also:
+        - :py:class:`NetworkAddress`
+        - :py:class:`NetAddrInfo`
 
-    See Also
-    --------
-    :py:class:`NetworkAddress`
-    :py:class:`NetAddrInfo`
-
-    Notes
-    -----
-    This object inherits directly from :py:class:`NetworkAddress` and so is natively
-    JSON-serializable.
+    Notes:
+        This object inherits directly from :py:class:`NetworkAddress` and so is natively
+        JSON-serializable.
     """
 
-    def join(self, other) -> "URL":
+    def join(self, other) -> URL:
         """Join another URL with this one.
 
         This works roughly like :py:meth:`pathlib.Path.joinpath`.
@@ -397,9 +391,8 @@ class AbsoluteURLValueError(URLValueError):
 class AbsoluteURL(URL):
     """An absolute URL.
 
-    See Also
-    --------
-    :py:class:`URL`
+    See Also:
+        - :py:class:`URL`
     """
 
     def __new__(cls, *args, **kwargs):
@@ -416,9 +409,8 @@ class RelativeURLValueError(URLValueError):
 class RelativeURL(URL):
     """A relative URL.
 
-    See Also
-    --------
-    :py:class:`URL`
+    See Also:
+        - :py:class:`URL`
     """
 
     def __new__(cls, *args, **kwargs):
@@ -435,15 +427,13 @@ class HostNameValueError(NetworkAddressValueError):
 class HostName(NetworkAddress):
     """A network address referencing only a host-name (e.g. foo.bar.com).
 
-    See Also
-    --------
-    :py:class:`NetworkAddress`
-    :py:class:`NetAddrInfo`
+    See Also:
+        - :py:class:`NetworkAddress`
+        - :py:class:`NetAddrInfo`
 
-    Notes
-    -----
-    This object inherits directly from :py:class:`NetworkAddress` and, so is natively
-    JSON-serializable.
+    Notes:
+        This object inherits directly from :py:class:`NetworkAddress` and, so is natively
+        JSON-serializable.
     """
 
     def __new__(cls, *args, **kwargs):
