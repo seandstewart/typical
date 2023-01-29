@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ast
-from datetime import date, datetime, time, timedelta
+import datetime
 from typing import Any, Tuple
 
 import pendulum
@@ -16,28 +16,22 @@ __all__ = (
 )
 
 
-# @lru_cache(maxsize=2000, typed=True)
+@lru_cache(maxsize=2_000)
 def safe_eval(string: str) -> Tuple[bool, Any]:
     """Try a few methods to evaluate a string and get the correct Python data-type.
 
     Return the result and an indicator for whether we could do anything with it.
 
-    Examples
-    --------
-    >>> safe_eval('{"foo": null}')
-    (True, {'foo': None})
+    Examples:
+        >>> safe_eval('{"foo": null}')
+        (True, {'foo': None})
 
-    Parameters
-    ----------
-    string
-        The string to attempt to evaluate into a valid Python data-structure or object
+    Args:
+        string: The string to attempt to evaluate into a valid Python data-structure or object
 
-    Returns
-    -------
-    processed :
-        Whether we successfully evaluated the string
-    result :
-        The final result of the operation
+    Returns:
+        processed: Whether we successfully evaluated the string
+        result: The final result of the operation
     """
     try:
         result, processed = ast.literal_eval(string), True
@@ -59,8 +53,29 @@ def fromstr(string: str | bytes) -> Any:
 
 
 @lru_cache(maxsize=100_000)
-def isoformat(t: date | datetime | time | timedelta) -> str:
-    if isinstance(t, (date, datetime, time)):
+def isoformat(t: datetime.date | datetime.time | datetime.timedelta) -> str:
+    """Format any date/time object into an ISO-8601 string.
+
+    Notes:
+        While the standard library includes `isoformat()` methods for
+        :py:class:`datetime.date`, :py:class:`datetime.time`, &
+        :py:class:`datetime.datetime`, they do not include a method for serializing
+        :py:class:`datetime.timedelta`, even though durations are included in the
+        ISO 8601 specification. This function fills that gap.
+
+    Examples:
+        >>> import datetime
+        >>> from typical import desers
+        >>> desers.isoformat(datetime.date(1970, 1, 1))
+        '1970-01-01'
+        >>> desers.isoformat(datetime.time())
+        '00:00:00'
+        >>> desers.isoformat(datetime.datetime(1970, 1, 1))
+        '1970-01-01T00:00:00'
+        >>> desers.isoformat(datetime.timedelta())
+        'P0Y0M0DT0H0M0.000000S'
+    """
+    if isinstance(t, (datetime.date, datetime.time)):
         return t.isoformat()
     d: pendulum.Duration = (
         t
@@ -71,24 +86,8 @@ def isoformat(t: date | datetime | time | timedelta) -> str:
             microseconds=t.microseconds,
         )
     )
-
-    periods: list[tuple[str, int]] = [
-        ("Y", d.years),
-        ("M", d.months),
-        ("D", d.remaining_days),
-    ]
-    period: str = "P"
-    for sym, val in periods:
-        period += f"{val}{sym}"
-    times: list[tuple[str, int]] = [
-        ("H", d.hours),
-        ("M", d.minutes),
-        ("S", d.remaining_seconds),
-    ]
-    time_: str = "T"
-    for sym, val in times:
-        time_ += f"{val}{sym}"
-    if d.microseconds:
-        time_ = time_[:-1]
-        time_ += f".{d.microseconds:06}S"
-    return period + time_
+    period = (
+        f"P{d.years}Y{d.months}M{d.remaining_days}D"
+        f"T{d.hours}H{d.minutes}M{d.remaining_seconds}.{d.microseconds:06}S"
+    )
+    return period
