@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Deque, TypedDict
 
 if TYPE_CHECKING:
     from typical.core.constraints.core import types
@@ -48,20 +48,20 @@ class ConstraintValueError(ConstraintError, ValueError):
         super().__init__(message)
 
     def dump(self) -> list[ConstraintErrorReport]:
-        stack = deque(((self.path, self), *self.errors.items()))
+        stack: Deque[tuple[str, Exception]] = deque([(self.path, self)])
         out: list[ConstraintErrorReport] = []
         outappend = out.append
+        stackextend = stack.extend
+        stackpop = stack.popleft
         while stack:
-            path, err = stack.popleft()
+            path, err = stackpop()
             outappend(
-                {
-                    "location": path,
-                    "error_class": err.__class__.__name__,
-                    "detail": str(err),
-                }
+                ConstraintErrorReport(
+                    location=path, error_class=err.__class__.__name__, detail=str(err)
+                )
             )
             if isinstance(err, ConstraintValueError):
-                stack.extend(err.errors.items())
+                stackextend(err.errors.items())
         return out
 
 

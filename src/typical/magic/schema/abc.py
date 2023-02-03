@@ -23,9 +23,9 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
     """The base interface for building schemas from typical's Constraint syntax."""
 
     def __init__(self):
-        self._cache: dict[CT, DefinitionT] = {}
-        self._attached: set[CT] = set()
-        self._visited: set[CT] = set()
+        self._cache = {}
+        self._attached = set()
+        self._visited = set()
         self._CONSTRAINT_TO_HANDLER = {
             constraints.StructuredObjectConstraints: self._from_structured_object_constraint,
             constraints.MappingConstraints: self._from_mapping_constraint,
@@ -186,3 +186,6 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         ...
 
     _CONSTRAINT_TO_HANDLER: _SchemaBuilderMapT
+    _cache: dict[constraints.AbstractConstraints, DefinitionT]
+    _attached: set[constraints.AbstractConstraints]
+    _visited: set[constraints.AbstractConstraints]

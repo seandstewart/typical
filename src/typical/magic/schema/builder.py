@@ -9,10 +9,10 @@ __all__ = ("SchemaBuilder",)
 class SchemaBuilder:
     __slots__ = ("builders",)
 
+    builders: dict[str, abc.AbstractSchemaBuilder]
+
     def __init__(self):
-        self.builders: dict[str, abc.AbstractSchemaBuilder] = {
-            "jsonschema": jsonschema.JSONSchemaBuilder()
-        }
+        self.builders = {"jsonschema": jsonschema.JSONSchemaBuilder()}
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(formats={(*self.builders,)})>"

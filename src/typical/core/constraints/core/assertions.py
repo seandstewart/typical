@@ -6,11 +6,11 @@ from typical.compat import Generic, Protocol, TypeGuard
 _VT = TypeVar("_VT")
 _VT_co = TypeVar("_VT_co", covariant=True)
 
-__all__ = ("AssertionProtocol", "AbstractAssertions")
+__all__ = ("AssertionProtocol", "AbstractAssertions", "NoOpAssertion")
 
 
 class AssertionProtocol(Protocol[_VT_co]):
-    def __call__(self, val: Any) -> TypeGuard[_VT]:
+    def __call__(self, val: Any) -> TypeGuard[_VT_co]:
         ...
 
 
@@ -25,3 +25,11 @@ class AbstractAssertions(abc.ABC, Generic[_VT]):
     @abc.abstractmethod
     def _get_closure(self) -> AssertionProtocol[_VT]:
         ...
+
+
+class NoOpAssertion(AbstractAssertions[_VT]):
+    def _get_closure(self) -> AssertionProtocol[_VT]:
+        def noop_assertion(val: Any) -> TypeGuard[_VT]:
+            return True
+
+        return noop_assertion

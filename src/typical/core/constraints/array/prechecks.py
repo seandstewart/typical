@@ -68,7 +68,7 @@ def _get_hash(
     __asdict=dataclasses.asdict,
     __freeze=freeze,
 ):
-    if __isdatacls(obj):
+    if __ishash(obj):
         return __hash(obj)
     if __isdatacls(obj):
         obj = __asdict(obj)
@@ -78,9 +78,4 @@ def _get_hash(
 def _unique_slow(seq: Sequence, *, __hash=_get_hash) -> Iterator:
     seen: set[Hashable] = set()
     add = seen.add
-    for x in seq:
-        h = __hash(x)
-        if h in seen:
-            continue
-        add(h)
-        yield x
+    yield from (x for x in seq if not ((h := __hash(x)) in seen or add(h)))

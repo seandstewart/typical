@@ -3,7 +3,18 @@ from __future__ import annotations
 import abc
 import functools
 import types
-from typing import Any, Callable, Literal, Mapping, NamedTuple, Type, TypeVar, overload
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    Mapping,
+    NamedTuple,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from typical import checks, inspection
 from typical.compat import Generic, Protocol
@@ -24,6 +35,7 @@ __all__ = (
     "NullableIsInstanceAssertionsValidator",
 )
 
+from typical.compat import TypeGuard
 from typical.core import constants
 
 # region: interface
@@ -85,8 +97,11 @@ def get_validator_cls(
 class ValidatorProtocol(Protocol[VT_co]):
     """The required signature for a type-validator."""
 
-    def __call__(self, value: Any) -> tuple[bool, VT_co]:
+    def __call__(self, value: Any) -> ValidatorReturnT[VT_co]:
         ...
+
+
+ValidatorReturnT = Tuple[TypeGuard[VT_co], Union[VT_co, Any]]
 
 
 class AbstractValidator(abc.ABC, Generic[VT]):
@@ -195,11 +210,11 @@ class NullableIsInstanceAssertionsValidator(
             __type=self.type,
             __assertion=self.assertion,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if value in __nullables or __isinstance(value, __type):
-                return True, value  # type: ignore[return-value]
+                return True, value
             retval = __precheck(value)
-            return __assertion(retval), retval  # type: ignore[return-value]
+            return __assertion(retval), retval
 
         return nullable_isinstance_assertions_validator
 
@@ -223,7 +238,7 @@ class NullableNotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __type=self.type,
             __assertion=self.assertion,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if value in __nullables:
                 return True, value
 
@@ -254,12 +269,12 @@ class IsInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __type=self.type,
             __assertion=self.assertion,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if __isinstance(value, __type):
-                return True, value  # type: ignore[return-value]
+                return True, value
 
             retval = __precheck(value)
-            return __assertion(retval), retval  # type: ignore[return-value]
+            return __assertion(retval), retval
 
         return isinstance_assertions_validator
 
@@ -279,7 +294,7 @@ class NullableIsInstanceValidator(AbstractInstanceValidator[VT]):
             __nullables=self.NULLABLES,
             __type=self.type,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if value in __nullables:
                 return True, value
 
@@ -307,7 +322,7 @@ class NotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             __type=self.type,
             __assertion=self.assertion,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if not __isinstance(value, self.type):
                 return False, value
 
@@ -340,7 +355,7 @@ class IsInstanceValidator(AbstractInstanceValidator[VT]):
             __precheck=self.precheck,
             __type=self.type,
             __isinstance=isinstance,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if __isinstance(value, __type):
                 retval = __precheck(value)
                 return True, retval
@@ -363,7 +378,9 @@ class NoOpInstanceValidator(NotInstanceValidator[VT]):
     """A No-Op Validator performs no validation beyond running the assigned pre-check."""
 
     def _get_closure(self) -> ValidatorProtocol[VT]:
-        def no_op_validator(value: Any, *, __precheck=self.precheck) -> tuple[bool, VT]:
+        def no_op_validator(
+            value: Any, *, __precheck=self.precheck
+        ) -> ValidatorReturnT[VT]:
             return True, __precheck(value)
 
         return no_op_validator
@@ -405,7 +422,7 @@ class OneOfValidator(AbstractValidator[VT]):
             __hashable=checks.ishashable,
             __items=self.items,
             __items_tuple=self.items_tuple,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if __hashable(value):
                 return value in __items, value
             return value in __items_tuple, value
@@ -427,7 +444,7 @@ class NullableOneOfValidator(OneOfValidator[VT]):
             __items=self.items,
             __items_tuple=self.items_tuple,
             __nullable=self.NULLABLES,
-        ) -> tuple[bool, VT]:
+        ) -> ValidatorReturnT[VT]:
             if value in __nullable:
                 return True, value
             if __hashable(value):

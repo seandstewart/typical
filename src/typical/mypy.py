@@ -122,7 +122,7 @@ class TypicTransformer:
 
     def add_schema_method(self):
         ctx = self._ctx
-        api: SemanticAnalyzer = ctx.api
+        api: SemanticAnalyzer = ctx.api  # type: ignore[annotation-unchecked]
         self_tvar_def = self._get_tvar_def(SELF_TVAR_NAME, ctx)
         bool_type = api.named_type("builtins.bool")
         str_type = api.named_type("builtins.str")

@@ -186,13 +186,13 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
         >>> from typing import Dict, Any
         >>> T = TypeVar("T")
         >>> inspection.get_name(Dict)
-    'Dict'
+        'Dict'
         >>> inspection.get_name(Dict[str, str])
-    'Dict'
+        'Dict'
         >>> inspection.get_name(Any)
-    'Any'
+        'Any'
         >>> inspection.get_name(dict)
-    'dict'
+        'dict'
     """
     strobj = get_qualname(obj)
     return strobj.rsplit(".")[-1]
@@ -207,13 +207,13 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
         >>> from typing import Dict, Any
         >>> T = TypeVar("T")
         >>> inspection.get_qualname(Dict)
-    'typing.Dict'
+        'typing.Dict'
         >>> inspection.get_qualname(Dict[str, str])
-    'typing.Dict'
+        'typing.Dict'
         >>> inspection.get_qualname(Any)
-    'typing.Any'
+        'typing.Any'
         >>> inspection.get_qualname(dict)
-    'dict'
+        'dict'
     """
     strobj = str(obj)
     if isinstance(obj, ForwardRef):

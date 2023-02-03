@@ -62,7 +62,9 @@ class ConstraintValidator(types.AbstractConstraintValidator[VT]):
         self.constraints = constraints
         self.validator = validator
 
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ):
         valid, vvalue = self.validator(value)
         if valid:
             return vvalue
@@ -84,7 +86,12 @@ class BaseContainerValidator(types.AbstractContainerValidator[_AVT, _IV]):
         ...
 
     def validate(
-        self, value, *, path=None, exhaustive=False, __nullables=constants.NULLABLES
+        self,
+        value: Any,
+        *,
+        path: str = None,
+        exhaustive: TrueOrFalseT = False,
+        __nullables=constants.NULLABLES,
     ):
         name = path or self.constraints.type_qualname
         ivalid, instance = self.validator(value)
@@ -123,7 +130,7 @@ class ArrayConstraintValidator(
         value: Collection,
         *,
         path: str,
-        exhaustive: Literal[True, False] = False,
+        exhaustive: TrueOrFalseT = False,
     ):
         ivalidator = self.items.validate
         irepr = classes.collectionrepr
@@ -142,7 +149,9 @@ _MT = TypeVar("_MT", bound=Mapping)
 class BaseStructuredObjectConstraintValidator(
     types.AbstractContainerValidator[VT, _ICV]
 ):
-    def validate_fields(self, value, *, path: str, exhaustive: TrueOrFalseT = False):
+    def validate_fields(
+        self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False
+    ):
         errors: dict[str, error.ConstraintValueError] = {}
         it = self.itervalidate(value, path=path, exhaustive=exhaustive)
         validated = {
@@ -157,7 +166,9 @@ class BaseStructuredObjectConstraintValidator(
             return self.error(value, path=path, raises=not exhaustive, **errors)
         return validated
 
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ):
         name = path or self.constraints.type_qualname
         ivalid, instance = self.validator(value)
         if ivalid:
@@ -178,7 +189,7 @@ class StructuredObjectConstraintValidator(
     validator: _StructuredValidatorT[VT]
     items: Mapping[str, types.AbstractConstraintValidator[_IVT]]
 
-    def itervalidate(self, value, *, path: str, exhaustive: TrueOrFalseT = False):
+    def itervalidate(self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False):
         items = self.items
         irepr = classes.joinedrepr
         it = value
@@ -196,7 +207,9 @@ class StructuredObjectConstraintValidator(
 
 
 class StructuredDictConstraintValidator(StructuredObjectConstraintValidator):
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ):
         name = path or self.constraints.type_qualname
         ivalid, instance = self.validator(value)
         if not ivalid:
@@ -373,6 +386,7 @@ class AbstractMultiConstraintValidator(types.AbstractConstraintValidator, Generi
         "cvs_by_type",
         "cvs_by_tag",
     )
+    constraints: types.MultiConstraints[VT]
 
     def __init__(
         self,
@@ -396,25 +410,35 @@ class AbstractMultiConstraintValidator(types.AbstractConstraintValidator, Generi
 
 
 class SimpleMultiConstraintValidator(AbstractMultiConstraintValidator[VT]):
-    def validate(self, value, *, path=None, exhaustive=False):
-        cv: ConstraintValidator | None = self.cvs_by_type.get_by_parent(value.__class__)
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ) -> error.ConstraintValueError | VT:
+        cv: types.AbstractConstraintValidator | None = self.cvs_by_type.get_by_parent(
+            value.__class__
+        )
         if cv is None:
             return self.error(value, path=path, raises=not exhaustive)
         return cv.validate(value, path=path, exhaustive=exhaustive)
 
 
 class NullableMultiConstraintValidator(AbstractMultiConstraintValidator[VT]):
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ) -> error.ConstraintValueError | VT:
         if value is None:
             return value
-        cv: ConstraintValidator | None = self.cvs_by_type.get_by_parent(value.__class__)
+        cv: types.AbstractConstraintValidator | None = self.cvs_by_type.get_by_parent(
+            value.__class__
+        )
         if cv is None:
             return self.error(value, path=path, raises=not exhaustive)
         return cv.validate(value, path=path, exhaustive=exhaustive)
 
 
 class TaggedMultiConstraintValidator(AbstractMultiConstraintValidator[VT]):
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ) -> error.ConstraintValueError | VT:
         tag = self.constraints.tag.tag
         tag_value = (
             value.get(tag, ...)
@@ -424,12 +448,14 @@ class TaggedMultiConstraintValidator(AbstractMultiConstraintValidator[VT]):
         if tag_value is ... or tag_value not in self.cvs_by_tag:
             return self.error(value, path=path, raises=not exhaustive)
 
-        cv: ConstraintValidator = self.cvs_by_tag[tag_value]
+        cv: types.AbstractConstraintValidator[VT] = self.cvs_by_tag[tag_value]
         return cv.validate(value, path=path, exhaustive=exhaustive)
 
 
 class TaggedNullableMultiConstraintValidator(AbstractMultiConstraintValidator[VT]):
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ) -> error.ConstraintValueError | VT:
         if value is None:
             return value
         tag = self.constraints.tag.tag
@@ -441,7 +467,7 @@ class TaggedNullableMultiConstraintValidator(AbstractMultiConstraintValidator[VT
         if tag_value is ... or tag_value not in self.cvs_by_tag:
             return self.error(value, path=path, raises=not exhaustive)
 
-        cv: ConstraintValidator = self.cvs_by_tag[tag_value]
+        cv: types.AbstractConstraintValidator[VT] = self.cvs_by_tag[tag_value]
         return cv.validate(value, path=path, exhaustive=exhaustive)
 
 

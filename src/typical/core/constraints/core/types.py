@@ -25,8 +25,6 @@ from typing import (
     overload,
 )
 
-from typing_extensions import TypeGuard
-
 from typical import classes, inspection, types
 from typical.compat import ForwardRef, Literal, evaluate_forwardref
 from typical.core import constants
@@ -274,7 +272,7 @@ _FieldsT = Union[Mapping[str, AbstractConstraints], Mapping[int, AbstractConstra
 
 @classes.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True, repr=False)
-class MultiConstraints(AbstractConstraints):
+class MultiConstraints(AbstractConstraints[_VT]):
     constraints: tuple[AbstractConstraints, ...] = ()
     """The type constraints for which a value may be considered valid."""
     tag: inspection.TaggedUnion | None = None
@@ -294,17 +292,19 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
     @overload
     def validate(
         self, value: Any, *, path: str = None, exhaustive: Literal[False]
-    ) -> TypeGuard[_VT]:
+    ) -> _VT:
         ...
 
     @overload
     def validate(
         self, value: Any, *, path: str = None, exhaustive: Literal[True]
-    ) -> error.ConstraintValueError | TypeGuard[_VT]:
+    ) -> error.ConstraintValueError | _VT:
         ...
 
     @abc.abstractmethod
-    def validate(self, value, *, path=None, exhaustive=False):
+    def validate(
+        self, value: Any, *, path: str = None, exhaustive: TrueOrFalseT = False
+    ) -> error.ConstraintValueError | _VT:
         """Validate that an incoming value meets the given constraints.
 
         Notes
@@ -456,5 +456,5 @@ class AbstractContainerValidator(AbstractConstraintValidator[_VT], Generic[_VT, 
         self.items = items
 
     @abc.abstractmethod
-    def itervalidate(self, value, *, path: str, exhaustive: TrueOrFalseT = False):
+    def itervalidate(self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False):
         ...
