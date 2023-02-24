@@ -4,7 +4,7 @@ import functools
 import numbers
 from typing import NamedTuple, TypeVar, cast
 
-from typical.core.constraints.core import assertions, error
+from typical.core.constraints.core import assertions
 
 __all__ = (
     "get_assertion_cls",
@@ -47,11 +47,7 @@ def get_assertion_cls(
     )
     if not any(selector):
         return None
-    if selector in _ILLEGAL_COMBINATIONS:
-        raise error.ConstraintTypeError(
-            "Exclusive minimums and maximums (>|<) may not be combined "
-            f"with their Inclusive counterparts (>=|<=). Got: {selector}."
-        )
+
     return _ASSERTION_TRUTH_TABLE[selector]
 
 
@@ -91,16 +87,7 @@ class AbstractNumberAssertion(assertions.AbstractAssertions[_NT]):
         self.min = min
         self.max = max
         self.mul = mul
-        self._check_syntax()
         super().__init__()
-
-    def _check_syntax(self):
-        if None in {self.min, self.max}:
-            return
-        if self.min == self.max:
-            raise error.ConstraintSyntaxError(
-                "Minimum must not be equal to maximum.",
-            )
 
 
 class MulOfAssertion(AbstractNumberAssertion[_NT]):
@@ -113,7 +100,7 @@ class MulOfAssertion(AbstractNumberAssertion[_NT]):
     )
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
-        def mul_of_assertion(val: numbers.Number, *, __mul=self.mul) -> bool:
+        def mul_of_assertion(val: numbers.Real, *, __mul=self.mul) -> bool:
             return val % __mul == 0
 
         return cast(assertions.AssertionProtocol[_NT], mul_of_assertion)
@@ -146,9 +133,9 @@ class InclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def inclusive_max_and_mul_assertion(
-            val: numbers.Number, *, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __max=self.max, __mul=self.mul
         ) -> bool:
-            return val <= __max and val % __mul
+            return val <= __max and val % __mul == 0
 
         return cast(assertions.AssertionProtocol[_NT], inclusive_max_and_mul_assertion)
 
@@ -180,9 +167,9 @@ class ExclusiveMaxAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def exclusive_max_and_mul_assertion(
-            val: numbers.Number, *, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __max=self.max, __mul=self.mul
         ) -> bool:
-            return val < __max and val % __mul
+            return val < __max and val % __mul == 0
 
         return cast(assertions.AssertionProtocol[_NT], exclusive_max_and_mul_assertion)
 
@@ -214,9 +201,9 @@ class InclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def inclusive_min_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __mul=self.mul
         ) -> bool:
-            return val <= __min and val % __mul
+            return val >= __min and val % __mul == 0
 
         return cast(assertions.AssertionProtocol[_NT], inclusive_min_and_mul_assertion)
 
@@ -248,9 +235,9 @@ class ExclusiveMinAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def exclusive_min_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __mul=self.mul
         ) -> bool:
-            return val <= __min and val % __mul
+            return val > __min and val % __mul == 0
 
         return cast(assertions.AssertionProtocol[_NT], exclusive_min_and_mul_assertion)
 
@@ -284,7 +271,7 @@ class InclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def inclusive_range_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __max=self.max, __mul=self.mul
         ) -> bool:
             return __min <= val <= __max and val % __mul == 0
 
@@ -322,7 +309,7 @@ class RightInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def inclusive_range_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __max=self.max, __mul=self.mul
         ) -> bool:
             return __min < val <= __max and val % __mul == 0
 
@@ -362,7 +349,7 @@ class LeftInclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def left_inclusive_range_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __max=self.max, __mul=self.mul
         ) -> bool:
             return __min <= val < __max and val % __mul == 0
 
@@ -393,8 +380,8 @@ class ExclusiveRangeAssertion(AbstractNumberAssertion):
 
 class ExclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
     selector = NumberAssertionsSelector(
-        exclusive_min=False,
-        inclusive_min=True,
+        exclusive_min=True,
+        inclusive_min=False,
         exclusive_max=True,
         inclusive_max=False,
         has_mul=True,
@@ -402,7 +389,7 @@ class ExclusiveRangeAndMulOfAssertion(AbstractNumberAssertion):
 
     def _get_closure(self) -> assertions.AssertionProtocol[_NT]:
         def exclusive_range_and_mul_assertion(
-            val: numbers.Number, *, __min=self.min, __max=self.max, __mul=self.mul
+            val: numbers.Real, *, __min=self.min, __max=self.max, __mul=self.mul
         ) -> bool:
             return __min < val < __max and val % __mul == 0
 
@@ -418,6 +405,7 @@ _ASSERTION_TRUTH_TABLE: dict[
     InclusiveMaxAssertion.selector: InclusiveMaxAssertion,
     InclusiveMaxAndMulOfAssertion.selector: InclusiveMaxAndMulOfAssertion,
     ExclusiveMaxAssertion.selector: ExclusiveMaxAssertion,
+    ExclusiveMaxAndMulOfAssertion.selector: ExclusiveMaxAndMulOfAssertion,
     InclusiveMinAssertion.selector: InclusiveMinAssertion,
     InclusiveMinAndMulOfAssertion.selector: InclusiveMinAndMulOfAssertion,
     InclusiveRangeAssertion.selector: InclusiveRangeAssertion,

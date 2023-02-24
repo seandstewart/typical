@@ -1,0 +1,669 @@
+from __future__ import annotations
+
+import pytest
+
+from typical.core.constraints.number import assertions
+
+
+@pytest.mark.suite(
+    range_mul_valid=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_mul_invalid_mul=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=2,
+        given_value=1,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_max=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_min=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=2,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    max_mul_valid=dict(
+        given_min=None,
+        given_max=5,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=True,
+    ),
+    max_mul_invalid_mul=dict(
+        given_min=None,
+        given_max=5,
+        given_mul=2,
+        given_value=5,
+        expected_is_valid=False,
+    ),
+    max_mul_invalid_max=dict(
+        given_min=None,
+        given_max=5,
+        given_mul=2,
+        given_value=6,
+        expected_is_valid=False,
+    ),
+    min_mul_valid=dict(
+        given_min=1,
+        given_max=None,
+        given_mul=2,
+        given_value=8,
+        expected_is_valid=True,
+    ),
+    min_mul_invalid_mul=dict(
+        given_min=1,
+        given_max=None,
+        given_mul=2,
+        given_value=7,
+        expected_is_valid=False,
+    ),
+    min_mul_invalid_min=dict(
+        given_min=3,
+        given_max=None,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=False,
+    ),
+    mul_valid=dict(
+        given_min=None,
+        given_max=None,
+        given_mul=2,
+        given_value=16,
+        expected_is_valid=True,
+    ),
+    mul_invalid_mul=dict(
+        given_min=None,
+        given_max=None,
+        given_mul=2,
+        given_value=11,
+        expected_is_valid=False,
+    ),
+    range_valid_min=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    range_valid_within=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=None,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_valid_max=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    range_invalid_max=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_invalid_min=dict(
+        given_min=1,
+        given_max=3,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    min_valid=dict(
+        given_min=1,
+        given_max=None,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    min_invalid_min=dict(
+        given_min=1,
+        given_max=None,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    max_valid=dict(
+        given_min=None,
+        given_max=3,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    max_invalid_max=dict(
+        given_min=None,
+        given_max=3,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+)
+def test_inclusive_assertions(
+    given_min,
+    given_max,
+    given_mul,
+    given_value,
+    expected_is_valid,
+):
+    # Given
+    has_min = given_min is not None
+    has_max = given_max is not None
+    has_mul = given_mul is not None
+    assertion_cls = assertions.get_assertion_cls(
+        has_min=has_min,
+        has_max=has_max,
+        has_mul=has_mul,
+        inclusive_max=True,
+        inclusive_min=True,
+    )
+    assertion = assertion_cls(
+        min=given_min,
+        max=given_max,
+        mul=given_mul,
+    )
+    # When
+    is_valid = assertion(given_value)
+    # Then
+    assert is_valid == expected_is_valid
+
+
+@pytest.mark.suite(
+    range_mul_valid=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_mul_invalid_mul=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=2,
+        given_value=1,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_max=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_min=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=2,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    max_mul_valid=dict(
+        given_min=None,
+        given_max=6,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=True,
+    ),
+    max_mul_invalid_mul=dict(
+        given_min=None,
+        given_max=6,
+        given_mul=2,
+        given_value=5,
+        expected_is_valid=False,
+    ),
+    max_mul_invalid_max=dict(
+        given_min=None,
+        given_max=6,
+        given_mul=2,
+        given_value=6,
+        expected_is_valid=False,
+    ),
+    min_mul_valid=dict(
+        given_min=0,
+        given_max=None,
+        given_mul=2,
+        given_value=8,
+        expected_is_valid=True,
+    ),
+    min_mul_invalid_mul=dict(
+        given_min=0,
+        given_max=None,
+        given_mul=2,
+        given_value=7,
+        expected_is_valid=False,
+    ),
+    min_mul_invalid_min=dict(
+        given_min=2,
+        given_max=None,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=False,
+    ),
+    range_valid_min=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    range_valid_within=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=None,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_valid_max=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    range_invalid_max=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_invalid_min=dict(
+        given_min=0,
+        given_max=4,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    min_valid=dict(
+        given_min=0,
+        given_max=None,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    min_invalid_min=dict(
+        given_min=0,
+        given_max=None,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    max_valid=dict(
+        given_min=None,
+        given_max=4,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    max_invalid_max=dict(
+        given_min=None,
+        given_max=4,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+)
+def test_exclusive_assertions(
+    given_min,
+    given_max,
+    given_mul,
+    given_value,
+    expected_is_valid,
+):
+    # Given
+    has_min = given_min is not None
+    has_max = given_max is not None
+    has_mul = given_mul is not None
+    assertion_cls = assertions.get_assertion_cls(
+        has_min=has_min,
+        has_max=has_max,
+        has_mul=has_mul,
+        inclusive_max=False,
+        inclusive_min=False,
+    )
+    assertion = assertion_cls(
+        min=given_min,
+        max=given_max,
+        mul=given_mul,
+    )
+    # When
+    is_valid = assertion(given_value)
+    # Then
+    assert is_valid == expected_is_valid
+
+
+@pytest.mark.suite(
+    range_mul_valid=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_mul_invalid_mul=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=2,
+        given_value=1,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_max=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_min=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=2,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    range_valid_min=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    range_valid_within=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=None,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_valid_max=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    range_invalid_max=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_invalid_min=dict(
+        given_min=1,
+        given_max=4,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+)
+def test_left_inclusive_range_assertions(
+    given_min,
+    given_max,
+    given_mul,
+    given_value,
+    expected_is_valid,
+):
+    # Given
+    has_min = given_min is not None
+    has_max = given_max is not None
+    has_mul = given_mul is not None
+    assertion_cls = assertions.get_assertion_cls(
+        has_min=has_min,
+        has_max=has_max,
+        has_mul=has_mul,
+        inclusive_min=True,
+        inclusive_max=False,
+    )
+    assertion = assertion_cls(
+        min=given_min,
+        max=given_max,
+        mul=given_mul,
+    )
+    # When
+    is_valid = assertion(given_value)
+    # Then
+    assert is_valid == expected_is_valid
+
+
+@pytest.mark.suite(
+    range_mul_valid=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=2,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_mul_invalid_mul=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=2,
+        given_value=1,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_max=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=2,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_mul_invalid_min=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=2,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+    range_valid_min=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=None,
+        given_value=1,
+        expected_is_valid=True,
+    ),
+    range_valid_within=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=None,
+        given_value=2,
+        expected_is_valid=True,
+    ),
+    range_valid_max=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=None,
+        given_value=3,
+        expected_is_valid=True,
+    ),
+    range_invalid_max=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=None,
+        given_value=4,
+        expected_is_valid=False,
+    ),
+    range_invalid_min=dict(
+        given_min=0,
+        given_max=3,
+        given_mul=None,
+        given_value=0,
+        expected_is_valid=False,
+    ),
+)
+def test_right_inclusive_range_assertions(
+    given_min,
+    given_max,
+    given_mul,
+    given_value,
+    expected_is_valid,
+):
+    # Given
+    has_min = given_min is not None
+    has_max = given_max is not None
+    has_mul = given_mul is not None
+    assertion_cls = assertions.get_assertion_cls(
+        has_min=has_min,
+        has_max=has_max,
+        has_mul=has_mul,
+        inclusive_min=False,
+        inclusive_max=True,
+    )
+    assertion = assertion_cls(
+        min=given_min,
+        max=given_max,
+        mul=given_mul,
+    )
+    # When
+    is_valid = assertion(given_value)
+    # Then
+    assert is_valid == expected_is_valid
+
+
+@pytest.mark.suite(
+    min_and_max_and_mul_all_inclusive=dict(
+        has_min=True,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=True,
+        inclusive_max=True,
+        expected_cls=assertions.InclusiveRangeAndMulOfAssertion,
+    ),
+    min_and_max_and_mul_left_inclusive=dict(
+        has_min=True,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=True,
+        inclusive_max=False,
+        expected_cls=assertions.LeftInclusiveRangeAndMulOfAssertion,
+    ),
+    min_and_max_and_mul_right_inclusive=dict(
+        has_min=True,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=False,
+        inclusive_max=True,
+        expected_cls=assertions.RightInclusiveRangeAndMulOfAssertion,
+    ),
+    min_and_max_and_mul_all_exclusive=dict(
+        has_min=True,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.ExclusiveRangeAndMulOfAssertion,
+    ),
+    min_and_mul_inclusive=dict(
+        has_min=True,
+        has_max=False,
+        has_mul=True,
+        inclusive_min=True,
+        inclusive_max=True,
+        expected_cls=assertions.InclusiveMinAndMulOfAssertion,
+    ),
+    max_and_mul_inclusive=dict(
+        has_min=False,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=True,
+        inclusive_max=True,
+        expected_cls=assertions.InclusiveMaxAndMulOfAssertion,
+    ),
+    min_and_mul_exclusive=dict(
+        has_min=True,
+        has_max=False,
+        has_mul=True,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.ExclusiveMinAndMulOfAssertion,
+    ),
+    max_and_mul_exclusive=dict(
+        has_min=False,
+        has_max=True,
+        has_mul=True,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.ExclusiveMaxAndMulOfAssertion,
+    ),
+    min_inclusive=dict(
+        has_min=True,
+        has_max=False,
+        has_mul=False,
+        inclusive_min=True,
+        inclusive_max=True,
+        expected_cls=assertions.InclusiveMinAssertion,
+    ),
+    max_inclusive=dict(
+        has_min=False,
+        has_max=True,
+        has_mul=False,
+        inclusive_min=True,
+        inclusive_max=True,
+        expected_cls=assertions.InclusiveMaxAssertion,
+    ),
+    min_exclusive=dict(
+        has_min=True,
+        has_max=False,
+        has_mul=False,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.ExclusiveMinAssertion,
+    ),
+    max_exclusive=dict(
+        has_min=False,
+        has_max=True,
+        has_mul=False,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.ExclusiveMaxAssertion,
+    ),
+    mul=dict(
+        has_min=False,
+        has_max=False,
+        has_mul=True,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=assertions.MulOfAssertion,
+    ),
+    no_assertion=dict(
+        has_min=False,
+        has_max=False,
+        has_mul=False,
+        inclusive_min=False,
+        inclusive_max=False,
+        expected_cls=None,
+    ),
+)
+def test_get_assertion_cls(
+    has_min,
+    has_max,
+    has_mul,
+    inclusive_min,
+    inclusive_max,
+    expected_cls,
+):
+    # When
+    assertion_cls = assertions.get_assertion_cls(
+        has_min=has_min,
+        has_max=has_max,
+        has_mul=has_mul,
+        inclusive_min=inclusive_min,
+        inclusive_max=inclusive_max,
+    )
+    # Then
+    assert assertion_cls is expected_cls

@@ -22,7 +22,7 @@ def get_assertion_cls(
     has_fields: bool,
     is_tuple: bool,
 ) -> type[AbstractStructuredObjectAssertion] | None:
-    if {has_fields, is_tuple} == {False, False}:
+    if (has_fields, is_tuple) == (False, False):
         return None
     selector = StructuredObjectAssertionSelector(
         has_fields=has_fields,
@@ -74,10 +74,10 @@ class StructuredFieldsObjectAssertion(AbstractStructuredObjectAssertion[_ST]):
         ) -> bool:
             cls = val.__class__
             if __ismappingtype(cls):
-                return __fields <= val.keys()  # type: ignore
-            if __iscollectiontype(cls) and len(val[0]) == 2:  # type: ignore[index]
+                return val.keys() >= __fields  # type: ignore
+            if __iscollectiontype(cls) and len(next(iter(val))) == 2:
                 fields = {f for f, v in val}  # type: ignore[misc]
-                return __fields <= fields
+                return fields >= __fields
             return False
 
         return cast(
