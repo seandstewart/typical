@@ -1,7 +1,7 @@
-import typical
+import typic
 
 
-@typical.klass
+@typic.klass
 class Klass:
     attr: str
 
@@ -22,10 +22,10 @@ if __name__ == "__main__":
     Klass("foo").tojson()
     Klass("foo").tojson(indent=0)
     Klass("foo").tojson(ensure_ascii=False)
-    typical.primitive(Klass("foo"))
-    k: Klass = typical.transmute(Klass, "foo")
-    v = typical.validate(Klass, {"attr": "foo"})
-    j: str = typical.tojson(Klass("foo"))
+    typic.primitive(Klass("foo"))
+    k: Klass = typic.transmute(Klass, "foo")
+    v = typic.validate(Klass, {"attr": "foo"})
+    j: str = typic.tojson(Klass("foo"))
     o: Other = Klass("foo").translate(Other)
     fields = [*Klass("foo").iterate()]
     iterfields = [*Klass("foo")]

@@ -1,7 +1,7 @@
-import typical
+import typic
 
 
-@typical.klass
+@typic.klass
 class Klass:
     attr: str
 

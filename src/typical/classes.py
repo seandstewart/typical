@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import functools
+import sys
+import warnings
 from typing import Any, Iterable, MutableSet, Type, Union
 
 from typical.core import constants
@@ -32,7 +34,7 @@ def slotted(
 
     Returns new class object as it's not possible to add __slots__ after class creation.
 
-    Source: https://github.com/starhel/dataslots/blob/master/dataslots/__init__.py
+    Source: https://github.com/starhel/dataslots/blob/master/src/dataslots/__init__.py
     """
 
     def _slots_setstate(self, state):
@@ -50,6 +52,13 @@ def slotted(
             ) from None
 
         _stack.add(key)
+
+        if sys.version_info >= (3, 10) and "typical" not in cls.__qualname__:
+            warnings.warn(
+                f"You are using Python {sys.version}. "
+                "Python 3.10 introduced native support for slotted dataclasses. "
+                "This is the preferred method for adding slots."
+            )
 
         cls_dict = {**cls.__dict__}
         # Create only missing slots

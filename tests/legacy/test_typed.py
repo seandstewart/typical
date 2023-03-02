@@ -15,10 +15,10 @@ import pendulum
 import pytest
 
 import typical
-from tests import objects
-from tests.module.index import MyClass
-from tests.module.other import factory
-from typical import typed
+from tests.legacy import objects
+from tests.legacy.module.index import MyClass
+from tests.legacy.module.other import factory
+from typic import typed
 from typical.api import (
     Strict,
     StrictStrT,
@@ -35,13 +35,13 @@ from typical.api import (
 from typical.checks import BUILTIN_TYPES, isbuiltintype, istypeddict
 from typical.compat import Literal
 from typical.core.constraints.core.error import ConstraintValueError
+from typical.desers import safe_eval
 from typical.inspection import get_args
 from typical.inspection import origin as get_origin
 from typical.inspection import resolve_supertype
-from typical.klass import klass
+from typical.magic.klass import klass
 from typical.magic.typed import wrap, wrap_cls
 from typical.types import DirectoryPath, NetworkAddress
-from typical.util import safe_eval
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 

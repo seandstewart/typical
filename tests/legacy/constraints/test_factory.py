@@ -6,7 +6,8 @@ import typing
 
 import pytest
 
-import typical
+import typic
+from typical.core.constraints.core.error import ConstraintValueError
 from typical.core.constraints.factory import factory
 
 
@@ -19,7 +20,7 @@ class MyStr(str):
     ...
 
 
-class MyURL(typical.URL):
+class MyURL(typic.URL):
     ...
 
 
@@ -121,5 +122,5 @@ def test_get_contraints(t, v):
 )
 def test_get_contraints_invalid(t, v):
     c = factory.build(t)
-    with pytest.raises(typical.constraints.error.ConstraintValueError):
+    with pytest.raises(ConstraintValueError):
         c.validate(v)

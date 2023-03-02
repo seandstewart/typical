@@ -191,13 +191,13 @@ class NetAddrInfo:
         )
 
     def __post_init__(self):
+        object.__setattr__(self, "is_default_port", self._get_is_default_port())
         object.__setattr__(self, "base", self._get_base())
         object.__setattr__(self, "relative", self._get_relative())
         object.__setattr__(self, "address", self._get_address())
         object.__setattr__(self, "address_encoded", self._get_address_encoded())
         object.__setattr__(self, "query", self._get_query())
         object.__setattr__(self, "parameters", self._get_parameters())
-        object.__setattr__(self, "is_default_port", self._get_is_default_port())
         object.__setattr__(self, "is_relative", self._get_is_relative())
         object.__setattr__(self, "is_absolute", self._get_is_absolute())
         object.__setattr__(self, "is_private", self._get_is_private())

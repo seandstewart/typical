@@ -9,7 +9,6 @@ import sys
 import types
 import typing
 import warnings
-from types import MemberDescriptorType
 from typing import (
     AbstractSet,
     Any,
@@ -481,9 +480,8 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
             v = getattr(root, f, constants.empty)
             if (
                 v is not constants.empty
-                and not isinstance(v, MemberDescriptorType)
-                and checks.ishashable(v)
                 and not checks.isdescriptor(v)
+                and checks.ishashable(v)
             ):
                 tag = f
                 continue

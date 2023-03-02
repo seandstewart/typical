@@ -875,7 +875,10 @@ def isdescriptor(obj) -> TypeGuard[DescriptorT]:
         >>> checks.isdescriptor(StringDescriptor)
         True
     """
-    return {*dir(obj)} & _DESCRIPTOR_METHODS <= _DESCRIPTOR_METHODS
+    intersection = {*dir(obj)} & _DESCRIPTOR_METHODS
+    if not intersection:
+        return False
+    return True
 
 
 _DESCRIPTOR_METHODS = frozenset(("__get__", "__set__", "__delete__", "__set_name__"))

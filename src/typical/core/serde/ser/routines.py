@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import enum
 import operator
 from types import MappingProxyType
@@ -21,11 +20,11 @@ import typical.inspection
 from typical import checks, desers, types
 from typical.compat import Generic, TypeGuard
 from typical.core import constants
-from typical.core.interfaces import Annotation, PrimitiveT
+from typical.core.interfaces import PrimitiveT, SerializerT
+from typical.core.serde import abstract
 
 if TYPE_CHECKING:
-    from typical.core.interfaces import SerializerT
-    from typical.core.resolver import Resolver
+    from typical.core.interfaces import Annotation
 
 
 __all__ = (
@@ -49,14 +48,10 @@ __all__ = (
 _T = TypeVar("_T")
 
 
-@typical.classes.slotted(dict=False, weakref=True)
-@dataclasses.dataclass
-class BaseSerializerRoutine(Generic[_T]):
-    annotation: Annotation[type[_T]]
-    resolver: Resolver
-    namespace: type | None = None
-
-    def serializer(self) -> SerializerT[_T]:
+class BaseSerializerRoutine(
+    abstract.AbstractSerDesRoutine[_T, SerializerT[_T]], Generic[_T]
+):
+    def _get_closure(self) -> SerializerT[_T]:
         check = self._get_checks()
         ser = self._get_serializer()
 
@@ -190,7 +185,7 @@ class BaseSerializerRoutine(Generic[_T]):
 
 
 class BaseCastSerializerSerializerRoutine(BaseSerializerRoutine[_T]):
-    def serializer(self) -> SerializerT[_T]:
+    def _get_closure(self) -> SerializerT[_T]:
         check = self._get_checks()
         ser = self._get_serializer()
 
@@ -210,7 +205,7 @@ class BaseCastSerializerSerializerRoutine(BaseSerializerRoutine[_T]):
 
 
 class NoopSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
-    def serializer(self) -> SerializerT[_T]:
+    def _get_closure(self) -> SerializerT[_T]:
         if self.annotation.resolved_origin in self.resolver.OPTIONALS:
 
             def null_noop_serializer(

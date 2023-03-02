@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import datetime
 import functools
 import inspect
@@ -8,33 +7,21 @@ import re
 import types
 import uuid
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Mapping,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Collection, Mapping, Tuple, TypeVar, Union, cast
 
 from pendulum import parse as dateparse
 
-from typical import checks, classes, desers, inspection
+from typical import checks, desers, inspection
 from typical.compat import Generic, TypeGuard
 from typical.core import constants
 from typical.core.interfaces import (
     Annotation,
     DelayedAnnotation,
+    DeserializerT,
     ForwardDelayedAnnotation,
+    SerdeProtocol,
 )
-
-if TYPE_CHECKING:
-    from typical.core.interfaces import DeserializerT, SerdeProtocol
-    from typical.core.resolver import Resolver
-
+from typical.core.serde import abstract
 
 __all__ = (
     "BaseDeserializerRoutine",
@@ -57,36 +44,9 @@ __all__ = (
 _T = TypeVar("_T")
 
 
-@classes.slotted(dict=False, weakref=True)
-@dataclasses.dataclass(init=False)
-class BaseDeserializerRoutine(Generic[_T]):
-    annotation: Annotation[type[_T]]
-    resolver: Resolver
-    namespace: type | None
-    __call__: DeserializerT[_T]
-    __name__: str
-    __qualname__: str
-
-    def __repr__(self) -> str:
-        return (
-            f"<({self.__class__.__name__} "
-            f"annotation={self.annotation}, "
-            f"namespace={self.namespace})>"
-        )
-
-    def __init__(
-        self,
-        annotation: Annotation[type[_T]],
-        resolver: Resolver,
-        namespace: type | None = None,
-    ):
-        self.annotation = annotation
-        self.resolver = resolver
-        self.namespace = namespace
-        self.__call__ = self._get_closure()
-        self.__name__ = self.__call__.__name__
-        self.__qualname__ = self.__call__.__qualname__
-
+class BaseDeserializerRoutine(
+    abstract.AbstractSerDesRoutine[_T, DeserializerT[_T]], Generic[_T]
+):
     def _get_closure(self) -> DeserializerT[_T]:
         check = self._get_checks()
         deser = self._get_deserializer()
@@ -445,7 +405,7 @@ class DateDeserializerRoutine(BaseDeserializerRoutine[datetime.date]):
             date = val
             if isinstance(val, str):
                 date = __parse(val, exact=True)
-            if isinstance(val, bytes):
+            elif isinstance(val, bytes):
                 date = __parse(val.decode(), exact=True)
 
             if date.__class__ is __origin:
@@ -508,7 +468,7 @@ class TimeDeserializerRoutine(BaseDeserializerRoutine[datetime.time]):
             if isinstance(val, str):
                 time = __parse(val, exact=True)
 
-            if isinstance(val, bytes):
+            elif isinstance(val, bytes):
                 time = __parse(val.decode(), exact=True)
 
             if isinstance(time, datetime.datetime):

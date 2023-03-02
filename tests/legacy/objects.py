@@ -19,7 +19,7 @@ import pydantic
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 
-import typical
+import typic
 from typical.compat import Literal
 
 
@@ -69,7 +69,7 @@ class DefaultNone:
     none: typing.Optional[str] = None
 
 
-@typical.klass
+@typic.klass
 class Forward:
     foo: "FooNum"
 
@@ -84,23 +84,23 @@ class NestedDoubleReference:
     second: Data | None = None
 
 
-@typical.klass
+@typic.klass
 class A:
     b: B | None = None
 
 
-@typical.klass
+@typic.klass
 class B:
     a: A | None = None
 
 
-@typical.klass
+@typic.klass
 class ABs:
     a: A | None = None
     bs: typing.Iterable[B] | None = None
 
 
-@typical.klass
+@typic.klass
 class C:
     c: C | None = None
 
@@ -121,12 +121,12 @@ class F:
     g: G
 
 
-@typical.klass
+@typic.klass
 class G:
     h: int | None = None
 
 
-@typical.klass
+@typic.klass
 class H:
     hs: typing.Iterable[H]
 
@@ -159,23 +159,23 @@ class Frozen:
     var: bool
 
 
-@typical.klass
+@typic.klass
 class Typic:
     var: str
 
 
-@typical.klass
+@typic.klass
 class SubTypic(Typic):
     sub: str
 
 
-@typical.klass
+@typic.klass
 class Base:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
 
-@typical.klass
+@typic.klass
 class SuperBase(Base):
     super: str
 
@@ -187,12 +187,12 @@ class MetaSlotsClass(type):
     def __new__(mcs, name, bases, namespace):
         cls = super().__new__(mcs, name, bases, namespace)
         ...
-        cls = typical.klass(cls, slots=True)
+        cls = typic.klass(cls, slots=True)
         ...
         return cls
 
 
-@typical.klass(frozen=True)
+@typic.klass(frozen=True)
 class FrozenTypic:
     var: str
 
@@ -201,7 +201,7 @@ class Inherited(Typic):
     pass
 
 
-@typical.klass
+@typic.klass
 class KlassVarSubscripted:
     var: typing.ClassVar[str] = "foo"
 
@@ -218,7 +218,7 @@ def varargs(*args: Data, **kwargs: Data):
     return args + tuple(kwargs.values())
 
 
-@typical.al(strict=True)
+@typic.al(strict=True)
 def strictvaradd(*args: int, **kwargs: int):
     return sum(args) + sum(kwargs.values())
 
@@ -228,18 +228,18 @@ class Method:
         return a * a
 
 
-@typical.klass(always=False)
+@typic.klass(always=False)
 class KlassDelayed:
     foo: str
 
 
-@typical.al(always=False)
+@typic.al(always=False)
 @dataclasses.dataclass
 class Delayed:
     foo: str
 
 
-@typical.al
+@typic.al
 def delayed(foo: str) -> str:
     return foo
 
@@ -248,47 +248,47 @@ UserID = typing.NewType("UserID", int)
 DateDict = typing.NewType("DateDict", typing.Dict[datetime.datetime, str])
 
 
-@typical.constrained(max_length=5)
+@typic.constrained(max_length=5)
 class ShortStr(str):
     ...
 
 
-@typical.constrained(values=ShortStr)
+@typic.constrained(values=ShortStr)
 class ShortStrList(list):
     ...
 
 
-@typical.constrained(min=1000)
+@typic.constrained(min=1000)
 class LargeInt(int):
     ...
 
 
-@typical.constrained(min=1000)
+@typic.constrained(min=1000)
 class LargeFloat(float):
     ...
 
 
-@typical.constrained(values=LargeInt, keys=ShortStr)
+@typic.constrained(values=LargeInt, keys=ShortStr)
 class LargeIntDict(dict):
     ...
 
 
-@typical.constrained(keys=ShortStr)
+@typic.constrained(keys=ShortStr)
 class ShortKeyDict(dict):
     ...
 
 
-@typical.constrained(values=ShortStr)
+@typic.constrained(values=ShortStr)
 class ValuedDict(dict):
     ...
 
 
-@typical.constrained(keys=ShortStr)
+@typic.constrained(keys=ShortStr)
 class KeyedDict(dict):
     ...
 
 
-@typical.constrained(keys=ShortStr, values=ShortStr)
+@typic.constrained(keys=ShortStr, values=ShortStr)
 class KeyedValuedDict(dict):
     ...
 
@@ -296,13 +296,13 @@ class KeyedValuedDict(dict):
 ShortStrDictT = typing.Dict[ShortStr, ShortStr]
 
 
-@typical.klass
+@typic.klass
 class Constrained:
     short: ShortStr
     large: LargeInt
 
 
-@typical.klass
+@typic.klass
 class NestedConstrained:
     mapping: typing.Mapping[str, Constrained]
     array: typing.List[Constrained]
@@ -310,7 +310,7 @@ class NestedConstrained:
     other_constr: ShortStrDictT
 
 
-@typical.klass
+@typic.klass
 class TClass:
     a: int
 
@@ -344,57 +344,57 @@ class Pydantic(pydantic.BaseModel):
     id: typing.Optional[int] = None
 
 
-@typical.klass
+@typic.klass
 class Typical:
     bar: str
-    id: typing.Optional[typical.ReadOnly[int]] = None
+    id: typing.Optional[typic.ReadOnly[int]] = None
 
 
-@typical.klass
+@typic.klass
 class Source:
-    test: typing.Optional[str] = typical.field(init=False)
+    test: typing.Optional[str] = typic.field(init=False)
     field_to_ignore: str = "Ignore me"
 
     def __post_init__(self):
         self.test = "Something"
 
 
-@typical.klass
+@typic.klass
 class Dest:
     test: typing.Optional[str] = None
 
 
-@typical.klass
+@typic.klass
 class ABlah:
     key: Literal[3]
     field: "typing.Union[AFoo, ABar, ABlah, None]"
 
 
-@typical.klass
+@typic.klass
 class AFoo:
     key: Literal[1]
     field: str
 
 
-@typical.klass
+@typic.klass
 class ABar:
     key: Literal[2]
     field: bytes
 
 
-@typical.klass
+@typic.klass
 class CBlah:
     key: typing.ClassVar[int] = 3
     field: typing.Union[CFoo, CBar, CBlah, None]
 
 
-@typical.klass
+@typic.klass
 class CFoo:
     key: typing.ClassVar[int] = 1
     field: str
 
 
-@typical.klass
+@typic.klass
 class CBar:
     key: typing.ClassVar[int] = 2
     field: bytes
@@ -418,7 +418,7 @@ class DBar:
     field: bytes
 
 
-@typical.klass
+@typic.klass
 class MutableClassVar:
     f: typing.ClassVar[typing.List[str]] = []
 
@@ -433,17 +433,17 @@ class Pep604:
     union: DFoo | DBar
 
 
-@typical.al
+@typic.al
 def pep585(data: dict[str, int]) -> dict[str, int]:
     return data
 
 
-@typical.al
+@typic.al
 def pep604(union: DFoo | DBar) -> DFoo | DBar:
     return union
 
 
-@typical.al
+@typic.al
 def number(n: numbers.Number) -> numbers.Number:
     return n
 

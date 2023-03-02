@@ -8,45 +8,44 @@ import ipaddress
 import json
 import re
 import typing
+from types import MappingProxyType
 from typing import ClassVar, Dict, Generic, List, Mapping, Optional, TypeVar
 
 import orjson
 import pytest
 import ujson
-from types_ import MappingProxyType
 
-import typical
-import typical.api
-from tests import objects
+import typic
+from tests.legacy import objects
 from typical.core import strings
 
 
-@typical.klass
+@typic.klass
 class FieldMapp:
-    foo_bar: str = typical.field(default="bar", name="foo")
+    foo_bar: str = typic.field(default="bar", name="foo")
 
 
-@typical.klass(serde=typical.flags(case=strings.Case.CAMEL))
+@typic.klass(serde=typic.flags(case=strings.Case.CAMEL))
 class Camel:
 
     foo_bar: str = "bar"
 
 
-@typical.klass(serde=typical.flags(signature_only=True))
+@typic.klass(serde=typic.flags(signature_only=True))
 class SigOnly:
 
     foo: ClassVar[str] = "foo"
     foo_bar: str = "bar"
 
 
-@typical.klass(serde=typical.flags(omit=("bar",)))
+@typic.klass(serde=typic.flags(omit=("bar",)))
 class Omit:
 
     bar: str = "foo"
     foo: str = "bar"
 
 
-@typical.klass
+@typic.klass
 class ClassVarEnum:
     foo: ClassVar[objects.FooNum] = objects.FooNum.bar
 
@@ -55,7 +54,7 @@ class SubStr(str):
     ...
 
 
-class SubURL(typical.URL):
+class SubURL(typic.URL):
     ...
 
 
@@ -75,7 +74,7 @@ class SubURL(typical.URL):
         (("foo",), ["foo"]),
         (["foo"], ["foo"]),
         (MappingProxyType({"foo": 1}), {"foo": 1}),
-        (typical.FrozenDict({"foo": 1}), {"foo": 1}),
+        (typic.FrozenDict({"foo": 1}), {"foo": 1}),
         (ipaddress.IPv4Address("0.0.0.0"), "0.0.0.0"),
         (re.compile(r"foo"), "foo"),
         (datetime.datetime(1970, 1, 1), "1970-01-01T00:00:00"),
@@ -100,8 +99,8 @@ class SubURL(typical.URL):
             {objects.FooNum.bar: objects.Forward(objects.FooNum.bar)},
             {"bar": {"foo": "bar"}},
         ),
-        (typical.URL("foo"), "foo"),
-        ([typical.URL("foo")], ["foo"]),
+        (typic.URL("foo"), "foo"),
+        ([typic.URL("foo")], ["foo"]),
         (SubStr("foo"), "foo"),
         (SubURL("foo"), "foo"),
         (ClassVarEnum(), {"foo": objects.FooNum.bar.value}),
@@ -109,7 +108,7 @@ class SubURL(typical.URL):
     ids=repr,
 )
 def test_primitive(obj, expected):
-    primitive = typical.primitive(obj)
+    primitive = typic.primitive(obj)
     assert primitive == expected
     assert isinstance(primitive, type(expected))
 
@@ -124,15 +123,15 @@ _VT = TypeVar("_VT")
 
 
 class GenDict(Generic[_KT, _VT], Dict):
-    __serde_flags__ = typical.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
 
 
 class SerDict(Dict):
-    __serde_flags__ = typical.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
+    __serde_flags__ = typic.flags(fields=("foo_bar",), case=strings.Case.CAMEL)
 
 
 class CaseDict(Dict):
-    __serde_flags__ = typical.flags(case=strings.Case.CAMEL)
+    __serde_flags__ = typic.flags(case=strings.Case.CAMEL)
 
 
 @dataclasses.dataclass
@@ -191,7 +190,7 @@ class MemberInt:
     ],
 )
 def test_serde_serialize(t, obj, prim):
-    r = typical.resolver.resolve(t)
+    r = typic.resolver.resolve(t)
     assert r.serialize(obj) == prim
 
 
@@ -271,17 +270,17 @@ def test_serde_serialize(t, obj, prim):
     ],
 )
 def test_serde_deserialize(t, obj, prim):
-    r = typical.resolver.resolve(t)
+    r = typic.resolver.resolve(t)
     assert r.deserialize(prim) == obj
 
 
-@typical.klass
+@typic.klass
 class Foo:
     bar: str
-    id: Optional[typical.ReadOnly[int]] = ...
+    id: Optional[typic.ReadOnly[int]] = ...
 
 
-@typical.klass
+@typic.klass
 class Bar:
     foos: List[Foo]
 
@@ -296,22 +295,22 @@ class Bar:
             {objects.FooNum.bar: objects.Typic(var="foo")},
             b'{"bar":{"var":"foo"}}',
         ),
-        ([typical.URL("foo")], b'["foo"]'),
+        ([typic.URL("foo")], b'["foo"]'),
         (Omit(), b'{"bar":"foo"}'),
         (Bar(foos=[Foo("bar")]), b'{"foos":[{"bar":"bar","id":null}]}'),
     ],
 )
 def test_tojson(obj, expected):
-    assert typical.tojson(obj, option=orjson.OPT_SORT_KEYS) == expected
+    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS) == expected
 
 
-@typical.klass
+@typic.klass
 class Foo:
     bar: str
-    id: Optional[typical.ReadOnly[int]] = None
+    id: Optional[typic.ReadOnly[int]] = None
 
 
-@typical.klass
+@typic.klass
 class Bar:
     foos: List[Foo]
 
@@ -322,19 +321,17 @@ class Bar:
         (None, "null"),
         (MultiNum.INT, "1"),
         (MultiNum.STR, '"str"'),
-        ([typical.URL("foo")], '["foo"]'),
+        ([typic.URL("foo")], '["foo"]'),
         (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
     ],
 )
 def test_tojson_native(obj, expected):
     native = (
-        json.dumps(typical.primitive(obj), sort_keys=True)
+        json.dumps(typic.primitive(obj), sort_keys=True)
         .replace("\n", "")
         .replace(" ", "")
     )
-    assert (
-        typical.tojson(obj, option=orjson.OPT_SORT_KEYS).decode() == native == expected
-    )
+    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS).decode() == native == expected
 
 
 badbar = Bar([])
@@ -357,18 +354,18 @@ badbar.foos.append("foo")
     ],
 )
 def test_invalid_serializer(type, value):
-    proto = typical.protocol(type)
+    proto = typic.protocol(type)
     with pytest.raises(ValueError):
         proto.tojson(value)
 
 
 def test_inherited_serde_flags():
-    @typical.klass(serde=typical.flags(omit=(1,)))
+    @typic.klass(serde=typic.flags(omit=(1,)))
     class Foo:
         a: str
-        b: str = typical.field(exclude=True)
+        b: str = typic.field(exclude=True)
 
-    @typical.klass(serde=typical.flags(omit=(2,)))
+    @typic.klass(serde=typic.flags(omit=(2,)))
     class Bar(Foo):
         c: int
 
@@ -385,7 +382,7 @@ def test_custom_encode():
     class Foo:
         bar: str = None
 
-    proto = typical.protocol(Foo, flags=typical.flags(encoder=encode))
+    proto = typic.protocol(Foo, flags=typic.flags(encoder=encode))
     enc = proto.encode(Foo())
     assert isinstance(enc, bytes)
     assert enc.decode("utf-8-sig") == '{"bar":null}'
@@ -399,7 +396,7 @@ def test_custom_decode():
     class Foo:
         bar: str = None
 
-    proto = typical.protocol(Foo, flags=typical.flags(decoder=decode))
+    proto = typic.protocol(Foo, flags=typic.flags(decoder=decode))
     inp = '{"bar":null}'.encode("utf-8-sig")
     dec = proto.decode(inp)
     assert dec == Foo()
@@ -412,7 +409,7 @@ def test_klass_custom_encdec():
     def decode(o):
         return o.decode("utf-8-sig")
 
-    @typical.klass(serde=typical.flags(encoder=encode, decoder=decode))
+    @typic.klass(serde=typic.flags(encoder=encode, decoder=decode))
     class Foo:
         bar: str = None
 
@@ -434,8 +431,8 @@ def test_functional_custom_encdec():
     class Foo:
         bar: str = None
 
-    enc = typical.encode(Foo(), encoder=encode)
-    dec = typical.decode(Foo, enc, decoder=decode)
+    enc = typic.encode(Foo(), encoder=encode)
+    dec = typic.decode(Foo, enc, decoder=decode)
     assert isinstance(enc, bytes)
     assert enc.decode("utf-8-sig") == '{"bar":null}'
     assert dec == Foo()
@@ -446,7 +443,7 @@ def test_proto_iterate():
     class Foo:
         bar: str = None
 
-    proto = typical.protocol(Foo)
+    proto = typic.protocol(Foo)
 
     assert dict(proto.iterate(Foo())) == {"bar": None}
     assert [*proto.iterate(Foo(), values=True)] == [None]
@@ -457,12 +454,12 @@ def test_functional_iterate():
     class Foo:
         bar: str = None
 
-    assert dict(typical.iterate(Foo())) == {"bar": None}
-    assert [*typical.iterate(Foo(), values=True)] == [None]
+    assert dict(typic.iterate(Foo())) == {"bar": None}
+    assert [*typic.iterate(Foo(), values=True)] == [None]
 
 
 def test_klass_iterate():
-    @typical.klass
+    @typic.klass
     class Foo:
         bar: str = None
 
@@ -477,7 +474,7 @@ def test_iterate_slots():
         def __init__(self):
             self.bar = "bar"
 
-    assert dict(typical.iterate(Foo())) == {"bar": "bar"}
+    assert dict(typic.iterate(Foo())) == {"bar": "bar"}
 
 
 def test_functional_iterate_exclude():
@@ -486,7 +483,7 @@ def test_functional_iterate_exclude():
         bar: str = None
         excluded: str = None
 
-    assert dict(typical.iterate(Foo(), exclude=("excluded",))) == {"bar": None}
+    assert dict(typic.iterate(Foo(), exclude=("excluded",))) == {"bar": None}
 
 
 def test_protocol_iterate_exclude():
@@ -495,13 +492,13 @@ def test_protocol_iterate_exclude():
         bar: str = None
         excluded: str = None
 
-    proto = typical.protocol(Foo, flags=typical.flags(exclude=("excluded",)))
+    proto = typic.protocol(Foo, flags=typic.flags(exclude=("excluded",)))
 
     assert dict(proto.iterate(Foo())) == {"bar": None}
 
 
 def test_klass_iterate_exclude():
-    @typical.klass(serde=typical.flags(exclude=("excluded",)))
+    @typic.klass(serde=typic.flags(exclude=("excluded",)))
     class Foo:
         bar: str = None
         excluded: str = None
@@ -514,13 +511,13 @@ def test_klass_iterate_exclude():
 )
 def test_iterate_invalid(v):
     with pytest.raises(TypeError):
-        typical.iterate(v)
+        typic.iterate(v)
 
 
 def test_transmute_excluded():
     @dataclasses.dataclass
     class Foo:
-        __serde_flags__ = typical.flags(exclude=("excluded",))
+        __serde_flags__ = typic.flags(exclude=("excluded",))
         bar: str = None
         excluded: bool = True
 
@@ -529,14 +526,14 @@ def test_transmute_excluded():
         bar: str = None
         excluded: bool = False
 
-    assert typical.transmute(Bar, Foo()) == Bar()
+    assert typic.transmute(Bar, Foo()) == Bar()
 
 
 def test_routine_protocol():
     def foo():
         ...
 
-    proto = typical.protocol(foo)
+    proto = typic.protocol(foo)
     assert proto.transmute(foo) is foo
     assert proto.validate(foo) is foo
     with pytest.raises(TypeError):

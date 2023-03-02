@@ -16,3 +16,5 @@ from typical.classes import *
 from typical.desers import *
 from typical.inspection import *
 from typical.magic import *
+from typical.magic.schema import *
+from typical.types import *

@@ -616,7 +616,7 @@ class TestMappingDeserializerRoutine:
     def test_deserializer_aliased(self, v, expected, routine):
         # Given
         routine.annotation.serde.fields_in = {"foo": "bar"}
-        routine.__post_init__()
+        routine._bind_closure()
         # When
         d = routine(v)
         # Then

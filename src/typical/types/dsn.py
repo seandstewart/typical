@@ -80,13 +80,13 @@ class DSNInfo:
     INTERNAL_IP_PATTERN: ClassVar[re.Pattern] = url.INTERNAL_IP_PATTERN
 
     def __post_init__(self):
-        object.__setattr__("base", self._get_base())
-        object.__setattr__("relative", self._get_relative())
-        object.__setattr__("address", self._get_address())
-        object.__setattr__("query", self._get_query())
-        object.__setattr__("is_default_port", self._get_is_default_port())
-        object.__setattr__("is_private", self._get_is_private())
-        object.__setattr__("is_internal", self._get_is_internal())
+        object.__setattr__(self, "query", self._get_query())
+        object.__setattr__(self, "base", self._get_base())
+        object.__setattr__(self, "relative", self._get_relative())
+        object.__setattr__(self, "address", self._get_address())
+        object.__setattr__(self, "is_default_port", self._get_is_default_port())
+        object.__setattr__(self, "is_private", self._get_is_private())
+        object.__setattr__(self, "is_internal", self._get_is_internal())
 
     @classmethod
     def from_str(cls, value: str) -> DSNInfo:

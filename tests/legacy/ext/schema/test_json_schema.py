@@ -5,11 +5,11 @@ from typing import Any, DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 import pytest
 
-import typical
-from tests import objects
+import typic
+from tests.legacy import objects
 from typical.compat import Final, Literal
 from typical.core.annotations import ReadOnly, WriteOnly
-from typical.core.schema import jsonschema
+from typical.magic.schema import jsonschema
 
 
 @pytest.mark.parametrize(
@@ -18,14 +18,14 @@ from typical.core.schema import jsonschema
 def test_typic_objects_schema(obj):
     if hasattr(obj, "resolve"):
         obj.resolve()
-    assert obj.schema() is typical.schema(obj)
+    assert obj.schema() is typic.schema(obj)
 
 
 class MySet(set):
     ...
 
 
-class MyURL(typical.URL):
+class MyURL(typic.URL):
     ...
 
 
@@ -33,7 +33,7 @@ class MyDateTime(datetime):
     ...
 
 
-@typical.klass
+@typic.klass
 class Container:
     data: DefaultDict[str, int]
 
@@ -69,7 +69,7 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title="LargeIntDict",
             additionalProperties=jsonschema.Ref(title="LargeInt"),
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 LargeInt=jsonschema.IntSchemaField(
                     title="LargeInt", exclusiveMinimum=1000
                 ),
@@ -81,12 +81,12 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             description=objects.FromDict.__doc__,
             title=objects.FromDict.__name__,
-            properties=typical.FrozenDict(
+            properties=typic.FrozenDict(
                 foo=jsonschema.Ref(title="NullableStr"),
             ),
             required=(),
             additionalProperties=False,
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 NullableStr=jsonschema.MultiSchemaField(
                     title="NullableStr",
                     oneOf=(
@@ -126,7 +126,7 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title="IntDict",
             additionalProperties=jsonschema.Ref(title="Int"),
-            definitions=typical.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
+            definitions=typic.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
         ),
     ),
     "constrained-list": (
@@ -141,10 +141,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             description=objects.TDict.__doc__,
             title=objects.TDict.__name__,
-            properties=typical.FrozenDict(a=jsonschema.Ref(title="Int")),
+            properties=typic.FrozenDict(a=jsonschema.Ref(title="Int")),
             required=("a",),
             additionalProperties=False,
-            definitions=typical.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
+            definitions=typic.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
         ),
     ),
     "typed-dict-partial": (
@@ -152,10 +152,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             description=objects.TDictPartial.__doc__,
             title=objects.TDictPartial.__name__,
-            properties=typical.FrozenDict(a=jsonschema.Ref(title="Int")),
+            properties=typic.FrozenDict(a=jsonschema.Ref(title="Int")),
             required=(),
             additionalProperties=False,
-            definitions=typical.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
+            definitions=typic.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
         ),
     ),
     "named-typed-tuple": (
@@ -163,10 +163,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             description=objects.NTup.__doc__,
             title=objects.NTup.__name__,
-            properties=typical.FrozenDict(a=jsonschema.Ref(title="Int")),
+            properties=typic.FrozenDict(a=jsonschema.Ref(title="Int")),
             required=("a",),
             additionalProperties=False,
-            definitions=typical.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
+            definitions=typic.FrozenDict(Int=jsonschema.IntSchemaField(title="Int")),
         ),
     ),
     "named-untyped-tuple": (
@@ -174,10 +174,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             description=objects.ntup.__doc__,
             title=objects.ntup.__name__.title(),
-            properties=typical.FrozenDict(a=jsonschema.UndeclaredSchemaField()),
+            properties=typic.FrozenDict(a=jsonschema.UndeclaredSchemaField()),
             required=("a",),
             additionalProperties=False,
-            definitions=typical.FrozenDict(),
+            definitions=typic.FrozenDict(),
         ),
     ),
     "dict-nested-union": (
@@ -185,7 +185,7 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title="IntOrStrDict",
             additionalProperties=jsonschema.Ref(title="IntOrStr"),
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 IntOrStr=jsonschema.MultiSchemaField(
                     title="IntOrStr",
                     anyOf=(
@@ -214,17 +214,17 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=objects.NestedDoubleReference.__name__,
             description=objects.NestedDoubleReference.__doc__,
-            properties=typical.FrozenDict(
+            properties=typic.FrozenDict(
                 first=jsonschema.Ref(title="Data"),
                 second=jsonschema.Ref(title="NullableData"),
             ),
             required=("first",),
             additionalProperties=False,
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 Data=jsonschema.ObjectSchemaField(
                     title=objects.Data.__name__,
                     description=objects.Data.__doc__,
-                    properties={"foo": jsonschema.Ref(title="Str")},
+                    properties=typic.FrozenDict(foo=jsonschema.Ref(title="Str")),
                     additionalProperties=False,
                     required=("foo",),
                 ),
@@ -255,10 +255,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=Container.__name__,
             description=Container.__doc__,
-            properties={"data": jsonschema.Ref(title="IntDefaultdict")},
+            properties=typic.FrozenDict(data=jsonschema.Ref(title="IntDefaultdict")),
             additionalProperties=False,
             required=("data",),
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 IntDefaultdict=jsonschema.ObjectSchemaField(
                     title="IntDefaultdict",
                     additionalProperties=jsonschema.Ref("Int"),
@@ -272,10 +272,10 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=objects.KlassVarSubscripted.__name__,
             description=objects.KlassVarSubscripted.__doc__,
-            properties={"var": jsonschema.Ref(title="ReadOnlyStr")},
+            properties=typic.FrozenDict(var=jsonschema.Ref(title="ReadOnlyStr")),
             additionalProperties=False,
             required=(),
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 ReadOnlyStr=jsonschema.StrSchemaField(
                     title="ReadOnlyStr", enum=("foo",), default="foo", readOnly=True
                 )
@@ -287,14 +287,14 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=objects.ThreeOptionals.__name__,
             description=objects.ThreeOptionals.__doc__,
-            properties=typical.FrozenDict(
+            properties=typic.FrozenDict(
                 a=jsonschema.Ref(title="NullableStr"),
                 b=jsonschema.Ref(title="NullableStr"),
                 c=jsonschema.Ref(title="NullableStr"),
             ),
             required=("a",),
             additionalProperties=False,
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 NullableStr=jsonschema.MultiSchemaField(
                     title="NullableStr",
                     oneOf=(
@@ -312,44 +312,38 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title=objects.A.__name__,
             description=objects.A.__doc__,
-            properties={
-                "b": jsonschema.Ref(title="NullableB"),
-            },
+            properties=typic.FrozenDict(b=jsonschema.Ref(title="NullableB")),
             additionalProperties=False,
             required=(),
-            definitions=typical.FrozenDict(
-                {
-                    "NullableB": jsonschema.MultiSchemaField(
-                        title=f"Nullable{objects.B.__name__}",
-                        oneOf=(
-                            jsonschema.Ref(title="B"),
-                            jsonschema.NullSchemaField(),
-                        ),
+            definitions=typic.FrozenDict(
+                NullableB=jsonschema.MultiSchemaField(
+                    title=f"Nullable{objects.B.__name__}",
+                    oneOf=(
+                        jsonschema.Ref(title="B"),
+                        jsonschema.NullSchemaField(),
                     ),
-                    "NullableA": jsonschema.MultiSchemaField(
-                        title=f"Nullable{objects.A.__name__}",
-                        oneOf=(
-                            jsonschema.Ref(title="A"),
-                            jsonschema.NullSchemaField(),
-                        ),
+                ),
+                NullableA=jsonschema.MultiSchemaField(
+                    title=f"Nullable{objects.A.__name__}",
+                    oneOf=(
+                        jsonschema.Ref(title="A"),
+                        jsonschema.NullSchemaField(),
                     ),
-                    "A": jsonschema.ObjectSchemaField(
-                        title=objects.A.__name__,
-                        description=objects.A.__doc__,
-                        properties={
-                            "b": jsonschema.Ref(title="NullableB"),
-                        },
-                        additionalProperties=False,
-                        required=(),
-                    ),
-                    "B": jsonschema.ObjectSchemaField(
-                        title=objects.B.__name__,
-                        description=objects.B.__doc__,
-                        properties={"a": jsonschema.Ref(title="NullableA")},
-                        additionalProperties=False,
-                        required=(),
-                    ),
-                }
+                ),
+                A=jsonschema.ObjectSchemaField(
+                    title=objects.A.__name__,
+                    description=objects.A.__doc__,
+                    properties=typic.FrozenDict(b=jsonschema.Ref(title="NullableB")),
+                    additionalProperties=False,
+                    required=(),
+                ),
+                B=jsonschema.ObjectSchemaField(
+                    title=objects.B.__name__,
+                    description=objects.B.__doc__,
+                    properties=typic.FrozenDict(a=jsonschema.Ref(title="NullableA")),
+                    additionalProperties=False,
+                    required=(),
+                ),
             ),
         ),
     ),
@@ -374,7 +368,7 @@ schema_test_matrix = {
         jsonschema.ObjectSchemaField(
             title="ShortStrKeyedValuedDict",
             additionalProperties=jsonschema.Ref(title="ShortStr"),
-            definitions=typical.FrozenDict(
+            definitions=typic.FrozenDict(
                 ShortStr=jsonschema.StrSchemaField(title="ShortStr", maxLength=5)
             ),
         ),
@@ -412,7 +406,7 @@ schema_test_matrix = {
     ids=[*schema_test_matrix.keys()],
 )
 def test_typic_schema(obj, expected):
-    schema = typical.schema(obj)
+    schema = typic.schema(obj)
     assert schema == expected
 
 
@@ -479,4 +473,4 @@ schema_primitive_test_matrix = {
     ids=schema_primitive_test_matrix.keys(),
 )
 def test_typic_schema_primitive(obj, expected):
-    assert typical.schema(obj, primitive=True) == expected
+    assert typic.schema(obj, primitive=True) == expected

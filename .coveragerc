@@ -1,8 +1,12 @@
 [run]
 branch = True
-relative_files = True
+data_file = coverage.db
 include =
-    typic/*
+    src/*
+
+[paths]
+source =
+    src/
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -27,6 +31,7 @@ exclude_lines =
     if __name__ == .__main__.:
     if TYPE_CHECKING:
     class.*\(Protocol.*\):
+    \@abc\.abstractmethod
 
 omit =
     setup.py

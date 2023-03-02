@@ -23,7 +23,6 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -59,29 +58,34 @@ _T = TypeVar("_T")
 
 class SerFactory:
     """A factory for generating high-performance serializers.
-    Notes
-    -----
-    Should not be used directly.
+
+    Notes:
+        Should not be used directly.
+
+        Access this functionality via:
+          - :py:func:`typical.protocol`
+          - :py:func:`typical.primitive`
     """
 
     def __init__(self, resolver: Resolver):
         self.resolver = resolver
         self._serializer_cache: MutableMapping[str, SerializerT] = {}
 
-    def factory(self, annotation: Annotation[Type[_T]]) -> SerializerT[_T]:
+    def factory(self, annotation: Annotation[type[_T]]) -> SerializerT[_T]:
         if isinstance(annotation, (DelayedAnnotation, ForwardDelayedAnnotation)):
             return cast(SerializerT, DelayedSerializer(annotation, self))
         annotation.serde = annotation.serde or SerdeConfig()
         return self._compile_serializer(annotation)
 
-    def _compile_serializer(self, annotation: Annotation[Type[_T]]) -> SerializerT[_T]:
+    def _compile_serializer(self, annotation: Annotation[type[_T]]) -> SerializerT[_T]:
         # Check for an optional and extract the type if possible.
         func_name = self._get_name(annotation)
         # We've been here before...
         if func_name in self._serializer_cache:
             return self._serializer_cache[func_name]
 
-        serializer: SerializerT
+        serializer: SerializerT[_T]
+        routine: routines.BaseSerializerRoutine[_T]
         origin = annotation.resolved_origin
         # Lazy shortcut for messy paths (Union, Any, ...)
         if (
@@ -93,14 +97,12 @@ class SerFactory:
 
         if origin in self._DEFINED:
             routine_cls = self._DEFINED[origin]
-            serializer = routine_cls(
-                annotation=annotation, resolver=self.resolver
-            ).serializer()
+            serializer = routine_cls(annotation=annotation, resolver=self.resolver)
             self._serializer_cache[func_name] = serializer
             return serializer
 
         # Routines (functions or methods) can't be serialized...
-        if issubclass(origin, abc.Callable) or inspect.isroutine(origin):  # type: ignore
+        if inspect.isroutine(origin) or issubclass(origin, abc.Callable):  # type: ignore
             rname = typical.inspection.get_qualname(origin)
 
             def _routine_serializer(
@@ -108,40 +110,37 @@ class SerFactory:
             ):
                 raise TypeError(f"Routines are not serializeable: {rname!r}")
 
-            routine_serializer = cast("SerializerT", _routine_serializer)
+            routine_serializer = cast("SerializerT[_T]", _routine_serializer)
             self._serializer_cache[func_name] = routine_serializer
             return routine_serializer
 
         # Enums are special
         if checks.isenumtype(annotation.resolved):
-            serializer = routines.EnumSerializerRoutine(
-                annotation, self.resolver
-            ).serializer()
+            routine = routines.EnumSerializerRoutine(annotation, self.resolver)
+            serializer = cast("SerializerT[_T]", routine)
             self._serializer_cache[func_name] = serializer
             return serializer
 
         # Primitives don't require further processing.
         # Just check for nullable and the correct type.
         if origin in self._PRIMITIVES:
-            serializer = routines.NoopSerializerRoutine(
-                annotation, self.resolver
-            ).serializer()
+            routine = routines.NoopSerializerRoutine(annotation, self.resolver)
+            serializer = cast("SerializerT[_T]", routine)
             self._serializer_cache[func_name] = serializer
             return serializer
 
         for t, routine_cls in self._DEFINED.items():
             if issubclass(origin, t):
-                serializer = routine_cls(
-                    annotation=annotation, resolver=self.resolver
-                ).serializer()
+                serializer = routine_cls(annotation=annotation, resolver=self.resolver)
                 self._serializer_cache[func_name] = serializer
                 return serializer
 
         for t in self._PRIMITIVES:
             if issubclass(origin, t):
-                serializer = routines.CastSerializerRoutine(
+                routine = routines.CastSerializerRoutine(
                     annotation=annotation, resolver=self.resolver, namespace=t
-                ).serializer()
+                )
+                serializer = cast("SerializerT[_T]", routine)
                 self._serializer_cache[func_name] = serializer
                 return serializer
 
@@ -167,9 +166,7 @@ class SerFactory:
         elif iscollection:
             routine_cls = routines.CollectionSerializerRoutine
 
-        serializer = routine_cls(
-            annotation=annotation, resolver=self.resolver
-        ).serializer()
+        serializer = routine_cls(annotation=annotation, resolver=self.resolver)
         self._serializer_cache[func_name] = serializer
         return serializer
 
@@ -183,7 +180,7 @@ class SerFactory:
         ipaddress.IPv6Address: routines.StringSerializerRoutine,
         ipaddress.IPv6Interface: routines.StringSerializerRoutine,
         ipaddress.IPv6Network: routines.StringSerializerRoutine,
-        re.Pattern: routines.PatternSerializerRoutine,  # type: ignore
+        re.Pattern: routines.PatternSerializerRoutine,
         pathlib.Path: routines.StringSerializerRoutine,
         types.AbsoluteURL: routines.StringSerializerRoutine,
         types.DSN: routines.StringSerializerRoutine,
