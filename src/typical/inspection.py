@@ -82,12 +82,12 @@ def origin(annotation: Any) -> Any:
         >>> from typical import inspection
         >>> from typing import Dict, Mapping, NewType, Optional
         >>> inspection.origin(Dict)
-    <class 'dict'>
+        <class 'dict'>
         >>> inspection.origin(Mapping)
-    <class 'dict'>
+        <class 'dict'>
         >>> Registry = NewType('Registry', Dict)
         >>> inspection.origin(Registry)
-    <class 'dict'>
+        <class 'dict'>
         >>> class Foo: ...
     ...
         >>> inspection.origin(Foo)

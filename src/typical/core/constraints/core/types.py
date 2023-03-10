@@ -307,19 +307,17 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
     ) -> error.ConstraintValueError | _VT:
         """Validate that an incoming value meets the given constraints.
 
-        Notes
-        -----
-        Some constraints may mutate the incoming value to conform, so the value is always
-        returned.
+        Notes:
+            Some constraints may mutate the incoming value to conform, so the value is
+            always returned.
 
-        Raises
-        ------
-        :py:class:`ConstraintValueError`
-            An error inheriting from :py:class:`ValueError` indicating the input is not
-            valid.
-        :py:class:`ConstraintSyntaxError`
-            An error inheriting from :py:class:`SyntaxError` indicating the constraint
-            configuration is invalid.
+        Raises:
+            :py:class:`ConstraintValueError`
+                An error inheriting from :py:class:`ValueError` indicating the input is
+                not valid.
+            :py:class:`ConstraintSyntaxError`
+                An error inheriting from :py:class:`SyntaxError` indicating the
+                constraint configuration is invalid.
         """
         ...
 
