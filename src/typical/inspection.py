@@ -575,6 +575,30 @@ def extract(name: str, *, frame: types.FrameType = None) -> Optional[Any]:
     return None
 
 
+def getcaller(frame: types.FrameType = None) -> types.FrameType:
+    """Get the caller of the current scope, excluding this library.
+
+    If `frame` is not provided, this function will use the current frame.
+    """
+    if frame is None:
+        frame = inspect.currentframe()
+
+    while frame.f_back:
+        frame = frame.f_back
+        module = inspect.getmodule(frame)
+        if module and module.__name__.startswith("typical"):
+            continue
+
+        code = frame.f_code
+        if getattr(code, "co_qualname", "").startswith("typical"):
+            continue
+        if "typical" in code.co_filename:
+            continue
+        return frame
+
+    return frame
+
+
 @lru_cache(maxsize=None)
 def get_type_graph(t: Type) -> TypeGraph:
     """Get a directed graph of the type(s) this annotation represents."""

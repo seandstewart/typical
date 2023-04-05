@@ -111,3 +111,4 @@ venv.bak/
 /pip-wheel-metadata/
 /benchmark/.cases.json
 *.DS_Store
+coverage.db

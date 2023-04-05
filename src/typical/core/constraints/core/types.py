@@ -7,7 +7,6 @@ import enum
 import numbers
 import re
 import reprlib
-import sys
 import warnings
 from typing import (
     Any,
@@ -344,7 +343,7 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
 class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
     __slots__ = (
         "ref",
-        "module",
+        "globalns",
         "localns",
         "nullable",
         "readonly",
@@ -357,7 +356,7 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
     def __init__(
         self,
         ref: ForwardRef | type,
-        module: str,
+        globalns: Mapping,
         localns: Mapping,
         nullable: bool,
         readonly: bool,
@@ -367,7 +366,7 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
         **config,
     ):
         self.ref = ref
-        self.module = module
+        self.globalns = globalns
         self.localns = localns
         self.nullable = nullable
         self.readonly = readonly
@@ -381,9 +380,8 @@ class DelayedConstraintValidator(AbstractConstraintValidator[_VT]):
     def _evaluate_reference(self) -> AbstractConstraintValidator[_VT]:
         type = self.ref
         if isinstance(self.ref, ForwardRef):
-            globalns = sys.modules[self.module].__dict__.copy()
             try:
-                type = evaluate_forwardref(self.ref, globalns or {}, self.localns or {})
+                type = evaluate_forwardref(self.ref, self.globalns, self.localns)
             except NameError as e:  # pragma: nocover
                 warnings.warn(
                     f"Counldn't resolve forward reference: {e}. "

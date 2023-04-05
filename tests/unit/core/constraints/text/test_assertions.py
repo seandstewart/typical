@@ -127,6 +127,20 @@ from typical.core.constraints.text import assertions
         given_value="f00",
         expected_is_valid=False,
     ),
+    pattern_valid=dict(
+        given_min_length=None,
+        given_max_length=None,
+        given_regex=re.compile(r"^\d+$"),
+        given_value="2",
+        expected_is_valid=True,
+    ),
+    pattern_invalid=dict(
+        given_min_length=None,
+        given_max_length=None,
+        given_regex=re.compile(r"^\d+$"),
+        given_value="2i",
+        expected_is_valid=False,
+    ),
 )
 def test_assertions(
     given_min_length,

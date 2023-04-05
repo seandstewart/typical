@@ -53,7 +53,7 @@ def slotted(
 
         _stack.add(key)
 
-        if sys.version_info >= (3, 10) and "typical" not in cls.__qualname__:
+        if sys.version_info >= (3, 10) and "typical" not in cls.__module__:
             warnings.warn(
                 f"You are using Python {sys.version}. "
                 "Python 3.10 introduced native support for slotted dataclasses. "

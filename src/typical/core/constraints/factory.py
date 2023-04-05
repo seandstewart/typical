@@ -3,6 +3,7 @@ from __future__ import annotations
 import decimal as stdlib_decimal
 import functools
 import inspect
+import typing
 from typing import Any, Callable, Collection, Hashable, TypeVar, Union, cast
 
 from typical import checks, inspection
@@ -56,6 +57,16 @@ class ConstraintsFactory:
         default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
     ) -> types.AbstractConstraintValidator:
+        if t in self.NOOP:
+            return self._from_undeclared_type(
+                t=t,
+                nullable=nullable,
+                readonly=readonly,
+                writeonly=writeonly,
+                cls=cls,
+                default=default,
+            )
+
         if hasattr(t, "__constraints__"):
             return t.__constraints__  # type: ignore[attr-defined]
 
@@ -73,27 +84,6 @@ class ConstraintsFactory:
 
             t = args[0] if len(args) == 1 else Union[args]
 
-        if t in (Any, ..., type(...)):
-            return engine.ConstraintValidator(
-                constraints=types.TypeConstraints(
-                    type=t,
-                    nullable=nullable,
-                    readonly=readonly,
-                    writeonly=writeonly,
-                    default=default,
-                ),
-                validator=validators.NoOpInstanceValidator(
-                    type=t,
-                    precheck=validators.NoOpPrecheck(
-                        type=t,
-                        nullable=nullable,
-                        readonly=readonly,
-                        writeonly=writeonly,
-                        name=name,
-                        **config,
-                    ),
-                ),
-            )
         if t is cls or t in self.__visited:
             module = getattr(t, "__module__", None)
             if cls and cls is not ...:
@@ -116,14 +106,23 @@ class ConstraintsFactory:
             t = ForwardRef(str(t))  # type: ignore[assignment]
 
         if checks.isforwardref(t):
+            # If we don't have an enclosing scope, search for one.
             if not cls or cls is ...:
-                raise TypeError(
-                    f"Cannot build constraints for {t} without an enclosing class."
-                )
+                caller = inspection.getcaller()
+                globalns, localns = caller.f_globals, caller.f_locals
+            # Otherwise, use the context from the enclosing scope.
+            else:
+                globalns = {}
+                module = inspect.getmodule(cls)
+                if module:
+                    globalns = vars(module)
+                localns = dict(inspect.getmembers(cls))
+
+            globalns.update(typing=typing)
             return types.DelayedConstraintValidator(
                 ref=t,
-                module=cls.__module__,
-                localns=(getattr(cls, "__dict__", None) or {}).copy(),
+                globalns=globalns,
+                localns=localns,
                 nullable=nullable,
                 readonly=readonly,
                 writeonly=writeonly,

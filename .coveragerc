@@ -3,44 +3,28 @@ branch = True
 data_file = coverage.db
 include =
     src/*
+omit =
+    *__init__.py
+    tests/*
 
 [paths]
 source =
-    src/
+    */src/*
 
 [report]
-# Regexes for lines to exclude from consideration
-exclude_lines =
-    # Have to re-enable the standard pragma
-    pragma: nocover
-    pragma: nobranch
-    pragma: no cover
-    pragma: no branch
-
-    # Don't complain about missing debug-only code:
+sort = Cover
+exclude_also =
     def __repr__
-    if self\.debug
-    \.\.\.
-
-    # Don't complain if tests don't hit defensive assertion code:
+    def __str__
+    if self.debug:
+    if settings.DEBUG
     raise AssertionError
     raise NotImplementedError
-
-    # Don't complain if non-runnable code isn't run:
     if 0:
     if __name__ == .__main__.:
     if TYPE_CHECKING:
-    class.*\(Protocol.*\):
-    \@abc\.abstractmethod
-
-omit =
-    setup.py
-    .*env*
-    *lib/python*
-    dist*
-    tests*
-    benchmark*
-    docs*
-    mypy.py
+    class\s\w+\((typing\.)?Protocol(\[.*\])?\):
+    @(abc\.)?abstractmethod
+    @(typing\.)?overload
 
 skip_empty = True

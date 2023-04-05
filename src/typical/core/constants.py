@@ -2,8 +2,7 @@ import inspect
 
 
 class empty:
-    def __bool__(self):
-        return False
+    """A singleton for signalling no input."""
 
 
 DEFAULT_ENCODING = "utf-8"
