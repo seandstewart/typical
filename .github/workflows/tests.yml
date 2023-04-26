@@ -27,10 +27,6 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
-    - name: Install Linux dependencies
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        ./.github/ubuntu-install.sh
     - name: Install macOS dependencies
       if: startsWith(matrix.os, 'macos')
       run: |
