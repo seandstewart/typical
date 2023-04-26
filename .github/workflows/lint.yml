@@ -22,10 +22,6 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(f'Python {sys.version} on {sys.platform}')"
 
-    - name: Install Linux dependencies
-      run: |
-        ./.github/ubuntu-install.sh
-
     - name: Install Poetry
       uses: abatilo/actions-poetry@v2.1.3
 
