@@ -43,7 +43,7 @@ except ImportError:  # pragma: nocover
 try:
     from typing import get_origin  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import get_args  # type: ignore
+    from typing_extensions import get_origin  # type: ignore
 try:
     from typing import get_args  # type: ignore
 except ImportError:  # pragma: nocover
