@@ -38,6 +38,8 @@ jobs:
         python-version: 3.7
     - name: Install Poetry
       uses: abatilo/actions-poetry@v2.1.3
+      with:
+        poetry-version: 1.4.2
     - name: Build sdist
       run: poetry build -f sdist
     - name: Store dist artifacts
