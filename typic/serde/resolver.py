@@ -775,6 +775,8 @@ class Resolver:
             fields = {f.name: f for f in dataclasses.fields(obj)}
         ann = {}
         for name in params.keys() | hints.keys():
+            if name == "return":
+                continue
             param = params.get(name)
             hint = hints.get(name)
             field = fields.get(name)

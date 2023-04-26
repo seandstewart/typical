@@ -17,9 +17,37 @@ from typing import (
 )
 
 try:
-    from typing import Final, TypedDict, Literal, Protocol, Generic, TypeGuard, get_origin, get_args  # type: ignore
+    from typing import Final  # type: ignore
 except ImportError:  # pragma: nocover
-    from typing_extensions import Final, TypedDict, Literal, Protocol, Generic, TypeGuard, get_origin, get_args  # type: ignore
+    from typing_extensions import Final  # type: ignore
+try:
+    from typing import TypedDict  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import TypedDict  # type: ignore
+try:
+    from typing import Literal  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import Literal  # type: ignore
+try:
+    from typing import Protocol  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import Protocol  # type: ignore
+try:
+    from typing import Generic  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import Generic  # type: ignore
+try:
+    from typing import TypeGuard  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import TypeGuard  # type: ignore
+try:
+    from typing import get_origin  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import get_origin  # type: ignore
+try:
+    from typing import get_args  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import get_args  # type: ignore
 try:
     from typing import ForwardRef  # type: ignore
 except ImportError:  # pragma: nocover

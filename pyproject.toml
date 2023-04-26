@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typical"
 packages = [{include = "typic"}]
-version = "2.8.0"
+version = "2.8.1"
 description = "Typical: Python's Typing Toolkit."
 authors = ["Sean Stewart <sean_stewart@me.com>"]
 license = "MIT"
@@ -35,7 +35,7 @@ pendulum = "^2.1"
 fastjsonschema = {version = "^2.14", optional = true}
 ujson = {version = ">=2.0", optional = true}
 orjson = {version = "^3.6.3", optional = true}
-typing-extensions = {version = "^3.10.0", python = "<3.10"}
+typing-extensions = {version = "^4", python = "<3.10"}
 # tests
 pytest = {version = "^6.2", optional = true}
 pytest-cov = {version = "^2.8", optional = true}
@@ -158,7 +158,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [bumpver]
-current_version = "v2.8.0"
+current_version = "v2.8.1"
 version_pattern = "vMAJOR.MINOR.PATCH[-TAGNUM]"
 commit_message = "bump version to {new_version} [ci skip]"
 tag = false
