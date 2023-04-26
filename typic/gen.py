@@ -31,6 +31,12 @@ class Keyword(str, enum.Enum):
     FRM = "from"
     DEC = "@"
 
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return self.value
+
 
 @slotted(dict=False)
 @dataclasses.dataclass(frozen=True)
