@@ -34,10 +34,10 @@ exclude = ["tests", "docs", "docsrc", "benchmark"]
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
 inflection = "^0.5"
-pendulum = "^2.1"
-fastjsonschema = {version = "^2.14", optional = true}
-ujson = {version = ">=2.0", optional = true}
-orjson = {version = "^3.6.3", optional = true}
+pendulum = "^2"
+fastjsonschema = {version = "^2", optional = true}
+ujson = {version = "^5", optional = true}
+orjson = {version = "^3", optional = true}
 typing-extensions = {version = "^4", python = "<3.12"}
 future-typing = "^0.4.1"
 
@@ -51,16 +51,16 @@ pytest-parametrize-suite = "^23.1.1"
 
 [tool.poetry.group.benchmarks.dependencies]
 pytest-benchmark = {version = "^4", extras = ["histogram"]}
-marshmallow = "^3.2"
-djangorestframework = "^3.10"
+marshmallow = "^3"
+djangorestframework = "^3"
 pydantic = {version = "^1", extras = ["email"]}
 django = "^4"
 apischema = "^0.17.1"
 
 [tool.poetry.group.lint.dependencies]
-flake8 = "^5"
-mypy = "^0.991"
-black = "^22"
+flake8 = "^6"
+mypy = "^1"
+black = "^23"
 # mypy needs these....
 types-python-dateutil = "*"
 types-setuptools = "*"
@@ -70,17 +70,16 @@ types-ujson = "*"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.1"
-mkdocs-material = "^8"
-mkdocs-awesome-pages-plugin = "^2.2.1"
-pymdown-extensions = "^9.0"
+mkdocs-material = "^9"
+mkdocs-awesome-pages-plugin = "^2"
+pymdown-extensions = "^10"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^2"
 sqlalchemy-stubs = "^0.4"
-bumpver = "^2022"
-bpython = "^0.21"
-fastjsonschema = "^2.14"
-orjson = "^3.6.3"
+bumpver = "^2023"
+fastjsonschema = "^2"
+orjson = "^3"
 ujson = "^5"
 
 [tool.poetry.extras]
@@ -118,7 +117,7 @@ follow_imports = "silent"
 exclude = ".*tests/.*|.*docs/.*"
 
 [build-system]
-requires = ["poetry-core>=1.2.0"]
+requires = ["poetry-core>=1.5.0"]
 build-backend = "poetry.core.masonry.api"
 
 [bumpver]
