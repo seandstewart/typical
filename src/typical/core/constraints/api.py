@@ -129,6 +129,7 @@ def constrained(
                 mod = inspect.getmodule(frame)
                 module = mod and mod.__name__ or module
             qualname = f"{module}.{name}"
+            cls_ = type(name, (parent,), {"__qualname__": qualname})
         else:
             # Otherwise, we need to determine the "parent" type to validate against
             #   in the new constructor.

@@ -155,7 +155,7 @@ class ArrayConstraintValidator(
     ):
         # Pin the items validator to the local ns for faster lookup.
         ivalidator = self.items.validate
-        # Pin the lazy repr function to the local ns for faster looup.
+        # Pin the lazy repr function to the local ns for faster lookup.
         irepr = classes.collectionrepr
         # Return an iterator which validates each entry in the array.
         yield from (
@@ -181,14 +181,14 @@ class BaseStructuredObjectConstraintValidator(
         # Grab the iterator validator for these fields.
         it = self.itervalidate(value, path=path, exhaustive=exhaustive)
         validated = {
-            e[0]: e[1]
-            for e in it
+            f: v
+            for f, v in it
             if (
                 # If the return value from iteration is an error,
                 #   collect it in the errors mapping
                 #   rather than in the final output.
-                not isinstance(e, error.ConstraintValueError)
-                or errors.update(**{e.path: e})
+                not isinstance(v, error.ConstraintValueError)
+                or errors.update(**{v.path: v})
             )
         }
         # If we have errors, exit with an error.
@@ -303,6 +303,32 @@ class StructuredTupleConstraintValidator(
             (validate(v, path=irepr(path, i), exhaustive=exhaustive) if validate else v)
             for i, (v, validate) in enumerate(it)
         )
+
+    def validate_fields(
+        self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False
+    ):
+        # Collect the errors into a mapping of path->error
+        errors: dict[str, error.ConstraintValueError] = {}
+        # Grab the iterator validator for these fields.
+        it = self.itervalidate(value, path=path, exhaustive=exhaustive)
+        validated = (
+            *(
+                e
+                for e in it
+                if (
+                    # If the return value from iteration is an error,
+                    #   collect it in the errors mapping
+                    #   rather than in the final output.
+                    not isinstance(e, error.ConstraintValueError)
+                    or errors.update(**{e.path: e})
+                )
+            ),
+        )
+        # If we have errors, exit with an error.
+        if errors:
+            return self.error(value, path=path, raises=not exhaustive, **errors)
+        # Otherwise, return the validated field->value map.
+        return validated
 
 
 _StructuredValidatorT = Union[

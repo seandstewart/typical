@@ -44,9 +44,8 @@ class AbstractArrayAssertion(assertions.AbstractAssertions[_AT]):
 
     def __repr__(self):
         return (
-            "<(",
-            f"{self.__class__.__name__} ",
-            f"min_items={self.min_items!r}, max_items={self.max_items!r}" ")>",
+            f"<({self.__class__.__name__} "
+            f"min_items={self.min_items!r}, max_items={self.max_items!r})>"
         )
 
     def __init__(

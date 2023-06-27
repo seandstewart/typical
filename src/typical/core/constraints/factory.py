@@ -4,7 +4,7 @@ import decimal as stdlib_decimal
 import functools
 import inspect
 import typing
-from typing import Any, Callable, Collection, Hashable, TypeVar, Union, cast
+from typing import Any, Callable, Hashable, TypeVar, Union, cast
 
 from typical import checks, inspection
 from typical.compat import ForwardRef, Generic, Protocol
@@ -30,6 +30,7 @@ class ConstraintsFactory:
     def __init__(self):
         self.__visited = set()
         self._RESOLUTION_STACK = {
+            checks.isstructuredtype: self._from_user_type,
             lambda t: t in self.NOOP: self._from_undeclared_type,
             checks.isenumtype: self._from_enum_type,
             checks.isliteral: self._from_literal_type,
@@ -37,7 +38,6 @@ class ConstraintsFactory:
             checks.istexttype: self._from_text_type,
             lambda t: checks.issubclass(t, bool): self._from_bool_type,
             checks.isnumbertype: self._from_number_type,
-            checks.isstructuredtype: self._from_user_type,
             checks.ismappingtype: self._from_mapping_type,
             checks.iscollectiontype: self._from_array_type,
         }
@@ -135,7 +135,7 @@ class ConstraintsFactory:
             ot = inspection.origin(t)
             handler = self._from_strict_type
             for check, factory in self._RESOLUTION_STACK.items():
-                if check(ot):
+                if check(t) or check(ot):
                     handler = factory  # type: ignore[assignment]
                     break
             cv = handler(
@@ -520,20 +520,21 @@ class ConstraintsFactory:
         validator: validators.AbstractValidator
         if checks.istupletype(t) and not isnamedtuple:
             hints = inspection.cached_type_hints(t)
-            cvs = (*(self.build(h, cls=cls) for h in hints),)
+            cvs = (*(self.build(h, cls=cls) for h in hints.values()),)  # type: ignore[arg-type]
             assertion_cls = structured.get_assertion_cls(
                 has_fields=False, is_tuple=True
             )
             assertion = assertion_cls(fields=frozenset(range(len(cvs))), size=len(cvs))
             constraints = types.ArrayConstraints(
-                type=Collection, nullable=nullable, default=default
+                type=tuple,
+                nullable=nullable,
+                default=default,
+                min_items=len(cvs) + 1,
             )
             validator = array.get_validator(
                 constraints=constraints,
                 return_if_instance=False,
                 nullable=nullable,
-                readonly=readonly,
-                writeonly=writeonly,
             )
             cv = engine.StructuredTupleConstraintValidator(
                 constraints=constraints,

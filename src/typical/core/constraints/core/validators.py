@@ -315,7 +315,7 @@ class NotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
     )
 
     def _get_closure(self) -> ValidatorProtocol[VT]:
-        def nullable_isinstance_assertions_validator(
+        def not_instance_assertions_validator(
             value: Any,
             *,
             __precheck=self.precheck,
@@ -329,7 +329,7 @@ class NotInstanceAssertionsValidator(AbstractInstanceValidator[VT]):
             retval = __precheck(value)
             return __assertion(retval), retval
 
-        return nullable_isinstance_assertions_validator
+        return not_instance_assertions_validator
 
 
 # This check is commutative with IS.

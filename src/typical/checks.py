@@ -1039,7 +1039,11 @@ def isstructuredtype(t: type[Any]) -> bool:
         isfixedtuple(t)
         or isnamedtuple(t)
         or istypeddict(t)
-        or (not isstdlibsubtype(t) and not isuniontype(t) and not isliteral(t))
+        or (
+            not isstdlibsubtype(inspection.origin(t))
+            and not isuniontype(t)
+            and not isliteral(t)
+        )
     )
 
 

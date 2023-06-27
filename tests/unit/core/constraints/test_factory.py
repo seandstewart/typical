@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import decimal
 import enum
 import inspect
@@ -12,12 +13,25 @@ from typical.core.constraints import factory
 from typical.core.constraints.core import types, validators
 
 
-class MyEnum(enum.Enum):
-    ...
+class MyEnum(enum.IntEnum):
+    one = enum.auto()
+    two = enum.auto()
 
 
+@dataclasses.dataclass
 class MyClass:
-    ...
+    foo: str
+
+
+class MyDict(typing.TypedDict):
+    foo: str
+
+
+class MyTup(typing.NamedTuple):
+    foo: str
+
+
+Tup = typing.Tuple[str, int]
 
 
 @pytest.mark.suite(
@@ -98,6 +112,24 @@ class MyClass:
         given_context=dict(),
         expected_constraints_cls=types.StructuredObjectConstraints,
         expected_validator_cls=validators.IsInstanceValidator,
+    ),
+    structured_dict=dict(
+        given_type=MyDict,
+        given_context=dict(),
+        expected_constraints_cls=types.StructuredObjectConstraints,
+        expected_validator_cls=validators.IsInstanceValidator,
+    ),
+    structured_ntup=dict(
+        given_type=MyTup,
+        given_context=dict(),
+        expected_constraints_cls=types.StructuredObjectConstraints,
+        expected_validator_cls=validators.IsInstanceValidator,
+    ),
+    structured_tup=dict(
+        given_type=Tup,
+        given_context=dict(),
+        expected_constraints_cls=types.ArrayConstraints,
+        expected_validator_cls=validators.NotInstanceAssertionsValidator,
     ),
     dict=dict(
         given_type=dict,
