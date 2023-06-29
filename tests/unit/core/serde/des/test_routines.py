@@ -136,13 +136,10 @@ class TestBaseDeserializerRoutine:
     class MyStr(str):
         ...
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            ("foo", ("foo", True)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        string=dict(val="foo", expected=("foo", True)),
+        user_string=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_standard_eq_checks(self, string, resolver, val, expected):
         # Given
@@ -152,14 +149,11 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            ("foo", ("foo", True)),
-            ("bar", ("bar", True)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        string_default=dict(val="foo", expected=("foo", True)),
+        string_non_default=dict(val="bar", expected=("bar", True)),
+        user_string=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_standard_eq_checks_default(self, string, resolver, val, expected):
         # Given
@@ -170,15 +164,12 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            ("foo", ("foo", True)),
-            (None, (None, True)),
-            (..., (..., True)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        string=dict(val="foo", expected=("foo", True)),
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        user_string=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_standard_eq_checks_nullable(self, string, resolver, val, expected):
         # Given
@@ -189,16 +180,13 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            ("foo", ("foo", True)),
-            ("bar", ("bar", True)),
-            (None, (None, True)),
-            (..., (..., True)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        string_default=dict(val="foo", expected=("foo", True)),
+        string_non_default=dict(val="bar", expected=("bar", True)),
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        user_string=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_standard_eq_checks_nullable_default(
         self, string, resolver, val, expected
@@ -211,13 +199,10 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (["foo"], (["foo"], False)),
-            ([b"foo"], ([b"foo"], False)),
-            ([1], ([1], False)),
-        ],
+    @pytest.mark.suite(
+        string=dict(val=["foo"], expected=(["foo"], False)),
+        bytes=dict(val=[b"foo"], expected=([b"foo"], False)),
+        int=dict(val=[1], expected=([1], False)),
     )
     def test_get_subscripted_eq_checks(self, strlist, resolver, val, expected):
         # Given
@@ -227,14 +212,11 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (["foo"], (["foo"], True)),
-            (["bar"], (["bar"], False)),
-            ([b"foo"], ([b"foo"], False)),
-            ([1], ([1], False)),
-        ],
+    @pytest.mark.suite(
+        string_default=dict(val=["foo"], expected=(["foo"], True)),
+        string_non_default=dict(val=["bar"], expected=(["bar"], False)),
+        bytes=dict(val=[b"foo"], expected=([b"foo"], False)),
+        int=dict(val=[1], expected=([1], False)),
     )
     def test_get_subscripted_eq_checks_default(self, strlist, resolver, val, expected):
         # Given
@@ -245,15 +227,12 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (None, (None, True)),
-            (..., (..., True)),
-            (["bar"], (["bar"], False)),
-            ([b"foo"], ([b"foo"], False)),
-            ([1], ([1], False)),
-        ],
+    @pytest.mark.suite(
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        string=dict(val=["foo"], expected=(["foo"], False)),
+        bytes=dict(val=[b"foo"], expected=([b"foo"], False)),
+        int=dict(val=[1], expected=([1], False)),
     )
     def test_get_subscripted_eq_checks_nullable(self, strlist, resolver, val, expected):
         # Given
@@ -264,16 +243,13 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (None, (None, True)),
-            (..., (..., True)),
-            (["foo"], (["foo"], True)),
-            (["bar"], (["bar"], False)),
-            ([b"foo"], ([b"foo"], False)),
-            ([1], ([1], False)),
-        ],
+    @pytest.mark.suite(
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        string_default=dict(val=["foo"], expected=(["foo"], True)),
+        string_non_default=dict(val=["bar"], expected=(["bar"], False)),
+        bytes=dict(val=[b"foo"], expected=([b"foo"], False)),
+        int=dict(val=[1], expected=([1], False)),
     )
     def test_get_subscripted_eq_checks_nullable_default(
         self, resolver, strlist, val, expected
@@ -288,14 +264,11 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            ("foo", ("foo", False)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        eqstr=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        std_str=dict(val="foo", expected=("foo", False)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks(self, eqstr, resolver, val, expected):
         # Given
@@ -305,14 +278,12 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            ("foo", ("foo", True)),
-            (MyStr("foo"), (MyStr("foo"), True)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        eqstr_default=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        eqstr_non_default=dict(val=EQStr("bar"), expected=(EQStr("bar"), True)),
+        std_str=dict(val="foo", expected=("foo", True)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), True)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks_default(self, eqstr, resolver, val, expected):
         # Given
@@ -323,15 +294,12 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            (EQStr("bar"), (EQStr("bar"), True)),
-            ("foo", ("foo", False)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        eqstr_default=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        eqstr_non_default=dict(val=EQStr("bar"), expected=(EQStr("bar"), True)),
+        std_str=dict(val="foo", expected=("foo", False)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks_default_custom_eq(
         self, eqstr, resolver, val, expected
@@ -344,16 +312,13 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            (None, (None, True)),
-            (..., (..., True)),
-            ("foo", ("foo", False)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        eqstr=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        std_str=dict(val="foo", expected=("foo", False)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks_nullable(self, eqstr, resolver, val, expected):
         # Given
@@ -364,17 +329,14 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            (EQStr("bar"), (EQStr("bar"), True)),
-            ("foo", ("foo", True)),
-            (None, (None, True)),
-            (..., (..., True)),
-            (MyStr("foo"), (MyStr("foo"), True)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        eqstr_default=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        eqstr_non_default=dict(val=EQStr("bar"), expected=(EQStr("bar"), True)),
+        std_str=dict(val="foo", expected=("foo", True)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), True)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks_nullable_default(
         self, eqstr, resolver, val, expected
@@ -387,17 +349,14 @@ class TestBaseDeserializerRoutine:
         # Then
         assert result == expected
 
-    @pytest.mark.parametrize(
-        argnames="val,expected",
-        argvalues=[
-            (EQStr("foo"), (EQStr("foo"), True)),
-            (EQStr("bar"), (EQStr("bar"), True)),
-            ("foo", ("foo", False)),
-            (None, (None, True)),
-            (..., (..., True)),
-            (MyStr("foo"), (MyStr("foo"), False)),
-            (b"foo", (b"foo", False)),
-        ],
+    @pytest.mark.suite(
+        none=dict(val=None, expected=(None, True)),
+        ellipsis=dict(val=..., expected=(..., True)),
+        eqstr_default=dict(val=EQStr("foo"), expected=(EQStr("foo"), True)),
+        eqstr_non_default=dict(val=EQStr("bar"), expected=(EQStr("bar"), True)),
+        std_str=dict(val="foo", expected=("foo", False)),
+        user_str=dict(val=MyStr("foo"), expected=(MyStr("foo"), False)),
+        bytes=dict(val=b"foo", expected=(b"foo", False)),
     )
     def test_get_custom_eq_checks_nullable_default_custom_eq(
         self, eqstr, resolver, val, expected
@@ -420,8 +379,10 @@ class TestBaseDeserializerRoutine:
 
 
 class TestSimpleDeserializerRoutine:
-    @pytest.mark.parametrize(
-        argnames="t,v", argvalues=[(int, "1"), (int, 1.0), (defaultdict, "{}")]
+    @pytest.mark.suite(
+        int_str=dict(t=int, v="1"),
+        int_float=dict(t=int, v=1.0),
+        defaultdict_str=dict(t=defaultdict, v="{}"),
     )
     def test_deserializer(self, t, v, resolver):
         # Given
@@ -456,17 +417,15 @@ class TestDateDeserializerRoutine:
             annotation=resolver.annotation(datetime.date), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v",
-        argvalues=[
-            1,
-            1.0,
-            "1970",
-            "1970-01-01",
-            b"1970-01-01",
-            datetime.date(1970, 1, 1),
-            datetime.datetime(1970, 1, 1),
-        ],
+    @pytest.mark.suite(
+        int=dict(v=1),
+        float=dict(v=1.0),
+        iso_year=dict(v="1970"),
+        iso_date=dict(v="1970-01-01"),
+        iso_date_bytes=dict(v=b"1970-01-01"),
+        date_object=dict(v=datetime.date(1970, 1, 1)),
+        datetime_object=dict(v=datetime.datetime(1970, 1, 1)),
+        pendulum_datetime=dict(v=pendulum.DateTime.today()),
     )
     def test_deserializer(self, v, routine):
         # When
@@ -482,18 +441,15 @@ class TestDateTimeDeserializerRoutine:
             annotation=resolver.annotation(datetime.datetime), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v",
-        argvalues=[
-            1,
-            1.0,
-            "1970",
-            "1970-01-01",
-            b"1970-01-01",
-            datetime.date(1970, 1, 1),
-            datetime.datetime(1970, 1, 1),
-            pendulum.DateTime.today(),
-        ],
+    @pytest.mark.suite(
+        int=dict(v=1),
+        float=dict(v=1.0),
+        iso_year=dict(v="1970"),
+        iso_date=dict(v="1970-01-01"),
+        iso_date_bytes=dict(v=b"1970-01-01"),
+        date_object=dict(v=datetime.date(1970, 1, 1)),
+        datetime_object=dict(v=datetime.datetime(1970, 1, 1)),
+        pendulum_datetime=dict(v=pendulum.DateTime.today()),
     )
     def test_deserializer(self, v, routine):
         # When
@@ -502,29 +458,50 @@ class TestDateTimeDeserializerRoutine:
         assert d.__class__ is datetime.datetime
 
 
-class TestTimeDeserializerRoutine:
+class TestTimeDeltaDeserializerRoutine:
     @pytest.fixture
     def routine(self, resolver):
         return routines.TimeDeltaDeserializerRoutine(
             annotation=resolver.annotation(datetime.timedelta), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v",
-        argvalues=[
-            1,
-            1.0,
-            "P0Y0M0DT0H0M0S",
-            b"P0Y0M0DT0H0M0S",
-            datetime.timedelta(),
-            pendulum.Duration(),
-        ],
+    @pytest.mark.suite(
+        int=dict(v=1),
+        float=dict(v=1.0),
+        iso_string=dict(v="P0Y0M0DT0H0M0S"),
+        iso_string_bytes=dict(v=b"P0Y0M0DT0H0M0S"),
+        timedelta=dict(v=datetime.timedelta()),
+        duration=dict(v=pendulum.Duration()),
     )
     def test_deserializer(self, v, routine):
         # When
         d = routine(v)
         # Then
         assert d.__class__ is datetime.timedelta
+
+
+class TestTimeDeserializerRoutine:
+    @pytest.fixture
+    def routine(self, resolver):
+        return routines.TimeDeserializerRoutine(
+            annotation=resolver.annotation(datetime.time), resolver=resolver
+        )
+
+    @pytest.mark.suite(
+        int=dict(v=1),
+        float=dict(v=1.0),
+        iso_string=dict(v="00:00:00"),
+        iso_string_bytes=dict(v=b"00:00:00"),
+        time=dict(v=datetime.time()),
+        datetime=dict(v=datetime.datetime(1970, 1, 1)),
+        date=dict(v=datetime.date(1970, 1, 1)),
+        pendulum_time=dict(v=pendulum.Time()),
+    )
+    def test_deserializer(self, v, routine):
+        # When
+        d = routine(v)
+        # Then
+        assert d.__class__ is datetime.time
 
 
 class TestUUIDDeserializerRoutine:
@@ -534,15 +511,12 @@ class TestUUIDDeserializerRoutine:
             annotation=resolver.annotation(uuid.UUID), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v",
-        argvalues=[
-            0,
-            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
-            (0, 0, 0, 0, 0, 0),
-            uuid.UUID(int=0),
-            "00000000-0000-0000-0000-000000000000",
-        ],
+    @pytest.mark.suite(
+        int=dict(v=0),
+        hex=dict(v=b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+        parts=dict(v=(0, 0, 0, 0, 0, 0)),
+        uuid=dict(v=uuid.UUID(int=0)),
+        string=dict(v="00000000-0000-0000-0000-000000000000"),
     )
     def test_deserializer(self, v, routine):
         # When
@@ -558,10 +532,7 @@ class TestPatternDeserializerRoutine:
             annotation=resolver.annotation(re.Pattern), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v",
-        argvalues=[".*", re.compile(".*")],
-    )
+    @pytest.mark.suite(string=dict(v=".*"), pattern=dict(v=re.compile(".*")))
     def test_deserializer(self, v, routine):
         # When
         d = routine(v)
@@ -572,11 +543,11 @@ class TestPatternDeserializerRoutine:
 class TestMappingDeserializerRoutine:
     @pytest.fixture(
         params=[
-            dict,
-            MyDict[str, int],
-            DefaultDict,
-            DefaultDict[str, int],
-            DefaultDict[str, "int"],
+            pytest.param(dict, id="dict"),
+            pytest.param(MyDict[str, int], id="user_dict"),
+            pytest.param(DefaultDict, id="default_dict_no_args"),
+            pytest.param(DefaultDict[str, int], id="default_dict_args"),
+            pytest.param(DefaultDict[str, "int"], id="default_dict_args_string"),
         ]
     )
     def routine(self, request, resolver):
@@ -584,16 +555,13 @@ class TestMappingDeserializerRoutine:
             annotation=resolver.annotation(request.param), resolver=resolver
         )
 
-    @pytest.mark.parametrize(
-        argnames="v,expected",
-        argvalues=[
-            ("{}", {}),
-            ('{"foo":1}', {"foo": 1}),
-            ('{"foo":1.0}', {"foo": 1}),
-            ('{"foo":"1"}', {"foo": 1}),
-            (b'{"foo":"1"}', {"foo": 1}),
-            (MyReqClass(foo="1"), {"foo": 1}),
-        ],
+    @pytest.mark.suite(
+        empty_str=dict(v="{}", expected={}),
+        json_str_int=dict(v='{"foo":1}', expected={"foo": 1}),
+        json_str_float=dict(v='{"foo":1.0}', expected={"foo": 1}),
+        json_str_str=dict(v='{"foo":"1"}', expected={"foo": 1}),
+        json_bytes_str=dict(v=b'{"foo":"1"}', expected={"foo": 1}),
+        user_cls_str=dict(v=MyReqClass(foo="1"), expected={"foo": 1}),
     )
     def test_deserializer(self, v, expected, routine):
         # When
@@ -603,15 +571,13 @@ class TestMappingDeserializerRoutine:
         if routine.annotation.args:
             assert d == expected
 
-    @pytest.mark.parametrize(
-        argnames="v,expected",
-        argvalues=[
-            ("{}", {}),
-            ('{"foo":1}', {"bar": 1}),
-            ('{"foo":1.0}', {"bar": 1}),
-            ('{"foo":"1"}', {"bar": 1}),
-            (b'{"foo":"1"}', {"bar": 1}),
-        ],
+    @pytest.mark.suite(
+        empty_str=dict(v="{}", expected={}),
+        json_str_int=dict(v='{"foo":1}', expected={"bar": 1}),
+        json_str_float=dict(v='{"foo":1.0}', expected={"bar": 1}),
+        json_str_str=dict(v='{"foo":"1"}', expected={"bar": 1}),
+        json_bytes_str=dict(v=b'{"foo":"1"}', expected={"bar": 1}),
+        user_cls_str=dict(v=MyReqClass(foo="1"), expected={"bar": 1}),
     )
     def test_deserializer_aliased(self, v, expected, routine):
         # Given
@@ -624,15 +590,15 @@ class TestMappingDeserializerRoutine:
         if routine.annotation.args:
             assert d == expected
 
-    @pytest.mark.parametrize(
-        argnames="t,v,expected",
-        argvalues=[
-            (DefaultDict, {}, defaultdict(None)),
-            (DefaultDict[str, int], {}, defaultdict(int)),
-            (DefaultDict[str, "int"], {}, defaultdict(int)),
-            (DefaultDict[str, MyEmptyClass], {}, defaultdict(MyEmptyClass)),
-            (DefaultDict[str, MyReqClass], {}, defaultdict(None)),
-        ],
+    @pytest.mark.suite(
+        no_args=dict(t=DefaultDict, v={}, expected=defaultdict(None)),
+        int=dict(t=DefaultDict[str, int], v={}, expected=defaultdict(int)),
+        user_cls=dict(
+            t=DefaultDict[str, MyEmptyClass], v={}, expected=defaultdict(MyEmptyClass)
+        ),
+        invalid_user_cls=dict(
+            t=DefaultDict[str, MyReqClass], v={}, expected=defaultdict(None)
+        ),
     )
     def test_defaultdict_deserializer(self, t, v, expected, resolver):
         # Given
@@ -657,17 +623,14 @@ class TestMappingDeserializerRoutine:
 
 
 class TestCollectionDeserializerRoutine:
-    @pytest.mark.parametrize(
-        argnames="t,v,expected",
-        argvalues=[
-            (List[int], '["1"]', [1]),
-            (Set[int], '["1"]', {1}),
-            (FrozenSet[int], '["1"]', frozenset({1})),
-            (Tuple[int, ...], '["1"]', (1,)),
-            (Iterable[int], '["1"]', [1]),
-            (Collection[int], '["1"]', [1]),
-            (Collection[int], MyReqClass(foo="1"), [1]),
-        ],
+    @pytest.mark.suite(
+        list=dict(t=List[int], v='["1"]', expected=[1]),
+        set=dict(t=Set[int], v='["1"]', expected={1}),
+        frozenset=dict(t=FrozenSet[int], v='["1"]', expected=frozenset([1])),
+        tuple=dict(t=Tuple[int, ...], v='["1"]', expected=(1,)),
+        iterable=dict(t=Iterable[int], v='["1"]', expected=[1]),
+        collection=dict(t=Collection[int], v='["1"]', expected=[1]),
+        collection_usr_cls=dict(t=Collection[int], v=MyReqClass(foo="1"), expected=[1]),
     )
     def test_deserializer(self, t, v, expected, resolver):
         # Given
@@ -690,9 +653,9 @@ else:
 
 
 class TestFixedTupleDeserializerRoutine:
-    @pytest.mark.parametrize(
-        argnames="t",
-        argvalues=[Tuple[int, str], MyTup[int, str]],
+    @pytest.mark.suite(
+        tuple=dict(t=Tuple[int, str]),
+        user_tuple=dict(t=MyTup[int, str]),
     )
     def test_deserializer(self, t, resolver):
         # Given
@@ -720,15 +683,12 @@ class FooDict(TypedDict):
 
 
 class TestFieldsDeserializerRoutine:
-    @pytest.mark.parametrize(
-        argnames="t,v,expected",
-        argvalues=[
-            (Foo, (1,), Foo("1")),
-            (Foo, "foo", Foo("foo")),
-            (Foo, {"bar": 1}, Foo("1")),
-            (Foo, FooTup("1"), Foo("1")),
-            (FooTup, Foo("1"), FooTup("1")),
-        ],
+    @pytest.mark.suite(
+        from_tuple=dict(t=Foo, v=(1,), expected=Foo("1")),
+        from_str=dict(t=Foo, v="foo", expected=Foo("foo")),
+        from_dict=dict(t=Foo, v={"bar": 1}, expected=Foo("1")),
+        from_ntuple=dict(t=Foo, v=FooTup("1"), expected=Foo("1")),
+        to_ntuple=dict(t=FooTup, v=Foo("1"), expected=FooTup("1")),
     )
     def test_deserializer(self, t, v, expected, resolver):
         # Given
@@ -740,15 +700,12 @@ class TestFieldsDeserializerRoutine:
         # Then
         assert isinstance(d, t) and d == expected
 
-    @pytest.mark.parametrize(
-        argnames="t,v,expected",
-        argvalues=[
-            (Foo, (1,), Foo("1")),
-            (Foo, "foo", Foo("foo")),
-            (Foo, {"foo": 1}, Foo("1")),
-            (Foo, FooTup("1"), Foo("1")),
-            (FooTup, Foo("1"), FooTup("1")),
-        ],
+    @pytest.mark.suite(
+        from_tuple=dict(t=Foo, v=(1,), expected=Foo("1")),
+        from_str=dict(t=Foo, v="foo", expected=Foo("foo")),
+        from_dict=dict(t=Foo, v={"foo": 1}, expected=Foo("1")),
+        from_ntuple=dict(t=Foo, v=FooTup("1"), expected=Foo("1")),
+        to_ntuple=dict(t=FooTup, v=Foo("1"), expected=FooTup("1")),
     )
     def test_aliased_deserializer(self, t, v, expected, resolver):
         # Given
@@ -791,14 +748,11 @@ class TestUnionDeserializerRoutine:
             resolver=resolver,
         )
 
-    @pytest.mark.parametrize(
-        argnames="v,expected",
-        argvalues=[
-            (1, 1),
-            ("2", 2),
-            ('"3"', 3),
-            ("foo", "foo"),
-        ],
+    @pytest.mark.suite(
+        int=dict(v=1, expected=1),
+        int_str=dict(v="2", expected=2),
+        int_json_str=dict(v='"3"', expected=3),
+        str=dict(v="foo", expected="foo"),
     )
     def test_generic_deserializer(self, v, expected, groutine):
         # When
@@ -806,13 +760,10 @@ class TestUnionDeserializerRoutine:
         # Then
         assert d == expected
 
-    @pytest.mark.parametrize(
-        argnames="v,expected",
-        argvalues=[
-            ({"tag": "a"}, AClass()),
-            ({"tag": "b"}, BClass()),
-            ({"tag": "c"}, CClass()),
-        ],
+    @pytest.mark.suite(
+        a_class=dict(v={"tag": "a"}, expected=AClass()),
+        b_class=dict(v={"tag": "b"}, expected=BClass()),
+        c_class=dict(v={"tag": "c"}, expected=CClass()),
     )
     def test_tagged_deserializer(self, v, expected, troutine):
         # When
