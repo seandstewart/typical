@@ -15,6 +15,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Deque,
     Dict,
     Hashable,
     Iterable,
@@ -610,40 +611,134 @@ def get_type_graph(t: Type) -> typing.Deque[typing.Deque[TypeGraph]]:
     graph = _node(t)
     visited = {graph.type: graph}
     stack = collections.deque([graph])
+    levels = collections.deque([stack.copy()])
     while stack:
         parent = stack.popleft()
+        level = collections.deque()
         for var, type in _level(parent):
             seen = visited.get(type)
+            is_subscripted = checks.issubscriptedgeneric(type)
+            is_stdlib = checks.isstdlibtype(type)
+            is_noop = type in (constants.empty, typing.Any)
+            # An un-subscripted generic or stdlib type, or a non-type, cannot be cyclic.
+            can_be_cyclic = is_subscripted or (is_noop, is_stdlib) == (False, False)
             if seen:
-                cyclic = not checks.isstdlibtype(type)
-                node = dataclasses.replace(seen, cyclic=cyclic, parent=parent, var=var)
+                seen.cyclic = can_be_cyclic
+                node = dataclasses.replace(
+                    seen, cyclic=can_be_cyclic, parent=parent, var=var
+                )
                 parent.nodes.append(node)
+                level.append(node)
                 continue
 
-            node = _node(type, var=var)
-            parent.nodes.append(node)
-            node.parent = parent
+            node = _node(type, var=var, parent=parent)
+            level.append(node)
             stack.append(node)
             visited[node.type] = node
+        if level:
+            levels.append(level)
 
-    return graph
+    return levels
 
 
-def _node(t: type, *, var: str = None) -> TypeGraph:
+def itertypes(
+    t: Any,
+    *,
+    from_root: bool = False,
+    from_left: bool = False,
+) -> Iterable[TypeGraph]:
+    """Iterate through an annotation's type graph using Breadth-First Search.
+
+    By default, we iterate from the bottom-right to the top-left (LIFO[LIFO[...]]).
+
+    Args:
+        t: The type annotation to traverse.
+        from_root: If True, iterate though the first dimension as a stack (FIFO).
+        from_left: If True, iterate through the second dimension as a stack (FIFO).
+    """
+    array = get_type_graph(t)
+    dim_one = array.copy()
+    one_pop = dim_one.popleft if from_root else dim_one.pop
+    one_append = dim_one.appendleft
+    two_pop = (
+        operator.methodcaller("popleft") if from_left else operator.methodcaller("pop")
+    )
+    seen: set[TypeGraph] = set()
+    seen_add = seen.add
+    is_seen_items = seen.issuperset
+    sent: set[TypeGraph] = set()
+    sent_add = sent.add
+    # Iterate through first dimension of the 2-d array representing our type graph.
+    while dim_one:
+        dim_two = one_pop().copy()
+        deferred = collections.deque()
+        deferred_append = deferred.appendleft
+        # Iterate through the second dimension of the 2-d array.
+        while dim_two:
+            t = two_pop(dim_two)
+            if t in sent:
+                continue
+
+            is_seen = t in seen
+            has_children = len(t.nodes) > 0
+            is_children_seen = is_seen_items(t.nodes)
+            seen_add(t)
+            # If we have child nodes that have not been previously seen,
+            #   and the type itself has not been seen before,
+            #   defer yielding this type.
+            # Indicates this type is not complete
+            #   (we need to know all the child types first).
+            if (is_seen, is_children_seen, has_children) in (
+                (False, False, False),
+                (False, False, True),
+            ):
+                deferred_append(t)
+                continue
+            # Seen, but have not seen all its children,
+            #   Or seen and have seen all its children,
+            #   Or seen, but has no children
+            # Indicates this type is not complete,
+            #   or this is a repeat, so ignore it.
+            if (is_seen, is_children_seen, has_children) in (
+                (True, False, False),
+                (True, False, True),
+                (True, True, False),
+            ):
+                continue
+
+            sent_add(t)
+            yield t
+        # Add any deferred types to the top of the stack.
+        if deferred:
+            one_append(deferred)
+
+
+_T = TypeVar("_T")
+
+
+def _node(t: type, *, var: str = None, parent: TypeGraph = None) -> TypeGraph:
     o = origin(t)
-    return TypeGraph(t, o, var=var)
+    node = TypeGraph(t, o, var=var, parent=parent)
+    if parent:
+        parent.nodes.append(node)
+    return node
 
 
 def _level(node: TypeGraph) -> Sequence[tuple[str | None, type]]:
     args = get_args(node.type)
-    members = get_type_hints(node.type)
+    # Only pull annotations from the signature if this is a user-defined type.
+    is_structured = checks.isstructuredtype(node.type)
+    members = get_type_hints(node.type, exhaustive=is_structured)
     return [*((None, t) for t in args), *(members.items())]  # type: ignore
 
 
 @classes.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(unsafe_hash=True)
 class TypeGraph:
-    """A graph representation of a"""
+    """A graph representation of a type and all its subtypes.
+
+    Enables depth-first search of the graph.
+    """
 
     type: Type
     origin: Type
@@ -651,7 +746,9 @@ class TypeGraph:
     nodes: list[TypeGraph] = dataclasses.field(
         default_factory=list, hash=False, compare=False
     )
-    parent: TypeGraph | None = None
+    parent: TypeGraph | None = dataclasses.field(
+        default=None, hash=False, compare=False
+    )
     var: str | None = dataclasses.field(default=None, hash=False, compare=False)
     _type_name: str = dataclasses.field(
         repr=False, init=False, hash=False, compare=False

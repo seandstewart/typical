@@ -25,23 +25,27 @@ from typing import (
 PYTHON_VERSION = sys.version_info
 
 if PYTHON_VERSION >= (3, 11):
-    from typing import Self
+    from typing import ParamSpec, Self
 else:
-    from typing_extensions import Self
+    from typing_extensions import ParamSpec, Self
 
 if PYTHON_VERSION >= (3, 10):
     from typing import TypeGuard
 
     DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = True
 
+    def transform_annotation(annotation: str) -> str:
+        return annotation
+
 else:
     from typing_extensions import TypeGuard
 
-    DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = True
+    DATACLASS_KW_ONLY = DATACLASS_MATCH_ARGS = DATACLASS_NATIVE_SLOTS = False
+
+    from typical.core.future import transform_annotation
 
 
 if TYPE_CHECKING:
-
     eval_type: Callable[..., Any]
     SpecialForm: type
 
@@ -92,8 +96,6 @@ else:
         from dataclasses import KW_ONLY
         from types import UnionType
 
-    if PYTHON_VERSION >= (3, 9):
-
         def evaluate_forwardref(
             type_: ForwardRef,
             globalns: Any,
@@ -103,7 +105,8 @@ else:
             recursive_guard = recursive_guard or set()
             return type_._evaluate(globalns, localns, recursive_guard)
 
-    else:  # pragma: nocover
+    elif PYTHON_VERSION >= (3, 9):
+        from ast import unparse
 
         def evaluate_forwardref(
             type_: ForwardRef,
@@ -111,7 +114,26 @@ else:
             localns: Any,
             recursive_guard: set = None,
         ) -> Any:
-            return type_._evaluate(globalns, localns)
+            arg = transform_annotation(type_.__forward_arg__)
+            globalns = {**globals(), **globalns}
+            type_ = ForwardRef(arg, is_argument=type_.__forward_is_argument__)
+            recursive_guard = recursive_guard or set()
+            return type_._evaluate(globalns, localns, recursive_guard)
+
+    else:  # pragma: nocover
+        from astunparse import unparse
+
+        def evaluate_forwardref(
+            type_: ForwardRef,
+            globalns: Any,
+            localns: Any,
+            recursive_guard: set = None,
+        ) -> Any:
+            if type(type_) is not ForwardRef:
+                return type_
+            arg = transform_annotation(type_.__forward_arg__)
+            ntype_ = ForwardRef(arg, is_argument=type_.__forward_is_argument__)
+            return ntype_._evaluate({**globals(), **globalns}, localns)
 
     try:
         from sqlalchemy import MetaData as SQLAMetaData
@@ -187,4 +209,5 @@ __all__ = (
     "TypedDict",
     "TypeGuard",
     "UnionType",
+    "transform_annotation",
 )
