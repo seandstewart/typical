@@ -35,22 +35,23 @@ EMAIL_PATTERN = re.compile(
         ^
         ((?P<name>([A-Z]+\s?)+)\s<)?
         # user
-        (?P<username>([A-Z0-9]([!#$%&'*=?^`{|_.+-])?)*[A-Z0-9]+){0,64}
+        (?P<username>([A-Z0-9]([!#$%&'*=?^`{|_.+-])?)*[A-Z0-9]+){1,64}
         @
         # host
         (?P<host>(?:
         # Domain
-            (?P<domain>
+            # IPV4
+            (?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})
+            # IPV6
+            |(?P<ipv6>\[[A-F0-9]*:[A-F0-9:]+\])
+            # hostname
+            |(?P<domain>
                 (?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+
                 (?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)
-            )
             # Localhost
             |(?P<localhost>localhost)
             |(?P<dotless>(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.?))
-            # IPV4
-            |(?P<ipv4>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})
-            # IPV6
-            |(?P<ipv6>\[[A-F0-9]*:[A-F0-9:]+\])
+            )
         )){0,255}
         (>)?
         $

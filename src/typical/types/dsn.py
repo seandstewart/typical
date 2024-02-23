@@ -84,6 +84,7 @@ class DSNInfo:
         object.__setattr__(self, "base", self._get_base())
         object.__setattr__(self, "relative", self._get_relative())
         object.__setattr__(self, "address", self._get_address())
+        object.__setattr__(self, "address_encoded", quote(self.address))
         object.__setattr__(self, "is_default_port", self._get_is_default_port())
         object.__setattr__(self, "is_private", self._get_is_private())
         object.__setattr__(self, "is_internal", self._get_is_internal())

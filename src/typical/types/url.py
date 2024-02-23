@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 import re
 import types
@@ -160,6 +161,22 @@ class NetAddrInfo:
     DEFAULT_PORTS: ClassVar[Dict] = DEFAULT_PORTS
     PRIVATE_HOSTS: ClassVar[Set[str]] = PRIVATE_HOSTS
     INTERNAL_HOSTS: ClassVar[Set[str]] = INTERNAL_HOSTS
+
+    def __copy__(self):
+        kwargs = {
+            f.name: self.__getattribute__(f.name)
+            for f in dataclasses.fields(self)
+            if f.init
+        }
+        return self.__class__(**kwargs)
+
+    def __deepcopy__(self, memodict):
+        kwargs = {
+            f.name: copy.deepcopy(self.__getattribute__(f.name), memodict)
+            for f in dataclasses.fields(self)
+            if f.init
+        }
+        return self.__class__(**kwargs)
 
     @classmethod
     def from_str(cls, value) -> "NetAddrInfo":
