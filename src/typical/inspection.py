@@ -141,7 +141,9 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
         >>> inspection.get_args(Dict[str, T])
     (<class 'str'>,)
     """
-    args = _get_args(annotation)
+    args = typing.get_args(annotation)
+    if not args:
+        args = getattr(annotation, "__args__", args)
     return (*_normalize_typevars(*args),)
 
 
@@ -312,25 +314,28 @@ def _safe_get_type_hints(annotation: Union[Type, Callable]) -> Dict[str, Type[An
     annotations = {}
     for name, value in raw_annotations.items():
         if isinstance(value, str):
-            value = transform_annotation(value)
-            if not isinstance(value, ForwardRef):
+            if not isinstance(value, compat.ForwardRef):
                 if sys.version_info >= (3, 9, 8) and sys.version_info[:3] != (3, 10, 0):
-                    value = ForwardRef(  # type: ignore
+                    value = compat.ForwardRef(  # type: ignore
                         value,
                         is_argument=False,
                         is_class=inspect.isclass(annotation),
                     )
                 elif sys.version_info >= (3, 7):
-                    value = ForwardRef(value, is_argument=False)
+                    value = compat.ForwardRef(value, is_argument=False)
                 else:
-                    value = ForwardRef(value)
+                    value = compat.ForwardRef(value)
         try:
-            value = eval_type(value, base_globals or None, None)
+            caller = getcaller()
+            globalns, localns = caller.f_globals, caller.f_locals
+            value = compat.evaluate_forwardref(
+                value, globalns={**globalns, **base_globals}, localns=localns
+            )
         except NameError:
             # this is ok, we deal with it later.
             pass
         except TypeError as e:
-            warnings.warn(f"Couldn't evaluate type {value!r}: {e}")
+            warnings.warn(f"Couldn't evaluate type {value!r}: {e}", stacklevel=3)
             value = Any
         annotations[name] = value
     return annotations
