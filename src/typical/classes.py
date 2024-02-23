@@ -6,24 +6,6 @@ import sys
 import warnings
 from typing import Any, Iterable, MutableSet, Type, Union
 
-from typical.core import constants
-
-
-def filtered_repr(self) -> str:
-    return f"{type(self).__name__}{filtered_str(self)}"
-
-
-def filtered_str(self) -> str:
-    fields = []
-    for f in dataclasses.fields(self):
-        val = getattr(self, f.name)
-        if val in (constants.empty, ..., None):
-            continue
-        if f.repr:
-            fields.append(f"{f.name}={val!r}")
-    return f"({', '.join(fields)})"
-
-
 def slotted(
     _cls: Type = None,
     *,

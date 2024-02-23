@@ -4,8 +4,8 @@ import abc
 from types import MappingProxyType
 from typing import Callable, Dict, Type, TypeVar
 
+from typical import constraints
 from typical.compat import Generic
-from typical.core import constraints
 
 __all__ = ("AbstractSchemaBuilder", "CT", "DefinitionT", "PackageT")
 

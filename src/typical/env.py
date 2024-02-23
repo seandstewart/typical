@@ -11,7 +11,7 @@ from typical.core import constants, interfaces
 from typical.inspection import get_name
 
 if TYPE_CHECKING:  # pragma: nocover
-    from typical.core.resolver import Resolver
+    from typical.resolver import Resolver
 
 
 _ET = TypeVar("_ET", bound=object)
@@ -128,11 +128,11 @@ class Environ:
         # If we got the default, and we have alternate names to search, do so.
         if value == default and names:
             value = next((environ[k] for k in environ.keys() & names), default)
-        # If we have the default, return that.
-        if value is not constants.empty:
-            return value
+            # If we have the default, return that.
+            if value is not constants.empty:
+                return value
         # Short-circuit for no type given.
-        if issubclass(t, constants.empty):
+        if t is constants.empty:
             retval = None if value is constants.empty else value
             return retval
 

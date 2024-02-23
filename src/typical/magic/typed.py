@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Tuple, Type, TypeVar, Union, cast, overl
 from typical.api import protocols, resolver
 from typical.checks import isfrozendataclass
 from typical.compat import Generic, lru_cache
+from typical.constraints.core.validators import ValidatorProtocol
 from typical.core.annotations import ObjectT
 from typical.core.constants import (
     ORIG_SETTER_NAME,
@@ -15,7 +16,6 @@ from typical.core.constants import (
     SERDE_FLAGS_ATTR,
     TYPIC_ANNOS_NAME,
 )
-from typical.core.constraints.core.validators import ValidatorProtocol
 from typical.core.interfaces import (
     DeserializerT,
     FieldIteratorT,
@@ -70,7 +70,7 @@ def wrap(func: _Callable, *, strict: StrictModeT = STRICT_MODE) -> _Callable:
 def _bind_proto(cls, proto: SerdeProtocol):
     for n, attr in (
         (SERDE_ATTR, proto),
-        ("primitive", proto.primitive),
+        ("primitive", proto.serialize),
         ("tojson", proto.tojson),
         ("transmute", staticmethod(proto.transmute)),
         ("validate", staticmethod(proto.validate)),
@@ -137,7 +137,7 @@ def _resolve_class(
         )
 
     # Get the protocol
-    proto: SerdeProtocol = resolver.resolve(cls, is_strict=strict)
+    proto: SerdeProtocol = resolver.resolve(cls, is_strict=strict, flags=serde)
     if schema:
         ns["schema"] = classmethod(functools.partial(schema_factory))
         attach_schema(proto.constraints.constraints)
@@ -200,7 +200,6 @@ def wrap_cls(
     """
 
     def cls_wrapper(cls_: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
-
         return _resolve_class(
             cls_, strict=strict, schema=schema, serde=serde, always=always
         )

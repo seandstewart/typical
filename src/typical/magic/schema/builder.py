@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typical.core import constraints
+from typical import constraints
 from typical.magic.schema import abc, jsonschema
 
 __all__ = ("SchemaBuilder",)

@@ -6,9 +6,9 @@ from typing import Any, cast
 
 import inflection
 
-from typical import checks
+from typical import checks, constraints
 from typical.compat import TypedDict
-from typical.core import constants, constraints
+from typical.core import constants
 from typical.magic.schema import abc
 from typical.magic.schema.jsonschema import field
 from typical.types import frozendict

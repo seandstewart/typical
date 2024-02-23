@@ -24,16 +24,13 @@ from typing import (
     cast,
 )
 
-from typical import checks, classes, inspection, types
+from typical import checks, classes, constraints as const, inspection, types
 from typical.compat import ForwardRef, Generic, Protocol, TypedDict, evaluate_forwardref
-from typical.core import constants
-from typical.core import constraints as const
-from typical.core import strict as st
-from typical.core import strings
+from typical.core import constants, strict as st, strings
 from typical.core.annotations import AnyOrTypeT, ObjectT, OriginT
 
 if TYPE_CHECKING:  # pragma: nocover
-    from typical.core.resolver import Resolver
+    from typical.resolver import Resolver
 
 
 @classes.slotted(dict=False)
