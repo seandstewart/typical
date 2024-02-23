@@ -4,6 +4,7 @@ import collections
 import collections.abc
 import dataclasses
 import inspect
+import operator
 import reprlib
 import sys
 import types
@@ -28,22 +29,8 @@ from typing import (
     TypeVar,
     Union,
 )
-from typing import get_args as _get_args
-from typing import get_origin
-from typing import get_type_hints as _get_type_hints
 
-from future_typing import transform_annotation
-
-from typical import checks as checks
-from typical.classes import slotted
-from typical.compat import (
-    KW_ONLY,
-    ForwardRef,
-    SQLAMetaData,
-    eval_type,
-    lru_cache,
-    sqla_registry,
-)
+from typical import checks, classes, compat
 from typical.core import constants
 
 __all__ = (
@@ -72,7 +59,7 @@ __all__ = (
 )
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def origin(annotation: Any) -> Any:
     """Get the highest-order 'origin'-type for subclasses of typing._SpecialForm.
 
@@ -101,7 +88,7 @@ def origin(annotation: Any) -> Any:
         args = get_args(actual)
         actual = args[0] if args else actual
 
-    actual = get_origin(actual) or actual
+    actual = typing.get_origin(actual) or actual
 
     # provide defaults for generics
     if not checks.isbuiltintype(actual):
@@ -139,7 +126,7 @@ GENERIC_TYPE_MAP: dict[type, type] = {
 }
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def get_args(annotation: Any) -> Tuple[Any, ...]:
     """Get the args supplied to an annotation, excluding :py:class:`typing.TypeVar`.
 
@@ -166,8 +153,12 @@ def _normalize_typevars(*args: Any) -> Iterable:
             yield t
 
 
-@lru_cache(maxsize=None)
-def normalize_typevar(tvar: TypeVar):
+# Friendly alias for legacy purposes (used to have our own impl)
+get_origin = typing.get_origin
+
+
+@compat.lru_cache(maxsize=None)
+def normalize_typevar(tvar: TypeVar) -> type[Any]:
     """Reduce a TypeVar to a simple type."""
     if tvar.__bound__:
         return tvar.__bound__
@@ -176,8 +167,8 @@ def normalize_typevar(tvar: TypeVar):
     return Any
 
 
-@lru_cache(maxsize=None)
-def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
+@compat.lru_cache(maxsize=None)
+def get_name(obj: Union[Type, compat.ForwardRef, Callable]) -> str:
     """Safely retrieve the name of either a standard object or a type annotation.
 
     Examples:
@@ -197,8 +188,8 @@ def get_name(obj: Union[Type, ForwardRef, Callable]) -> str:
     return strobj.rsplit(".")[-1]
 
 
-@lru_cache(maxsize=None)
-def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
+@compat.lru_cache(maxsize=None)
+def get_qualname(obj: Union[Type, compat.ForwardRef, Callable]) -> str:
     """Safely retrieve the qualname of either a standard object or a type annotation.
 
     Examples:
@@ -215,7 +206,7 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
         'dict'
     """
     strobj = str(obj)
-    if isinstance(obj, ForwardRef):
+    if isinstance(obj, compat.ForwardRef):
         strobj = str(obj.__forward_arg__)
     isgeneric = checks.isgeneric(strobj)
     # We got a typing thing.
@@ -233,17 +224,17 @@ def get_qualname(obj: Union[Type, ForwardRef, Callable]) -> str:
     return strobj
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def get_unique_name(obj: Type) -> str:
     return f"{get_name(obj)}_{id(obj)}".replace("-", "_")
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def get_defname(pre: str, obj: Hashable) -> str:
     return f"{pre}_{hash(obj)}".replace("-", "_")
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def resolve_supertype(annotation: Type[Any] | types.FunctionType) -> Any:
     """Get the highest-order supertype for a NewType.
 
@@ -273,19 +264,19 @@ def signature(obj: Callable[..., Any] | type[Any]) -> inspect.Signature:
     return inspect.signature(obj)
 
 
-cached_signature = lru_cache(maxsize=None)(signature)
+cached_signature = compat.lru_cache(maxsize=None)(signature)
 
 
 def get_type_hints(
     obj: Union[Type, Callable], exhaustive: bool = True
 ) -> Dict[str, Type[Any]]:
     try:
-        hints = _get_type_hints(obj)
+        hints = typing.get_type_hints(obj)
     except (NameError, TypeError):
         hints = _safe_get_type_hints(obj)
     # KW_ONLY is a special sentinel to denote kw-only params in a dataclass.
     #  We don't want to do anything with this hint/field. It's not real.
-    hints = {f: t for f, t in hints.items() if t is not KW_ONLY}
+    hints = {f: t for f, t in hints.items() if t is not compat.KW_ONLY}
     if not hints and exhaustive:
         hints = _hints_from_signature(obj)
     return hints
@@ -305,9 +296,9 @@ def _hints_from_signature(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
             hints[name] = annotation
             continue
         if annotation.__class__ is str:
-            ref = ForwardRef(transform_annotation(annotation))
+            ref = compat.ForwardRef(annotation)
             try:
-                annotation = eval_type(ref, globalns or None, None)
+                annotation = compat.eval_type(ref, globalns or None, None)
             except NameError:
                 annotation = ref
             hints[name] = annotation
@@ -362,10 +353,10 @@ def _get_globalns(
     return base_globals, raw_annotations
 
 
-cached_type_hints = lru_cache(maxsize=None)(get_type_hints)
+cached_type_hints = compat.lru_cache(maxsize=None)(get_type_hints)
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def cached_issubclass(st: Type, t: Union[Type, Tuple[Type, ...]]) -> bool:
     """A cached result of :py:func:`issubclass`."""
     return issubclass(st, t)
@@ -396,8 +387,8 @@ def simple_attributes(t: Type) -> Tuple[str, ...]:
     )
 
 
-_DYNAMIC_ATTRIBUTES = (SQLAMetaData, sqla_registry)
-cached_simple_attributes = lru_cache(maxsize=None)(simple_attributes)
+_DYNAMIC_ATTRIBUTES = (compat.SQLAMetaData, compat.sqla_registry)
+cached_simple_attributes = compat.lru_cache(maxsize=None)(simple_attributes)
 
 
 def typed_dict_signature(obj: Callable) -> inspect.Signature:
@@ -440,7 +431,7 @@ def tuple_signature(t: type[tuple]) -> inspect.Signature:
     return sig
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     params: Mapping[str, inspect.Parameter]
     try:
@@ -452,7 +443,7 @@ def safe_get_params(obj: Type) -> Mapping[str, inspect.Parameter]:
     return params
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
     if any(
         t in {None, ...} or not inspect.isclass(t) or checks.isstdlibtype(t)
@@ -501,7 +492,7 @@ def get_tag_for_types(types: Tuple[Type, ...]) -> Optional[TaggedUnion]:
     return None
 
 
-@slotted(dict=False, weakref=True)
+@classes.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(frozen=True)
 class TaggedUnion:
     tag: str
@@ -510,7 +501,7 @@ class TaggedUnion:
     types_by_values: Tuple[Tuple[Any, Type], ...]
 
 
-@lru_cache(maxsize=None)
+@compat.lru_cache(maxsize=None)
 def flatten_union(t: _UnionT) -> _UnionT | None:
     stack = collections.deque([t])
     args = {}
@@ -599,9 +590,18 @@ def getcaller(frame: types.FrameType = None) -> types.FrameType:
     return frame
 
 
-@lru_cache(maxsize=None)
-def get_type_graph(t: Type) -> TypeGraph:
-    """Get a directed graph of the type(s) this annotation represents."""
+@compat.lru_cache(maxsize=None)
+def get_type_graph(t: Type) -> typing.Deque[typing.Deque[TypeGraph]]:
+    """Get a directed graph of the type(s) this annotation represents,
+
+    Optimized for Breadth-First Search.
+
+    Args:
+        t: A type annotation.
+
+    Returns:
+        A 2-dimensional array of :py:class:`TypeGraph`, enabling BFS.
+    """
     graph = _node(t)
     visited = {graph.type: graph}
     stack = collections.deque([graph])
@@ -635,7 +635,7 @@ def _level(node: TypeGraph) -> Sequence[tuple[str | None, type]]:
     return [*((None, t) for t in args), *(members.items())]  # type: ignore
 
 
-@slotted(dict=False, weakref=True)
+@classes.slotted(dict=False, weakref=True)
 @dataclasses.dataclass(unsafe_hash=True)
 class TypeGraph:
     """A graph representation of a"""
