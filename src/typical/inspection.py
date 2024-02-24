@@ -145,6 +145,9 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
     args = typing.get_args(annotation)
     if not args:
         args = getattr(annotation, "__args__", args)
+        if not isinstance(args, Iterable):
+            return ()
+
     return (*_normalize_typevars(*args),)
 
 
@@ -301,7 +304,7 @@ def _hints_from_signature(obj: Union[Type, Callable]) -> Dict[str, Type[Any]]:
         if annotation.__class__ is str:
             ref = compat.ForwardRef(annotation)
             try:
-                annotation = compat.eval_type(ref, globalns or None, None)
+                annotation = compat.evaluate_forwardref(ref, globalns or None, None)
             except NameError:
                 annotation = ref
             hints[name] = annotation

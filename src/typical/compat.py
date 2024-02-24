@@ -99,6 +99,8 @@ else:
             localns: Any,
             recursive_guard: set = None,
         ) -> Any:
+            if type(type_) is not ForwardRef:
+                return type_
             recursive_guard = recursive_guard or set()
             return type_._evaluate(globalns, localns, recursive_guard)
 
@@ -111,6 +113,8 @@ else:
             localns: Any,
             recursive_guard: set = None,
         ) -> Any:
+            if type(type_) is not ForwardRef:
+                return type_
             arg = transform_annotation(type_.__forward_arg__)
             globalns = {**globals(), **globalns}
             type_ = ForwardRef(arg, is_argument=type_.__forward_is_argument__)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import inspect
+import sys
+import typing
 import typing as t
 
 import pytest
@@ -114,6 +116,7 @@ StructuredTuple = t.Tuple[str]
 VarTuple = t.Tuple[str, ...]
 
 
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="3.8 doesn't handle ForwardRef.")
 @pytest.mark.suite(
     user_class=dict(
         annotation=FieldClass,
@@ -162,7 +165,7 @@ VarTuple = t.Tuple[str, ...]
                     name="field",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
-                    annotation="str",
+                    annotation=typing.ForwardRef("str"),
                 ),
             )
         ),

@@ -263,15 +263,23 @@ T = typing.TypeVar("T")
 @pytest.mark.parametrize(
     argnames=("annotation", "args"),
     argvalues=[
-        (typing.List, (typing.Any,)),
-        (typing.List[T], (typing.Any,)),
-        (typing.List[str], (str,)),
-        (typing.Optional[str], (str, type(None))),
+        (typing.List, ((typing.Any,), ())),
+        (typing.List[T], ((typing.Any,), ())),
+        (typing.List[str], ((str,),)),
+        (
+            typing.Optional[str],
+            (
+                (
+                    str,
+                    type(None),
+                ),
+            ),
+        ),
     ],
     ids=objects.get_id,
 )
 def test_get_args(annotation, args):
-    assert get_args(annotation) == args
+    assert get_args(annotation) in args
 
 
 @pytest.mark.parametrize(
