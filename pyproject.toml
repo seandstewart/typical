@@ -61,7 +61,7 @@ apischema = "^0.17.1"
 [tool.poetry.group.lint.dependencies]
 flake8 = "^7"
 mypy = "^1"
-black = "^23"
+black = "^24"
 # mypy needs these....
 types-python-dateutil = "*"
 types-setuptools = "*"
