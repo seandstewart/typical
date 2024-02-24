@@ -93,7 +93,7 @@ class JSONSchemaBuilder(
                     replacements[attrname] = (*replaces,)
 
             if replacements:
-                f = dataclasses.replace(f, **replacements)
+                f = dataclasses.replace(f, **replacements)  # type: ignore[arg-type]
             return f, definitions
 
         if isinstance(f, field.ObjectSchemaField):
@@ -122,7 +122,7 @@ class JSONSchemaBuilder(
                 to_replace["prefixItems"] = (*prefix_refs,)
 
             if to_replace:
-                f = dataclasses.replace(f, **to_replace)
+                f = dataclasses.replace(f, **to_replace)  # type: ignore[arg-type]
         return f, definitions
 
     def _from_mapping_constraint(

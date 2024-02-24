@@ -15,6 +15,7 @@ import pathlib
 import sqlite3
 import types
 import uuid
+from collections.abc import Callable as abc_Callable
 from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
@@ -49,7 +50,7 @@ from typical.compat import (
 from typical.core.annotations import ReadOnly, WriteOnly
 
 if TYPE_CHECKING:
-    from typical.core.constraints import AbstractConstraintValidator
+    from typical.constraints import AbstractConstraintValidator
     from typical.magic.typed import TypicObjectT
 
 ObjectT = TypeVar("ObjectT")
@@ -647,8 +648,7 @@ def isfromdictclass(obj: type[ObjectT]) -> TypeGuard[_FromDict]:
 
 
 class _FromDict(Protocol):
-    def from_dict(self, *args, **kwargs) -> _FromDict:
-        ...
+    def from_dict(self, *args, **kwargs) -> _FromDict: ...
 
 
 @lru_cache(maxsize=None)
@@ -668,7 +668,7 @@ _isinstance = isinstance
 def _type_check(t) -> bool:
     if _isinstance(t, tuple):
         return all(_type_check(x) for x in t)
-    return inspect.isclass(t)
+    return inspect.isclass(t) and not hasattr(t, "__origin__")
 
 
 def isinstance(o: Any, t: Union[type, Tuple[type, ...]]) -> bool:
@@ -891,30 +891,24 @@ _VT_cont = TypeVar("_VT_cont", contravariant=True)
 
 class GetDescriptor(Protocol[_VT_co]):
     @overload
-    def __get__(self, instance: None, owner: Any) -> GetDescriptor:
-        ...
+    def __get__(self, instance: None, owner: Any) -> GetDescriptor: ...
 
     @overload
-    def __get__(self, instance: object, owner: Any) -> _VT_co:
-        ...
+    def __get__(self, instance: object, owner: Any) -> _VT_co: ...
 
-    def __get__(self, instance: Any, owner: Any) -> GetDescriptor | _VT_co:
-        ...
+    def __get__(self, instance: Any, owner: Any) -> GetDescriptor | _VT_co: ...
 
 
 class SetDescriptor(Protocol[_VT_cont]):
-    def __set__(self, instance: Any, value: _VT_cont):
-        ...
+    def __set__(self, instance: Any, value: _VT_cont): ...
 
 
 class DeleteDescriptor(Protocol[_VT_co]):
-    def __delete__(self, instance: Any):
-        ...
+    def __delete__(self, instance: Any): ...
 
 
 class SetNameDescriptor(Protocol):
-    def __set_name__(self, owner: Any, name: str):
-        ...
+    def __set_name__(self, owner: Any, name: str): ...
 
 
 DescriptorT = Union[GetDescriptor, SetDescriptor, DeleteDescriptor, SetNameDescriptor]
@@ -1072,3 +1066,36 @@ def isgeneric(t: Any) -> bool:
         or issubclass(t, Generic)  # type: ignore[arg-type]
     )
     return is_generic
+
+
+@lru_cache(maxsize=None)
+def issubscriptedgeneric(t: Any) -> bool:
+    """Test whether the given type is a typing generic.
+
+    Examples:
+        >>> from typing import Tuple, Generic, TypeVar
+        >>> from typical import checks
+        >>>
+        >>> checks.isgeneric(Tuple)
+        True
+        >>> checks.isgeneric(tuple)
+        False
+        >>> T = TypeVar("T")
+        >>> class MyGeneric(Generic[T]): ...
+        >>> checks.isgeneric(MyGeneric[int])
+        True
+    """
+    strobj = str(t)
+    is_generic = (
+        strobj.startswith("typing.")
+        or strobj.startswith("typing_extensions.")
+        or issubclass(t, Generic)  # type: ignore[arg-type]
+    )
+    is_subscripted = "[" in strobj
+    return is_generic and is_subscripted
+
+
+@functools.lru_cache(maxsize=None)  # type: ignore[arg-type]
+def iscallable(t: Any) -> TypeGuard[Callable]:
+    origin = inspection.origin(t)
+    return inspect.isroutine(origin) or t is Callable or issubclass(t, abc_Callable)  # type: ignore[arg-type]

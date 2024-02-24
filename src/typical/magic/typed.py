@@ -153,8 +153,7 @@ _default_flags = SerdeFlags()
 
 
 @overload
-def wrap_cls(klass: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
-    ...
+def wrap_cls(klass: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]: ...
 
 
 @overload
@@ -164,8 +163,7 @@ def wrap_cls(
     schema: bool = True,
     serde: SerdeFlags = _default_flags,
     always: bool = False,
-) -> Callable[[], Type[WrappedObjectT[ObjectT]]]:
-    ...
+) -> Callable[[], Type[WrappedObjectT[ObjectT]]]: ...
 
 
 @overload
@@ -176,8 +174,7 @@ def wrap_cls(
     schema: bool = True,
     serde: SerdeFlags = _default_flags,
     always: bool = False,
-) -> Type[WrappedObjectT[ObjectT]]:
-    ...
+) -> Type[WrappedObjectT[ObjectT]]: ...
 
 
 def wrap_cls(
@@ -227,28 +224,23 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 @overload
 def typed(
     *, strict: bool
-) -> Callable[[_Type], Type[WrappedObjectT[_Type]]] | Callable[[_Func], _Func]:
-    ...
+) -> Callable[[_Type], Type[WrappedObjectT[_Type]]] | Callable[[_Func], _Func]: ...
 
 
 @overload
-def typed(_cls_or_callable: _Type) -> Type[WrappedObjectT[_Type]]:
-    ...
+def typed(_cls_or_callable: _Type) -> Type[WrappedObjectT[_Type]]: ...
 
 
 @overload
-def typed(_cls_or_callable: _Type, *, strict: bool) -> Type[WrappedObjectT[_Type]]:
-    ...
+def typed(_cls_or_callable: _Type, *, strict: bool) -> Type[WrappedObjectT[_Type]]: ...
 
 
 @overload
-def typed(_cls_or_callable: _Func) -> _Func:
-    ...
+def typed(_cls_or_callable: _Func) -> _Func: ...
 
 
 @overload
-def typed(_cls_or_callable: _Func, *, strict: bool) -> _Func:
-    ...
+def typed(_cls_or_callable: _Func, *, strict: bool) -> _Func: ...
 
 
 def typed(

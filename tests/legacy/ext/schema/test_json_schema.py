@@ -21,16 +21,13 @@ def test_typic_objects_schema(obj):
     assert obj.schema() is typic.schema(obj)
 
 
-class MySet(set):
-    ...
+class MySet(set): ...
 
 
-class MyURL(typic.URL):
-    ...
+class MyURL(typic.URL): ...
 
 
-class MyDateTime(datetime):
-    ...
+class MyDateTime(datetime): ...
 
 
 @typic.klass
@@ -439,7 +436,7 @@ schema_primitive_test_matrix = {
         },
     ),
     "string-tuple": (
-        Tuple[str],
+        Tuple[str, ...],
         {
             "items": {"title": "Str", "type": "string"},
             "title": "StrTuple",

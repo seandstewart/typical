@@ -11,8 +11,7 @@ __all__ = ("constrained",)
 
 
 @overload
-def constrained(cls: type[T], /) -> type[factory.ConstrainedType[T]]:
-    ...
+def constrained(cls: type[T], /) -> type[factory.ConstrainedType[T]]: ...
 
 
 @overload
@@ -23,8 +22,7 @@ def constrained(
     keys: type | tuple[type, ...],
     values: type | tuple[type, ...],
     **constraints,
-) -> factory.ConstrainedType[T]:
-    ...
+) -> factory.ConstrainedType[T]: ...
 
 
 @overload
@@ -33,15 +31,13 @@ def constrained(
     keys: type | tuple[type, ...],
     values: type | tuple[type, ...],
     **constraints,
-) -> Callable[[T], type[factory.ConstrainedType[T]]]:
-    ...
+) -> Callable[[T], type[factory.ConstrainedType[T]]]: ...
 
 
 @overload
 def constrained(
     **constraints,
-) -> Callable[[T], type[factory.ConstrainedType[T]]]:
-    ...
+) -> Callable[[T], type[factory.ConstrainedType[T]]]: ...
 
 
 def constrained(
@@ -164,5 +160,4 @@ class _ConstrainedTypeFactory(Protocol[T]):
         keys: type | tuple[type, ...] = None,
         values: type | tuple[type, ...] = None,
         **constraints,
-    ) -> factory.ConstrainedType[T]:
-        ...
+    ) -> factory.ConstrainedType[T]: ...

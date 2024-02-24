@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from typical.core.constraints.array import assertions
+from typical.constraints.array import assertions
 
 
 @pytest.mark.suite(

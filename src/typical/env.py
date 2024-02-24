@@ -86,8 +86,7 @@ class Environ:
         *aliases: str,
         t: Type[_ET],
         ci: bool = ...,
-    ) -> _ET:
-        ...
+    ) -> _ET: ...
 
     @overload
     def getenv(
@@ -95,8 +94,7 @@ class Environ:
         var: str,
         *aliases: str,
         ci: bool = ...,
-    ) -> str | None:
-        ...
+    ) -> str | None: ...
 
     def getenv(
         self,
@@ -136,7 +134,7 @@ class Environ:
             retval = None if value is constants.empty else value
             return retval
 
-        proto: interfaces.SerdeProtocol[_ET] = self.resolver.resolve(t)
+        proto: interfaces.SerdeProtocol[_ET] = self.resolver.resolve(t)  # type: ignore[arg-type]
         # If we still have no value, and the given type is not optional, raise an error.
         if value is ... and not proto.annotation.optional:
             raise EnvironmentValueError(
@@ -165,20 +163,15 @@ class Environ:
 
 class EnvGetter(Protocol[_ET]):
     @overload
-    def __call__(self, var: str, *, ci: bool = True, default: _ET) -> _ET:
-        ...
+    def __call__(self, var: str, *, ci: bool = True, default: _ET) -> _ET: ...
 
     @overload
-    def __call__(self, var: str, *, ci: bool = True) -> _ET | None:
-        ...
+    def __call__(self, var: str, *, ci: bool = True) -> _ET | None: ...
 
-    def __call__(self, var, *, ci=True, default=None):
-        ...
+    def __call__(self, var, *, ci=True, default=None): ...
 
 
-class EnvironmentValueError(ValueError):
-    ...
+class EnvironmentValueError(ValueError): ...
 
 
-class EnvironmentTypeError(TypeError):
-    ...
+class EnvironmentTypeError(TypeError): ...

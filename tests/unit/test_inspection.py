@@ -9,8 +9,7 @@ import pytest
 from typical import inspection
 
 
-class MyClass:
-    ...
+class MyClass: ...
 
 
 @pytest.mark.suite(
@@ -163,7 +162,7 @@ VarTuple = t.Tuple[str, ...]
                     name="field",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     default=None,
-                    annotation=t.ForwardRef("str"),
+                    annotation="str",
                 ),
             )
         ),

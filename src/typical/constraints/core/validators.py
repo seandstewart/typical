@@ -51,8 +51,7 @@ def get_validator_cls(
     return_if_instance: bool,
     nullable: bool,
     has_assertion: bool,
-) -> type[NoOpInstanceValidator]:
-    ...
+) -> type[NoOpInstanceValidator]: ...
 
 
 @overload
@@ -62,8 +61,7 @@ def get_validator_cls(
     return_if_instance: bool,
     nullable: bool,
     has_assertion: bool,
-) -> type[AbstractInstanceValidator]:
-    ...
+) -> type[AbstractInstanceValidator]: ...
 
 
 @overload
@@ -72,8 +70,7 @@ def get_validator_cls(
     return_if_instance: bool,
     nullable: bool,
     has_assertion: bool,
-) -> type[AbstractInstanceValidator]:
-    ...
+) -> type[AbstractInstanceValidator]: ...
 
 
 @functools.lru_cache(maxsize=None)
@@ -83,7 +80,7 @@ def get_validator_cls(
     return_if_instance: bool,
     nullable: bool,
     has_assertion: bool,
-) -> AbstractValidator:
+) -> type[AbstractValidator]:
     if no_op:
         return NoOpInstanceValidator
     selector = InstanceValidatorSelector(
@@ -97,8 +94,7 @@ def get_validator_cls(
 class ValidatorProtocol(Protocol[VT_co]):
     """The required signature for a type-validator."""
 
-    def __call__(self, value: Any) -> ValidatorReturnT[VT_co]:
-        ...
+    def __call__(self, value: Any) -> ValidatorReturnT[VT_co]: ...
 
 
 ValidatorReturnT = Tuple[TypeGuard[VT_co], Union[VT_co, Any]]
@@ -131,8 +127,7 @@ class AbstractValidator(abc.ABC, Generic[VT]):
         self.__call__ = self._get_closure()
 
     @abc.abstractmethod
-    def _get_closure(self) -> ValidatorProtocol[VT]:
-        ...
+    def _get_closure(self) -> ValidatorProtocol[VT]: ...
 
 
 # endregion

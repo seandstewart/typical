@@ -129,8 +129,7 @@ class FrozenDict(Generic[KT, VT], dict):
 
 
 class Unhashable(Protocol):
-    def __hash__(self) -> None:
-        ...
+    def __hash__(self) -> None: ...
 
 
 UnhashableT = TypeVar("UnhashableT", bound=Unhashable)
@@ -140,28 +139,23 @@ _KT = TypeVar("_KT")
 
 
 @overload
-def freeze(o: HashableT | UnhashableT) -> HashableT:
-    ...
+def freeze(o: HashableT | UnhashableT) -> HashableT: ...
 
 
 @overload
-def freeze(o: type[None]) -> None:
-    ...
+def freeze(o: type[None]) -> None: ...
 
 
 @overload
-def freeze(o: set[_VT]) -> frozenset[_VT]:
-    ...
+def freeze(o: set[_VT]) -> frozenset[_VT]: ...
 
 
 @overload
-def freeze(o: dict[_KT, _VT]) -> FrozenDict[_KT, _VT]:
-    ...
+def freeze(o: dict[_KT, _VT]) -> FrozenDict[_KT, _VT]: ...
 
 
 @overload
-def freeze(o: list[_VT]) -> tuple[_VT]:
-    ...
+def freeze(o: list[_VT]) -> tuple[_VT]: ...
 
 
 def freeze(o, *, __hashgetter=ishashable):

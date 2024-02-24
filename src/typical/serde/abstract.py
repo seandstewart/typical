@@ -51,5 +51,4 @@ class AbstractSerDesRoutine(abc.ABC, Generic[_T, _SerDesT]):
         return self.__call__.__hash__()
 
     @abc.abstractmethod
-    def _get_closure(self) -> _SerDesT:
-        ...
+    def _get_closure(self) -> _SerDesT: ...

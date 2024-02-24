@@ -38,8 +38,8 @@ from typical.inspection import (
 )
 
 if TYPE_CHECKING:
-    from typical.resolver import Resolver
     from typical.core.interfaces import Annotation, SerdeProtocol, TranslatorT
+    from typical.resolver import Resolver
 
 
 __all__ = ("TranslatorFactory", "TranslatorValueError", "TranslatorTypeError")
@@ -304,9 +304,7 @@ _itemscaller = methodcaller("items")
 _valuescaller = methodcaller("values")
 
 
-class TranslatorTypeError(TypeError):
-    ...
+class TranslatorTypeError(TypeError): ...
 
 
-class TranslatorValueError(ValueError):
-    ...
+class TranslatorValueError(ValueError): ...

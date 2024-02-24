@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from typical.core.constraints.text import assertions
+from typical.constraints.text import assertions
 
 
 @pytest.mark.suite(

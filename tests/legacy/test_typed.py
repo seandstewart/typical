@@ -34,8 +34,8 @@ from typical.api import (
 )
 from typical.checks import BUILTIN_TYPES, isbuiltintype, istypeddict
 from typical.compat import Literal
-from typical.core.constraints.core.error import ConstraintValueError
-from typical.desers import safe_eval
+from typical.constraints.core.error import ConstraintValueError
+from typical.core.desers import safe_eval
 from typical.inspection import get_args
 from typical.inspection import origin as get_origin
 from typical.inspection import resolve_supertype
@@ -46,8 +46,7 @@ from typical.types import DirectoryPath, NetworkAddress
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
 
-class SubUUID(uuid.UUID):
-    ...
+class SubUUID(uuid.UUID): ...
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -264,8 +263,8 @@ T = typing.TypeVar("T")
 @pytest.mark.parametrize(
     argnames=("annotation", "args"),
     argvalues=[
-        (typing.List, ()),
-        (typing.List[T], ()),
+        (typing.List, (typing.Any,)),
+        (typing.List[T], (typing.Any,)),
         (typing.List[str], (str,)),
         (typing.Optional[str], (str, type(None))),
     ],
@@ -509,8 +508,8 @@ def test_eval_invalid():
 @pytest.mark.parametrize(
     argnames=("instance", "attr", "value", "type"),
     argvalues=[
-        (typed(objects.Data)("foo"), "foo", 1, str),
-        (typed(objects.NoParams)(), "var", 1, str),
+        (typed(objects.Data, always=True)("foo"), "foo", 1, str),
+        (typed(objects.NoParams, always=True)(), "var", 1, str),
     ],
     ids=objects.get_id,
 )
@@ -585,7 +584,7 @@ def test_typic_callable_delayed():
 
 
 @pytest.mark.parametrize(
-    argnames=("type", "value", "expected"),
+    argnames=("cls", "value", "expected"),
     argvalues=[
         (objects.ShortStr, "foo", "foo"),
         (objects.ShortStr, 1, "1"),
@@ -595,8 +594,8 @@ def test_typic_callable_delayed():
     ],
     ids=objects.get_id,
 )
-def test_cast_constrained(type, value, expected):
-    assert type(value) == expected
+def test_cast_constrained(cls, value, expected):
+    assert cls(value) == expected
 
 
 @pytest.mark.parametrize(
@@ -637,8 +636,7 @@ def test_bad_constraint_class():
     with pytest.raises(TypeError):
 
         @constrained
-        class Foo:
-            ...
+        class Foo: ...
 
 
 def test_strict_mode():
@@ -742,13 +740,11 @@ def test_strict_varargs_passes(func, args, kwargs, expected):
 
 
 @constrained(values=NetworkAddress)
-class Addresses(list):
-    ...
+class Addresses(list): ...
 
 
 @constrained(values=NetworkAddress)
-class AddresseMap(dict):
-    ...
+class AddresseMap(dict): ...
 
 
 @pytest.mark.parametrize(
@@ -765,7 +761,7 @@ class AddresseMap(dict):
             AddresseMap(foo=NetworkAddress("tcp://foo")),
         ),
     ],
-    ids=objects.get_id,
+    ids=["addresses_list", "addresses_map"],
 )
 def test_transmute_nested_constrained(anno, val, expected):
     c = transmute(anno, val)
@@ -865,8 +861,7 @@ def test_translate(target, value):
     assert isinstance(t, target)
 
 
-class Cls:
-    ...
+class Cls: ...
 
 
 @pytest.mark.parametrize(
@@ -883,7 +878,6 @@ def test_translate_error(target, value, exc):
 
 
 def test_prevent_recursion_with_slots():
-
     with pytest.raises(TypeError):
 
         class SubMeta(metaclass=objects.MetaSlotsClass):

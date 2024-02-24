@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from typical.core.constraints.mapping import assertions
+from typical.constraints.mapping import assertions
 
 
 @pytest.mark.suite(

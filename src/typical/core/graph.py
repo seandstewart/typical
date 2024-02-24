@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import collections
 import operator
-from typing import Iterator, Protocol, Deque, Iterable, TypeVar
+from typing import Deque, Iterable, Iterator, Protocol, TypeVar
 
 __all__ = ("bfs", "dfs", "iter2darray", "GraphProtocol")
 
 
-def dfs(graph: _GraphT, *, reverse: bool = True) -> Iterator[_GraphT]:
+def dfs(graph: GraphProtocol, *, reverse: bool = True) -> Iterator[GraphProtocol]:
     """Traverse the type graph via DFS, optionally reverse the flow."""
     return _traverse_reverse(graph) if reverse else _traverse_forward(graph)
 
 
-def _traverse_forward(graph: _GraphT) -> Iterator[_GraphT]:
+def _traverse_forward(graph: GraphProtocol) -> Iterator[GraphProtocol]:
     root = graph
     while root.parent:
         root = root.parent
@@ -26,7 +26,7 @@ def _traverse_forward(graph: _GraphT) -> Iterator[_GraphT]:
         stack.extend((n for n in leaf.nodes if n not in seen))
 
 
-def _traverse_reverse(graph: _GraphT) -> Iterator[_GraphT]:
+def _traverse_reverse(graph: GraphProtocol) -> Iterator[GraphProtocol]:
     yield from reversed([*_traverse_forward(graph)])
 
 
@@ -65,9 +65,7 @@ class GraphProtocol(Protocol):
     parent: GraphProtocol | None
     pretty_name: str
 
-    def __hash__(self) -> int:
-        ...
+    def __hash__(self) -> int: ...
 
 
 _T = TypeVar("_T")
-_GraphT = TypeVar("_GraphT", bound=GraphProtocol)

@@ -73,8 +73,7 @@ def test_isstdlibtype(given_type):
 def test_isstdlibsubtype():
     # Given
 
-    class SuperStr(str):
-        ...
+    class SuperStr(str): ...
 
     # When
     is_valid = checks.isstdlibsubtype(SuperStr)

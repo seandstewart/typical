@@ -97,8 +97,7 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         cv: constraints.StructuredObjectConstraints,
         *,
         field_name: str = None,
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_mapping_constraint(
@@ -106,32 +105,27 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         c: constraints.MappingConstraints,
         *,
         field_name: str = None,
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_array_constraint(
         self, c: constraints.ArrayConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_text_constraint(
         self, c: constraints.TextConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_decimal_constraint(
         self, c: constraints.DecimalConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_number_constraint(
         self, c: constraints.NumberConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_enumeration_constraint(
@@ -139,20 +133,17 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         c: constraints.EnumerationConstraints,
         *,
         field_name: str = None,
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_type_constraint(
         self, c: constraints.TypeConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_multi_constraint(
         self, c: constraints.MultiConstraints, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _from_undeclared_constraint(
@@ -160,30 +151,24 @@ class AbstractSchemaBuilder(abc.ABC, Generic[DefinitionT, PackageT]):
         c: constraints.UndeclaredTypeConstraints,
         *,
         field_name: str = None,
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
     def _handle_cyclic_constraint(
         self, c: CT, *, field_name: str = None
-    ) -> DefinitionT:
-        ...
+    ) -> DefinitionT: ...
 
     @abc.abstractmethod
-    def _gather_definitions(self) -> PackageT:
-        ...
+    def _gather_definitions(self) -> PackageT: ...
 
     @abc.abstractmethod
-    def _wrap_nullable(self, definition: DefinitionT) -> DefinitionT:
-        ...
+    def _wrap_nullable(self, definition: DefinitionT) -> DefinitionT: ...
 
     @abc.abstractmethod
-    def _handle_readonly(self, definition: DefinitionT) -> DefinitionT:
-        ...
+    def _handle_readonly(self, definition: DefinitionT) -> DefinitionT: ...
 
     @abc.abstractmethod
-    def _handle_writeonly(self, definition: DefinitionT) -> DefinitionT:
-        ...
+    def _handle_writeonly(self, definition: DefinitionT) -> DefinitionT: ...
 
     _CONSTRAINT_TO_HANDLER: _SchemaBuilderMapT
     _cache: dict[constraints.AbstractConstraints, DefinitionT]

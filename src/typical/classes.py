@@ -6,6 +6,7 @@ import sys
 import warnings
 from typing import Any, Iterable, MutableSet, Type, Union
 
+
 def slotted(
     _cls: Type = None,
     *,

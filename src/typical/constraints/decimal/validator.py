@@ -37,7 +37,7 @@ def get_validator(
             mul=constraints.mul,
         )
         assertion = d_assertion_cls(
-            number_assertions=n_assertion,
+            number_assertions=n_assertion,  # type: ignore[arg-type]
             max_digits=constraints.max_digits,
             max_decimal_places=constraints.decimal_places,
         )

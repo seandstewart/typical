@@ -3,13 +3,11 @@ from __future__ import annotations
 import decimal as stdlib_decimal
 import functools
 import inspect
-import types
 import typing
 from typing import Any, Callable, Hashable, TypeVar, Union, cast
 
 from typical import checks, inspection
-from typical.compat import ForwardRef, Generic, Protocol, transform_annotation
-from typical.core import constants
+from typical.compat import ForwardRef, Generic, Protocol
 from typical.constraints import (
     array,
     decimal,
@@ -20,6 +18,7 @@ from typical.constraints import (
     text,
 )
 from typical.constraints.core import structs, validators
+from typical.core import constants
 from typical.types import frozendict
 
 VT = TypeVar("VT")
@@ -387,7 +386,12 @@ class ConstraintsFactory:
         values_cv: engine.ValueEntryValidator | None = (
             engine.ValueEntryValidator(values) if values else None
         )
-        items: engine.FieldEntryValidator | engine.ValueEntryValidator | engine.CompoundEntryValidator | None
+        items: (
+            engine.FieldEntryValidator
+            | engine.ValueEntryValidator
+            | engine.CompoundEntryValidator
+            | None
+        )
         items = keys_cv or values_cv
         if keys_cv and values_cv:
             items = engine.CompoundEntryValidator(keys_cv, values_cv)
@@ -514,7 +518,10 @@ class ConstraintsFactory:
     ):
         isnamedtuple = checks.isnamedtuple(t)
         constraints: structs.AbstractConstraints
-        cv: engine.StructuredTupleConstraintValidator | engine.StructuredObjectConstraintValidator
+        cv: (
+            engine.StructuredTupleConstraintValidator
+            | engine.StructuredObjectConstraintValidator
+        )
         validator: validators.AbstractValidator
         if checks.istupletype(t) and not isnamedtuple:
             hints = inspection.cached_type_hints(t)
@@ -645,8 +652,7 @@ class _ConstraintFactoryT(Protocol[VT]):
         cls: type | None | ... = ...,  # type: ignore[misc]
         default: Hashable | Callable[[], VT] | constants.empty = constants.empty,
         **config,
-    ) -> structs.AbstractConstraintValidator[VT]:
-        ...
+    ) -> structs.AbstractConstraintValidator[VT]: ...
 
 
 class _limit_cyclic:

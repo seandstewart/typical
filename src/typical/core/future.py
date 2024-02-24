@@ -21,21 +21,24 @@ def transform_annotation(annotation: str, *, union: str = "Union") -> str:
         at runtime and there are errors in your declaration, they will result in an
         error in the transformed annotation as well.
     """
-    parsed = ast.parse(annotation, mode='eval')
+    parsed = ast.parse(annotation, mode="eval")
     transformed = TransformUnion().visit(parsed)
     unparsed = compat.unparse(transformed).strip()
     return unparsed
 
 
-def write_anno_expr(tree: ast.Expression | ast.Name | ast.Subscript | ast.Attribute):
+def write_anno_expr(
+    tree: ast.Expression | ast.Name | ast.Subscript | ast.Attribute | ast.expr,
+):
     expr = tree.body if isinstance(tree, ast.Expression) else tree
     if isinstance(expr, ast.Name):
         return expr.id
     if isinstance(expr, ast.Subscript):
-        if isinstance(expr.slice.value, ast.Tuple):
-            subscript = ", ".join(write_anno_expr(c) for c in expr.slice.value.elts)
+        val = expr.slice.value  # type: ignore[attr-defined]
+        if isinstance(val, ast.Tuple):
+            subscript = ", ".join(write_anno_expr(c) for c in val.elts)
         else:
-            subscript = write_anno_expr(expr.slice.value)
+            subscript = write_anno_expr(val)
         return f"{write_anno_expr(expr.value)}[{subscript}]"
     if isinstance(expr, ast.List):
         children = ", ".join(write_anno_expr(c) for c in expr.elts)
@@ -63,12 +66,7 @@ class TransformUnion(ast.NodeTransformer):
 
         union = ast.Subscript(
             value=ast.Name(id="Union", ctx=ast.Load()),
-            slice=ast.Index(
-                value=ast.Tuple(
-                    elts=[*args],
-                    ctx=ast.Load()
-                )
-            ),
+            slice=ast.Index(value=ast.Tuple(elts=[*args], ctx=ast.Load())),
             ctx=ast.Load(),
         )
         ast.copy_location(union, node)
@@ -79,10 +77,7 @@ class TransformUnion(ast.NodeTransformer):
         if node.id not in _GENERICS:
             return node
 
-        new = ast.Name(
-            id=_GENERICS[node.id],
-            ctx=ast.Load()
-        )
+        new = ast.Name(id=_GENERICS[node.id], ctx=ast.Load())
         ast.copy_location(new, node)
         return new
 

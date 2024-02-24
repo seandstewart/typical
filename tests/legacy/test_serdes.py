@@ -50,12 +50,10 @@ class ClassVarEnum:
     foo: ClassVar[objects.FooNum] = objects.FooNum.bar
 
 
-class SubStr(str):
-    ...
+class SubStr(str): ...
 
 
-class SubURL(typic.URL):
-    ...
+class SubURL(typic.URL): ...
 
 
 @pytest.mark.parametrize(
@@ -530,8 +528,7 @@ def test_transmute_excluded():
 
 
 def test_routine_protocol():
-    def foo():
-        ...
+    def foo(): ...
 
     proto = typic.protocol(foo)
     assert proto.transmute(foo) is foo

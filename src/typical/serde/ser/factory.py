@@ -8,7 +8,6 @@ import ipaddress
 import pathlib
 import re
 import uuid
-from collections import abc
 from collections.abc import Collection as Collection_abc
 from collections.abc import Iterable as Iterable_abc
 from collections.abc import Mapping as Mapping_abc
@@ -49,8 +48,7 @@ if TYPE_CHECKING:  # pragma: nocover
 __all__ = ("SerFactory", "SerializationValueError", "DelayedSerializer")
 
 
-class SerializationValueError(ValueError):
-    ...
+class SerializationValueError(ValueError): ...
 
 
 _T = TypeVar("_T")

@@ -5,9 +5,9 @@ from unittest import mock
 
 import pytest
 
+from typical.constraints import error
 from typical.constraints.core.assertions import NoOpAssertion
 from typical.constraints.decimal import assertions
-from typical.constraints import error
 
 
 @pytest.mark.suite(

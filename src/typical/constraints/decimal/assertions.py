@@ -42,7 +42,7 @@ def get_assertion_cls(
         has_mul=has_mul,
     )
     if not number_assertion:
-        number_assertion = assertions.NoOpAssertion
+        number_assertion = assertions.NoOpAssertion  # type: ignore[assignment]
     selector = DecimalAssertionsSelector(
         has_max_digits=has_max_digits, has_max_decimals=has_max_decimals
     )
@@ -117,10 +117,10 @@ class AbstractDecimalAssertion(assertions.AbstractAssertions[_DT]):
     @staticmethod
     @functools.lru_cache(maxsize=2000)
     def _get_digits(num: numbers.Number) -> tuple[int, int, int]:
-        tup = decimal.Decimal(num).as_tuple()
-        if tup.exponent >= 0:
+        tup = decimal.Decimal(num).as_tuple()  # type: ignore[arg-type]
+        if tup.exponent >= 0:  # type: ignore[operator]
             # A positive exponent adds that many trailing zeros.
-            digits = len(tup.digits) + tup.exponent
+            digits = len(tup.digits) + tup.exponent  # type: ignore[operator]
             decimals = 0
         else:
             # If the absolute value of the negative exponent is larger than the
@@ -128,11 +128,11 @@ class AbstractDecimalAssertion(assertions.AbstractAssertions[_DT]):
             # because it'll consume all of the digits in digit_tuple and then
             # add abs(exponent) - len(digit_tuple) leading zeros after the
             # decimal point.
-            if abs(tup.exponent) > len(tup.digits):
-                digits = decimals = abs(tup.exponent)
+            if abs(tup.exponent) > len(tup.digits):  # type: ignore[arg-type]
+                digits = decimals = abs(tup.exponent)  # type: ignore[arg-type]
             else:
                 digits = len(tup.digits)
-                decimals = abs(tup.exponent)
+                decimals = abs(tup.exponent)  # type: ignore[arg-type]
         whole_digits = digits - decimals
         return whole_digits, digits, decimals
 

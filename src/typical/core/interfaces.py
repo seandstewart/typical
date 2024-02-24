@@ -24,9 +24,13 @@ from typing import (
     cast,
 )
 
-from typical import checks, classes, constraints as const, inspection, types
+from typical import checks, classes
+from typical import constraints as const
+from typical import inspection, types
 from typical.compat import ForwardRef, Generic, Protocol, TypedDict, evaluate_forwardref
-from typical.core import constants, strict as st, strings
+from typical.core import constants
+from typical.core import strict as st
+from typical.core import strings
 from typical.core.annotations import AnyOrTypeT, ObjectT, OriginT
 
 if TYPE_CHECKING:  # pragma: nocover
@@ -85,8 +89,7 @@ class EncoderT(Protocol[_InputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: _InputT, **kwargs) -> AnyStr:
-        ...
+    def __call__(self, value: _InputT, **kwargs) -> str | bytes: ...
 
 
 class EncoderMethodT(Protocol[_InputT_co]):
@@ -95,8 +98,7 @@ class EncoderMethodT(Protocol[_InputT_co]):
     __name__: str
     __qualname__: str
 
-    def __call__(self: _InputT_co, **kwargs) -> AnyStr:
-        ...
+    def __call__(self: _InputT_co, **kwargs) -> str | bytes: ...
 
 
 class DecoderT(Protocol[_OutputT]):
@@ -105,8 +107,7 @@ class DecoderT(Protocol[_OutputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: AnyStr, **kwargs) -> _OutputT:
-        ...
+    def __call__(self, value: AnyStr, **kwargs) -> _OutputT: ...
 
 
 class TranslatorT(Protocol[_InputT]):
@@ -115,8 +116,7 @@ class TranslatorT(Protocol[_InputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: _InputT, target: Type[_OutputT]) -> _OutputT:
-        ...
+    def __call__(self, value: _InputT, target: Type[_OutputT]) -> _OutputT: ...
 
 
 class TranslatorMethodT(Protocol[_InputT_co]):
@@ -125,8 +125,7 @@ class TranslatorMethodT(Protocol[_InputT_co]):
     __name__: str
     __qualname__: str
 
-    def __call__(self: _InputT_co, target: Type[_OutputT]) -> _OutputT:
-        ...
+    def __call__(self: _InputT_co, target: Type[_OutputT]) -> _OutputT: ...
 
 
 class SerializerT(Protocol[_InputT]):
@@ -137,8 +136,7 @@ class SerializerT(Protocol[_InputT]):
 
     def __call__(
         self, obj: _InputT, *, lazy: bool = False, name: classes.ReprT = None
-    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
-        ...
+    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]: ...
 
 
 class SerializerMethodT(Protocol[_InputT_co]):
@@ -149,8 +147,7 @@ class SerializerMethodT(Protocol[_InputT_co]):
 
     def __call__(
         self: _InputT_co, *, lazy: bool = False, name: classes.ReprT = None
-    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
-        ...
+    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]: ...
 
 
 class DeserializerT(Protocol[_OutputT]):
@@ -159,8 +156,7 @@ class DeserializerT(Protocol[_OutputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, val: Any) -> _OutputT:
-        ...
+    def __call__(self, val: Any) -> _OutputT: ...
 
 
 class FieldIteratorT(Protocol[_InputT]):
@@ -171,11 +167,10 @@ class FieldIteratorT(Protocol[_InputT]):
 
     def __call__(
         self, o: _InputT, *, values: bool = False, **kwargs
-    ) -> Iterator[Union[Tuple[str, Any], Any]]:
-        ...
+    ) -> Iterator[Union[Tuple[str, Any], Any]]: ...
 
 
-PrimitiveT = TypeVar("PrimitiveT", str, int, float, list, dict)
+PrimitiveT = Union[str, int, float, list, dict]
 """"""
 OmitSettingsT = Tuple[AnyOrTypeT, ...]
 """Specify types or values which you wish to omit from the output."""
@@ -363,12 +358,10 @@ class Annotation(Generic[_AT]):
     is_class_var: bool = dataclasses.field(init=False)
     resolved_origin: _AT = dataclasses.field(init=False, repr=False)
     args: Tuple[Type, ...] = dataclasses.field(init=False)
-    nargs: Tuple[Type, ...] = dataclasses.field(init=False, repr=False)
 
     def __post_init__(self):
         self.has_default = self.parameter.default is not self.EMPTY
         self.args = inspection.get_args(self.resolved)
-        self.nargs = (*(a for a in self.args if a not in OPTIONALS),)
         self.resolved_origin = inspection.origin(self.resolved)
         self.generic = getattr(self.resolved, "__origin__", self.resolved_origin)
         self.is_class_var = checks.isclassvartype(self.un_resolved)
@@ -424,9 +417,11 @@ class ForwardDelayedAnnotation:
                 is_optional=self.is_optional,
                 is_strict=self.is_strict,
                 flags=self.flags,
-                default=constants.empty
-                if self.default is inspect.Parameter.empty
-                else self.default,
+                default=(
+                    constants.empty
+                    if self.default is inspect.Parameter.empty
+                    else self.default
+                ),
             )
             self._resolved = self.resolver._resolve_from_annotation(anno)
         return self._resolved
@@ -436,63 +431,9 @@ class ForwardDelayedAnnotation:
         return inspection.get_name(self.ref)
 
 
-@classes.slotted(dict=False)
-@dataclasses.dataclass(unsafe_hash=True)
-class DelayedAnnotation:
-    type: Type
-    resolver: Resolver
-    parameter: Optional[inspect.Parameter] = None
-    is_optional: Optional[bool] = None
-    is_strict: Optional[st.StrictModeT] = None
-    flags: Optional["SerdeFlags"] = None
-    default: Any = constants.empty
-    _name: Optional[str] = None
-    _resolved: Optional["SerdeProtocol"] = dataclasses.field(default=None)
+DelayedAnnotation = ForwardDelayedAnnotation
 
-    @reprlib.recursive_repr()
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}("
-            f"parameter={self.parameter}, "
-            f"is_optional={self.is_optional}, "
-            f"is_strict={self.is_strict}, "
-            f"flags={self.flags}, "
-            f"default={self.default})"
-        )
-
-    @property
-    def resolved(self):
-        if self._resolved is None:
-            anno = self.resolver.annotation(
-                self.type,
-                name=self._name,
-                parameter=self.parameter,
-                is_optional=self.is_optional,
-                is_strict=self.is_strict,
-                flags=self.flags,
-                default=constants.empty
-                if self.default is inspect.Parameter.empty
-                else self.default,
-            )
-            self._resolved = self.resolver._resolve_from_annotation(anno)
-        return self._resolved
-
-    @property
-    def origin(self):
-        return self.type
-
-    @property
-    def resolved_origin(self):
-        return self.type
-
-    @property
-    def name(self) -> str:
-        return inspection.get_name(self.type)
-
-
-AnnotationT = TypeVar(
-    "AnnotationT", Annotation, ForwardDelayedAnnotation, DelayedAnnotation
-)
+AnnotationT = TypeVar("AnnotationT", Annotation, ForwardDelayedAnnotation)
 
 
 class DelayedSerdeProtocol(SerdeProtocol[ObjectT]):
@@ -503,7 +444,7 @@ class DelayedSerdeProtocol(SerdeProtocol[ObjectT]):
 
     def __init__(
         self,
-        delayed: Union[ForwardDelayedAnnotation, DelayedAnnotation],
+        delayed: Union[ForwardDelayedAnnotation],
     ):
         self.delayed = delayed
         self.transmute = lambda val: self.deserialize(val)  # type: ignore

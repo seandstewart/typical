@@ -41,8 +41,7 @@ class BaseTextPrecheck(abc.ABC):
         self.max_length = max_length
 
     @abc.abstractmethod
-    def __call__(self, value: AnyStr) -> AnyStr:
-        ...
+    def __call__(self, value: AnyStr) -> AnyStr: ...
 
 
 class ShortenAndStripPrecheck(BaseTextPrecheck):

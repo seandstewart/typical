@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from typical.core.constraints.text import prechecks
+from typical.constraints.text import prechecks
 
 
 @pytest.mark.suite(

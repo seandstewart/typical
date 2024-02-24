@@ -8,6 +8,7 @@ from mypy.nodes import (
     ARG_POS,
     MDEF,
     Argument,
+    DataclassTransformSpec,
     SymbolTableNode,
     TypeVarExpr,
     Var,
@@ -80,7 +81,9 @@ class TypicTransformer:
 
     def __init__(self, ctx: ClassDefContext):
         self._ctx = ctx
-        self.dclass = DataclassTransformer(self._ctx)
+        self.dclass = DataclassTransformer(
+            self._ctx.cls, self._ctx.reason, DataclassTransformSpec(), self._ctx.api
+        )
 
     def transform(self) -> None:
         self.dclass.transform()
@@ -103,11 +106,11 @@ class TypicTransformer:
     def _get_tvar_self_name(self) -> str:
         return self._get_tvar_name(SELF_TVAR_NAME, self._ctx.cls.info)
 
-    def _add_tvar_expr(self, name: str, ctx):
+    def _add_tvar_expr(self, name: str, ctx, default):
         info = ctx.cls.info
         obj_type = ctx.api.named_type("builtins.object")
         self_tvar_expr = TypeVarExpr(
-            name, self._get_tvar_name(name, info), [], obj_type
+            name, self._get_tvar_name(name, info), [], obj_type, default
         )
         info.names[name] = SymbolTableNode(MDEF, self_tvar_expr)
 
@@ -117,7 +120,12 @@ class TypicTransformer:
     def _get_tvar_def(self, name: str, ctx):
         obj_type = ctx.api.named_type("builtins.object")
         return TypeVarType(
-            SELF_TVAR_NAME, self._get_tvar_name(name, ctx.cls.info), -1, [], obj_type
+            SELF_TVAR_NAME,
+            self._get_tvar_name(name, ctx.cls.info),
+            -1,
+            [],
+            obj_type,
+            ctx.api.named_type("None"),
         )
 
     def add_schema_method(self):

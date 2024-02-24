@@ -15,13 +15,14 @@ from typing import (
     cast,
 )
 
-import typical.classes
-import typical.inspection
-from typical import checks, types
+from typical import checks, classes, inspection, types
 from typical.compat import Generic, TypeGuard
 from typical.core import constants, desers
 from typical.core.interfaces import PrimitiveT, SerializerT
 from typical.serde import abstract
+
+if TYPE_CHECKING:
+    from typical.core.interfaces import Annotation
 
 
 __all__ = (
@@ -55,7 +56,7 @@ class BaseSerializerRoutine(
         def serializer(
             o: _T,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __check=check,
             __serialize=ser,
@@ -66,8 +67,7 @@ class BaseSerializerRoutine(
 
         return cast("SerializerT[_T]", serializer)
 
-    def _get_serializer(self) -> SerializerT[_T]:
-        ...
+    def _get_serializer(self) -> SerializerT[_T]: ...
 
     def _get_checks(self) -> _CheckT:
         generic = self.annotation.generic
@@ -75,9 +75,9 @@ class BaseSerializerRoutine(
         if checks.istypeddict(generic):
             generic = dict
         stdlib = False
-        tcheck: Callable[..., bool] = typical.inspection.cached_issubclass
-        tname = typical.inspection.get_name(self.annotation.resolved_origin)
-        tqualname = typical.inspection.get_qualname(self.annotation.generic)
+        tcheck: Callable[..., bool] = inspection.cached_issubclass
+        tname = inspection.get_name(self.annotation.resolved_origin)
+        tqualname = inspection.get_qualname(self.annotation.generic)
         if checks.isstdlibsubtype(generic):
             tcheck = isinstance
             stdlib = True
@@ -87,7 +87,7 @@ class BaseSerializerRoutine(
             def nullable_stdlib_check(
                 o,
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 __tcheck=tcheck,
                 __optionals=self.resolver.OPTIONALS,
                 __t=generic,
@@ -113,7 +113,7 @@ class BaseSerializerRoutine(
             def stdlib_check(
                 o,
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 __tcheck=tcheck,
                 __t=generic,
                 __tname=tname,
@@ -136,7 +136,7 @@ class BaseSerializerRoutine(
             def nullable_check(
                 o,
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 __tcheck=tcheck,
                 __optionals=self.resolver.OPTIONALS,
                 __t=generic,
@@ -161,7 +161,7 @@ class BaseSerializerRoutine(
         def check(
             o,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             __tcheck=tcheck,
             __t=generic,
             __tname=tname,
@@ -189,7 +189,7 @@ class BaseCastSerializerSerializerRoutine(BaseSerializerRoutine[_T]):
         def serializer(
             o: _T,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __check=check,
             __serialize=ser,
@@ -208,7 +208,7 @@ class NoopSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
             def null_noop_serializer(
                 o: _T,
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
             ) -> None:
                 return None
@@ -220,7 +220,7 @@ class NoopSerializerRoutine(BaseCastSerializerSerializerRoutine[_T]):
         def noop_serializer(
             o: PrimitiveT,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __check=checks,
         ) -> PrimitiveT | None:
@@ -287,7 +287,7 @@ class CollectionSerializerRoutine(BaseSerializerRoutine[Collection[_VT]]):
             def list_filter_serializer(
                 o: Collection[_VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __args=arg_ser,
                 __omit=omit,
@@ -303,7 +303,7 @@ class CollectionSerializerRoutine(BaseSerializerRoutine[Collection[_VT]]):
         def list_serializer(
             o: Collection[_VT],
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __args=arg_ser,
         ) -> list[PrimitiveT] | Iterator[PrimitiveT]:
@@ -330,7 +330,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
 
         args = cast(
             "tuple[type[_KT], type[_VT]]",
-            typical.inspection.get_args(annotation.resolved),
+            inspection.get_args(annotation.resolved),
         )
         if args:
             kt, vt = args
@@ -355,7 +355,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def case_keys_filters_dict_serializer(
                 o: Mapping[str, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __case=case,
                 __omit=tuple(omit),
@@ -386,7 +386,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def keys_filters_dict_serializer(
                 o: Mapping[_KT, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __omit=tuple(omit),
                 __exclude=frozenset(exclude),
@@ -416,7 +416,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def case_keys_dict_serializer(
                 o: Mapping[str, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __case=case,
                 __exclude=frozenset(exclude),
@@ -438,7 +438,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def case_filters_dict_serializer(
                 o: Mapping[str, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __case=case,
                 __omit=tuple(omit),
@@ -467,7 +467,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def case_serializer(
                 o: Mapping[str, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __case=case,
                 __kser=kser_,
@@ -487,7 +487,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def filters_dict_serializer(
                 o: Mapping[_KT, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __omit=tuple(omit),
                 __kser=kser_,
@@ -507,7 +507,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
             def keys_dict_serializer(
                 o: Mapping[_KT, _VT],
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __exclude=frozenset(exclude),
                 __kser=kser_,
@@ -524,7 +524,7 @@ class MappingSerializerRoutine(BaseSerializerRoutine[Mapping[_KT, _VT]]):
         def dict_serializer(
             o: Mapping,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __kser=kser_,
             __vser=vser_,
@@ -558,7 +558,7 @@ class FieldsSerializerRoutine(BaseSerializerRoutine[_T]):
             def field_transforms_serializer(
                 o: _T,
                 *,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 lazy: bool = False,
                 __fields_ser=MappingProxyType(fields_ser),
                 __transforms=MappingProxyType(transforms),
@@ -580,7 +580,7 @@ class FieldsSerializerRoutine(BaseSerializerRoutine[_T]):
         def field_serializer(
             o: _T,
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __fields_ser=MappingProxyType(fields_ser),
         ) -> dict[str, PrimitiveT] | Iterator[tuple[str, PrimitiveT]]:
@@ -604,7 +604,7 @@ class FixedTupleSerializerRoutine(BaseSerializerRoutine[Tuple[_VT]]):
         def fixed_tuple_serializer(
             o: Tuple[_VT],
             *,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             lazy: bool = False,
             __fields_ser=MappingProxyType(fields_ser),
         ) -> list[PrimitiveT] | Iterator[PrimitiveT]:
@@ -642,7 +642,7 @@ class EnumSerializerRoutine(BaseSerializerRoutine[_T]):
                 o: enum.Enum | None,
                 *,
                 lazy: bool = False,
-                name: typical.classes.ReprT = None,
+                name: classes.ReprT = None,
                 _vser=vser,
             ) -> PrimitiveT | None:
                 if o is None:
@@ -655,7 +655,7 @@ class EnumSerializerRoutine(BaseSerializerRoutine[_T]):
             o: enum.Enum,
             *,
             lazy: bool = False,
-            name: typical.classes.ReprT = None,
+            name: classes.ReprT = None,
             _vser=vser,
         ) -> PrimitiveT:
             return _vser(o.value, lazy=lazy, name=name)
@@ -663,11 +663,10 @@ class EnumSerializerRoutine(BaseSerializerRoutine[_T]):
         return cast("SerializerT[_T]", enum_serializer)
 
 
-class SerializationValueError(ValueError):
-    ...
+class SerializationValueError(ValueError): ...
 
 
 _decode = operator.methodcaller("decode", constants.DEFAULT_ENCODING)
 _pattern = operator.attrgetter("pattern")
 _secret = operator.attrgetter("secret")
-_CheckT = Callable[[Any, typical.classes.ReprT], TypeGuard[PrimitiveT]]
+_CheckT = Callable[[Any, classes.ReprT], TypeGuard[PrimitiveT]]

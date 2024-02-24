@@ -2,6 +2,7 @@
 # pragma: nocover
 from __future__ import annotations
 
+import ast
 import sys
 import types
 from datetime import date, datetime
@@ -27,7 +28,7 @@ PYTHON_VERSION = sys.version_info
 if PYTHON_VERSION >= (3, 11):
     from typing import ParamSpec, Self
 else:
-    from typing_extensions import ParamSpec, Self
+    from typing_extensions import ParamSpec, Self  # type: ignore[assignment]
 
 if PYTHON_VERSION >= (3, 10):
     from typing import TypeGuard
@@ -49,14 +50,11 @@ if TYPE_CHECKING:
     eval_type: Callable[..., Any]
     SpecialForm: type
 
-    class SQLAMetaData:
-        ...
+    class SQLAMetaData: ...
 
-    class sqla_registry:
-        ...
+    class sqla_registry: ...
 
-    class Record:
-        ...
+    class Record: ...
 
     asyncpg = types.ModuleType("asyncpg")
 
@@ -70,23 +68,22 @@ if TYPE_CHECKING:
         globalns: Any,
         localns: Any,
         recursive_guard: set = None,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     F = TypeVar("F", bound=Callable)
 
     def lru_cache(
         maxsize: Optional[int] = 128, typed: bool = False
-    ) -> Callable[[F], F]:
-        ...
+    ) -> Callable[[F], F]: ...
+
+    def unparse(ast_obj: ast.AST) -> str: ...
 
 else:
     from functools import lru_cache
     from typing import _eval_type as eval_type
     from typing import _SpecialForm as SpecialForm
 
-    class _KWOnlyType:
-        ...
+    class _KWOnlyType: ...
 
     KW_ONLY = _KWOnlyType()
 
@@ -139,15 +136,13 @@ else:
         from sqlalchemy import MetaData as SQLAMetaData
     except ImportError:
 
-        class SQLAMetaData:
-            ...
+        class SQLAMetaData: ...
 
     try:
         from sqlalchemy.orm import registry as sqla_registry
     except ImportError:
 
-        class sqla_registry:
-            ...
+        class sqla_registry: ...
 
     try:
         import asyncpg

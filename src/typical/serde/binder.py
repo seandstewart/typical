@@ -14,12 +14,12 @@ _T = TypeVar("_T")
 if TYPE_CHECKING:  # pragma: nocover
     from typing import Callable, Mapping, Tuple, Type, Union
 
-    from typical.resolver import Resolver
     from typical.core.interfaces import (  # noqa: F401
         DeserializerT,
         SerdeProtocol,
         SerdeProtocolsT,
     )
+    from typical.resolver import Resolver
 
     BindingT = Mapping[Union[str, int], DeserializerT]
     EnforcerT = Callable[..., Tuple[tuple, dict]]

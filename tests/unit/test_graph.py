@@ -4,7 +4,7 @@ import dataclasses
 
 import pytest
 
-from typical import graph
+from typical.core import graph
 
 
 @dataclasses.dataclass(frozen=True)
@@ -39,13 +39,13 @@ class Graph:
     reverse_true=dict(reverse=True),
     reverse_false=dict(reverse=False),
 )
-def test_traverse(
+def test_dfs(
     tree: graph.GraphProtocol, reverse: bool, expected: list[graph.GraphProtocol]
 ):
     # Given
     if reverse:
         expected = [*reversed(expected)]
     # When
-    traversed = [g.pretty_name for g in graph.traverse(tree, reverse=reverse)]
+    traversed = [g.pretty_name for g in graph.dfs(tree, reverse=reverse)]
     # Then
     assert traversed == expected

@@ -20,8 +20,7 @@ environ = Environ(resolver)
 
 
 @overload
-def settings(_klass: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
-    ...
+def settings(_klass: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]: ...
 
 
 @overload
@@ -31,8 +30,7 @@ def settings(
     case_sensitive: bool = False,
     frozen: bool = True,
     aliases: Mapping = None,
-) -> Callable[[Type[ObjectT]], Type[WrappedObjectT[ObjectT]]]:
-    ...
+) -> Callable[[Type[ObjectT]], Type[WrappedObjectT[ObjectT]]]: ...
 
 
 def settings(
@@ -111,11 +109,10 @@ def _resolve_from_env(
     for alias, attr in aliases.items():
         attr_to_aliases[attr].add(alias)
 
-    sentinel = object()
     for name in vars:
         attr, typ = vars[name]
         names = attr_to_aliases[name]
-        field = getattr(cls, attr, sentinel)
+        field: dataclasses.Field = getattr(cls, attr, sentinel)  # type: ignore[arg-type]
         if field is sentinel:
             field = dataclasses.field()
         elif not isinstance(field, dataclasses.Field):
@@ -133,3 +130,6 @@ def _resolve_from_env(
         setattr(cls, attr, field)
 
     return cls
+
+
+class sentinel: ...

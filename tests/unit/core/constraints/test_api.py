@@ -8,8 +8,7 @@ from typical import constraints
 def test_constrained_new():
     # Given
     @constraints.constrained(max_length=10)
-    class ShortStr(str):
-        ...
+    class ShortStr(str): ...
 
     # When/Then
     with pytest.raises(constraints.error.ConstraintValueError):
@@ -19,8 +18,7 @@ def test_constrained_new():
 def test_constrained_init():
     # Given
     @constraints.constrained(max_items=1)
-    class SmallMap(dict):
-        ...
+    class SmallMap(dict): ...
 
     # When/Then
     with pytest.raises(constraints.error.ConstraintValueError):
@@ -38,12 +36,10 @@ def test_constrained_builtin():
 def test_nested_constraints():
     # Given
     @constraints.constrained(max_length=10)
-    class ShortStr(str):
-        ...
+    class ShortStr(str): ...
 
     @constraints.constrained(max_items=1, values=ShortStr, keys=ShortStr)
-    class SmallMap(dict):
-        ...
+    class SmallMap(dict): ...
 
     # When/Then
     with pytest.raises(constraints.error.ConstraintValueError):

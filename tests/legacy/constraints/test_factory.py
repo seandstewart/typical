@@ -7,8 +7,8 @@ import typing
 import pytest
 
 import typic
-from typical.core.constraints.core.error import ConstraintValueError
-from typical.core.constraints.factory import factory
+from typical.constraints.core.error import ConstraintValueError
+from typical.constraints.factory import factory
 
 
 @dataclasses.dataclass
@@ -16,12 +16,10 @@ class Foo:
     bar: str
 
 
-class MyStr(str):
-    ...
+class MyStr(str): ...
 
 
-class MyURL(typic.URL):
-    ...
+class MyURL(typic.URL): ...
 
 
 @pytest.mark.parametrize(

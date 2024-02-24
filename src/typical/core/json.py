@@ -56,7 +56,7 @@ except (ImportError, ModuleNotFoundError):
                 __prim=serializer,
                 __dumps=ujson.dumps,
                 **kwargs,
-            ) -> AnyStr:
+            ) -> str:
                 return __dumps(
                     __prim(o),
                     indent=indent,
@@ -85,7 +85,7 @@ except (ImportError, ModuleNotFoundError):
                 __prim=serializer,
                 __dumps=json.dumps,
                 **kwargs,
-            ) -> AnyStr:
+            ) -> str:
                 return __dumps(
                     __prim(o),
                     indent=indent,

@@ -44,7 +44,9 @@ def test_json_dump():
     ],
 )
 def test_is_internal(raw):
-    assert email.Email(raw).info.is_internal
+    eml = email.Email(raw)
+    info = eml.info
+    assert info.is_internal is True
 
 
 @pytest.mark.parametrize(

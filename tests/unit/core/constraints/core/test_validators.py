@@ -4,11 +4,10 @@ from unittest import mock
 
 import pytest
 
-from typical.core.constraints.core import validators
+from typical.constraints.core import validators
 
 
-class UserClass:
-    ...
+class UserClass: ...
 
 
 @pytest.mark.suite(

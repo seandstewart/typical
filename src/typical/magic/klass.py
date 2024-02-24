@@ -201,8 +201,7 @@ def make_typedclass(
 
 
 @overload
-def klass(_cls: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]:
-    ...
+def klass(_cls: Type[ObjectT]) -> Type[WrappedObjectT[ObjectT]]: ...
 
 
 @overload
@@ -222,8 +221,7 @@ def klass(
     match_args: bool = True,
     serde: SerdeFlags = None,
     always: bool = None,
-) -> Callable[[Type[ObjectT]], Type[WrappedObjectT[ObjectT]]]:
-    ...
+) -> Callable[[Type[ObjectT]], Type[WrappedObjectT[ObjectT]]]: ...
 
 
 def klass(

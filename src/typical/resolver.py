@@ -23,9 +23,13 @@ from typing import (
     cast,
 )
 
-from typical import checks, classes, inspection, constraints as constr, serde
+from typical import checks, classes
+from typical import constraints as constr
+from typical import inspection, serde
 from typical.compat import ForwardRef, lru_cache
-from typical.core import constants, json, strict as st, strings
+from typical.core import constants, json
+from typical.core import strict as st
+from typical.core import strings
 from typical.core.annotations import ObjectT, ReadOnly
 from typical.core.constants import SERDE_FLAGS_ATTR, TYPIC_ANNOS_NAME, empty
 from typical.core.interfaces import (
@@ -207,7 +211,7 @@ class Resolver:
 
     def tojson(
         self, obj: ObjectT, *, indent: int = 0, ensure_ascii: bool = False, **kwargs
-    ) -> str:
+    ) -> str | bytes:
         """A method for dumping any object to a valid JSON string.
 
         Notes
@@ -596,7 +600,7 @@ class Resolver:
         encode: EncoderT = cast(EncoderT, tojson)
         if annotation.serde.encoder:
 
-            def encode(  # type: ignore
+            def _encode(  # flake8: noqa
                 val: ObjectT,
                 *,
                 __prim=serializer,
@@ -605,14 +609,15 @@ class Resolver:
             ) -> bytes:
                 return __encode(__prim(val), **kwargs)
 
-            encode.__qualname__ = f"{SerdeProtocol.__name__}.{encode.__name__}"
-            encode.__module__ = self.__class__.__module__
+            _encode.__qualname__ = f"{SerdeProtocol.__name__}.{encode.__name__}"
+            _encode.__module__ = self.__class__.__module__
+            encode = cast(EncoderT, _encode)
 
         # Default to JSON for wire-format
         decode: DecoderT = cast(DecoderT, deserializer)
         if annotation.serde.decoder:
 
-            def decode(  # type: ignore
+            def _decode(  # flake8: noqa
                 val: bytes,
                 *,
                 __trans=deserializer,
@@ -621,8 +626,9 @@ class Resolver:
             ) -> ObjectT:
                 return __trans(__decode(val, **kwargs))
 
-            decode.__qualname__ = f"{SerdeProtocol.__name__}.{decode.__name__}"
-            decode.__module__ = SerdeProtocol.__module__
+            _decode.__qualname__ = f"{SerdeProtocol.__name__}.{decode.__name__}"
+            _decode.__module__ = SerdeProtocol.__module__
+            decode = cast(DecoderT, _decode)
 
         # Create the translator
         def translate(

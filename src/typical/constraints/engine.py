@@ -16,9 +16,9 @@ from typing import (
 )
 
 from typical import checks, classes, inspection
+from typical.constraints.core import error, structs, validators
 from typical.core import constants
 from typical.core.annotations import TrueOrFalseT
-from typical.constraints.core import error, structs, validators
 
 __all__ = (
     # ABCs
@@ -84,8 +84,7 @@ _AVT = TypeVar("_AVT", bound=Collection)
 
 class BaseContainerValidator(structs.AbstractContainerValidator[_AVT, _IV]):
     @abc.abstractmethod
-    def _exhaust(self, it: Iterable) -> _AVT:
-        ...
+    def _exhaust(self, it: Iterable) -> _AVT: ...
 
     def validate(
         self,
@@ -247,9 +246,11 @@ class StructuredObjectConstraintValidator(
         yield from (
             (
                 f,
-                items[f].validate(v, path=irepr(path, f), exhaustive=exhaustive)
-                if f in items
-                else v,
+                (
+                    items[f].validate(v, path=irepr(path, f), exhaustive=exhaustive)
+                    if f in items
+                    else v
+                ),
             )
             for f, v in it
         )
@@ -348,20 +349,17 @@ class AbstractEntryConstraintValidator(abc.ABC, Generic[_FT, VT]):
     cv: structs.AbstractConstraintValidator
 
     @overload
-    def __call__(self, field: _FT, value: Any, *, path: str) -> tuple[_FT, VT]:
-        ...
+    def __call__(self, field: _FT, value: Any, *, path: str) -> tuple[_FT, VT]: ...
 
     @overload
     def __call__(
         self, field: _FT, value: Any, *, path: str, exhaustive: Literal[False]
-    ) -> tuple[_FT, VT]:
-        ...
+    ) -> tuple[_FT, VT]: ...
 
     @overload
     def __call__(
         self, field: _FT, value: Any, *, path: str, exhaustive: Literal[True]
-    ) -> _EntryCVReturnT:
-        ...
+    ) -> _EntryCVReturnT: ...
 
     @abc.abstractmethod
     def __call__(
@@ -371,8 +369,7 @@ class AbstractEntryConstraintValidator(abc.ABC, Generic[_FT, VT]):
         *,
         path: str,
         exhaustive: TrueOrFalseT = False,
-    ):
-        ...
+    ): ...
 
 
 class CompoundEntryValidator(AbstractEntryConstraintValidator[_FT, VT]):

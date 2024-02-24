@@ -16,7 +16,6 @@ from typical.compat import Generic, TypeGuard
 from typical.core import constants, desers
 from typical.core.interfaces import (
     Annotation,
-    DelayedAnnotation,
     DeserializerT,
     ForwardDelayedAnnotation,
     SerdeProtocol,
@@ -63,8 +62,7 @@ class BaseDeserializerRoutine(
 
         return cast("DeserializerT", deserializer)
 
-    def _get_deserializer(self) -> DeserializerT[_T]:
-        ...
+    def _get_deserializer(self) -> DeserializerT[_T]: ...
 
     def _get_checks(self) -> _CheckT:
         annotation = self.annotation
@@ -689,12 +687,8 @@ class MappingDeserializerRoutine(BaseDeserializerRoutine[Mapping[_KT, _VT]]):
         if not args or isinstance(factory_anno, ForwardDelayedAnnotation):
             return None
 
-        if isinstance(factory_anno, DelayedAnnotation):
-            use = factory_anno.type
-            raw = use
-        else:
-            use = factory_anno.resolved_origin
-            raw = factory_anno.un_resolved
+        use = factory_anno.resolved_origin
+        raw = factory_anno.un_resolved
         factory = use
         if use in {Any, ..., None}:
             return None
@@ -982,8 +976,7 @@ class UnionDeserializerRoutine(BaseDeserializerRoutine[_T]):
         return cast("DeserializerT", tagged_union_deserializer)
 
 
-class UnionValueError(ValueError):
-    ...
+class UnionValueError(ValueError): ...
 
 
 class LiteralDeserializerRoutine(BaseDeserializerRoutine[_T]):
@@ -1017,5 +1010,4 @@ class LiteralDeserializerRoutine(BaseDeserializerRoutine[_T]):
         return cast("DeserializerT[_T]", deserializer)
 
 
-class LiteralValueError(ValueError):
-    ...
+class LiteralValueError(ValueError): ...

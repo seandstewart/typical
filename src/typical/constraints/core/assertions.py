@@ -10,8 +10,7 @@ __all__ = ("AssertionProtocol", "AbstractAssertions", "NoOpAssertion")
 
 
 class AssertionProtocol(Protocol[_VT_co]):
-    def __call__(self, val: Any) -> TypeGuard[_VT_co]:
-        ...
+    def __call__(self, val: Any) -> TypeGuard[_VT_co]: ...
 
 
 class AbstractAssertions(abc.ABC, Generic[_VT]):
@@ -23,8 +22,7 @@ class AbstractAssertions(abc.ABC, Generic[_VT]):
         self.__call__ = self._get_closure()
 
     @abc.abstractmethod
-    def _get_closure(self) -> AssertionProtocol[_VT]:
-        ...
+    def _get_closure(self) -> AssertionProtocol[_VT]: ...
 
 
 class NoOpAssertion(AbstractAssertions[_VT]):

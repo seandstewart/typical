@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from typical.core.constraints.structured import assertions
+from typical.constraints.structured import assertions
 
 
 @pytest.mark.suite(
@@ -97,3 +97,35 @@ def test_structured_tuple_assertion(given_size, given_value, expected_is_valid):
     is_valid = assertion(given_value)
     # Then
     assert is_valid == expected_is_valid
+
+
+@pytest.mark.suite(
+    fields_assertion=dict(
+        given_has_fields=True,
+        given_is_tuple=False,
+        expected_assertion_cls=assertions.StructuredFieldsObjectAssertion,
+    ),
+    tuple_assertion=dict(
+        given_has_fields=False,
+        given_is_tuple=True,
+        expected_assertion_cls=assertions.StructuredTupleAssertion,
+    ),
+    tuple_fields_assertion=dict(
+        given_has_fields=True,
+        given_is_tuple=True,
+        expected_assertion_cls=assertions.StructuredFieldsTupleAssertion,
+    ),
+    no_assertion=dict(
+        given_has_fields=False,
+        given_is_tuple=False,
+        expected_assertion_cls=None,
+    ),
+)
+def test_get_assertion_cls(given_has_fields, given_is_tuple, expected_assertion_cls):
+    # When
+    assertion_cls = assertions.get_assertion_cls(
+        has_fields=given_has_fields,
+        is_tuple=given_is_tuple,
+    )
+    # Then
+    assert assertion_cls is expected_assertion_cls

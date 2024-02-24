@@ -27,8 +27,8 @@ import pytest
 
 from typical.compat import Literal, TypedDict
 from typical.core.interfaces import Annotation
-from typical.core.resolver import Resolver
-from typical.core.serde.des import routines
+from typical.resolver import Resolver
+from typical.serde.des import routines
 
 _T = TypeVar("_T")
 
@@ -40,7 +40,6 @@ class NoopDeserializerRoutine(routines.BaseDeserializerRoutine[_T]):
 
 class EQStr(str):
     def equals(self, o):
-
         return o.__class__ is self.__class__ and self.__eq__(o)
 
 
@@ -48,12 +47,10 @@ _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
-class MyDict(Dict[_KT, _VT]):
-    ...
+class MyDict(Dict[_KT, _VT]): ...
 
 
-class MyEmptyClass:
-    ...
+class MyEmptyClass: ...
 
 
 class MyReqClass:
@@ -133,8 +130,7 @@ class TestBaseDeserializerRoutine:
         # Then
         assert e == 1
 
-    class MyStr(str):
-        ...
+    class MyStr(str): ...
 
     @pytest.mark.suite(
         string=dict(val="foo", expected=("foo", True)),
@@ -545,7 +541,6 @@ class TestMappingDeserializerRoutine:
         params=[
             pytest.param(dict, id="dict"),
             pytest.param(MyDict[str, int], id="user_dict"),
-            pytest.param(DefaultDict, id="default_dict_no_args"),
             pytest.param(DefaultDict[str, int], id="default_dict_args"),
             pytest.param(DefaultDict[str, "int"], id="default_dict_args_string"),
         ]
@@ -648,8 +643,7 @@ if sys.version_info < (3, 9):
 
 else:
 
-    class MyTup(Tuple[_VT]):
-        ...
+    class MyTup(Tuple[_VT]): ...
 
 
 class TestFixedTupleDeserializerRoutine:

@@ -44,8 +44,7 @@ _TRANSLATE_TO_MODS = {
 
 
 @dataclasses.dataclass
-class NotASkill:
-    ...
+class NotASkill: ...
 
 
 @pytest.mark.parametrize(argnames="mod", argvalues=(*reversed([*_MODS]),))

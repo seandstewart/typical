@@ -1,15 +1,15 @@
 from __future__ import annotations as a
 
 from typical import constraints, serde
-from typical.core.annotations import ReadOnly, WriteOnly
 from typical.constraints import ConstrainedType, constrained
+from typical.core.annotations import ReadOnly, WriteOnly
 from typical.core.interfaces import Annotation, SerdeFlags, SerdeProtocol
-from typical.resolver import resolver
-from typical.serde.binder import BoundArguments
-from typical.serde.ser import SerializationValueError
 from typical.core.strict import Strict, StrictStrT, is_strict_mode, strict_mode
 from typical.core.strings import Case
 from typical.env import EnvironmentTypeError, EnvironmentValueError
+from typical.resolver import resolver
+from typical.serde.binder import BoundArguments
+from typical.serde.ser import SerializationValueError
 
 __all__ = (
     "Annotation",

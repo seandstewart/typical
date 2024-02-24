@@ -166,8 +166,8 @@ def normalize_typevar(tvar: TypeVar) -> type[Any]:
     if tvar.__bound__:
         return tvar.__bound__
     elif tvar.__constraints__:
-        return Union[tvar.__constraints__]
-    return Any
+        return Union[tvar.__constraints__]  # type: ignore[return-value]
+    return Any  # type: ignore[return-value]
 
 
 @compat.lru_cache(maxsize=None)
@@ -614,7 +614,7 @@ def get_type_graph(t: Type) -> typing.Deque[typing.Deque[TypeGraph]]:
     levels = collections.deque([stack.copy()])
     while stack:
         parent = stack.popleft()
-        level = collections.deque()
+        level: Deque[TypeGraph] = collections.deque()
         for var, type in _level(parent):
             seen = visited.get(type)
             is_subscripted = checks.issubscriptedgeneric(type)
@@ -671,7 +671,7 @@ def itertypes(
     # Iterate through first dimension of the 2-d array representing our type graph.
     while dim_one:
         dim_two = one_pop().copy()
-        deferred = collections.deque()
+        deferred: Deque[TypeGraph] = collections.deque()
         deferred_append = deferred.appendleft
         # Iterate through the second dimension of the 2-d array.
         while dim_two:

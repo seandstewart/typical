@@ -26,9 +26,9 @@ from typing import (
 
 from typical import classes, inspection, types
 from typical.compat import ForwardRef, Literal, evaluate_forwardref
+from typical.constraints.core import error, validators
 from typical.core import constants
 from typical.core.annotations import TrueOrFalseT
-from typical.constraints.core import error, validators
 
 _VT = TypeVar("_VT")
 
@@ -290,14 +290,12 @@ class AbstractConstraintValidator(abc.ABC, Generic[_VT]):
     @overload
     def validate(
         self, value: Any, *, path: str = None, exhaustive: Literal[False]
-    ) -> _VT:
-        ...
+    ) -> _VT: ...
 
     @overload
     def validate(
         self, value: Any, *, path: str = None, exhaustive: Literal[True]
-    ) -> error.ConstraintValueError | _VT:
-        ...
+    ) -> error.ConstraintValueError | _VT: ...
 
     @abc.abstractmethod
     def validate(
@@ -451,5 +449,6 @@ class AbstractContainerValidator(AbstractConstraintValidator[_VT], Generic[_VT, 
         self.items = items
 
     @abc.abstractmethod
-    def itervalidate(self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False):
-        ...
+    def itervalidate(
+        self, value: Any, *, path: str, exhaustive: TrueOrFalseT = False
+    ): ...

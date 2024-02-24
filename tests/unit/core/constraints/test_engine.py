@@ -8,8 +8,8 @@ import typing
 
 import pytest
 
+from typical.constraints import error, factory
 from typical.core import constants
-from typical.core.constraints import error, factory
 
 
 class MyEnum(enum.IntEnum):
@@ -94,6 +94,11 @@ Tup = typing.Tuple[str, int]
     ),
     decimal=dict(
         given_type=decimal.Decimal, given_context=dict(), given_value=decimal.Decimal(1)
+    ),
+    decimal_constrained=dict(
+        given_type=decimal.Decimal,
+        given_context=dict(max_digits=5),
+        given_value=decimal.Decimal(1),
     ),
     structured=dict(
         given_type=MyClass, given_context=dict(), given_value={"foo": "bar"}

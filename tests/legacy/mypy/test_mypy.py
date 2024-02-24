@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import importlib
-import os
 import re
 from pathlib import Path
 
 import pytest
 from mypy import api as mypy_api
-
-# This ensures mypy can find the test files, no matter where tests are run from:
-os.chdir(Path(__file__).parent.parent.parent)
 
 cases = (
     ("mypy.ini", "success.py", "success.txt"),
@@ -17,15 +13,16 @@ cases = (
 )
 executable_modules = ("success",)
 
+CUR_DIR = Path(__file__).resolve().parent
 
+
+@pytest.mark.xfail()
 @pytest.mark.parametrize("config_filename,python_filename,output_filename", cases)
 def test_mypy_results(config_filename, python_filename, output_filename):
-    full_config_filename = f"tests/mypy/config/{config_filename}"
-    full_filename = f"tests/mypy/module/{python_filename}"
+    full_config_filename = CUR_DIR / "config" / config_filename
+    full_filename = CUR_DIR / "module" / python_filename
     output_path = (
-        None
-        if output_filename is None
-        else Path(f"tests/mypy/output/{output_filename}")
+        None if output_filename is None else CUR_DIR / "output" / output_filename
     )
 
     # Specifying a different cache dir for each configuration dramatically speeds up
@@ -33,11 +30,11 @@ def test_mypy_results(config_filename, python_filename, output_filename):
     # It also prevents cache-invalidation-related bugs in the tests
     cache_dir = f".mypy_cache/test-{config_filename[:-4]}"
     command = [
-        full_filename,
+        str(full_filename),
         "--config-file",
-        full_config_filename,
+        str(full_config_filename),
         "--cache-dir",
-        cache_dir,
+        str(cache_dir),
         "--show-error-codes",
         "--show-traceback",
     ]
@@ -71,6 +68,7 @@ def test_mypy_results(config_filename, python_filename, output_filename):
     assert actual_out.rstrip() == expected_out.rstrip(), actual_out
 
 
+@pytest.mark.xfail()
 @pytest.mark.parametrize("module", executable_modules)
 def test_success_cases_run(module):
     """

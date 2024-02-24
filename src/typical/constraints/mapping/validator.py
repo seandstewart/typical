@@ -3,9 +3,9 @@ from __future__ import annotations
 import functools
 from typing import cast
 
-from typical.core.annotations import TrueOrFalseT
 from typical.constraints.core import structs, validators
 from typical.constraints.mapping import assertions
+from typical.core.annotations import TrueOrFalseT
 
 __all__ = ("get_validator",)
 
