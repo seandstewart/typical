@@ -35,6 +35,6 @@ repos:
       args:
       - --profile=black
 - repo: .
-  rev: v2.8.0
+  rev: b1a1c487ac4deba363901bed206d66305f1095fc
   hooks:
   - id: export-requirements-docs
