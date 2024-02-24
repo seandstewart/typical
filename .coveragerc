@@ -2,29 +2,37 @@
 branch = True
 data_file = coverage.db
 include =
-    src/*
-omit =
-    *__init__.py
-    tests/*
+    src/**/*
 
 [paths]
 source =
-    */src/*
+    src/*
 
 [report]
 sort = Cover
 exclude_also =
+    # Don't complain about missing debug-only code:
     def __repr__
     def __str__
     if self.debug:
     if settings.DEBUG
+    # Don't complain if tests don't hit defensive assertion code:
     raise AssertionError
     raise NotImplementedError
+    # Don't complain if non-runnable code isn't run:
     if 0:
     if __name__ == .__main__.:
     if TYPE_CHECKING:
     class\s\w+\((typing\.)?Protocol(\[.*\])?\):
     @(abc\.)?abstractmethod
     @(typing\.)?overload
+    \.\.\.
+
+omit =
+    dist/*
+    tests/*
+    docs/*
+    .venv/*
+    benchmark/*
 
 skip_empty = True

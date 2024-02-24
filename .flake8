@@ -14,6 +14,8 @@ extend-ignore =
     # do not use lru_cache on method
     # (we use this on methods which are part of the public api and only accessed via the api)
     B019,
+    # multiple statements on one line
+    E701
 # Flake8's McCabe Complexity checker
 #   https://flake8.pycqa.org/en/latest/user/options.html#cmdoption-flake8-max-complexity
 max-complexity = 18

@@ -34,12 +34,13 @@ exclude = ["tests", "docs", "docsrc", "benchmark"]
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
 inflection = "^0.5"
-pendulum = "^2"
+pendulum = ">=2,<4"
 fastjsonschema = {version = "^2", optional = true}
 ujson = {version = "^5", optional = true}
 orjson = {version = "^3", optional = true}
 typing-extensions = {version = "^4", python = "<3.12"}
 future-typing = "^0.4.1"
+astunparse = {version = "^1.6.3", python = "<3.9"}
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
@@ -58,7 +59,7 @@ django = "^4"
 apischema = "^0.17.1"
 
 [tool.poetry.group.lint.dependencies]
-flake8 = "^6"
+flake8 = "^7"
 mypy = "^1"
 black = "^23"
 # mypy needs these....
@@ -131,3 +132,4 @@ commit = true
 [bumpver.file_patterns]
 "pyproject.toml" = [ 'version = "{pep440_version}"', 'current_version = "{version}"' ]
 "typic/__init__.py" = ['__version__ = "{pep440_version}"']
+"typical/__init__.py" = ['__version__ = "{pep440_version}"']
