@@ -22,7 +22,7 @@ class FilePath(PathType):  # type: ignore
     """
 
     def __init__(self, *pathsegments: str):
-        super().__init__()
+        super().__init__(*pathsegments)
         if not self.is_file():
             raise FilePathError(f"{self} is not a valid file-path") from None
 
@@ -41,6 +41,6 @@ class DirectoryPath(PathType):  # type: ignore
     """
 
     def __init__(self, *pathsegments: str):
-        super().__init__()
+        super().__init__(*pathsegments)
         if not self.is_dir():
             raise DirectoryPathError(f"{self} is not a valid directory-path") from None

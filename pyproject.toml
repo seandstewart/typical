@@ -45,7 +45,10 @@ astunparse = {version = "^1.6.3", python = "<3.9"}
 [tool.poetry.group.test.dependencies]
 pytest = "^8"
 pytest-cov = "^4"
-pandas = "^2"
+pandas = [
+    { version = "^2.2.0", python = ">=3.9" },
+    { version = "^2.0.0", python = "<3.9" }
+]
 sqlalchemy = "^2"
 asyncpg = "^0.29"
 pytest-parametrize-suite = "^23.1.1"
@@ -55,7 +58,10 @@ pytest-benchmark = {version = "^4", extras = ["histogram"]}
 marshmallow = "^3"
 djangorestframework = "^3"
 pydantic = {version = "^2", extras = ["email"]}
-django = "^4"
+django = [
+    { version = "^4", python = "<3.10" },
+    { version = "^5", python = ">=3.10" }
+]
 apischema = "^0.18"
 
 [tool.poetry.group.lint.dependencies]
