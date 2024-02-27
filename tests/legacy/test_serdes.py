@@ -5,13 +5,11 @@ import datetime
 import decimal
 import enum
 import ipaddress
-import json
 import re
 import typing
 from types import MappingProxyType
 from typing import ClassVar, Dict, Generic, List, Mapping, Optional, TypeVar
 
-import orjson
 import pytest
 import ujson
 
@@ -286,50 +284,23 @@ class Bar:
 @pytest.mark.parametrize(
     argnames=("obj", "expected"),
     argvalues=[
-        (None, b"null"),
-        (MultiNum.INT, b"1"),
-        (MultiNum.STR, b'"str"'),
-        (
-            {objects.FooNum.bar: objects.Typic(var="foo")},
-            b'{"bar":{"var":"foo"}}',
-        ),
-        ([typic.URL("foo")], b'["foo"]'),
-        (Omit(), b'{"bar":"foo"}'),
-        (Bar(foos=[Foo("bar")]), b'{"foos":[{"bar":"bar","id":null}]}'),
-    ],
-)
-def test_tojson(obj, expected):
-    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS) == expected
-
-
-@typic.klass
-class Foo:
-    bar: str
-    id: Optional[typic.ReadOnly[int]] = None
-
-
-@typic.klass
-class Bar:
-    foos: List[Foo]
-
-
-@pytest.mark.parametrize(
-    argnames=("obj", "expected"),
-    argvalues=[
         (None, "null"),
         (MultiNum.INT, "1"),
         (MultiNum.STR, '"str"'),
+        (
+            {objects.FooNum.bar: objects.Typic(var="foo")},
+            '{"bar":{"var":"foo"}}',
+        ),
         ([typic.URL("foo")], '["foo"]'),
+        (Omit(), '{"bar":"foo"}'),
         (Bar(foos=[Foo("bar")]), '{"foos":[{"bar":"bar","id":null}]}'),
     ],
 )
-def test_tojson_native(obj, expected):
-    native = (
-        json.dumps(typic.primitive(obj), sort_keys=True)
-        .replace("\n", "")
-        .replace(" ", "")
-    )
-    assert typic.tojson(obj, option=orjson.OPT_SORT_KEYS).decode() == native == expected
+def test_tojson(obj, expected):
+    encoded = typic.tojson(obj, sort_keys=True).replace("\n", "").replace(" ", "")
+    if isinstance(encoded, bytes):
+        encoded = encoded.decode()
+    assert encoded == expected
 
 
 badbar = Bar([])

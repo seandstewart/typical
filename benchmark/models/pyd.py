@@ -4,7 +4,13 @@ from datetime import datetime
 from typing import Any, List, Optional
 
 import orjson
-from pydantic import BaseConfig, BaseModel, ConstrainedStr, PositiveInt, ValidationError
+from pydantic import (
+    BaseConfig,
+    BaseModel,
+    PositiveInt,
+    StringConstraints,
+    ValidationError,
+)
 
 
 def orjson_dumps(v, *, default):
@@ -12,15 +18,15 @@ def orjson_dumps(v, *, default):
     return orjson.dumps(v, default=default).decode()
 
 
-class DBString(ConstrainedStr):
+class DBString(StringConstraints):
     max_length = 255
 
 
-class HTTPReferer(ConstrainedStr):
+class HTTPReferer(StringConstraints):
     max_length = 1023
 
 
-class GReCaptchaResponse(ConstrainedStr):
+class GReCaptchaResponse(StringConstraints):
     min_length = 20
     max_length = 1000
 

@@ -43,6 +43,9 @@ class AbstractSerDesRoutine(abc.ABC, Generic[_T, _SerDesT]):
         self._bind_closure()
 
     def _bind_closure(self):
+        self.__call__ = None
+        self.__name__ = self.__class__.__name__
+        self.__qualname__ = self.__name__
         self.__call__ = self._get_closure()
         self.__name__ = self.__call__.__name__
         self.__qualname__ = self.__call__.__qualname__

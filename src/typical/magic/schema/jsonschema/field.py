@@ -132,7 +132,7 @@ class BaseSchemaField:
     examples: list[Any] | None = None
     readOnly: bool | None = None
     writeOnly: bool | None = None
-    extensions: tuple[frozendict.FrozenDict[str, SchemaFieldT], ...] | None = None
+    extensions: tuple[frozendict.FrozenDict[str, BaseSchemaField], ...] | None = None
 
     @reprlib.recursive_repr()
     def __repr__(self) -> str:  # pragma: nocover

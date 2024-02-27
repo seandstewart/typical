@@ -136,11 +136,11 @@ def get_args(annotation: Any) -> Tuple[Any, ...]:
         >>> from typing import Dict, TypeVar
         >>> T = TypeVar("T")
         >>> inspection.get_args(Dict)
-    ()
+        ()
         >>> inspection.get_args(Dict[str, int])
-    (<class 'str'>, <class 'int'>)
+        (<class 'str'>, <class 'int'>)
         >>> inspection.get_args(Dict[str, T])
-    (<class 'str'>,)
+        (<class 'str'>,)
     """
     args = typing.get_args(annotation)
     if not args:

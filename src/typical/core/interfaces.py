@@ -303,7 +303,7 @@ class SerdeConfig:
     def __repr__(self) -> str:
         fs = []
         for field in dataclasses.fields(self):
-            fs.append(f"{field.name}={getattr(self, field.name)!r}")
+            fs.append(f"{field.name}={reprlib.repr(getattr(self, field.name))}")
         return f"{self.__class__.__name__}({', '.join(fs)})"
 
     def asdict(self) -> SerdeConfigD:
@@ -386,7 +386,7 @@ class ForwardDelayedAnnotation:
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
-            f"ref={self.ref},"
+            f"ref={reprlib.repr(self.ref)},"
             f"module={self.module}!r, "
             f"parameter={self.parameter}, "
             f"is_optional={self.is_optional}, "

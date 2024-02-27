@@ -27,10 +27,17 @@ try:
             __dumps=orjson.dumps,
             **kwargs,
         ) -> bytes:
+            sort_keys = kwargs.pop("sort_keys", None)
+            option = kwargs.pop("option", None)
             if indent:
-                option = kwargs.pop("option", None)
                 opt = orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE
-                kwargs["option"] = (opt | option) if option else opt
+                option = (opt | option) if option else opt
+            if sort_keys:
+                opt = orjson.OPT_SORT_KEYS
+                option = (opt | option) if option else opt
+            if option is not None:
+                kwargs["option"] = option
+
             return __dumps(__prim(o), **kwargs)
 
         tojson.__module__ = serializer.__module__
@@ -41,7 +48,7 @@ try:
     dumps, loads = orjson.dumps, orjson.loads
 
 
-except (ImportError, ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError) as e:
     orjson = None
 
     try:
@@ -71,7 +78,7 @@ except (ImportError, ModuleNotFoundError):
 
         dumps, loads = ujson.dumps, ujson.loads
 
-    except (ImportError, ModuleNotFoundError):  # pragma: nobranch
+    except (ImportError, ModuleNotFoundError) as e:  # pragma: nobranch
         import json
 
         ujson = None
