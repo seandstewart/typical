@@ -2,17 +2,24 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
-from typing import Optional, List
+from typing import List, Optional
 
-from marshmallow import fields, Schema, validate as mvalidate, ValidationError
+import orjson
+from marshmallow import Schema, ValidationError, fields
+from marshmallow import validate as mvalidate
 
 
-class LocationSchema(Schema):
+class BaseSchema(Schema):
+    class Meta:
+        render_module = orjson
+
+
+class LocationSchema(BaseSchema):
     latitude = fields.Float(allow_none=True)
     longitude = fields.Float(allow_none=True)
 
 
-class SkillSchema(Schema):
+class SkillSchema(BaseSchema):
     subject = fields.Str(required=True)
     subject_id = fields.Integer(required=True)
     category = fields.Str(required=True)
@@ -21,7 +28,7 @@ class SkillSchema(Schema):
     qual_level_ranking = fields.Float(default=0)
 
 
-class ModelSchema(Schema):
+class ModelSchema(BaseSchema):
     id = fields.Integer(required=True)
     client_name = fields.Str(validate=mvalidate.Length(max=255), required=True)
     sort_index = fields.Float(required=True)

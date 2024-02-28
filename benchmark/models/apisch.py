@@ -2,13 +2,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, NewType, Optional
 
+import orjson
 from apischema import (
     ValidationError,
     deserialization_method,
     schema,
     serialization_method,
 )
-import orjson
 
 PositiveInt = NewType("PositiveInt", int)
 schema(exc_min=0)(PositiveInt)
@@ -47,8 +47,8 @@ class Model:
     skills: List[Skill] = field(default_factory=list)
 
 
-deserialization_method = deserialization_method(Model, coerce=True)
-serialization_method = serialization_method(Model)
+deserialization_method = deserialization_method(Model, coerce=True)  # type: ignore
+serialization_method = serialization_method(Model)  # type: ignore
 
 
 def validate(data):
@@ -64,6 +64,6 @@ def deserialize(data):
 
 def tojson(instance: Model):
     try:
-        return True, orjson.dumps(serialization_method(instance))
+        return True, orjson.dumps(serialization_method(instance)).decode()
     except Exception as err:
         return False, err

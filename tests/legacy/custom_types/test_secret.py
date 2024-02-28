@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from typical.types import SecretBytes, SecretStr
+
+
+@pytest.mark.parametrize(
+    argnames=("value", "rep"), argvalues=[("foo", "***"), (b"foo", "b'***'")]
+)
+def test_secrets(value, rep):
+    secret = SecretStr(value) if isinstance(value, str) else SecretBytes(value)
+    assert value == secret
+    assert rep == repr(secret)
+    assert rep == str(secret)
+    assert value == secret.secret
+    if isinstance(value, str):
+        assert json.dumps(value) == json.dumps(secret)

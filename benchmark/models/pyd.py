@@ -1,20 +1,32 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
-from pydantic import BaseModel, ConstrainedStr, PositiveInt, BaseConfig, ValidationError
+import orjson
+from pydantic import (
+    BaseConfig,
+    BaseModel,
+    PositiveInt,
+    StringConstraints,
+    ValidationError,
+)
 
 
-class DBString(ConstrainedStr):
+def orjson_dumps(v, *, default):
+    # orjson.dumps returns bytes, to match standard json.dumps we need to decode
+    return orjson.dumps(v, default=default).decode()
+
+
+class DBString(StringConstraints):
     max_length = 255
 
 
-class HTTPReferer(ConstrainedStr):
+class HTTPReferer(StringConstraints):
     max_length = 1023
 
 
-class GReCaptchaResponse(ConstrainedStr):
+class GReCaptchaResponse(StringConstraints):
     min_length = 20
     max_length = 1000
 
@@ -24,6 +36,8 @@ class Location(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -34,6 +48,8 @@ class Skill(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     subject: str
     subject_id: int
@@ -48,6 +64,8 @@ class Model(BaseModel):
         validate_all = True
         validate_assignment = True
         orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
 
     id: int
     client_name: DBString

@@ -1,21 +1,40 @@
 repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.910-1
-    hooks:
-      - id: mypy
-        exclude: '.*tests/.*|.*docs/.*'
-        args: [--no-strict-optional, --ignore-missing-imports, --follow-imports=silent]
-        additional_dependencies: [types-all]
-  - repo: https://github.com/ambv/black
-    rev: 21.12b0
-    hooks:
-    - id: black
-      language_version: python3.8
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
-    hooks:
-    - id: flake8
-  - repo: .
-    rev: v2.7.9
-    hooks:
-    - id: export-requirements-docs
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.8.0
+  hooks:
+  - id: mypy
+    exclude: '.*tests/.*|.*docs/.*'
+    args:
+    - --config=pyproject.toml
+- repo: https://github.com/ambv/black
+  rev: 24.2.0
+  hooks:
+  - id: black
+    language_version: python3.8
+- repo: https://github.com/pycqa/flake8
+  rev: 7.0.0
+  hooks:
+  - id: flake8
+    args:
+    - --config=.flake8
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+    - id: isort
+      name: isort (python)
+      args:
+      - --profile=black
+    - id: isort
+      name: isort (cython)
+      types: [cython]
+      args:
+      - --profile=black
+    - id: isort
+      name: isort (pyi)
+      types: [pyi]
+      args:
+      - --profile=black
+- repo: .
+  rev: b1a1c487ac4deba363901bed206d66305f1095fc
+  hooks:
+  - id: export-requirements-docs
