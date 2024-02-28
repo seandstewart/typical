@@ -27,31 +27,6 @@ def transform_annotation(annotation: str, *, union: str = "Union") -> str:
     return unparsed
 
 
-def write_anno_expr(
-    tree: ast.Expression | ast.Name | ast.Subscript | ast.Attribute | ast.expr,
-):
-    expr = tree.body if isinstance(tree, ast.Expression) else tree
-    if isinstance(expr, ast.Name):
-        return expr.id
-    if isinstance(expr, ast.Subscript):
-        val = expr.slice.value  # type: ignore[attr-defined]
-        if isinstance(val, ast.Tuple):
-            subscript = ", ".join(write_anno_expr(c) for c in val.elts)
-        else:
-            subscript = write_anno_expr(val)
-        return f"{write_anno_expr(expr.value)}[{subscript}]"
-    if isinstance(expr, ast.List):
-        children = ", ".join(write_anno_expr(c) for c in expr.elts)
-        return f"[{children}]"
-    if isinstance(expr, ast.Constant):
-        return str(expr.value)
-
-    if isinstance(expr, ast.Attribute):
-        return expr.attr
-
-    raise ValueError(ast.dump(tree))
-
-
 class TransformUnion(ast.NodeTransformer):
     def visit_BinOp(self, node: ast.BinOp):
         if not isinstance(node.op, ast.BitOr):
@@ -80,13 +55,6 @@ class TransformUnion(ast.NodeTransformer):
         new = ast.Name(id=_GENERICS[node.id], ctx=ast.Load())
         ast.copy_location(new, node)
         return new
-
-
-def contained_generic(string: str) -> tuple[bool, int]:
-    opens = string.count("[")
-    closes = string.count("]")
-    hanging = opens - closes
-    return hanging == 0, hanging
 
 
 _GENERICS = {
