@@ -13,4 +13,4 @@ from .api import *
 al = typed
 
 
-__version__ = "2.8.1"
+__version__ = "2.9.0"
