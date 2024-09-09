@@ -46,12 +46,10 @@ _itemscaller = methodcaller("items")
 _valuescaller = methodcaller("values")
 
 
-class TranslatorTypeError(TypeError):
-    ...
+class TranslatorTypeError(TypeError): ...
 
 
-class TranslatorValueError(ValueError):
-    ...
+class TranslatorValueError(ValueError): ...
 
 
 class TranslatorFactory:

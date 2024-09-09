@@ -10,8 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        poetry-version: ["1.4.2"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        poetry-version: ["1.8.3"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -48,18 +48,8 @@ jobs:
     - name: Set Poetry config
       run: |
         poetry config virtualenvs.in-project true
-    - name: Use legacy installer (Poetry+py3.10)
-      run: |
-        poetry config experimental.new-installer false
     - name: Install Dependencies
-      if: ${{ !(startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9) }}
       run: poetry install --no-dev -E tests
-
-    - name: Install Dependencies (MacOS + Py3.9)
-      if: ${{ startsWith(matrix.os, 'macos') && matrix.python-version >= 3.9 }}
-      run: |
-        OPENBLAS="$(brew --prefix openblas)" poetry install --no-dev -E tests
-
     - name: Test with pytest
       run: |
         poetry run pytest tests typic --doctest-modules --cov --cov-config=.coveragerc --cov-report=xml

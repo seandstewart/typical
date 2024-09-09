@@ -60,15 +60,13 @@ class ValidatorT(Protocol[_T_co]):
 
     def __call__(
         self, value: Any, *, field: str = None, **kwargs
-    ) -> Tuple[bool, _T_co]:
-        ...
+    ) -> Tuple[bool, _T_co]: ...
 
 
 class ValidateT(Protocol[_T_co]):
     """The signature of the public validate callable for a Constraint."""
 
-    def __call__(self, value: Any, *, field: str = None) -> _T_co:
-        ...
+    def __call__(self, value: Any, *, field: str = None) -> _T_co: ...
 
 
 class ConstraintsProtocolT(Protocol[_T]):
@@ -81,8 +79,7 @@ class ConstraintsProtocolT(Protocol[_T]):
     validator: ValidatorT[_T]
     validate: ValidateT[_T]
 
-    def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]:
-        ...
+    def for_schema(self, *, with_type: bool = False) -> Dict[str, Any]: ...
 
 
 class _AbstractConstraints(abc.ABC):

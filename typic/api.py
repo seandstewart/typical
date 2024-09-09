@@ -348,22 +348,21 @@ def _get_setter(cls: Type, bases: Tuple[Type, ...] = None):
 @overload
 def typed(
     _cls_or_callable: _Type, *, delay: bool = False, strict: bool = None
-) -> Type[WrappedObjectT[_Type]]:
-    ...
+) -> Type[WrappedObjectT[_Type]]: ...
 
 
 @overload
 def typed(
     _cls_or_callable: _Func, *, delay: bool = False, strict: bool = None
-) -> _Func:
-    ...
+) -> _Func: ...
 
 
 @overload
 def typed(
     *, delay: bool = False, strict: bool = None
-) -> Union[Callable[[_Type], Type[WrappedObjectT[_Type]]], Callable[[_Func], _Func]]:
-    ...
+) -> Union[
+    Callable[[_Type], Type[WrappedObjectT[_Type]]], Callable[[_Func], _Func]
+]: ...
 
 
 def typed(

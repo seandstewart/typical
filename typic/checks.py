@@ -633,8 +633,7 @@ def isfromdictclass(obj: Type[ObjectT]) -> TypeGuard[_FromDict]:
 
 
 class _FromDict(Protocol):
-    def from_dict(self, *args, **kwargs) -> _FromDict:
-        ...
+    def from_dict(self, *args, **kwargs) -> _FromDict: ...
 
 
 @lru_cache(maxsize=None)

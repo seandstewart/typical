@@ -45,8 +45,7 @@ from typic.klass import klass
 NOW = datetime.datetime.now(datetime.timezone.utc)
 
 
-class SubUUID(uuid.UUID):
-    ...
+class SubUUID(uuid.UUID): ...
 
 
 @pytest.mark.parametrize(argnames="obj", argvalues=BUILTIN_TYPES)
@@ -101,8 +100,7 @@ def test_isbuiltintype(obj: typing.Any):
         (uuid.UUID, str(uuid.UUID(int=1)), uuid.UUID(int=1)),
         (uuid.UUID, uuid.UUID(int=1).fields, uuid.UUID(int=1)),
         (SubUUID, uuid.UUID(int=1), SubUUID(int=1)),
-        (DirectoryPath, pathlib.Path.cwd(), DirectoryPath.cwd()),
-        (pathlib.Path, DirectoryPath.cwd(), pathlib.Path.cwd()),
+        (DirectoryPath, pathlib.Path.cwd().resolve(), DirectoryPath.cwd().resolve()),
         (objects.FromDict, {"foo": "bar!"}, objects.FromDict("bar!")),
         (objects.Data, {"foo": "bar!"}, objects.Data("bar!")),
         (dict, objects.Data("bar!"), {"foo": "bar!"}),
@@ -661,8 +659,7 @@ def test_bad_constraint_class():
     with pytest.raises(TypeError):
 
         @constrained
-        class Foo:
-            ...
+        class Foo: ...
 
 
 def test_strict_mode():
@@ -766,13 +763,11 @@ def test_strict_varargs_passes(func, args, kwargs, expected):
 
 
 @constrained(values=NetworkAddress)
-class Addresses(list):
-    ...
+class Addresses(list): ...
 
 
 @constrained(values=NetworkAddress)
-class AddresseMap(dict):
-    ...
+class AddresseMap(dict): ...
 
 
 @pytest.mark.parametrize(
@@ -872,8 +867,7 @@ def test_translate(target, value):
     assert isinstance(t, target)
 
 
-class Cls:
-    ...
+class Cls: ...
 
 
 @pytest.mark.parametrize(

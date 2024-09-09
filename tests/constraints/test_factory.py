@@ -15,12 +15,10 @@ class Foo:
     bar: str
 
 
-class MyStr(str):
-    ...
+class MyStr(str): ...
 
 
-class MyURL(typic.URL):
-    ...
+class MyURL(typic.URL): ...
 
 
 @pytest.mark.parametrize(

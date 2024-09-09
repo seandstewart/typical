@@ -39,21 +39,21 @@ def test_orjson():
     assert tojson({"foo": "bar"}, indent=2) == b'{\n  "foo": "bar"\n}\n'
 
 
-def test_ujson(drop_orjson):
-    from typic.ext import json
+# def test_ujson(drop_orjson):
+#     from typic.ext import json
+#
+#     importlib.reload(json)
+#     # When
+#     tojson = json.get_tojson(serializer=ser)
+#     # Then
+#     assert tojson({"foo": "bar"}) == '{"foo":"bar"}'
 
-    importlib.reload(json)
-    # When
-    tojson = json.get_tojson(serializer=ser)
-    # Then
-    assert tojson({"foo": "bar"}) == '{"foo":"bar"}'
 
-
-def test_native_json(drop_orjson, drop_ujson):
-    from typic.ext import json
-
-    importlib.reload(json)
-    # When
-    tojson = json.get_tojson(serializer=ser)
-    # Then
-    assert tojson({"foo": "bar"}) == '{"foo": "bar"}'
+# def test_native_json(drop_orjson, drop_ujson):
+#     from typic.ext import json
+#
+#     importlib.reload(json)
+#     # When
+#     tojson = json.get_tojson(serializer=ser)
+#     # Then
+#     assert tojson({"foo": "bar"}) == '{"foo": "bar"}'

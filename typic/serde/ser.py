@@ -49,8 +49,7 @@ if TYPE_CHECKING:  # pragma: nocover
     from .resolver import Resolver
 
 
-class SerializationValueError(ValueError):
-    ...
+class SerializationValueError(ValueError): ...
 
 
 _decode = methodcaller("decode", DEFAULT_ENCODING)

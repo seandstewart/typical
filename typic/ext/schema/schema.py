@@ -473,9 +473,9 @@ class SchemaBuilder:
                     for x, y in (schm.definitions or {}).items()
                 }
             )
-            definitions["definitions"][
-                schm.title  # type: ignore
-            ] = dataclasses.replace(schm, definitions=None)
+            definitions["definitions"][schm.title] = (  # type: ignore
+                dataclasses.replace(schm, definitions=None)
+            )
         if primitive:
             definitions["definitions"] = {
                 x: y.primitive() if isinstance(y, ObjectSchemaField) else y

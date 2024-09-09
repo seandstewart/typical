@@ -84,8 +84,7 @@ class EncoderT(Protocol[_InputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: _InputT, **kwargs) -> AnyStr:
-        ...
+    def __call__(self, value: _InputT, **kwargs) -> AnyStr: ...
 
 
 class DecoderT(Protocol[_OutputT]):
@@ -94,8 +93,7 @@ class DecoderT(Protocol[_OutputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: AnyStr, **kwargs) -> _OutputT:
-        ...
+    def __call__(self, value: AnyStr, **kwargs) -> _OutputT: ...
 
 
 class TranslatorT(Protocol[_InputT]):
@@ -104,8 +102,7 @@ class TranslatorT(Protocol[_InputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, value: _InputT, target: Type[_OutputT]) -> _OutputT:
-        ...
+    def __call__(self, value: _InputT, target: Type[_OutputT]) -> _OutputT: ...
 
 
 class SerializerT(Protocol[_InputT]):
@@ -116,8 +113,7 @@ class SerializerT(Protocol[_InputT]):
 
     def __call__(
         self, obj: _InputT, *, lazy: bool = False, name: util.ReprT = None
-    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]:
-        ...
+    ) -> Union[PrimitiveT, Iterator[PrimitiveT]]: ...
 
 
 class DeserializerT(Protocol[_OutputT]):
@@ -126,8 +122,7 @@ class DeserializerT(Protocol[_OutputT]):
     __name__: str
     __qualname__: str
 
-    def __call__(self, val: Any) -> _OutputT:
-        ...
+    def __call__(self, val: Any) -> _OutputT: ...
 
 
 class FieldIteratorT(Protocol[_InputT]):
@@ -138,8 +133,7 @@ class FieldIteratorT(Protocol[_InputT]):
 
     def __call__(
         self, o: _InputT, *, values: bool = False, **kwargs
-    ) -> Iterator[Union[Tuple[str, Any], Any]]:
-        ...
+    ) -> Iterator[Union[Tuple[str, Any], Any]]: ...
 
 
 PrimitiveT = TypeVar("PrimitiveT", str, int, float, list, dict)

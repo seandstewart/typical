@@ -18,12 +18,10 @@ if TYPE_CHECKING:  # pragma: nocover
 _ET = TypeVar("_ET")
 
 
-class EnvironmentValueError(ValueError):
-    ...
+class EnvironmentValueError(ValueError): ...
 
 
-class EnvironmentTypeError(TypeError):
-    ...
+class EnvironmentTypeError(TypeError): ...
 
 
 class Environ:
