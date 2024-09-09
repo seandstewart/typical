@@ -10,6 +10,14 @@
 
 ![How Typical](static/typical.png)
 
+# :warning: This Project is now Archived :warning:
+
+See [python-typelib](https://github.com/seandstewart/python-typelib) for a 
+modern successor to this library by the same author.
+
+For an more extensive alternative, see 
+[mashumaro](https://github.com/Fatal1ty/mashumaro).
+
 ## Introduction
 
 Typical is a library devoted to runtime analysis, inference,
